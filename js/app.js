@@ -2,7 +2,10 @@
 (() => {
 'use strict';
 const C = window.DEMONLIST_CONFIG || {};
-const LIVE = !!(C.supabaseUrl && C.supabasePublishableKey);
+const HAS_SUPABASE = !!(C.supabaseUrl && C.supabasePublishableKey);
+// Le mode aperçu ne modifie pas Supabase : les données fictives restent dans le navigateur.
+const FORCE_PREVIEW = (()=>{try{return sessionStorage.getItem('dlfr-preview-mode')==='demo';}catch{return false;}})();
+const LIVE = HAS_SUPABASE && !FORCE_PREVIEW;
 const tables = ['site_settings','players','demons','completions','news_items','profile_titles','player_profile_titles','player_profiles','hall_of_fame','player_stat_snapshots','demon_position_history'];
 let db = null, state = { data:null, staff:false, session:null, country:'MONDE', selectedPlayer:'', list:'main', keyword:'', busy:false };
 const el = document.getElementById('app');
@@ -49,22 +52,27 @@ async function uploadNewsImage(file){
 const flag = code=> {const c=plain(code).toUpperCase();return /^[A-Z]{2}$/.test(c)?[...c].map(ch=>String.fromCodePoint(ch.charCodeAt(0)+127397)).join(''):'';};
 const date = d => {if(!d)return '';const x=new Date(d);return Number.isNaN(x.getTime())?'':x.toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'});};
 const toast=msg=>{const x=$('toast');x.textContent=msg;x.classList.add('visible');setTimeout(()=>x.classList.remove('visible'),3500);};
-const templateNotice=()=> LIVE ? '' : '<div class="notice warning"><strong>Mode démonstration :</strong> noms, points et événements sont des exemples, pas les données en direct de la Demonlist. Pour utiliser la base réelle, configure <code>js/config.js</code>.</div>';
+const templateNotice=()=> LIVE ? '' : `<div class="notice warning"><strong>Mode démonstration :</strong> tous les joueurs, scores et niveaux affichés sont des exemples. Aucune donnée n'est enregistrée dans Supabase.${HAS_SUPABASE?' <button type="button" class="btn subtle small" data-action="previewLive">Revenir aux données réelles</button>':' Pour utiliser la base réelle, renseigne js/config.js.'}</div>`;
+function migrationNotice(){
+ if(!HAS_SUPABASE || !LIVE || state.data?.demons?.length)return '';
+ const people=state.data?.players?.length||0,records=state.data?.completions?.length||0;
+ return `<div class="notice migration-notice" role="status"><strong>Supabase est connecté, mais aucun niveau public n'est disponible.</strong><p>Actuellement : <b>0 niveau</b>, <b>${people} joueur(s)</b>, <b>${records} record(s)</b>. Le schéma Supabase crée les tables, mais ne transfère pas automatiquement les données de x10Hosting.</p><p>Prochaine étape : exporter les tables MySQL <code>users</code>, <code>demons</code> et <code>completions</code>, puis utiliser <code>tools/convert_mysql_csv.py</code> et importer les CSV dans Supabase (ordre : players, demons, completions).${people||records?' Vérifie également les règles de lecture RLS de la table demons.':''}</p><button type="button" class="btn" data-action="previewDemo">Voir le site avec des données d’exemple</button><p class="small muted">La démo ne remplit pas la base et ne modifie aucune donnée réelle.</p></div>`;
+}
 const cfg=()=>state.data.site_settings[0]||{main_limit:75,extended_limit:150,top1_points:350,legacy_scores:false};
 const demoLoad=()=>{const d=JSON.parse(JSON.stringify(window.DEMONLIST_DEMO));try{const saved=localStorage.getItem('demonlist-demo-v1');if(saved){const obj=JSON.parse(saved);if(obj && typeof obj==='object') for(const t of tables)if(Array.isArray(obj[t])) d[t]=obj[t];}}catch{};return d;};
 const saveDemo=()=>{if(!LIVE)try{localStorage.setItem('demonlist-demo-v1',JSON.stringify(state.data));}catch{}};
 async function readAll(name){let out=[],from=0;while(true){const {data,error}=await db.from(name).select('*').range(from,from+999);if(error)throw Error(`${name} : ${error.message}`);out.push(...data);if(data.length<1000)break;from+=1000;if(from>=60000)throw Error(`Limite de lecture atteinte pour ${name}; pagination serveur à prévoir`);}return out;}
 async function load(){
- if(!LIVE){state.data=demoLoad();$('sourceLabel').textContent='Démonstration locale';render();return;}
- if(!window.supabase){el.innerHTML='<div class="center-panel">Le client Supabase n’a pas pu être chargé. Vérifie ta connexion.</div>';return;}
+ if(!LIVE){state.data=demoLoad();$('sourceLabel').textContent=HAS_SUPABASE?'Aperçu local (Supabase non modifié)':'Démonstration locale';render();return;}
+ if(!window.supabase){el.innerHTML='<div class="center-panel"><h2>Supabase indisponible</h2><p>Le client Supabase n’a pas pu être chargé. Vérifie ta connexion.</p><button type="button" class="btn" data-action="previewDemo">Voir la démo locale</button></div>';return;}
  db=window.supabase.createClient(C.supabaseUrl,C.supabasePublishableKey);
  try{
    const result=await Promise.all(tables.map(readAll));state.data=Object.fromEntries(tables.map((t,i)=>[t,result[i]]));
    const {data:sessionData}=await db.auth.getSession();state.session=sessionData.session;
    await checkStaff();
    state.data.community_audit_log=state.staff?await readAll('community_audit_log'):[];
-   $('sourceLabel').textContent='Connecté à Supabase';render();
- }catch(err){el.innerHTML=`<div class="center-panel"><h2>Connexion Supabase impossible</h2><p>${esc(err.message)}</p><p class="small">Vérifie le schéma SQL et la clé publique du projet.</p></div>`;}
+   $('sourceLabel').textContent=state.data.demons.length?`Supabase · ${state.data.demons.length} niveau(x)`:'Supabase · aucun niveau importé';render();
+ }catch(err){el.innerHTML=`<div class="center-panel"><h2>Connexion Supabase impossible</h2><p>${esc(err.message)}</p><p class="small">Vérifie le schéma SQL, les permissions RLS et la clé publique du projet.</p><button type="button" class="btn" data-action="previewDemo">Tester le site en mode démo</button></div>`;}
 }
 async function checkStaff(){
  if(!LIVE)return;
@@ -194,7 +202,7 @@ function adminPage(){if(LIVE&&!state.staff){return `<div class="paper"><h1>Modé
  <div class="admin-card"><h3>Journal de modération</h3><p class="muted small">Dernières actions enregistrées automatiquement par la base.</p><div>${(state.data.community_audit_log||[]).slice(-20).reverse().map(x=>`<div class="record-row small"><b>${esc(x.action_key)} · ${esc(x.target)}</b><span>${date(x.created_at)}</span></div>`).join('')||'<p class="empty">Aucune action récente.</p>'}</div></div>
  </div>`;
 }
-function render(){if(!state.data)return;const page=nav(),params=new URLSearchParams(location.search);if(page==='stats'&&params.has('player'))state.selectedPlayer=key(params.get('player'));const content=page==='stats'?statsPage():page==='demon'?demonPage():page==='news'?newsPage():page==='hall'?hallPage():page==='admin'?adminPage():listPage();el.innerHTML=content;document.title=({list:'Demonlist',stats:'Statistiques',news:'Actualités',hall:'Hall of Fame',admin:'Modération',demon:'Niveau'})[page]+' · DemonlistFrancophone';}
+function render(){if(!state.data)return;const page=nav(),params=new URLSearchParams(location.search);if(page==='stats'&&params.has('player'))state.selectedPlayer=key(params.get('player'));const content=page==='stats'?statsPage():page==='demon'?demonPage():page==='news'?newsPage():page==='hall'?hallPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;document.title=({list:'Demonlist',stats:'Statistiques',news:'Actualités',hall:'Hall of Fame',admin:'Modération',demon:'Niveau'})[page]+' · DemonlistFrancophone';}
 async function save(table,item,{upsert=false,on=null}={}){
  if(!LIVE){const existing=state.data[table];const copy={...item};if(!('id' in copy)&&['news_items','profile_titles','hall_of_fame','demons','completions'].includes(table))copy.id=Math.max(0,...existing.map(r=>Number(r.id)||0))+1;
  if(upsert){const match=existing.findIndex(p=>(on||['id']).every(f=>String(p[f])===String(copy[f])));if(match>=0)existing[match]={...existing[match],...copy};else existing.push(copy);}else existing.push(copy);
@@ -240,6 +248,14 @@ function bootEvents(){
  const p=ev.target.closest('[data-player]');if(p){state.selectedPlayer=p.dataset.player;history.replaceState({},'',url('stats',{player:state.selectedPlayer}));const chosen=getPlayer(state.selectedPlayer);$('profileContent').innerHTML=statProfile(chosen);document.querySelectorAll('.rank-item').forEach(x=>x.classList.toggle('selected',x.dataset.player===state.selectedPlayer));return;}
  const route=ev.target.closest('[data-route]');if(route){go(route.dataset.route);return;}
  const act=ev.target.closest('[data-action]');if(!act)return;
+ if(act.dataset.action==='previewDemo'){
+  try{sessionStorage.setItem('dlfr-preview-mode','demo');}catch{}
+  location.reload();return;
+ }
+ if(act.dataset.action==='previewLive'){
+  try{sessionStorage.removeItem('dlfr-preview-mode');}catch{}
+  location.reload();return;
+ }
  if(act.dataset.action==='demoStaff'&&!LIVE){state.staff=true;render();}
  if(act.dataset.action==='resetDemo'&&!LIVE){try{localStorage.removeItem('demonlist-demo-v1');}catch{}state.data=demoLoad();toast('Démo réinitialisée');render();}
  if(act.dataset.action==='logout'&&LIVE){await db.auth.signOut();state.session=null;state.staff=false;render();}

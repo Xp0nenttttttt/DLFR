@@ -41,3 +41,13 @@ html.dark .level-badge.legacy{background:#5c4933;color:#ffe7b4;border-color:#836
 .profile-hero{position:relative;isolation:isolate;overflow:hidden}
 .profile-cover-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
 .profile-hero:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#071c35c2,#0e19265e);z-index:-1}
+
+/* V1.1.1 - aide explicite pendant la migration Supabase. */
+.migration-notice{background:#eaf5ff;border-left:4px solid #1878ba;padding:19px 20px;margin:0 0 18px;line-height:1.65}
+.migration-notice strong{font-size:15px;color:#205579}
+.migration-notice p{margin:8px 0}
+.migration-notice .btn{margin:8px 0 4px}
+html.dark .migration-notice{background:#263e56}
+html.dark .migration-notice strong{color:#b0ddff}
+.notice .btn{vertical-align:middle;margin-left:6px}
+@media(max-width:690px){.migration-notice{padding:13px 12px}.migration-notice .btn{width:100%;margin:8px 0}.notice .btn{margin:8px 0 0}}
