@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+"""Sauvegarde journalière du classement Demonlist dans Supabase.
+
+Secrets GitHub Actions UNIQUEMENT : SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY.
+Ne jamais placer la service role key dans js/config.js ni dans le dépôt.
+"""
+import datetime as dt
+import json
+import math
+import os
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
+
+URL = os.environ.get('SUPABASE_URL', '').rstrip('/')
+KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
+if __name__ == '__main__' and (not URL or not KEY):
+    raise SystemExit('Secrets SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY manquants')
+
+
+def request(table, *, method='GET', params=None, payload=None, prefer=None):
+    url = URL + '/rest/v1/' + table
+    if params:
+        url += '?' + urlencode(params)
+    headers = {'apikey': KEY, 'Authorization': f'Bearer {KEY}', 'Accept': 'application/json'}
+    if prefer:
+        headers['Prefer'] = prefer
+    body = None
+    if payload is not None:
+        body = json.dumps(payload, ensure_ascii=False).encode('utf-8')
+        headers['Content-Type'] = 'application/json'
+    req = Request(url, headers=headers, method=method, data=body)
+    with urlopen(req, timeout=45) as f:
+        data = f.read()
+        return json.loads(data) if data else None
+
+
+def fetch_all(table):
+    rows = []
+    for offset in range(0, 60000, 1000):
+        batch = request(table, params={'select': '*', 'limit': 1000, 'offset': offset, 'order': 'id.asc' if table in ('demons','completions') else 'player_key.asc' if table=='players' else 'id.asc'})
+        rows.extend(batch)
+        if len(batch) < 1000:
+            return rows
+    raise RuntimeError(f'Trop de lignes dans {table}; augmenter la pagination')
+
+
+def base(p):
+    if p >= 56:
+        return 1.039035131*((185.7*math.exp(-0.02715*p))+14.84)
+    if p >= 36:
+        return 1.0371139743*((212.61*(1.036**(1-p)))+25.071)
+    if p >= 21:
+        return ((250-83.389)*(1.0099685**(2-p))-31.152)*1.0371139743
+    if p >= 4:
+        return ((326.1*math.exp(-.0871*p))+51.09)*1.037117142
+    if p >= 1:
+        return (-18.2899079915*p)+368.2899079915
+    return 0.0
+
+
+def points(d, progress, settings):
+    p=int(d.get('position') or 0)
+    req=max(1,min(100,int(d.get('requirement') or 100)))
+    progress=int(progress or 0)
+    if p<1 or p>int(settings['extended_limit']) or progress<req or (d.get('legacy') and not settings.get('legacy_scores')):
+        return 0.
+    beaten=base(p)*float(settings['top1_points'])/base(1)
+    return beaten if progress==100 else beaten*5**((progress-req)/max(1,100-req))/10
+
+
+def compute(players, demons, completions, settings):
+    people={p['player_key']:dict(p,score=float(p.get('bonus_points') or 0),complete_count=0,hardest=None) for p in players}
+    demon_by_id={d['id']:d for d in demons}
+    earned={}
+    for r in completions:
+        k=(r.get('player') or '').strip().lower()
+        p=people.get(k)
+        d=demon_by_id.get(r.get('demon_id'))
+        if not p or not d:
+            continue
+        s=points(d,r.get('progress',0),settings)
+        p['score']+=s
+        earned[(k,d['id'])]=s
+        if int(r.get('progress') or 0)==100:
+            p['complete_count']+=1
+            if p['hardest'] is None or int(d['position'])<int(p['hardest']['position']):
+                p['hardest']=d
+    for d in demons:
+        k=(d.get('verifier') or '').strip().lower()
+        by_id=next((p['player_key'] for p in players if p.get('legacy_id') is not None and p.get('legacy_id')==d.get('verifier_user_id')),None)
+        p=people.get(by_id or k)
+        if not p or not p.get('has_account'):
+            continue
+        full=points(d,100,settings)
+        p['score']+=max(0.,full-earned.get((p['player_key'],d['id']),0))
+    ranked=sorted((p for p in people.values() if not p.get('hidden_from_stats')),key=lambda p:(-p['score'],p['player_key']))
+    positions={p['player_key']:i+1 for i,p in enumerate(ranked)}
+    return people,positions
+
+
+def main():
+    settings=request('site_settings',params={'select':'*','id':'eq.1'})[0]
+    players=fetch_all('players')
+    demons=fetch_all('demons')
+    records=fetch_all('completions')
+    people,ranks=compute(players,demons,records,settings)
+    today=dt.date.today().isoformat()
+    snapshots=[]
+    for k,p in people.items():
+        score=round(p['score'],2)
+        snapshots.append({'snapshot_day':today,'player_key':k,'points':score,
+            'rank_position':ranks.get(k),'completions':p['complete_count'],
+            'hardest_demon':p['hardest']['name'] if p['hardest'] else None})
+        # Conserver aussi les points publics synchronisés, sans modifier les autres champs du profil.
+        request('players',method='PATCH',params={'player_key':'eq.'+k},payload={'points':score})
+    for i in range(0,len(snapshots),300):
+        request('player_stat_snapshots',method='POST',params={'on_conflict':'snapshot_day,player_key'},
+          payload=snapshots[i:i+300],prefer='resolution=merge-duplicates,return=minimal')
+    print(f'{len(players)} profils, {len(demons)} démons, {len(records)} records, {len(snapshots)} snapshots au {today}.')
+
+if __name__=='__main__':
+    main()

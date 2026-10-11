@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="DemonlistFrancophone — listes Geometry Dash, statistiques des joueurs et Hall of Fame.">
+  <title>DemonlistFrancophone</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+  <script src="js/config.js" defer></script>
+  <script src="js/demo-data.js" defer></script>
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="navigation" aria-label="Navigation principale">
+      <a href="?page=list" class="brand" data-link="list">DemonlistFrancophone</a>
+      <div class="nav-links">
+        <a href="?page=list" data-link="list">DemonlistFrancophone <span class="chevron">⌄</span></a>
+        <a href="?page=stats" data-link="stats">Statistiques</a>
+        <a href="?page=news" data-link="news">Actualités</a>
+        <a href="?page=hall" data-link="hall">Hall of Fame</a>
+        <a href="?page=admin" data-link="admin">Modération</a>
+      </div>
+      <button id="themeToggle" class="simple-btn" type="button" aria-label="Changer le thème">⚙</button>
+    </nav>
+  </header>
+  <main class="layout" id="app" aria-live="polite"><div class="center-panel loading">Chargement de la Demonlist…</div></main>
+  <footer class="site-footer">DemonlistFrancophone · Projet de migration vers GitHub Pages &amp; Supabase · <span id="sourceLabel">Mode démo</span></footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

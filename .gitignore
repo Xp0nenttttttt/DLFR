@@ -1,0 +1,9 @@
+# Exports pouvant contenir des informations privées et secrets
+imports/
+exports/
+.env
+.env.*
+config.php
+*.sql.gz
+mysql-backup*
+*database-backup*
