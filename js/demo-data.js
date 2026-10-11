@@ -36,10 +36,10 @@ window.DEMONLIST_DEMO = {
  {id:8,demon_id:110,player:'niwox_',progress:100,video_url:'',created_at:'2026-04-10'},
  {id:9,demon_id:151,player:'Cryostaz',progress:100,video_url:'',created_at:'2026-03-10'}
  ],
- news_items:[{id:1,headline:'Bienvenue sur la nouvelle DemonlistFrancophone',body:'Démonstration de la migration HTML, CSS, JavaScript et Supabase. Les données affichées dans cette démo sont fictives.',player_name:'',is_published:true,created_at:'2026-10-11'}],
+ news_items:[{id:1,headline:'Bienvenue sur la nouvelle DemonlistFrancophone',body:'Démonstration de la migration HTML, CSS, JavaScript et Supabase. Les données affichées dans cette démo sont fictives.',player_name:'',image_url:'assets/nullscapes.webp',video_url:'',is_published:true,created_at:'2026-10-11'}],
  profile_titles:[{id:1,label:'Top 1 France 2025',description:'Distinction illustrative',color:'#287bba',is_active:true},{id:2,label:'Best Grinder 2025',description:'Distinction illustrative',color:'#9c57a5',is_active:true}],
  player_profile_titles:[{player_key:'cryostaz',title_id:1},{player_key:'spleen',title_id:2}],
- player_profiles:[{player_key:'spleen',bio:'Bienvenue sur ma page Geometry Dash !',banner_url:'',social_url:'',highlight_1:'Midnight',highlight_2:'Cognition',highlight_3:'Jawbreaker'}],
+ player_profiles:[{player_key:'spleen',bio:'Bienvenue sur ma page Geometry Dash !',avatar_url:'assets/logo.png',banner_url:'assets/nullscapes.webp',join_year:2021,favorite_level:'Cognition',current_goal:'Un nouveau hardest',youtube_url:'',twitch_url:'',social_url:'',highlight_1:'Midnight',highlight_2:'Cognition',highlight_3:'Jawbreaker'}],
  hall_of_fame:[{id:1,player_key:'cryostaz',headline:'Top 1 France 2025',description:'Exemple de distinction historique.',award_year:2025,category:'Classement',is_published:true,created_at:'2026-10-11'}],
  player_stat_snapshots:[],demon_position_history:[],community_audit_log:[]
 };

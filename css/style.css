@@ -3,3 +3,41 @@
 html.dark{--bg:#151b27;--card:#252f3d;--ink:#e9ecf2;--ink2:#fff;--muted:#b4c0ce;--border:#424c5e;--line:#455166;--panel:#2e3a4c;--shadow:none}html.dark .site-header{background:#243041;border-color:#42506a}html.dark .nav-links>a:hover,html.dark .nav-links>a.active,html.dark .list-tabs button.active,html.dark .rank-item:hover,html.dark .rank-item.selected{background:#34455b}html.dark .list-tabs,html.dark .list-tabs button,html.dark .rank-item{background:var(--card);color:var(--ink)}html.dark .rank-num,html.dark .rank-item .rank-num,html.dark .player-title,html.dark .stat-value{color:var(--ink)}html.dark .statbox,html.dark .tag{background:#313d4d;border-color:#506077;color:var(--ink)}html.dark .notice{background:#293e52}html.dark .notice.warning{background:#50402b}
 @media(max-width:1000px){.navigation{flex-wrap:wrap;justify-content:center;padding-top:8px}.nav-links{overflow-x:auto;max-width:100%;justify-content:center}.nav-links>a{padding:12px}.brand{margin:0}.page-columns{grid-template-columns:1fr}.right-side{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.right-panel{margin:0}.stats-grid{grid-template-columns:270px minmax(0,1fr)}}
 @media(max-width:690px){.navigation{padding:5px 8px}.nav-links{justify-content:flex-start}.nav-links>a{font-size:12px;padding:10px}.layout{padding:15px 8px 45px}.brand{font-size:16px}.center-panel{padding:16px 12px}.center-panel h1{font-size:24px}.paper{padding:12px;margin-bottom:14px}.list-entry{grid-template-columns:120px minmax(0,1fr);gap:10px;min-height:108px;padding:10px}.demon-thumb{width:120px;height:77px}.list-entry h2{font-size:16px}.entry-meta{font-size:11px}.points{font-size:10px}.stats-grid{grid-template-columns:1fr}.rank-list{max-height:220px}.statboxes{gap:3px}.statbox{padding:8px 3px}.stat-label{font-size:9px}.right-side,.hof-grid,.two-col,.moderation-sections,.level-detail{grid-template-columns:1fr}.cards-3{grid-template-columns:1fr}.stats-main{padding:10px 8px}.list-tabs button{font-size:11px;padding:9px 4px}}
+
+/* V1.1 — médias des actualités, doubles statuts Legacy/hors Top 150, profil détaillé. */
+.level-status{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.level-badge{font-size:10px;letter-spacing:.02em;font-weight:800;padding:4px 7px;border:1px solid transparent;white-space:nowrap}
+.level-badge.outside{background:#f0f3f6;color:#546476;border-color:#d3dde5}
+.level-badge.legacy{background:#fff0d7;color:#8d6023;border-color:#f0d7a9}
+.news-card{overflow:hidden}
+.news-body{white-space:pre-wrap;overflow-wrap:anywhere}
+.news-image-link{display:block;max-width:100%;margin:12px 0}
+.news-image{width:100%;max-height:420px;object-fit:contain;background:#121923;display:block}
+.news-video{position:relative;width:100%;aspect-ratio:16/9;background:#101521;margin:12px 0}
+.news-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.news-video-file{display:block;width:100%;max-height:420px;margin:12px 0;background:#101521}
+.profile-hero{margin:-14px -14px 13px;min-height:135px;background:linear-gradient(115deg,#466887,#282d47);background-size:cover;background-position:center;color:white;padding:23px 16px 17px}
+.profile-hero-inner{display:flex;gap:13px;align-items:center}
+.profile-avatar{width:80px;height:80px;border:3px solid rgba(255,255,255,.85);object-fit:cover;background:#3e6387;flex:0 0 80px;box-shadow:0 4px 12px #0004}
+.profile-avatar-fallback{display:flex;justify-content:center;align-items:center;font-size:35px;font-weight:700;color:#fff}
+.profile-hero-copy{display:flex;flex-direction:column;gap:3px;min-width:0;text-shadow:0 1px 4px #1118}
+.profile-hero-copy strong{font-size:24px;line-height:1.2;overflow-wrap:anywhere}
+.profile-hero-copy>span:last-child{font-size:12px;opacity:.95}
+.profile-pretitle{font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:#eef5ff}
+.profile-bio{text-align:left;margin:13px auto;padding:13px 14px;background:var(--panel);border-left:3px solid var(--blue);font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}
+.profile-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:10px 0 13px}
+.profile-fact{border:1px solid var(--line);background:var(--panel);padding:10px;min-width:0;font-size:12px;overflow-wrap:anywhere}
+.profile-fact strong{display:block;color:var(--muted);font-size:10px;letter-spacing:.03em;text-transform:uppercase;margin-bottom:5px}
+.profile-socials{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;margin:11px 0 14px}
+.social-link{padding:6px 12px;border:1px solid var(--line);color:var(--blue);text-decoration:none;font-size:12px;font-weight:700;background:var(--panel)}
+.recent-completions{display:flex;flex-direction:column;text-align:left;margin:8px 0 12px}
+.recent-item{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:8px;border-bottom:1px solid var(--line);padding:8px 4px;align-items:center;font-size:12px}
+.recent-item>span{color:#218c68}
+.recent-item time{color:var(--muted);font-size:10px}
+html.dark .level-badge.outside{background:#3b495a;color:#e4ebf5;border-color:#62758b}
+html.dark .level-badge.legacy{background:#5c4933;color:#ffe7b4;border-color:#836843}
+@media(max-width:690px){.profile-facts{grid-template-columns:1fr 1fr}.profile-hero-copy strong{font-size:18px}.profile-avatar{width:61px;height:61px;flex-basis:61px}.profile-hero{min-height:95px;padding:15px 10px}.recent-item{grid-template-columns:16px minmax(0,1fr) auto}}
+
+.profile-hero{position:relative;isolation:isolate;overflow:hidden}
+.profile-cover-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
+.profile-hero:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#071c35c2,#0e19265e);z-index:-1}
