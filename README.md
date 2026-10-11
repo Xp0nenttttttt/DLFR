@@ -1,3 +1,7 @@
+# DemonlistFrancophone V1.2 (HTML/CSS/JS + Supabase)
+
+Commence par **[V1.2-A-LIRE.md](V1.2-A-LIRE.md)**. Cette archive contient une démo frontend autonome de la V1.2 du dépôt DLFR. Les données de démonstration sont fictives.
+
 # DemonlistFrancophone — migration HTML/CSS/JS + Supabase (V1)
 
 **Première étape de migration**, basée sur le code PHP de l'ancien site. Reproduction visuelle de type Pointercrate, sans framework ni compilation, compatible GitHub Pages.

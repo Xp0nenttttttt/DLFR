@@ -51,3 +51,94 @@ html.dark .migration-notice{background:#263e56}
 html.dark .migration-notice strong{color:#b0ddff}
 .notice .btn{vertical-align:middle;margin-left:6px}
 @media(max-width:690px){.migration-notice{padding:13px 12px}.migration-notice .btn{width:100%;margin:8px 0}.notice .btn{margin:8px 0 0}}
+
+/* V1.2 : interface fidèle à Pointercrate, interactions améliorées sans nouveau SQL */
+:root{--focus:#197bb5;--radius:3px}
+button,select,input,textarea{font:inherit}
+button:not(:disabled),a{transition:background-color .15s ease,border-color .15s ease,opacity .15s ease,box-shadow .15s ease}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+button:not(:disabled){cursor:pointer}
+.is-hidden{display:none!important}
+.overview-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 16px}
+.overview-stats .statbox{min-width:0;padding:13px 6px;background:var(--panel);border:1px solid var(--line);text-align:center}
+.overview-stats .stat-label{font-size:10px;min-height:24px;letter-spacing:.03em}
+.overview-stats .stat-value{font-size:18px;font-weight:800}
+.stats-main>.overview-stats{margin:8px 0 16px}
+.profile-tabs{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;background:var(--panel);border-block:1px solid var(--line);padding:7px 4px;margin:17px 0 10px}
+.profile-tabs button{background:transparent;border:1px solid transparent;padding:9px 11px;font-weight:700;font-size:12px;color:var(--muted)}
+.profile-tabs button.active{background:var(--blue);color:white}
+.profile-pane{min-height:100px;animation:panel-in .2s ease}
+.profile-pane .profile-section{margin-block:14px}
+.profile-pane .hof-item{text-align:left;margin:10px 0}
+.record-table-wrap{overflow:auto;border:1px solid var(--line);background:var(--card);margin:12px 0 18px}
+.record-table{width:100%;border-collapse:collapse;min-width:450px;text-align:left;font-size:12px}
+.record-table th{background:var(--panel);color:var(--muted);font-size:10px;letter-spacing:.04em;text-transform:uppercase}
+.record-table th,.record-table td{border-bottom:1px solid var(--line);padding:11px 10px;white-space:normal}
+.record-table tbody tr:hover{background:var(--panel)}
+.record-table td:first-child{font-weight:600}
+.record-table a{color:var(--blue)}
+.profile-pane .row-between h3{margin:0}
+.profile-pane select{width:auto;min-width:90px;margin-left:5px;padding:5px 6px}
+.compare-panel{background:var(--panel);border:1px solid var(--line);padding:16px}
+.compare-selects{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.compare-selects label{font-size:12px;font-weight:700}
+.compare-selects select{margin-top:6px}
+.news-page{max-width:940px;margin-inline:auto}
+.news-controls{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:12px 0 20px}
+.news-filters{display:flex;gap:6px;flex-wrap:wrap}
+.news-filters button{font-size:12px;font-weight:700;border:1px solid var(--line);padding:8px 12px;background:var(--panel);color:var(--ink)}
+.news-filters button.active{background:var(--blue);border-color:var(--blue);color:white}
+.news-controls .filterbox{margin:0;max-width:270px;min-width:210px;flex:1}
+.news-card{padding:20px 22px;border-left-width:4px;border:1px solid var(--line);border-left:4px solid #2080c2;background:var(--card);margin:14px 0;box-shadow:0 3px 15px #0000000a}
+.news-card.pinned{border-left-color:#dfa642;background:color-mix(in srgb, var(--card) 92%, #e9bb6a)}
+.news-card h3{font-size:20px;margin:10px 0}
+.news-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:11px;color:var(--muted)}
+.news-category,.news-pin{display:inline-block;background:#d9edf9;color:#195b87;border:1px solid #bddcf1;padding:4px 7px;font-weight:800;letter-spacing:.02em}
+.news-pin{background:#ffedc6;color:#856019;border-color:#eed7a4}
+.news-meta time{margin-left:auto}
+.news-editor-actions{display:flex;gap:8px;margin-top:13px;padding-top:10px;border-top:1px solid var(--line)}
+.admin-mode{font-weight:700;color:var(--blue);font-size:11px;letter-spacing:.03em;text-transform:uppercase;margin-bottom:11px}
+.admin-workspace{display:grid;grid-template-columns:185px minmax(0,1fr);gap:16px;align-items:start}
+.admin-nav{position:sticky;top:12px;background:var(--card);border:1px solid var(--line);padding:6px;display:flex;flex-direction:column;gap:3px}
+.admin-nav button{width:100%;text-align:left;border:0;background:transparent;color:var(--ink);font-size:12px;font-weight:700;padding:12px 10px}
+.admin-nav button:hover{background:var(--panel)}
+.admin-nav button.active{background:var(--blue);color:white}
+.admin-content{min-width:0}
+.admin-intro{padding:20px;background:var(--card);border:1px solid var(--line)}
+.admin-intro h2{font-size:19px;margin:0 0 13px}
+.admin-intro .overview-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+.admin-intro .overview-stats .stat-value{font-size:20px}
+.admin-content .moderation-sections{grid-template-columns:minmax(0,1fr);gap:12px}
+.admin-content .moderation-sections[data-active-admin="overview"]{display:none}
+.admin-content .moderation-sections .admin-card{display:none}
+.admin-content .moderation-sections[data-active-admin="levels"] [data-admin-section="levels"],
+.admin-content .moderation-sections[data-active-admin="news"] [data-admin-section="news"],
+.admin-content .moderation-sections[data-active-admin="profiles"] [data-admin-section="profiles"],
+.admin-content .moderation-sections[data-active-admin="awards"] [data-admin-section="awards"],
+.admin-content .moderation-sections[data-active-admin="audit"] [data-admin-section="audit"]{display:block;animation:panel-in .2s ease}
+.admin-card{padding:20px}
+.admin-card h3{border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px}
+.admin-card label.field{margin-block:13px}
+.admin-card .field input[type="checkbox"]{width:auto;vertical-align:middle}
+.news-live-preview{background:var(--panel);border:1px dashed var(--border);padding:16px;margin:16px 0;min-height:105px}
+.news-live-preview h4{margin:9px 0;font-size:17px}
+.news-live-preview p{font-size:12px}
+.news-preview-img{max-width:260px;max-height:180px;object-fit:contain;display:block;margin-top:12px}
+.managed-news{margin-top:22px}
+.managed-news h4{margin:0 0 9px}
+.managed-item{display:flex;justify-content:space-between;align-items:center;gap:14px;border-bottom:1px solid var(--line);padding:9px 0;font-size:12px}
+.managed-item small{color:var(--muted)}
+.import-label{display:inline-block;cursor:pointer}
+.profile-editor-tip{font-size:11px;padding:10px 12px;background:var(--panel);border-left:3px solid var(--blue);color:var(--muted);margin:10px 0}
+@keyframes panel-in{from{opacity:.65;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+html.dark .news-category{background:#284d68;color:#bce0ff;border-color:#3d6581}
+html.dark .news-pin{background:#615137;color:#fff0cc;border-color:#8d774e}
+html.dark .news-card.pinned{background:#303642}
+html.dark .profile-tabs{background:var(--panel)}
+@media(max-width:900px){.admin-workspace{grid-template-columns:1fr}.admin-nav{position:static;flex-direction:row;overflow-x:auto;scrollbar-width:thin}.admin-nav button{width:auto;flex:0 0 auto;padding:10px 12px}.stats-main>.overview-stats{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:690px){.overview-stats{grid-template-columns:repeat(2,1fr)}.profile-tabs button{font-size:11px;padding:8px}.compare-selects{grid-template-columns:1fr}.news-controls .filterbox{max-width:none;width:100%}.news-card{padding:14px}.news-card h3{font-size:17px}.admin-card{padding:13px}.admin-intro{padding:13px}.news-filters button{font-size:11px}.news-meta time{margin-left:0}.record-table{font-size:11px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+/* Champs sans attribut type explicite : conserver la largeur du panneau. */
+.admin-card .field>input:not([type="checkbox"]):not([type="file"]),
+.admin-card .field>textarea,.admin-card .field>select{display:block;width:100%;max-width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--border);background:var(--card);color:var(--ink);margin-top:6px}
+.admin-card .field>input[type="file"]{display:block;max-width:100%;margin-top:7px;font-size:12px}

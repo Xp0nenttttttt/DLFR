@@ -36,10 +36,18 @@ window.DEMONLIST_DEMO = {
  {id:8,demon_id:110,player:'niwox_',progress:100,video_url:'',created_at:'2026-04-10'},
  {id:9,demon_id:151,player:'Cryostaz',progress:100,video_url:'',created_at:'2026-03-10'}
  ],
- news_items:[{id:1,headline:'Bienvenue sur la nouvelle DemonlistFrancophone',body:'Démonstration de la migration HTML, CSS, JavaScript et Supabase. Les données affichées dans cette démo sont fictives.',player_name:'',image_url:'assets/nullscapes.webp',video_url:'',is_published:true,created_at:'2026-10-11'}],
+ news_items:[
+ {id:1,headline:'Bienvenue sur la nouvelle DemonlistFrancophone',body:'La communauté peut maintenant retrouver les actualités, suivre les classements et mettre en avant les joueurs. Ceci est une démonstration fictive.',player_name:'',category:'Annonce',is_pinned:true,image_url:'assets/nullscapes.webp',video_url:'',is_published:true,created_at:'2026-10-11'},
+ {id:2,headline:'Un nouveau record dans la communauté !',body:'Exemple de publication : un modérateur annonce une complétion importante et ajoute la vidéo du joueur.',player_name:'Spleen',category:'Record',is_pinned:false,image_url:'',video_url:'',is_published:true,created_at:'2026-10-07'},
+ {id:3,headline:'Retour d’un joueur dans le classement',body:'Cette publication illustre une actualité de catégorie Classement. Les dates et les noms affichés sont uniquement des exemples.',player_name:'Cryostaz',category:'Classement',is_pinned:false,image_url:'',video_url:'',is_published:true,created_at:'2026-10-03'},
+ {id:4,headline:'Rencontre communautaire',body:'Un espace pour présenter les projets, événements et annonces des membres.',player_name:'',category:'Communauté',is_pinned:false,image_url:'',video_url:'',is_published:true,created_at:'2026-09-21'}
+ ],
  profile_titles:[{id:1,label:'Top 1 France 2025',description:'Distinction illustrative',color:'#287bba',is_active:true},{id:2,label:'Best Grinder 2025',description:'Distinction illustrative',color:'#9c57a5',is_active:true}],
  player_profile_titles:[{player_key:'cryostaz',title_id:1},{player_key:'spleen',title_id:2}],
- player_profiles:[{player_key:'spleen',bio:'Bienvenue sur ma page Geometry Dash !',avatar_url:'assets/logo.png',banner_url:'assets/nullscapes.webp',join_year:2021,favorite_level:'Cognition',current_goal:'Un nouveau hardest',youtube_url:'',twitch_url:'',social_url:'',highlight_1:'Midnight',highlight_2:'Cognition',highlight_3:'Jawbreaker'}],
+ player_profiles:[{player_key:'cryostaz',bio:'Profil fictif de démonstration. Joueur de haut classement.',avatar_url:'',banner_url:'assets/nullscapes.webp',join_year:2019,favorite_level:'Nullscapes',current_goal:'Défendre sa première place',youtube_url:'',twitch_url:'',social_url:'',highlight_1:'Top 1 français',highlight_2:'Record historique',highlight_3:'Vérificateur'}, {player_key:'spleen',bio:'Bienvenue sur ma page Geometry Dash !',avatar_url:'assets/logo.png',banner_url:'assets/nullscapes.webp',join_year:2021,favorite_level:'Cognition',current_goal:'Un nouveau hardest',youtube_url:'',twitch_url:'',social_url:'',highlight_1:'Midnight',highlight_2:'Cognition',highlight_3:'Jawbreaker'}],
  hall_of_fame:[{id:1,player_key:'cryostaz',headline:'Top 1 France 2025',description:'Exemple de distinction historique.',award_year:2025,category:'Classement',is_published:true,created_at:'2026-10-11'}],
- player_stat_snapshots:[],demon_position_history:[],community_audit_log:[]
+ player_stat_snapshots:[
+ {player_key:'cryostaz',snapshot_day:'2026-04-01',rank:3,points:1440},{player_key:'cryostaz',snapshot_day:'2026-05-01',rank:2,points:1620},{player_key:'cryostaz',snapshot_day:'2026-06-01',rank:2,points:1800},{player_key:'cryostaz',snapshot_day:'2026-07-01',rank:1,points:1980},{player_key:'cryostaz',snapshot_day:'2026-08-01',rank:1,points:2040},{player_key:'cryostaz',snapshot_day:'2026-09-01',rank:1,points:2184.5},
+ {player_key:'spleen',snapshot_day:'2026-05-01',rank:27,points:80},{player_key:'spleen',snapshot_day:'2026-06-01',rank:25,points:121},{player_key:'spleen',snapshot_day:'2026-07-01',rank:21,points:175},{player_key:'spleen',snapshot_day:'2026-08-01',rank:18,points:225},{player_key:'spleen',snapshot_day:'2026-09-01',rank:14,points:300},{player_key:'spleen',snapshot_day:'2026-10-01',rank:12,points:345.2}
+ ],demon_position_history:[],community_audit_log:[]
 };
