@@ -9,8 +9,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="js/config.js" defer></script>
   <script src="js/demo-data.js" defer></script>
+  <script src="js/v2-core.js" defer></script>
+  <script src="js/v2-demo.js" defer></script>
   <script src="js/app.js" defer></script>
 </head>
 <body>
@@ -22,9 +25,15 @@
         <a href="?page=stats" data-link="stats">Statistiques</a>
         <a href="?page=news" data-link="news">Actualités</a>
         <a href="?page=hall" data-link="hall">Hall of Fame</a>
+        <a href="?page=calculator" data-link="calculator">Calculateur</a>
+        <a href="?page=unbeaten" data-link="unbeaten">Non battus</a>
+        <a href="?page=achievements" data-link="achievements">Achievements FR</a>
+        <a href="?page=clans" data-link="clans">Clans</a>
+        <a href="?page=history" data-link="history">Historique</a>
         <a href="?page=admin" data-link="admin">Modération</a>
       </div>
-      <button id="themeToggle" class="simple-btn" type="button" aria-label="Changer le thème">⚙</button>
+      <label class="nav-theme">Thème <select id="themeSelect" aria-label="Thème"><option value="light">Clair</option><option value="dark">Sombre</option><option value="midnight">Midnight</option><option value="autumn">Automne</option></select></label>
+      <button class="unrated-switch" id="unratedToggle" type="button" aria-pressed="false">◈ UNRATED OFF</button>
     </nav>
   </header>
   <main class="layout" id="app" aria-live="polite"><div class="center-panel loading">Chargement de la Demonlist…</div></main>
