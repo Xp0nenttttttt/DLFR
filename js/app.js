@@ -7,9 +7,10 @@ const HAS_SUPABASE = !!(C.supabaseUrl && C.supabasePublishableKey);
 const FORCE_PREVIEW = (()=>{try{return sessionStorage.getItem('dlfr-preview-mode')==='demo'||new URLSearchParams(location.search).get('demo')==='1';}catch{return false;}})();
 const LIVE = HAS_SUPABASE && !FORCE_PREVIEW;
 const V2 = window.DLFR_V2;
+const UNVERIFIED = window.DLFR_UNVERIFIED;
 const v2Tables=['fr_achievements','clans','clan_members','nlw_staff','player_sanctions','aredl_levels'];
 const tables = ['site_settings','players','demons','completions','news_items','profile_titles','player_profile_titles','player_profiles','hall_of_fame','player_stat_snapshots','demon_position_history'];
-let db = null, state = { data:null, staff:false, session:null, country:'MONDE', selectedPlayer:'', list:'main', keyword:'', busy:false, statsTab:'players', statsYear:'all', comparePlayer:'', profileTab:'overview', newsFilter:'all', newsSearch:'', adminTab:'overview', editingNews:null, unrated:false, calcPlayer:'', calcDemons:[], calcNlw:false, unbeatPlayer:'spleen', unbeatSearch:'', demoRole:'owner', selectedClan:1 };
+let db = null, state = { data:null, staff:false, session:null, country:'MONDE', selectedPlayer:'', list:'main', keyword:'', busy:false, statsTab:'players', statsYear:'all', comparePlayer:'', profileTab:'overview', newsFilter:'all', newsSearch:'', adminTab:'overview', editingNews:null, unrated:false, calcPlayer:'', calcDemons:[], calcNlw:false, unbeatSearch:'', unbeatLimit:120, communityExcel:{status:'loading',items:[],message:'',offline:false}, demoRole:'owner', selectedClan:1 };
 const el = document.getElementById('app');
 const $ = id => document.getElementById(id);
 const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -270,17 +271,68 @@ function calculatorPage(){const demons=catalog(),user=getPlayer(state.calcPlayer
  `<label class="field">Joueur<select id="calcPlayer">${ranked().filter(p=>p.has_account).map(p=>`<option value="${esc(p.player_key)}" ${p.player_key===user?.player_key?'selected':''}>${esc(fullName(p))}</option>`).join('')}</select></label><div class="overview-stats">${box('Points actuels',fmt(current))}${box('Gain Top 150','+'+fmt(gainMain))}${box('Rang simulé','#'+predicted)}${box('Points NLW futurs',fmt(curNLW+gainNLW))}</div><div class="two-col"><div class="admin-card"><h3>Niveaux à terminer</h3><label class="field">Rechercher<input id="calcSearch" type="search" placeholder="Nom du démon"></label><div class="v2-level-picker" id="calcOptions">${calculatorChoices(demons,completed)}</div></div><div class="admin-card"><h3>Résultat de la simulation</h3><p><b>Top 150 :</b> ${fmt(current)} + ${fmt(gainMain)} = <b>${fmt(current+gainMain)}</b> pts</p><p><b>NLW :</b> ${fmt(curNLW)} + ${fmt(gainNLW)} = <b>${fmt(curNLW+gainNLW)}</b> pts NLW</p><p><b>Rang NLW simulé :</b> #${predictedNLW}</p><p><b>${plans.length}</b> niveau(x) choisi(s) · déjà complétés exclus</p><p class="small muted">Projection indicative : le rang des autres joueurs reste fixe, points de vérification et éventuels records partiels ignorés.</p><button class="btn subtle" type="button" data-action="clearCalc">Tout désélectionner</button><hr class="divider"><h3>Sélection</h3>${plans.map(d=>`<p class="small">#${d.position} ${esc(d.name)} · ${fmt(d.position<=150?score(d):nlwPoints(d))} pts ${d.position<=150?'principaux':'NLW'}</p>`).join('')||'<p class="muted">Choisis des niveaux à gauche.</p>'}</div></div></section>`;
 }
 function calculatorChoices(ds,completed){return ds.filter(d=>!completed.has(Number(d.id))).map(d=>`<label class="v2-check-level"><input type="checkbox" data-calc-demon="${d.id}" ${state.calcDemons.includes(Number(d.id))?'checked':''}><span><b>${d.position>150?'NLW #'+V2.nlwRank(d):'#'+d.position}</b> ${esc(d.name)}${d.unrated?' · UNRATED':''}</span><span class="muted">${fmt(d.position<=150?score(d):nlwPoints(d))} pts</span></label>`).join('')||'<p class="muted">Tous les niveaux sont déjà complétés.</p>';}
-function unbeatenPage(){const p=getPlayer(state.unbeatPlayer)||ranked().find(x=>x.has_account);const beaten=new Set(state.data.completions.filter(r=>key(r.player)===p?.player_key&&Number(r.progress)>=100).map(r=>Number(r.demon_id)));
- const catalogLookup=new Map(catalog().map(d=>[key(d.name),d]));let levels=(state.data.aredl_levels||[]).map(x=>({...x,demon:catalogLookup.get(key(x.name))})).filter(x=>!x.demon||!beaten.has(Number(x.demon.id)));
- if(state.unbeatSearch)levels=levels.filter(x=>key(x.name).includes(key(state.unbeatSearch)));
- return v2Header('Niveaux AREDL non battus','Importe un fichier CSV exporté depuis Excel contenant une colonne name ou level. Rien n’est envoyé à un serveur.')+`<div class="two-col"><label class="field">Joueur<select id="unbeatenPlayer">${ranked().filter(x=>x.has_account).map(x=>`<option value="${esc(x.player_key)}" ${x.player_key===p?.player_key?'selected':''}>${esc(fullName(x))}</option>`).join('')}</select></label><label class="field">Charger Excel (.xlsx) ou CSV AREDL<input type="file" id="aredlImport" accept=".csv,.xlsx,.xls,text/csv,text/plain"></label></div><label class="field">Filtrer les niveaux<input id="unbeatenSearch" type="search" value="${esc(state.unbeatSearch)}" placeholder="Niveau..."></label><p><b>${levels.length}</b> niveau(x) sans complétion connue, sur ${(state.data.aredl_levels||[]).length} niveaux importés.</p><p class="notice warning small">Un niveau absent de la Demonlist ou un nom différent ne peut pas être rapproché automatiquement des records. Cela ne prouve donc pas qu’il est non battu.</p><div class="v2-columns">${levels.slice(0,500).map(x=>`<div class="v2-unbeaten-item">${x.demon?`<a data-nav class="link" href="${url('demon',{id:x.demon.id})}">${esc(x.name)}</a>`:esc(x.name)} <span class="muted">${x.aredl_rank?'ARED L #'+esc(x.aredl_rank):''} ${!x.demon?'· Non rapproché':''}</span></div>`).join('')||'<div class="empty">Aucun niveau correspondant.</div>'}</div></section>`;
+function unbeatenPage(){
+ const source=state.communityExcel;
+ // En démo, les vérifications fictives ne doivent jamais masquer de vrais niveaux AREDL.
+ const checked=UNVERIFIED.classify(source.items,LIVE?state.data.demons:[]);
+ state.communityExcel.classified=checked;
+ const summary=source.status==='loading'
+   ?'<div class="notice">Chargement du fichier Excel AREDL…</div>'
+   :source.status==='error'
+     ?`<div class="notice warning"><b>Le fichier Excel n’a pas pu être lu.</b><p>${esc(source.message)}</p><p>Place <code>data/niveaux-non-battus.xlsx</code> dans GitHub. Le fichier peut utiliser <code>Column1.name</code> et <code>Column1.position</code>.</p></div>`
+     :source.offline
+       ?'<div class="notice warning"><b>Exemples fictifs hors ligne :</b> ouvre le site sur GitHub Pages (ou sur un serveur local) pour lire le vrai classeur.</div>'
+       :'<p class="small muted">Catalogue AREDL : <code>data/niveaux-non-battus.xlsx</code> · sa publication sur GitHub met cette liste à jour.</p>';
+ const lookup=UNVERIFIED.normalize(state.unbeatSearch);
+ const matches=checked.available.filter(x=>!lookup||UNVERIFIED.normalize(x.name).includes(lookup)||String(x.level_id||'').includes(state.unbeatSearch.trim()));
+ const caveat=source.status==='ready'&&!source.offline&&checked.unknownCount
+   ?`<div class="notice warning"><b>Statuts communautaires non renseignés pour ${checked.unknownCount} niveaux.</b> Ton Excel donne les positions AREDL, mais pas les vérifications françaises. Ces niveaux sont des <b>candidats à vérifier</b>, et non des démons certifiés non battus. Ajoute « Oui » ou « Non » dans la colonne <code>Vérifié communauté</code> pour suivre leur statut. Les vérifications réelles présentes dans Supabase peuvent également les masquer.</div>`:'';
+ return v2Header('Niveaux non vérifiés · Communauté','Catalogue AREDL et suivi des vérifications francophones, séparé du classement principal.')+
+  `${summary}${caveat}<div class="unverified-stats"><div><strong>${source.status==='loading'?'…':checked.available.length}</strong><span>À suivre</span></div><div><strong>${checked.verified.length}</strong><span>Vérifiés / masqués</span></div><div><strong>${source.items.length}</strong><span>Niveaux AREDL</span></div></div>`+
+  `<label class="field">Rechercher par nom ou ID GD<input id="unbeatenSearch" type="search" value="${esc(state.unbeatSearch)}" placeholder="Nom du niveau ou ID…"></label>`+
+  `<p id="unbeatenCount" class="small muted">${matches.length} résultat(s) · ${Math.min(matches.length,state.unbeatLimit)} affiché(s)</p><div id="unbeatenResults" class="unverified-grid">${unbeatenEntriesHTML()}</div>`+
+  `<p class="small muted" style="margin-top:15px">Une ligne « Vérifié communauté = Oui » est cachée. Avec les données réelles Supabase, un vérificateur sur le même niveau le masque aussi. Aucune synchronisation automatique avec les vérifications externes à la Demonlist n’est possible sans autre source.</p></section>`;
+}
+function unbeatenEntriesHTML(){
+ const checked=state.communityExcel.classified||UNVERIFIED.classify(state.communityExcel.items,LIVE?state.data.demons:[]);
+ const search=UNVERIFIED.normalize(state.unbeatSearch);
+ const levels=checked.available.filter(x=>!search || UNVERIFIED.normalize(x.name).includes(search)||String(x.level_id||'').includes(state.unbeatSearch.trim()));
+ const count=document.getElementById('unbeatenCount');
+ if(count)count.textContent=`${levels.length} résultat(s) · ${Math.min(levels.length,state.unbeatLimit)} affiché(s)`;
+ const list=levels.slice(0,state.unbeatLimit).map(level=>{
+   const match=state.data.demons.find(d=>level.level_id&&d.level_id ? String(d.level_id)===String(level.level_id) : UNVERIFIED.normalize(d.name)===UNVERIFIED.normalize(level.name));
+   const rank=Number(level.aredl_rank), rankLabel=Number.isFinite(rank)&&rank>0?'AREDL #'+rank:'';
+   const video=http(level.video_url);
+   const unknown=!level.verification_known;
+   return `<article class="unverified-card"><div class="unverified-title">${match?`<a data-nav class="link" href="${url('demon',{id:match.id})}">${esc(level.name)}</a>`:esc(level.name)}</div><div class="unverified-metadata">${rankLabel?`<span class="tag">${esc(rankLabel)}</span>`:''}${level.level_id?`<span class="tag">GD ID ${esc(level.level_id)}</span>`:''}${level.nlw_tier?`<span class="tag">NLW ${esc(level.nlw_tier)}</span>`:''}${level.aredl_points!==''?`<span class="tag">${esc(level.aredl_points)} pts AREDL</span>`:''}<span class="unverified-status ${unknown?'pending':''}">${unknown?'Statut à confirmer':'Non vérifié'}</span></div>${level.notes?`<p class="small muted">${esc(level.notes)}</p>`:''}${video?`<a class="link small" target="_blank" rel="noopener noreferrer" href="${esc(video)}">Voir la vidéo ↗</a>`:''}</article>`;
+ }).join('')||'<p class="empty">Aucun niveau correspondant à cette recherche.</p>';
+ return list+(levels.length>state.unbeatLimit?`<div class="unverified-load-row"><button class="btn subtle" type="button" data-action="moreUnbeaten">Voir 120 niveaux supplémentaires (${levels.length-state.unbeatLimit} restants)</button></div>`:'');
+}
+async function loadCommunityExcel(){
+ const input='data/niveaux-non-battus.xlsx';
+ try{
+   if(location.protocol==='file:'){
+     state.communityExcel={status:'ready',items:UNVERIFIED.OFFLINE_EXAMPLES,message:'',offline:true};
+   }else{
+     const response=await fetch(input+'?v='+Date.now(),{cache:'no-store'});
+     if(!response.ok)throw Error('Fichier inaccessible ('+response.status+').');
+     if(!window.XLSX)throw Error('Le lecteur Excel JavaScript est indisponible (connexion ou CDN).');
+     const workbook=window.XLSX.read(await response.arrayBuffer(),{type:'array'});
+     const first=workbook.Sheets[workbook.SheetNames[0]];
+     if(!first)throw Error('Le classeur Excel ne contient pas de feuille.');
+     const objects=window.XLSX.utils.sheet_to_json(first,{defval:'',raw:false});
+     const items=UNVERIFIED.fromSheet(objects);
+     state.communityExcel={status:'ready',items,message:'',offline:false};
+   }
+ }catch(error){state.communityExcel={status:'error',items:[],message:String(error.message||error),offline:false};}
+ if(state.data && nav()==='unbeaten')render();
 }
 function achievementsPage(){const items=state.data.fr_achievements||[];return v2Header('Achievements français','Runs, défis et exploits remarquables : sans points et sans classement entre les entrées.')+`<div class="v2-achievements">${items.map(a=>`<article class="achievement-card"><span class="news-category">Achievement communautaire</span><h2>${esc(a.title)}</h2><p class="muted">${esc(a.level_name)} · ${esc(a.run_text||'')}</p><p><a data-nav class="link" href="${url('stats',{player:a.player_key})}">${esc(a.player_key)}</a> · ${date(a.created_at)}</p><p>${esc(a.description||'')}</p>${http(a.video_url)?`<a class="btn small" target="_blank" rel="noopener noreferrer" href="${esc(http(a.video_url))}">Voir la preuve ↗</a>`:''}</article>`).join('')||'<p class="empty">Aucun achievement.</p>'}</div></section>`;}
 function clansPage(){const clans=state.data.clans||[],members=state.data.clan_members||[],rankings=ranked();return v2Header('Clans francophones','Des équipes de joueurs, avec des statistiques agrégées et un tableau des membres.')+`<div class="v2-clan-grid">${clans.map(c=>{const crew=members.filter(m=>Number(m.clan_id)===Number(c.id)),list=crew.map(m=>rankings.find(p=>p.player_key===m.player_key)).filter(Boolean),points=list.reduce((t,p)=>t+p.score,0),nlw=list.reduce((t,p)=>t+p.nlwScore,0);return `<article class="clan-card" style="--clan-accent:${/^#[a-f0-9]{6}$/i.test(c.color)?c.color:'#287bba'}"><div class="clan-mark">${esc(c.tag)}</div><h2>${esc(c.name)}</h2><p>${esc(c.description||'')}</p><div class="clan-metrics"><b>${crew.length} membres</b><b>${fmt(points)} pts</b><b>${fmt(nlw)} NLW</b></div><div class="clan-members">${list.map(p=>`<a class="link" data-nav href="${url('stats',{player:p.player_key})}">${esc(fullName(p))}</a>`).join(' · ')||'Aucun membre'}</div></article>`;}).join('')||'<p class="empty">Aucun clan.</p>'}</div></section>`;}
 function historyPage(){const lookup=new Map(catalog().map(d=>[Number(d.id),d]));const records=state.data.completions.map(r=>({...r,demon:lookup.get(Number(r.demon_id))})).filter(r=>r.demon&&r.demon.position<=150&&Number(r.progress)>=100).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));return v2Header('Historique des complétions · Top 150','Un flux chronologique des complétions, avec mise en valeur des niveaux Top 30 et Top 75.')+`<div class="v2-legend"><span class="hist-top30">Top 30 · rouge</span><span class="hist-top75">Top 31–75 · jaune</span><span>Top 76–150 · neutre</span></div><div class="v2-timeline">${records.map(r=>`<article class="timeline-record ${r.demon.position<=30?'top30':r.demon.position<=75?'top75':''}"><time>${date(r.created_at)}</time><div><a class="link" data-nav href="${url('stats',{player:key(r.player)})}">${esc(r.player)}</a> a terminé <a class="link" data-nav href="${url('demon',{id:r.demon.id})}"><b>#${r.demon.position} ${esc(r.demon.name)}</b></a>${r.demon.unrated?' <span class="tag">UNRATED</span>':''}</div>${http(r.video_url)?`<a href="${esc(http(r.video_url))}" rel="noopener noreferrer" target="_blank">Preuve ↗</a>`:''}</article>`).join('')||'<p class="empty">Aucune complétion Top 150.</p>'}</div></section>`;}
 function renderBadgeSummary(){const p=ranked().filter(p=>p.has_account&&!p.hidden_from_stats);return `<div class="badge-summary">${['Faucheur de liste','Vérificateur','Amateur de difficulté'].map(n=>`<article><b>${n}</b><p>${p.filter(x=>x.autoBadges.some(a=>a.id===n)).length} joueur(s) ayant un palier</p></article>`).join('')}</div>`;}
 function hallV2(){const items=state.data.hall_of_fame.filter(x=>x.is_published||state.staff).sort((a,b)=>(b.award_year||0)-(a.award_year||0));return v2Header('Hall of Fame','Les distinctions de la communauté, par année et catégorie.')+`<div class="hof-hero"><span>✦</span><div><small>ARCHIVES & PALMARÈS</small><h2>Les noms qui ont marqué la communauté</h2><p>Les titres historiques restent visibles indépendamment des classements actuels.</p></div></div><div class="hof-grid">${items.map(h=>`<article class="hof-item hof-premium"><div class="hof-year">✦ ${esc(h.award_year||'—')} · ${esc(h.category)}</div><h3>${esc(h.headline)}</h3><p><a class="link" data-nav href="${url('stats',{player:h.player_key})}">${esc(h.player_key)}</a></p><p>${esc(h.description||'')}</p>${http(h.source_url)?`<a class="link" target="_blank" rel="noopener noreferrer" href="${esc(http(h.source_url))}">Source ↗</a>`:''}</article>`).join('')||'<p class="empty">Aucune récompense.</p>'}</div></section>`;}
-function render(){if(!state.data)return;const page=nav(),params=new URLSearchParams(location.search);if(page==='stats'&&params.has('player'))state.selectedPlayer=key(params.get('player'));const content=page==='stats'?statsPage():page==='demon'?demonPage():page==='news'?newsPage():page==='hall'?hallV2():page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='achievements'?achievementsPage():page==='clans'?clansPage():page==='history'?historyPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;document.title=({list:'Demonlist',stats:'Statistiques',news:'Actualités',hall:'Hall of Fame',admin:'Modération',calculator:'Calculateur',unbeaten:'Non battus',achievements:'Achievements',clans:'Clans',history:'Historique',demon:'Niveau'})[page]+' · DemonlistFrancophone';}
+function render(){if(!state.data)return;const page=nav(),params=new URLSearchParams(location.search);if(page==='stats'&&params.has('player'))state.selectedPlayer=key(params.get('player'));const content=page==='stats'?statsPage():page==='demon'?demonPage():page==='news'?newsPage():page==='hall'?hallV2():page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='achievements'?achievementsPage():page==='clans'?clansPage():page==='history'?historyPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;document.title=({list:'Demonlist',stats:'Statistiques',news:'Actualités',hall:'Hall of Fame',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Achievements',clans:'Clans',history:'Historique',demon:'Niveau'})[page]+' · DemonlistFrancophone';}
 function auditV2(action,target){state.data.community_audit_log.push({action_key:action,target,created_at:new Date().toISOString()});saveDemo();}
 async function save(table,item,{upsert=false,on=null}={}){
  if(!LIVE){const existing=state.data[table];const copy={...item};if(!('id' in copy)&&['news_items','profile_titles','hall_of_fame','demons','completions'].includes(table))copy.id=Math.max(0,...existing.map(r=>Number(r.id)||0))+1;
@@ -365,6 +417,7 @@ function bootEvents(){
  const ed=ev.target.closest('[data-edit-news]');if(ed){if(!state.staff)return;state.adminTab='news';go('admin');fillNewsEditor(ed.dataset.editNews);return;}
  const tn=ev.target.closest('[data-toggle-news]');if(tn){if(!state.staff)return;const item=state.data.news_items.find(x=>String(x.id)===tn.dataset.toggleNews);if(item){try{await save('news_items',{...item,is_published:!item.is_published},{upsert:true,on:['id']});if(LIVE)state.data.news_items=await readAll('news_items');toast('Statut actualisé');render();}catch(e){toast('Erreur : '+e.message);}}return;}
  const act=ev.target.closest('[data-action]');if(!act)return;
+ if(act.dataset.action==='moreUnbeaten'){state.unbeatLimit+=120;const results=$('unbeatenResults');if(results)results.innerHTML=unbeatenEntriesHTML();return;}
  if(act.dataset.action==='clearCalc'){state.calcDemons=[];render();return;}
  if(act.dataset.action==='previewDemo'){
   try{sessionStorage.setItem('dlfr-preview-mode','demo');}catch{}
@@ -381,7 +434,7 @@ function bootEvents(){
  if(act.dataset.action==='logout'&&LIVE){await db.auth.signOut();state.session=null;state.staff=false;render();}
  });
  document.addEventListener('input',ev=>{
- if(ev.target.id==='unbeatenSearch'){state.unbeatSearch=ev.target.value;document.querySelectorAll('.v2-unbeaten-item').forEach(x=>x.hidden=!key(x.textContent).includes(key(state.unbeatSearch)));}
+ if(ev.target.id==='unbeatenSearch'){state.unbeatSearch=ev.target.value;state.unbeatLimit=120;const results=$('unbeatenResults');if(results)results.innerHTML=unbeatenEntriesHTML();}
  if(ev.target.id==='newsSearch'){state.newsSearch=ev.target.value;const items=state.data.news_items.filter(n=>(n.is_published||state.staff)&&(state.newsFilter==='all'||getNewsCategory(n)===state.newsFilter)&&`${key(n.headline)} ${key(n.body)} ${key(n.player_name)}`.includes(key(state.newsSearch)));$('newsItems').innerHTML=newsItemsHTML(items.sort((a,b)=>+(!!b.is_pinned)-+(!!a.is_pinned)||new Date(b.created_at)-new Date(a.created_at)));}
  if(ev.target.closest('[data-form="news"]'))updateNewsPreview(ev.target.closest('form'));
  if(ev.target.id==='calcSearch'){const q=key(ev.target.value);document.querySelectorAll('.v2-check-level').forEach(x=>x.hidden=!key(x.textContent).includes(q));}
@@ -396,9 +449,7 @@ function bootEvents(){
  if(ev.target.id==='profileEditorPlayer')fillProfileEditor();
  if(ev.target.id==='calcPlayer'){state.calcPlayer=ev.target.value;state.calcDemons=[];render();}
  if(ev.target.matches('[data-calc-demon]')){const id=+ev.target.dataset.calcDemon;state.calcDemons=ev.target.checked?[...new Set([...state.calcDemons,id])]:state.calcDemons.filter(x=>x!==id);render();}
- if(ev.target.id==='unbeatenPlayer'){state.unbeatPlayer=ev.target.value;render();}
  if(ev.target.id==='demoRole'){state.demoRole=ev.target.value;state.adminTab=state.demoRole==='nlw_editor'?'levels':'overview';render();}
- if(ev.target.id==='aredlImport'&&ev.target.files?.length&&!LIVE){const file=ev.target.files[0];const read=/\.xlsx?$/i.test(file.name)?file.arrayBuffer().then(buf=>{if(!window.XLSX)throw Error('Lecteur Excel indisponible : exporte le fichier en CSV UTF-8 depuis Excel.');const book=window.XLSX.read(buf,{type:'array'});return window.XLSX.utils.sheet_to_csv(book.Sheets[book.SheetNames[0]]);}):file.text();read.then(t=>{state.data.aredl_levels=V2.parseAredl(t);saveDemo();toast(state.data.aredl_levels.length+' niveaux AREDL importés');render();}).catch(e=>toast(e.message));}
  if(ev.target.id==='importDemo')importDemo(ev.target.files?.[0]);
  if(ev.target.closest('[data-form="news"]'))updateNewsPreview(ev.target.closest('form'));
 });
@@ -409,5 +460,5 @@ function bootEvents(){
  window.addEventListener('popstate',()=>{state.keyword='';render();});
  try{setTheme(localStorage.getItem('demonlist-theme')||'light');}catch{}refreshUnrated();
 }
-bootEvents();load();
+bootEvents();loadCommunityExcel();load();
 })();
