@@ -18,6 +18,7 @@
  ];
  d.clans=[{id:1,name:'Aurora',tag:'AUR',description:'Clan de démonstration francophone',color:'#648ed4'},{id:2,name:'Nova',tag:'NVA',description:'Autre clan fictif',color:'#9058c0'}];
  d.clan_members=[{clan_id:1,player_key:'spleen',role:'leader'},{clan_id:1,player_key:'cryostaz',role:'member'},{clan_id:2,player_key:'niwox_',role:'leader'}];
+ d.clan_invites=[{id:1,clan_id:1,inviter_key:'spleen',invitee_key:'illyes',status:'pending',created_at:'2026-10-12T10:00:00Z'}];
  d.nlw_staff=[{player_key:'spleen',role:'nlw_editor'}];
  d.player_sanctions=[];
  d.aredl_levels=[{name:'Nullscapes',aredl_rank:'1'},{name:'Silent clubstep',aredl_rank:'2'},{name:'Anathema',aredl_rank:'3'},{name:'Eclipse Aftermath',aredl_rank:'160'},{name:'KOCMOC',aredl_rank:'13'},{name:'Zodiac',aredl_rank:'110'}];

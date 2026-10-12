@@ -251,3 +251,21 @@ html.unrated-mode .level-badge.unrated-badge{background:#54206e;color:#fff}
 .startup-error .error-detail{white-space:pre-wrap;word-break:break-word;color:var(--ink);font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;text-align:left;background:var(--panel);padding:12px;border:1px solid var(--line)}
 .startup-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:14px 0}
 @media(max-width:690px){.navigation{padding:8px}.navigation .brand{width:100%;text-align:center;margin:0}.navigation .nav-links{justify-content:flex-start}.navigation .nav-links>a{padding:7px 9px;font-size:11px}.navigation .nav-theme{margin-left:auto}.navigation .unrated-switch{margin-right:auto}}
+
+/* V2.1 — Player-managed clans */
+.clan-player-simulator{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:17px 20px;background:var(--panel);border:1px solid var(--line);margin:12px 0}
+.clan-player-simulator p{margin:5px 0 0}.clan-player-simulator .field{min-width:225px;max-width:310px;margin:0}
+.clan-section{background:var(--card);border:1px solid var(--line);padding:20px;margin:20px 0}
+.clan-section h2{font-size:19px;margin:0 0 16px}
+.clan-section h3{font-size:14px;margin:16px 0 8px}
+.clan-counter{font-size:11px;padding:4px 9px;border:1px solid var(--line);color:var(--muted);vertical-align:middle}
+.clan-invite,.clan-roster-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--line);padding:12px 0;font-size:12px}
+.clan-actions{display:inline-flex;flex-wrap:wrap;gap:7px;align-items:center}
+.clan-inline-form{display:flex;align-items:end;gap:9px;margin:14px 0;flex-wrap:wrap}
+.clan-inline-form .field{flex:1;min-width:210px;margin:0}
+.clan-create-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.clan-create-form .field{min-width:0;margin:0}.clan-create-form button{justify-self:start;align-self:end}
+.clan-roster{margin-top:10px}.clan-roster-row:last-child{border-bottom:0}
+.clan-roster-row .tag{font-size:10px}.clan-profile-link{display:inline-block;margin:3px 2px;text-decoration:none}
+.clan-card h3{font-size:13px;margin-top:14px}.clan-card .clan-roster{font-size:12px}
+@media(max-width:740px){.clan-player-simulator{flex-direction:column;align-items:stretch}.clan-player-simulator .field{max-width:none}.clan-create-form{grid-template-columns:1fr}.clan-section{padding:13px}.clan-actions button{font-size:11px}}

@@ -1,3 +1,5 @@
+> **Mise à jour V2.1** : voir [`DEMARRAGE-V2.1.md`](DEMARRAGE-V2.1.md) pour les clans et la séparation Main/Extended.
+
 # DemonlistFrancophone — V2.0 (front-end de démonstration)
 
 Reproduction HTML/CSS/JavaScript de la DemonlistFrancophone à partir du projet V1.2, destinée à GitHub Pages, avec mode démonstration **indépendant** de la base officielle.
