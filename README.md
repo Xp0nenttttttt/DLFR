@@ -28,3 +28,7 @@ Voir `V2.0-A-LIRE.md` pour les fonctionnalités, limitations, règles de points 
 Les données réelles MySQL n'ont pas été transférées. Les fonctions V2 ajoutées n'écrivent pas dans Supabase tant que les tables/permissions nécessaires ne sont pas déployées. Le rôle NLW et les sanctions sont simulés en mode local, sans impact sur les comptes Supabase Auth. Le barème NLW est provisoire, à valider avec les administrateurs.
 
 Conserver l'ancien site et les sauvegardes SQL jusqu'à la validation intégrale.
+
+
+## Nouveauté V2.0.1 : Excel communautaire
+La page **Non battus** lit `data/niveaux-non-battus.xlsx` automatiquement depuis GitHub Pages ; elle affiche uniquement les démons encore non vérifiés. Les changements sont détaillés dans `EXCEL-NON-VERIFIES.md`.

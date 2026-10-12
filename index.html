@@ -7,14 +7,15 @@
   <title>DemonlistFrancophone</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=203">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
-  <script src="js/config.js" defer></script>
-  <script src="js/demo-data.js" defer></script>
-  <script src="js/v2-core.js" defer></script>
-  <script src="js/v2-demo.js" defer></script>
-  <script src="js/app.js" defer></script>
+  <script src="js/config.js?v=203" defer></script>
+  <script src="js/demo-data.js?v=203" defer></script>
+  <script src="js/v2-core.js?v=203" defer></script>
+  <script src="js/community-unverified.js?v=203" defer></script>
+  <script src="js/v2-demo.js?v=203" defer></script>
+  <script src="js/app.js?v=203" defer></script>
 </head>
 <body>
   <header class="site-header">
@@ -26,7 +27,7 @@
         <a href="?page=news" data-link="news">Actualités</a>
         <a href="?page=hall" data-link="hall">Hall of Fame</a>
         <a href="?page=calculator" data-link="calculator">Calculateur</a>
-        <a href="?page=unbeaten" data-link="unbeaten">Non battus</a>
+        <a href="?page=unbeaten" data-link="unbeaten">Non vérifiés</a>
         <a href="?page=achievements" data-link="achievements">Achievements FR</a>
         <a href="?page=clans" data-link="clans">Clans</a>
         <a href="?page=history" data-link="history">Historique</a>
@@ -36,7 +37,7 @@
       <button class="unrated-switch" id="unratedToggle" type="button" aria-pressed="false">◈ UNRATED OFF</button>
     </nav>
   </header>
-  <main class="layout" id="app" aria-live="polite"><div class="center-panel loading">Chargement de la Demonlist…</div></main>
+  <main class="layout" id="app" aria-live="polite"><div class="center-panel loading">Chargement de la Demonlist…<p class="small muted">Si rien ne s’affiche, vérifie que les scripts V2 sont bien présents.</p><a class="btn subtle small" href="?page=list&amp;demo=1&amp;reset=1">Réinitialiser la démo</a></div></main>
   <footer class="site-footer">DemonlistFrancophone · Projet de migration vers GitHub Pages &amp; Supabase · <span id="sourceLabel">Mode démo</span></footer>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 </body>

@@ -68,15 +68,21 @@ const noSqlNotice=()=>LIVE?'<p class="muted small">Options V2 en lecture seule j
 const allowV2Edit=()=>!LIVE&&state.staff;
 const canNLW=()=>!LIVE && state.staff && (state.demoRole!=='nlw_editor'||state.data.nlw_staff.length>0);
 const callout=x=>`<div class="notice">${x}</div>`;
-const demoLoad=()=>{const d=JSON.parse(JSON.stringify(window.DEMONLIST_DEMO));try{const saved=localStorage.getItem('demonlist-demo-v1');if(saved){const obj=JSON.parse(saved);if(obj && typeof obj==='object') for(const t of [...tables,...v2Tables])if(Array.isArray(obj[t])) d[t]=obj[t];}}catch{};if(!Array.isArray(d.community_audit_log))d.community_audit_log=[];for(const t of v2Tables)if(!Array.isArray(d[t]))d[t]=[];return d;};
+const demoLoad=()=>{
+ // Récupération sans perte de la base : la réinitialisation ne touche qu'au navigateur.
+ const query=new URLSearchParams(location.search);
+ if(query.has('reset')){try{localStorage.removeItem('demonlist-demo-v1');}catch{} query.delete('reset');try{history.replaceState({},'',location.pathname+'?'+query.toString());}catch{}}
+ if(!window.DEMONLIST_DEMO)throw Error('js/demo-data.js est manquant ou non chargé sur GitHub Pages.');
+ const d=JSON.parse(JSON.stringify(window.DEMONLIST_DEMO));try{const saved=localStorage.getItem('demonlist-demo-v1');if(saved){const obj=JSON.parse(saved);if(obj && typeof obj==='object') for(const t of [...tables,...v2Tables])if(Array.isArray(obj[t])) d[t]=obj[t];}}catch{};if(!Array.isArray(d.community_audit_log))d.community_audit_log=[];for(const t of v2Tables)if(!Array.isArray(d[t]))d[t]=[];return d;};
 const saveDemo=()=>{if(!LIVE)try{localStorage.setItem('demonlist-demo-v1',JSON.stringify(state.data));}catch{}};
+function withTimeout(promise,ms,message){let timer;return Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error(message)),ms);})]).finally(()=>clearTimeout(timer));}
 async function readAll(name){let out=[],from=0;while(true){const {data,error}=await db.from(name).select('*').range(from,from+999);if(error)throw Error(`${name} : ${error.message}`);out.push(...data);if(data.length<1000)break;from+=1000;if(from>=60000)throw Error(`Limite de lecture atteinte pour ${name}; pagination serveur à prévoir`);}return out;}
 async function load(){
- if(!LIVE){state.data=demoLoad();$('sourceLabel').textContent=HAS_SUPABASE?'Aperçu local (Supabase non modifié)':'Démonstration locale';render();return;}
+ if(!LIVE){try{state.data=demoLoad();$('sourceLabel').textContent=HAS_SUPABASE?'Aperçu local (Supabase non modifié)':'Démonstration locale';render();}catch(error){showPageError(error);}return;}
  if(!window.supabase){el.innerHTML='<div class="center-panel"><h2>Supabase indisponible</h2><p>Le client Supabase n’a pas pu être chargé. Vérifie ta connexion.</p><button type="button" class="btn" data-action="previewDemo">Voir la démo locale</button></div>';return;}
  db=window.supabase.createClient(C.supabaseUrl,C.supabasePublishableKey);
  try{
-   const result=await Promise.all(tables.map(readAll));state.data=Object.fromEntries(tables.map((t,i)=>[t,result[i]]));for(const t of v2Tables)state.data[t]=[];
+   const result=await withTimeout(Promise.all(tables.map(readAll)),20000,'Supabase ne répond pas après 20 secondes.');state.data=Object.fromEntries(tables.map((t,i)=>[t,result[i]]));for(const t of v2Tables)state.data[t]=[];
    const {data:sessionData}=await db.auth.getSession();state.session=sessionData.session;
    await checkStaff();
    state.data.community_audit_log=state.staff?await readAll('community_audit_log'):[];
@@ -332,7 +338,16 @@ function clansPage(){const clans=state.data.clans||[],members=state.data.clan_me
 function historyPage(){const lookup=new Map(catalog().map(d=>[Number(d.id),d]));const records=state.data.completions.map(r=>({...r,demon:lookup.get(Number(r.demon_id))})).filter(r=>r.demon&&r.demon.position<=150&&Number(r.progress)>=100).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));return v2Header('Historique des complétions · Top 150','Un flux chronologique des complétions, avec mise en valeur des niveaux Top 30 et Top 75.')+`<div class="v2-legend"><span class="hist-top30">Top 30 · rouge</span><span class="hist-top75">Top 31–75 · jaune</span><span>Top 76–150 · neutre</span></div><div class="v2-timeline">${records.map(r=>`<article class="timeline-record ${r.demon.position<=30?'top30':r.demon.position<=75?'top75':''}"><time>${date(r.created_at)}</time><div><a class="link" data-nav href="${url('stats',{player:key(r.player)})}">${esc(r.player)}</a> a terminé <a class="link" data-nav href="${url('demon',{id:r.demon.id})}"><b>#${r.demon.position} ${esc(r.demon.name)}</b></a>${r.demon.unrated?' <span class="tag">UNRATED</span>':''}</div>${http(r.video_url)?`<a href="${esc(http(r.video_url))}" rel="noopener noreferrer" target="_blank">Preuve ↗</a>`:''}</article>`).join('')||'<p class="empty">Aucune complétion Top 150.</p>'}</div></section>`;}
 function renderBadgeSummary(){const p=ranked().filter(p=>p.has_account&&!p.hidden_from_stats);return `<div class="badge-summary">${['Faucheur de liste','Vérificateur','Amateur de difficulté'].map(n=>`<article><b>${n}</b><p>${p.filter(x=>x.autoBadges.some(a=>a.id===n)).length} joueur(s) ayant un palier</p></article>`).join('')}</div>`;}
 function hallV2(){const items=state.data.hall_of_fame.filter(x=>x.is_published||state.staff).sort((a,b)=>(b.award_year||0)-(a.award_year||0));return v2Header('Hall of Fame','Les distinctions de la communauté, par année et catégorie.')+`<div class="hof-hero"><span>✦</span><div><small>ARCHIVES & PALMARÈS</small><h2>Les noms qui ont marqué la communauté</h2><p>Les titres historiques restent visibles indépendamment des classements actuels.</p></div></div><div class="hof-grid">${items.map(h=>`<article class="hof-item hof-premium"><div class="hof-year">✦ ${esc(h.award_year||'—')} · ${esc(h.category)}</div><h3>${esc(h.headline)}</h3><p><a class="link" data-nav href="${url('stats',{player:h.player_key})}">${esc(h.player_key)}</a></p><p>${esc(h.description||'')}</p>${http(h.source_url)?`<a class="link" target="_blank" rel="noopener noreferrer" href="${esc(http(h.source_url))}">Source ↗</a>`:''}</article>`).join('')||'<p class="empty">Aucune récompense.</p>'}</div></section>`;}
-function render(){if(!state.data)return;const page=nav(),params=new URLSearchParams(location.search);if(page==='stats'&&params.has('player'))state.selectedPlayer=key(params.get('player'));const content=page==='stats'?statsPage():page==='demon'?demonPage():page==='news'?newsPage():page==='hall'?hallV2():page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='achievements'?achievementsPage():page==='clans'?clansPage():page==='history'?historyPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;document.title=({list:'Demonlist',stats:'Statistiques',news:'Actualités',hall:'Hall of Fame',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Achievements',clans:'Clans',history:'Historique',demon:'Niveau'})[page]+' · DemonlistFrancophone';}
+function showPageError(error){
+ console.error('[DLFR] Erreur de démarrage / affichage :',error);
+ const msg=esc(error?.message||String(error)||'Erreur inconnue');
+ el.innerHTML=`<section class="center-panel startup-error" role="alert"><h2>La page n’a pas pu s’afficher</h2><p>Le chargement a été interrompu. Ce problème ne modifie pas tes données Supabase.</p><pre class="error-detail">${msg}</pre><div class="startup-actions"><a class="btn" href="?page=list&demo=1&reset=1">Réinitialiser la démo locale</a><a class="btn subtle" href="?page=list&demo=1">Essayer le mode démo</a></div><p class="small muted">Si le problème continue, vérifie que les fichiers <code>js/v2-core.js</code>, <code>js/v2-demo.js</code>, <code>js/community-unverified.js</code> et <code>js/demo-data.js</code> sont présents sur GitHub.</p></section>`;
+}
+function render(){if(!state.data)return;try{
+ if(!V2?.decorate || !V2?.project || !UNVERIFIED?.classify)throw Error('Fichier JavaScript V2 manquant ou version incohérente : réinstalle les scripts du pack V2.0.3.');
+ const page=nav(),params=new URLSearchParams(location.search);if(page==='stats'&&params.has('player'))state.selectedPlayer=key(params.get('player'));const content=page==='stats'?statsPage():page==='demon'?demonPage():page==='news'?newsPage():page==='hall'?hallV2():page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='achievements'?achievementsPage():page==='clans'?clansPage():page==='history'?historyPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;document.title=({list:'Demonlist',stats:'Statistiques',news:'Actualités',hall:'Hall of Fame',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Achievements',clans:'Clans',history:'Historique',demon:'Niveau'})[page]+' · DemonlistFrancophone';
+ }catch(error){showPageError(error);}
+}
 function auditV2(action,target){state.data.community_audit_log.push({action_key:action,target,created_at:new Date().toISOString()});saveDemo();}
 async function save(table,item,{upsert=false,on=null}={}){
  if(!LIVE){const existing=state.data[table];const copy={...item};if(!('id' in copy)&&['news_items','profile_titles','hall_of_fame','demons','completions'].includes(table))copy.id=Math.max(0,...existing.map(r=>Number(r.id)||0))+1;
@@ -460,5 +475,9 @@ function bootEvents(){
  window.addEventListener('popstate',()=>{state.keyword='';render();});
  try{setTheme(localStorage.getItem('demonlist-theme')||'light');}catch{}refreshUnrated();
 }
-bootEvents();loadCommunityExcel();load();
+try{
+ bootEvents();
+ loadCommunityExcel().catch(showPageError);
+ load().catch(showPageError);
+}catch(error){showPageError(error);}
 })();
