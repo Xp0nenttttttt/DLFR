@@ -51,7 +51,8 @@ window.DEMONLIST_DEMO = {
  player_stat_snapshots:[
  {player_key:'cryostaz',snapshot_day:'2026-04-01',rank:3,points:1440},{player_key:'cryostaz',snapshot_day:'2026-05-01',rank:2,points:1620},{player_key:'cryostaz',snapshot_day:'2026-06-01',rank:2,points:1800},{player_key:'cryostaz',snapshot_day:'2026-07-01',rank:1,points:1980},{player_key:'cryostaz',snapshot_day:'2026-08-01',rank:1,points:2040},{player_key:'cryostaz',snapshot_day:'2026-09-01',rank:1,points:2184.5},
  {player_key:'spleen',snapshot_day:'2026-05-01',rank:27,points:80},{player_key:'spleen',snapshot_day:'2026-06-01',rank:25,points:121},{player_key:'spleen',snapshot_day:'2026-07-01',rank:21,points:175},{player_key:'spleen',snapshot_day:'2026-08-01',rank:18,points:225},{player_key:'spleen',snapshot_day:'2026-09-01',rank:14,points:300},{player_key:'spleen',snapshot_day:'2026-10-01',rank:12,points:345.2}
- ],demon_position_history:[],community_audit_log:[]
+ ],demon_position_history:[],community_audit_log:[],
+ level_submissions:[{id:1,status:'pending',level_name:'DÉMO — Nebula Labyrinth',level_id:'987654',player:'Spleen',progress:100,video_url:'',publisher:'Demo Studio',creator:'Demo Studio',verifier:'',suggested_position:29,submitted_at:'2026-10-13T08:00:00Z'}]
 };
 // Régions fictives pour illustrer les drapeaux dans l'aperçu uniquement.
 for (const p of window.DEMONLIST_DEMO.player_profiles) {

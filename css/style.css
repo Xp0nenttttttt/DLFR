@@ -348,3 +348,6 @@ html.unrated-mode .level-badge.unrated-badge{background:#54206e;color:#fff}
 .self-form-grid textarea{min-height:100px;resize:vertical}.self-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:24px}
 .self-actions .btn{min-width:180px}.self-login{max-width:420px}.self-login .field{margin-bottom:12px}
 @media(max-width:700px){.self-form-grid{grid-template-columns:1fr}.self-page{padding:16px}.self-heading h1{font-size:24px}.self-mini-avatar{flex-basis:54px;width:54px;height:54px}}
+
+/* V2.4.3 — validation de soumission de record avec ajout conditionnel */
+.submission-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;max-width:860px;margin:18px auto}.submission-form>p,.submission-form>button{grid-column:1/-1}.moderation-submission{border:1px solid var(--border,#bac2cf);border-radius:4px;padding:16px;margin:14px 0;background:var(--card,#f8fafc)}.moderation-submission .row-between{gap:8px;flex-wrap:wrap}.submission-review-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:12px}.moderation-submission .form-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.moderation-submission .tag{font-weight:600}
