@@ -9,6 +9,6 @@
  function regionInfo(code){return regions.find(r=>r.code===norm(code))||null;}
  function countryName(code){const c=norm(code);try{return new Intl.DisplayNames(['fr'],{type:'region'}).of(c)||c;}catch{return (countries.find(x=>x[0]===c)||[])[1]||c;}}
  function countryImage(code){const c=norm(code);return validCountries.has(c)?`<img class="flag-img flag-country" src="assets/flags/countries/${c.toLowerCase()}.png" width="24" height="18" alt="Drapeau : ${escape(countryName(c))}" loading="lazy" decoding="async">`:'';}
- function regionImage(code){const r=regionInfo(code);return r?`<img class="flag-img flag-region" src="assets/flags/regions/fr/${r.code.toLowerCase()}.svg" width="24" height="18" alt="Visuel régional : ${escape(r.name)}" loading="lazy" decoding="async">`:'';}
+ function regionImage(code){const r=regionInfo(code);return r?`<img class="flag-img flag-region" src="assets/flags/regions/fr/${r.code.toLowerCase()}.png" width="24" height="18" alt="Visuel régional : ${escape(r.name)}" loading="lazy" decoding="async">`:'';}
  window.DLFR_GEO={countries,regions,regionInfo,countryName,countryImage,regionImage,validCountries,escape,norm};
 })();
