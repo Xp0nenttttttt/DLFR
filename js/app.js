@@ -11,9 +11,10 @@ const CLANS = window.DLFR_CLANS;
 const CLAN_PLUS = window.DLFR_CLAN_PLUS;
 const UNVERIFIED = window.DLFR_UNVERIFIED;
 const GEO = window.DLFR_GEO;
+const UNRATED_STATS = window.DLFR_UNRATED_STATS;
 const v2Tables=['fr_achievements','clans','clan_members','nlw_staff','player_sanctions','aredl_levels','clan_invites','clan_requests'];
 const tables = ['site_settings','players','demons','completions','news_items','profile_titles','player_profile_titles','player_profiles','hall_of_fame','player_stat_snapshots','demon_position_history'];
-let db = null, state = { data:null, staff:false, session:null, country:'MONDE', region:'ALL', selectedPlayer:'', list:'main', keyword:'', busy:false, statsTab:'players', statsYear:'all', comparePlayer:'', profileTab:'overview', newsFilter:'all', newsSearch:'', adminTab:'overview', editingNews:null, unrated:false, calcPlayer:'', calcDemons:[], calcNlw:false, unbeatSearch:'', unbeatLimit:120, communityExcel:{status:'loading',items:[],message:'',offline:false}, demoRole:'owner', demoActor:'spleen', selectedClan:1, clanSort:'points', clanSearch:'', clanDetailTab:'overview' };
+let db = null, state = { data:null, staff:false, session:null, country:'MONDE', region:'ALL', selectedPlayer:'', list:'main', keyword:'', busy:false, statsTab:'players', statsYear:'all', comparePlayer:'', profileTab:'overview', newsFilter:'all', newsSearch:'', adminTab:'overview', editingNews:null, unrated:false, calcPlayer:'', calcDemons:[], calcNlw:false, unbeatSearch:'', unbeatLimit:120, communityExcel:{status:'loading',items:[],message:'',offline:false}, demoRole:'owner', demoActor:'spleen', selectedClan:1, clanSort:'points', clanSearch:'', clanDetailTab:'overview', ownKey:null, ownAccountMessage:'' };
 const el = document.getElementById('app');
 const $ = id => document.getElementById(id);
 const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -70,6 +71,7 @@ function migrationNotice(){
 }
 const cfg=()=>state.data.site_settings[0]||{main_limit:75,extended_limit:150,top1_points:350,legacy_scores:false};
 const catalog=()=>V2.decorate(state.data.demons,state.unrated);
+const unratedData=()=>UNRATED_STATS.calculate(V2,state.data.demons,state.data.completions,state.data.players,num(cfg().top1_points));
 const nlwPoints=(d,r=100)=>V2.nlwPoints(d,r);
 const noSqlNotice=()=>LIVE?'<p class="muted small">Options V2 en lecture seule jusqu’à la migration SQL/RLS. Aucune écriture nouvelle sur Supabase.</p>':'';
 const allowV2Edit=()=>!LIVE&&state.staff;
@@ -80,7 +82,12 @@ const demoLoad=()=>{
  const query=new URLSearchParams(location.search);
  if(query.has('reset')){try{localStorage.removeItem('demonlist-demo-v1');}catch{} query.delete('reset');try{history.replaceState({},'',location.pathname+'?'+query.toString());}catch{}}
  if(!window.DEMONLIST_DEMO)throw Error('js/demo-data.js est manquant ou non chargé sur GitHub Pages.');
- const d=JSON.parse(JSON.stringify(window.DEMONLIST_DEMO));try{const saved=localStorage.getItem('demonlist-demo-v1');if(saved){const obj=JSON.parse(saved);if(obj && typeof obj==='object') for(const t of [...tables,...v2Tables])if(Array.isArray(obj[t])) d[t]=obj[t];}}catch{};if(!Array.isArray(d.community_audit_log))d.community_audit_log=[];for(const t of v2Tables)if(!Array.isArray(d[t]))d[t]=[];return d;};
+ const d=JSON.parse(JSON.stringify(window.DEMONLIST_DEMO));try{const saved=localStorage.getItem('demonlist-demo-v1');if(saved){const obj=JSON.parse(saved);if(obj && typeof obj==='object') for(const t of [...tables,...v2Tables])if(Array.isArray(obj[t])) d[t]=obj[t];}}catch{};if(!Array.isArray(d.community_audit_log))d.community_audit_log=[];
+ // L'exemple UNRATED V2.4 est ajouté aussi aux démos sauvegardées en V2.3.
+ const sample=window.DEMONLIST_DEMO.demons.find(x=>x.demo_v24_unrated);
+ if(sample&&!d.demons.some(x=>Number(x.id)===Number(sample.id)))d.demons.push({...sample});
+ const sampleRecord=window.DEMONLIST_DEMO.completions.find(x=>Number(x.demon_id)===Number(sample?.id));
+ if(sampleRecord&&!d.completions.some(x=>Number(x.id)===Number(sampleRecord.id)))d.completions.push({...sampleRecord});for(const t of v2Tables)if(!Array.isArray(d[t]))d[t]=[];return d;};
 const saveDemo=()=>{if(!LIVE)try{localStorage.setItem('demonlist-demo-v1',JSON.stringify(state.data));}catch{}};
 function withTimeout(promise,ms,message){let timer;return Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error(message)),ms);})]).finally(()=>clearTimeout(timer));}
 async function readAll(name){let out=[],from=0;while(true){const {data,error}=await db.from(name).select('*').range(from,from+999);if(error)throw Error(`${name} : ${error.message}`);out.push(...data);if(data.length<1000)break;from+=1000;if(from>=60000)throw Error(`Limite de lecture atteinte pour ${name}; pagination serveur à prévoir`);}return out;}
@@ -92,6 +99,7 @@ async function load(){
    const result=await withTimeout(Promise.all(tables.map(readAll)),20000,'Supabase ne répond pas après 20 secondes.');state.data=Object.fromEntries(tables.map((t,i)=>[t,result[i]]));for(const t of v2Tables)state.data[t]=[];
    const {data:sessionData}=await db.auth.getSession();state.session=sessionData.session;
    await checkStaff();
+   await checkSelfOwner();
    state.data.community_audit_log=state.staff?await readAll('community_audit_log'):[];
    $('sourceLabel').textContent=state.data.demons.length?`Supabase · ${state.data.demons.length} niveau(x)`:'Supabase · aucun niveau importé';render();
  }catch(err){el.innerHTML=`<div class="center-panel"><h2>Connexion Supabase impossible</h2><p>${esc(err.message)}</p><p class="small">Vérifie le schéma SQL, les permissions RLS et la clé publique du projet.</p><button type="button" class="btn" data-action="previewDemo">Tester le site en mode démo</button></div>`;}
@@ -102,6 +110,14 @@ async function checkStaff(){
  if(!state.session)return;
  const {data,error}=await db.from('staff_roles').select('role').eq('auth_user_id',state.session.user.id).maybeSingle();
  if(!error && data)state.staff=['helper','editor','owner'].includes(data.role);
+}
+async function checkSelfOwner(){
+ state.ownKey=null;state.ownAccountMessage='';
+ if(!LIVE||!state.session)return;
+ const {data,error}=await db.from('player_profile_owners').select('player_key').eq('auth_user_id',state.session.user.id).maybeSingle();
+ if(error){state.ownAccountMessage='La liaison des comptes joueurs n’est pas encore installée. Consulte le guide V2.4.';return;}
+ if(!data){state.ownAccountMessage='Ce compte Supabase n’est pas encore relié à un joueur. Un administrateur doit valider la liaison.';return;}
+ state.ownKey=data.player_key;
 }
 function nav(){const page=(new URLSearchParams(location.search)).get('page')||'list';document.querySelectorAll('[data-link]').forEach(a=>a.classList.toggle('active',a.dataset.link===page));return page;}
 function go(page,fields={}){history.pushState({},'',url(page,fields));state.keyword='';render();window.scrollTo({top:0,behavior:'instant'});}
@@ -185,8 +201,46 @@ function recordTable(p){const byId=new Map(catalog().map(d=>[+d.id,d]));const ye
  const rows=state.data.completions.filter(c=>key(c.player)===p.player_key&&byId.get(+c.demon_id)?.position<=150&&(year==='all'||plain(c.created_at).slice(0,4)===year)).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
  return `<div class="profile-section"><div class="row-between"><h3>Records (${rows.length})</h3><label class="small">Année <select id="recordsYear"><option value="all">Toutes</option>${yearsFromRecords().map(y=>`<option value="${y}" ${year===y?'selected':''}>${y}</option>`).join('')}</select></label></div><div class="record-table-wrap"><table class="record-table"><thead><tr><th>Niveau</th><th>Liste</th><th>Progression</th><th>Date</th><th>Preuve</th></tr></thead><tbody>${rows.map(r=>{const d=byId.get(+r.demon_id);const group=!d?'—':+d.position>150?'NLW':+d.position<=75?'Main List':'Extended List';return `<tr><td>${d?`<a class="link" href="${url('demon',{id:d.id})}" data-nav>${esc(d.name)}</a>`:'—'}</td><td>${esc(group)}</td><td><b>${esc(r.progress)}%</b></td><td>${date(r.created_at)||'—'}</td><td>${http(r.video_url)?`<a href="${esc(http(r.video_url))}" target="_blank" rel="noopener noreferrer">Vidéo ↗</a>`:'—'}</td></tr>`;}).join('')||'<tr><td colspan="5" class="empty">Aucun record pour cette période.</td></tr>'}</tbody></table></div></div>`;
 }
+function selfProfilePage(){
+ const demoOptions=state.data.players.filter(p=>p.has_account).map(p=>`<option value="${esc(p.player_key)}" ${state.demoActor===p.player_key?'selected':''}>${esc(fullName(p))}</option>`).join('');
+ if(LIVE&&!state.session)return `${templateNotice()}<section class="paper self-page"><h1>Mon profil</h1><p>Connecte-toi avec ton compte Supabase pour retrouver ta fiche.</p><form data-form="selfLogin" class="self-login"><label class="field">E-mail<input type="email" name="email" required autocomplete="email"></label><label class="field">Mot de passe<input type="password" name="password" required autocomplete="current-password"></label><button class="btn" type="submit">Se connecter</button></form><p class="small muted">Les anciens comptes PHP ne sont pas encore migrés. La connexion ne suffit pas à elle seule : la liaison au joueur devra être vérifiée.</p></section>`;
+ if(LIVE&&!state.ownKey)return `<section class="paper self-page"><h1>Mon profil</h1><div class="notice warning">${esc(state.ownAccountMessage||'Ton compte n’est pas relié à un profil joueur.')}</div><p>La modification personnelle sera activée lors de la migration des comptes, avec des autorisations Supabase RLS.</p><button class="btn subtle" type="button" data-action="selfLogout">Se déconnecter</button></section>`;
+ const actor=LIVE?state.ownKey:state.demoActor;
+ const player=state.data.players.find(p=>p.player_key===actor);
+ if(!player)return '<section class="paper"><h1>Mon profil</h1><p>Aucun joueur lié à ce compte.</p></section>';
+ const profile=state.data.player_profiles.find(p=>p.player_key===actor)||{},isFR=player.country_code==='FR';
+ const until=player.demo_suspended_until,suspended=!!(until&&new Date(until)>new Date());
+ const select=!LIVE?`<label class="field self-demo-actor">Joueur simulé<select id="selfDemoActor">${demoOptions}</select></label>`:'';
+ const value=(field)=>esc(profile[field]??'');
+ const field=(label,name,max=255,placeholder='')=>`<label class="field">${label}<input type="text" name="${name}" maxlength="${max}" placeholder="${esc(placeholder)}" value="${value(name)}"></label>`;
+ const currentProfile=getPlayer(actor);
+ return `${templateNotice()}<section class="paper self-page"><div class="self-heading"><div><h1>Mon profil</h1><p class="muted">Modifie ta présentation publique. Les points, records, titres officiels et sanctions restent gérés par les modérateurs.</p></div>${!LIVE?'<span class="tag">SIMULATION LOCALE</span>':'<button type="button" class="btn subtle small" data-action="selfLogout">Se déconnecter</button>'}</div>${select}
+ <div class="self-mini-preview"><div class="self-mini-avatar">${imageLink(profile.avatar_url)?`<img src="${esc(imageLink(profile.avatar_url))}" alt="">`:esc(fullName(player)[0]||'?')}</div><div><b>${flag(player.country_code)} ${esc(fullName(player))}</b><p class="muted small">${esc(profile.bio||'Aucune biographie pour le moment.')}</p><a class="link" href="${url('stats',{player:actor})}" data-nav>Voir ma fiche publique ↗</a></div></div>
+ ${suspended?'<div class="notice warning">Ce profil est suspendu dans la simulation. Les modifications sont temporairement désactivées.</div>':''}
+ <form class="self-profile-form" data-form="selfProfile"><div class="self-form-grid"><label class="field self-field-wide">Biographie<textarea name="bio" maxlength="1200" rows="4">${value('bio')}</textarea></label>${field('Avatar (URL ou chemin assets/)','avatar_url',500,'https://…')}${field('Bannière (URL ou chemin assets/)','banner_url',500,'https://…')}<label class="field">Année de début<input name="join_year" type="number" min="2013" max="2100" value="${value('join_year')}"></label>${field('Niveau favori','favorite_level',120)}${field('Objectif actuel','current_goal',180)}${field('Chaîne YouTube','youtube_url',500)}${field('Chaîne Twitch','twitch_url',500)}${field('Autre lien','social_url',500)}${field('Accomplissement à la une 1','highlight_1',150)}${field('Accomplissement à la une 2','highlight_2',150)}${field('Accomplissement à la une 3','highlight_3',150)}
+ ${isFR?`<label class="field">Région française<div class="country-select-row"><span>${GEO.regionImage(profile.region_code)}</span><select name="region_code" id="selfRegion"><option value="">Non renseignée</option>${GEO.regions.map(r=>`<option value="${esc(r.code)}" ${r.code===profile.region_code?'selected':''}>${esc(r.name)}</option>`).join('')}</select></div></label>`:''}</div>
+ <div class="self-actions"><button class="btn" type="submit" ${suspended?'disabled':''}>Enregistrer mon profil</button><span class="muted small">${LIVE?'Enregistrement via Supabase, soumis aux règles RLS.':'Sauvegardé seulement dans ce navigateur ; pas sur Supabase.'}</span></div></form>
+ </section>`;
+}
+async function saveSelfProfile(form){
+ const actor=LIVE?state.ownKey:state.demoActor;
+ const player=state.data.players.find(x=>x.player_key===actor&&x.has_account);
+ if(!player||!actor)throw Error('Aucun joueur autorisé pour ce profil.');
+ if(player.demo_suspended_until&&new Date(player.demo_suspended_until)>new Date())throw Error('Profil suspendu en démonstration.');
+ const f=Object.fromEntries(new FormData(form).entries());
+ const safeURL=(value,label)=>{const s=plain(value);if(!s)return '';if(!imageLink(s))throw Error(`${label} : URL ou chemin assets/ invalide.`);return s;};
+ const webURL=(value,label)=>{const s=plain(value);if(!s)return '';if(!http(s))throw Error(`${label} : lien http(s) requis.`);return s;};
+ const data={player_key:actor,bio:plain(f.bio).slice(0,1200),avatar_url:safeURL(f.avatar_url,'Avatar'),banner_url:safeURL(f.banner_url,'Bannière'),join_year:f.join_year?Number(f.join_year):null,favorite_level:plain(f.favorite_level).slice(0,120),current_goal:plain(f.current_goal).slice(0,180),youtube_url:webURL(f.youtube_url,'YouTube'),twitch_url:webURL(f.twitch_url,'Twitch'),social_url:webURL(f.social_url,'Lien personnel'),highlight_1:plain(f.highlight_1).slice(0,150),highlight_2:plain(f.highlight_2).slice(0,150),highlight_3:plain(f.highlight_3).slice(0,150)};
+ if(data.join_year&&(data.join_year<2013||data.join_year>2100))throw Error('Année de début invalide.');
+ if(player.country_code==='FR'&&(!LIVE||C.enableRegionProfiles))data.region_code=GEO.regionInfo(f.region_code)?.code||null;
+ if(!LIVE){const current=state.data.player_profiles.findIndex(p=>p.player_key===actor);if(current>=0)state.data.player_profiles[current]={...state.data.player_profiles[current],...data};else state.data.player_profiles.push(data);saveDemo();}
+ else {if(!state.session||!state.ownKey||actor!==state.ownKey)throw Error('Ce compte n’est pas autorisé à modifier ce joueur.');
+   const {error}=await db.from('player_profiles').upsert(data,{onConflict:'player_key'});if(error)throw Error('Supabase : '+error.message);
+   state.data.player_profiles=await readAll('player_profiles');}
+ toast('Profil enregistré '+(LIVE?'sur Supabase':'dans la démo')+' !');render();
+}
 function comparison(p,other){if(!other)return '<p class="muted small">Choisis un joueur pour comparer leurs statistiques.</p>';
- const rows=[['Points',fmt(p.score),fmt(other.score)],['Classement',p.rank?'#'+p.rank:'—',other.rank?'#'+other.rank:'—'],['Complétions',p.total_completions,other.total_completions],['Main List · #1–75',new Set(p.main.map(d=>d.id)).size,new Set(other.main.map(d=>d.id)).size],['Extended List · #76–150',new Set(p.extended.map(d=>d.id)).size,new Set(other.extended.map(d=>d.id)).size],['NLW',p.beyond.length,other.beyond.length],['Legacy',p.legacy.length,other.legacy.length],['Niveaux vérifiés',p.verified.length,other.verified.length]];
+ const rows=[['Points',fmt(p.score),fmt(other.score)],['Classement',p.rank?'#'+p.rank:'—',other.rank?'#'+other.rank:'—'],['Complétions',p.total_completions,other.total_completions],['Main List · #1–75',new Set(p.main.map(d=>d.id)).size,new Set(other.main.map(d=>d.id)).size],['Extended List · #76–150',new Set(p.extended.map(d=>d.id)).size,new Set(other.extended.map(d=>d.id)).size],['NLW',p.beyond.length,other.beyond.length],['UNRATED (points simulés)',fmt(unratedData().players.find(x=>x.player_key===p.player_key)?.points||0),fmt(unratedData().players.find(x=>x.player_key===other.player_key)?.points||0)],['Legacy',p.legacy.length,other.legacy.length],['Niveaux vérifiés',p.verified.length,other.verified.length]];
  return `<div class="record-table-wrap"><table class="record-table"><thead><tr><th>Indicateur</th><th>${esc(fullName(p))}</th><th>${esc(fullName(other))}</th></tr></thead><tbody>${rows.map(([n,a,b])=>`<tr><td>${esc(n)}</td><td>${esc(a)}</td><td>${esc(b)}</td></tr>`).join('')}</tbody></table></div>`;
 }
 
@@ -209,7 +263,7 @@ function statProfile(p){if(!p)return '<div class="stats-profile empty">Sélectio
     </div></div>
  ${isSuspended?'<p class="notice warning"><b>Profil suspendu en démonstration</b> — cette sanction n’affecte pas l’authentification réelle.</p>':''}<h2 class="player-title">${flag(p.country_code)} ${esc(p.display_name||p.username)} ${!p.has_account?'<span class="tag">Sans compte</span>':''}</h2><div class="profile-region-line">${regionIdentity(p)}</div><div style="text-align:center;margin-bottom:8px">${titleHTML(p)}${p.clan?` <a class="tag clan-profile-link" href="${url('clans')}" data-nav>Clan : ${esc(state.data.clans.find(c=>Number(c.id)===Number(p.clan.clan_id))?.tag||'—')}</a>`:''}</div>
  <div class="statboxes">${box('Classement Demonlist',rankedStr)}${box('Points totaux',fmt(p.score))}${box('Démon le plus difficile',p.hardest?`#${p.hardest.position} ${p.hardest.name}`:'Aucun')}</div>
- <div class="statboxes two">${box('Points NLW',fmt(p.nlwScore||0))}${box('Rang NLW',p.nlwRank?'#'+p.nlwRank:'—')}</div><div class="statboxes two">${box('Main List · #1–75',new Set(p.main.map(d=>d.id)).size)}${box('Extended List · #76–150',new Set(p.extended.map(d=>d.id)).size)}</div><div class="statboxes two">${box('Contributions',`${p.created.length} Créés, ${p.published.length} Publiés, ${p.verified.length} Vérifiés`)}${box('Autres complétions',`${p.legacy.length} Legacy, ${p.beyond.length} NLW`)}</div>
+ <div class="statboxes two">${box('Points NLW',fmt(p.nlwScore||0))}${box('Rang NLW',p.nlwRank?'#'+p.nlwRank:'—')}</div><div class="statboxes two">${box('UNRATED complétés',unratedData().players.find(x=>x.player_key===p.player_key)?.completions||0)}${box('Points UNRATED (simulation)',fmt(unratedData().players.find(x=>x.player_key===p.player_key)?.points||0))}</div><div class="statboxes two">${box('Main List · #1–75',new Set(p.main.map(d=>d.id)).size)}${box('Extended List · #76–150',new Set(p.extended.map(d=>d.id)).size)}</div><div class="statboxes two">${box('Contributions',`${p.created.length} Créés, ${p.published.length} Publiés, ${p.verified.length} Vérifiés`)}${box('Autres complétions',`${p.legacy.length} Legacy, ${p.beyond.length} NLW`)}</div>
  <div class="profile-section badge-gallery"><h3>Badges automatiques</h3>${p.autoBadges.length?p.autoBadges.map(b=>`<span class="auto-badge" title="Palier ${b.goal}">✦ ${esc(b.name)}</span>`).join(''):'<span class="muted">Aucun badge débloqué</span>'}<p class="small muted">Les badges Faucheur dépendent des complétions actuellement dans le Top 150. Les badges Vérificateur restent acquis.</p></div><div class="profile-section profile-tabs" role="tablist" aria-label="Sections du profil">${[['overview','Présentation'],['records','Records'],['charts','Graphiques'],['achievements','Distinctions']].map(([id,label])=>`<button type="button" role="tab" aria-selected="${state.profileTab===id}" data-profile-tab="${id}" class="${state.profileTab===id?'active':''}">${label}</button>`).join('')}</div>
  <div class="profile-pane ${state.profileTab==='overview'?'':'is-hidden'}" data-pane="overview">
  ${profile.bio?`<div class="profile-bio">${esc(profile.bio)}</div>`:''}
@@ -235,7 +289,8 @@ function statsPage(){const users=ranked().filter(p=>!p.hidden_from_stats);const 
  const filtered=users.filter(p=>(state.country==='MONDE'||p.country_code===state.country)&&(state.country!=='FR'||state.region==='ALL'||regionFor(p)===state.region)&&key(fullName(p)).includes(key(state.keyword)));
  const chosen=getPlayer(state.selectedPlayer)||filtered[0]||users[0];if(chosen)state.selectedPlayer=chosen.player_key;
  const top=`${templateNotice()}<section class="paper stats-main"><div class="center-panel" style="box-shadow:none;border:0;padding:13px 0 4px"><h1>Statistiques</h1><p>Joueurs, pays et progression de la communauté francophone.</p></div>${statsOverview()}
- <div class="switch-tabs"><button type="button" data-stats-tab="players" class="${state.statsTab==='players'?'active':''}">Joueurs</button><button type="button" data-stats-tab="countries" class="${state.statsTab==='countries'?'active':''}">Pays</button><button type="button" data-stats-tab="nlw" class="${state.statsTab==='nlw'?'active':''}">Classement NLW</button><button type="button" data-stats-tab="compare" class="${state.statsTab==='compare'?'active':''}">Comparaison</button></div>`;
+ <div class="switch-tabs"><button type="button" data-stats-tab="players" class="${state.statsTab==='players'?'active':''}">Joueurs</button><button type="button" data-stats-tab="countries" class="${state.statsTab==='countries'?'active':''}">Pays</button><button type="button" data-stats-tab="nlw" class="${state.statsTab==='nlw'?'active':''}">Classement NLW</button><button type="button" data-stats-tab="unrated" class="${state.statsTab==='unrated'?'active':''}">UNRATED</button><button type="button" data-stats-tab="compare" class="${state.statsTab==='compare'?'active':''}">Comparaison</button></div>`;
+ if(state.statsTab==='unrated'){const u=unratedData(),active=u.players.filter(x=>x.points||x.completions||x.verifications),p=getPlayer(state.selectedPlayer);return top+`<div class="notice"><b>UNRATED — statistiques simulées</b><p>Ces points correspondent uniquement aux démons UNRATED, calculés sur leurs positions estimées lorsque le mode UNRATED est activé. Ils ne sont pas des points officiels.</p><button type="button" class="btn subtle small" data-action="toggleUnratedStats">${state.unrated?'Revenir au classement officiel':'Activer le classement UNRATED'}</button></div><div class="overview-stats">${box('Niveaux UNRATED',u.demons.length)}${box('Complétions UNRATED',u.totalCompletions)}${box('Vérifications UNRATED',u.totalVerifications)}${box('Joueurs concernés',active.length)}</div><h3>Classement des points UNRATED</h3><div class="record-table-wrap"><table class="record-table"><thead><tr><th>Rang</th><th>Joueur</th><th>Complétés</th><th>Vérifiés</th><th>Points simulés</th></tr></thead><tbody>${active.map((x,i)=>`<tr><td>#${i+1}</td><td><a class="link" data-nav href="${url('stats',{player:x.player_key})}">${esc(x.name)}</a></td><td>${x.completions}</td><td>${x.verifications}</td><td><b>${fmt(x.points)}</b></td></tr>`).join('')||'<tr><td colspan="5">Aucune donnée UNRATED pour le moment.</td></tr>'}</tbody></table></div><h3>Niveaux UNRATED et positions estimées</h3><div class="record-table-wrap"><table class="record-table"><thead><tr><th>Position en mode UNRATED</th><th>Niveau</th><th>Vérificateur</th><th>Points à 100 %</th></tr></thead><tbody>${u.demons.map(d=>`<tr><td>#${d.position}</td><td>${esc(d.name)}</td><td>${esc(d.verifier||'—')}</td><td>${fmt(V2.actualPoints(d,100,num(cfg().top1_points)))}</td></tr>`).join('')||'<tr><td colspan="4">Aucun niveau UNRATED.</td></tr>'}</tbody></table></div></section>`;}
  if(state.statsTab==='nlw')return top+`<h3>Points NLW · indépendants des points principaux</h3><div class="record-table-wrap"><table class="record-table"><thead><tr><th>Rang NLW</th><th>Joueur</th><th>Points NLW</th><th>Complétions NLW</th></tr></thead><tbody>${users.filter(p=>p.nlwScore>0).sort((a,b)=>b.nlwScore-a.nlwScore).map((p,i)=>`<tr><td>#${i+1}</td><td><a class="link" data-nav href="${url('stats',{player:p.player_key})}">${esc(fullName(p))}</a></td><td>${fmt(p.nlwScore)}</td><td>${p.beyond.length}</td></tr>`).join('')||'<tr><td colspan="4">Aucun point NLW</td></tr>'}</tbody></table></div></section>`;
  if(state.statsTab==='countries')return top+`<div class="record-table-wrap"><table class="record-table"><thead><tr><th>Rang</th><th>Pays</th><th>Points cumulés</th><th>Joueurs</th><th>Complétions</th><th>Meilleur joueur</th></tr></thead><tbody>${countryRows().map((c,i)=>`<tr><td>#${i+1}</td><td>${flag(c.code)} ${esc(c.code==='??'?'Non renseigné':c.code)}</td><td><b>${fmt(c.score)}</b></td><td>${c.players}</td><td>${c.records}</td><td>${esc(fullName(c.leader))}</td></tr>`).join('')}</tbody></table></div><p class="muted small">Classement calculé à partir des profils publics de cette version.</p></section>`;
  if(state.statsTab==='compare'){const a=chosen||users[0],b=getPlayer(state.comparePlayer)||users.find(p=>p.player_key!==a?.player_key);return top+`<div class="compare-panel"><div class="compare-selects"><label>Joueur A <select id="compareA">${users.map(p=>`<option value="${esc(p.player_key)}" ${p.player_key===a?.player_key?'selected':''}>${esc(fullName(p))}</option>`).join('')}</select></label><label>Joueur B <select id="compareB">${users.filter(p=>p.player_key!==a?.player_key).map(p=>`<option value="${esc(p.player_key)}" ${p.player_key===b?.player_key?'selected':''}>${esc(fullName(p))}</option>`).join('')}</select></label></div>${a?comparison(a,b):'<p class="empty">Pas de joueurs.</p>'}</div></section>`;}
@@ -429,8 +484,8 @@ function showPageError(error){
  el.innerHTML=`<section class="center-panel startup-error" role="alert"><h2>La page n’a pas pu s’afficher</h2><p>Le chargement a été interrompu. Ce problème ne modifie pas tes données Supabase.</p><pre class="error-detail">${msg}</pre><div class="startup-actions"><a class="btn" href="?page=list&demo=1&reset=1">Réinitialiser la démo locale</a><a class="btn subtle" href="?page=list&demo=1">Essayer le mode démo</a></div><p class="small muted">Si le problème continue, vérifie que les fichiers <code>js/v2-core.js</code>, <code>js/v2-demo.js</code>, <code>js/community-unverified.js</code> et <code>js/demo-data.js</code> sont présents sur GitHub.</p></section>`;
 }
 function render(){if(!state.data)return;try{
- if(!V2?.decorate || !V2?.project || !UNVERIFIED?.classify || !CLANS?.apply || !CLAN_PLUS?.stats)throw Error('Fichier JavaScript V2 manquant ou version incohérente : réinstalle les scripts du pack V2.0.3.');
- const page=nav(),params=new URLSearchParams(location.search);if(page==='stats'&&params.has('player'))state.selectedPlayer=key(params.get('player'));const content=page==='stats'?statsPage():page==='demon'?demonPage():page==='news'?newsPage():page==='hall'?hallV2():page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='achievements'?achievementsPage():page==='clans'?clansPage():page==='history'?historyPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();document.title=({list:'Demonlist',stats:'Statistiques',news:'Actualités',hall:'Hall of Fame',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Achievements',clans:'Clans',history:'Historique',demon:'Niveau'})[page]+' · DemonlistFrancophone';
+ if(!UNRATED_STATS?.calculate || !V2?.decorate || !V2?.project || !UNVERIFIED?.classify || !CLANS?.apply || !CLAN_PLUS?.stats)throw Error('Fichier JavaScript V2 manquant ou version incohérente : réinstalle les scripts du pack V2.0.3.');
+ const page=nav(),params=new URLSearchParams(location.search);if(page==='stats'&&params.has('player'))state.selectedPlayer=key(params.get('player'));const content=page==='stats'?statsPage():page==='my-profile'?selfProfilePage():page==='demon'?demonPage():page==='news'?newsPage():page==='hall'?hallV2():page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='achievements'?achievementsPage():page==='clans'?clansPage():page==='history'?historyPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();document.title=({list:'Demonlist',stats:'Statistiques',news:'Actualités',hall:'Hall of Fame',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Achievements',clans:'Clans',history:'Historique','my-profile':'Mon profil',demon:'Niveau'})[page]+' · DemonlistFrancophone';
  }catch(error){showPageError(error);}
 }
 function auditV2(action,target){state.data.community_audit_log.push({action_key:action,target,created_at:new Date().toISOString()});saveDemo();}
@@ -445,6 +500,12 @@ async function save(table,item,{upsert=false,on=null}={}){
 async function handleForm(form){if(state.busy)return;state.busy=true;const submit=form.querySelector('[type="submit"],button:not([type])');if(submit)submit.disabled=true;
  try{
  const type=form.dataset.form, f=Object.fromEntries(new FormData(form).entries());
+ if(type==='selfLogin'){
+  if(!LIVE)throw Error('Connexion réservée au site réel.');
+  const {data,error}=await db.auth.signInWithPassword({email:f.email,password:f.password});if(error)throw Error(error.message);
+  state.session=data.session;await checkStaff();await checkSelfOwner();toast('Connexion réussie');render();return;
+ }
+ if(type==='selfProfile'){await saveSelfProfile(form);return;}
  if(type==='login'){
   const {data,error}=await db.auth.signInWithPassword({email:f.email,password:f.password});if(error)throw Error(error.message);
   state.session=data.session;await checkStaff();toast(state.staff?'Connecté en modérateur':'Connecté. Ce compte ne dispose pas de droits de modération.');render();return;
@@ -549,6 +610,8 @@ function bootEvents(){
  const clanAction=ev.target.closest('[data-clan-action]');if(clanAction){handleClanAction(clanAction);return;}
  const act=ev.target.closest('[data-action]');if(!act)return;
  if(act.dataset.action==='moreUnbeaten'){state.unbeatLimit+=120;const results=$('unbeatenResults');if(results)results.innerHTML=unbeatenEntriesHTML();return;}
+ if(act.dataset.action==='toggleUnratedStats'){state.unrated=!state.unrated;refreshUnrated();render();return;}
+ if(act.dataset.action==='selfLogout'&&LIVE){await db.auth.signOut();state.session=null;state.ownKey=null;state.staff=false;render();return;}
  if(act.dataset.action==='clearCalc'){state.calcDemons=[];render();return;}
  if(act.dataset.action==='previewDemo'){
   try{sessionStorage.setItem('dlfr-preview-mode','demo');}catch{}
@@ -583,6 +646,7 @@ function bootEvents(){
  if(ev.target.id==='profileEditorCountry'||ev.target.id==='profileEditorRegion')syncRegionEditor();
  if(ev.target.id==='calcPlayer'){state.calcPlayer=ev.target.value;state.calcDemons=[];render();}
  if(ev.target.matches('[data-calc-demon]')){const id=+ev.target.dataset.calcDemon;state.calcDemons=ev.target.checked?[...new Set([...state.calcDemons,id])]:state.calcDemons.filter(x=>x!==id);render();}
+ if(ev.target.id==='selfDemoActor'&&!LIVE){state.demoActor=ev.target.value;render();return;}
  if(ev.target.id==='clanDemoActor'&&!LIVE){state.demoActor=ev.target.value;render();return;}
  if(ev.target.id==='demoRole'){state.demoRole=ev.target.value;state.adminTab=state.demoRole==='nlw_editor'?'levels':'overview';render();}
  if(ev.target.id==='importDemo')importDemo(ev.target.files?.[0]);

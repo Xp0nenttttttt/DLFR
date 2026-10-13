@@ -1,3 +1,5 @@
+**NOUVEAU V2.4 :** onglet Mon profil (démo éditable sans modération) et statistiques séparées UNRATED, avec exemple. Lire [V2.4-MON-PROFIL-UNRATED.md](V2.4-MON-PROFIL-UNRATED.md).
+
 > **Mise à jour V2.1** : voir [`DEMARRAGE-V2.1.md`](DEMARRAGE-V2.1.md) pour les clans et la séparation Main/Extended.
 
 # DemonlistFrancophone — V2.0 (front-end de démonstration)

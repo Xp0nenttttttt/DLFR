@@ -12,7 +12,8 @@ window.DEMONLIST_DEMO = {
  {id:93,position:93,name:'Starlight Summit',publisher:'creator',verifier:'Cryostaz',creator:'creator',requirement:65,legacy:false},
  {id:110,position:110,name:'Zodiac',publisher:'Bianox',verifier:'niwox_',creator:'Bianox',requirement:71,legacy:false},
  {id:151,position:151,name:'Ancien défi',publisher:'demo',verifier:'Cryostaz',creator:'demo',requirement:80,legacy:true},
- {id:152,position:152,name:'Beyond the List',publisher:'demo',verifier:'demo',creator:'demo',requirement:85,legacy:false}
+ {id:152,position:152,name:'Beyond the List',publisher:'demo',verifier:'demo',creator:'demo',requirement:85,legacy:false},
+ {id:9001,position:153,unrated_position:27,unrated:true,demo_v24_unrated:true,name:'DÉMO — Eclipse Protocol (UNRATED)',publisher:'Spleen',verifier:'Spleen',creator:'Demo Studio',requirement:70,legacy:false,description:'Niveau entièrement fictif pour tester le classement et les statistiques UNRATED.',level_id:'',thumbnail_url:''}
  ],
  players:[
  {player_key:'cryostaz',username:'Cryostaz',display_name:'Cryostaz',country_code:'FR',points:2184.50,has_account:true,bonus_points:0,hidden_from_stats:false},
@@ -34,7 +35,8 @@ window.DEMONLIST_DEMO = {
  {id:6,demon_id:3,player:'coubitic',progress:100,video_url:'',created_at:'2026-06-29'},
  {id:7,demon_id:55,player:'Spleen',progress:100,video_url:'',created_at:'2026-10-01'},
  {id:8,demon_id:110,player:'niwox_',progress:100,video_url:'',created_at:'2026-04-10'},
- {id:9,demon_id:151,player:'Cryostaz',progress:100,video_url:'',created_at:'2026-03-10'}
+ {id:9,demon_id:151,player:'Cryostaz',progress:100,video_url:'',created_at:'2026-03-10'},
+ {id:9001,demon_id:9001,player:'Spleen',progress:100,video_url:'',created_at:'2026-10-09'}
  ],
  news_items:[
  {id:1,headline:'Bienvenue sur la nouvelle DemonlistFrancophone',body:'La communauté peut maintenant retrouver les actualités, suivre les classements et mettre en avant les joueurs. Ceci est une démonstration fictive.',player_name:'',category:'Annonce',is_pinned:true,image_url:'assets/nullscapes.webp',video_url:'',is_published:true,created_at:'2026-10-11'},
