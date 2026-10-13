@@ -1,3 +1,5 @@
+**V2.5 :** voir `DISCORD-V2.5-A-LIRE.md` pour la démonstration Discord et la préparation OAuth. Aucun drapeau personnalisé livré.
+
 > **Mise à jour V2.1** : voir [`DEMARRAGE-V2.1.md`](DEMARRAGE-V2.1.md) pour les clans et la séparation Main/Extended.
 
 # DemonlistFrancophone — V2.0 (front-end de démonstration)
