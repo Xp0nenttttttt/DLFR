@@ -39,3 +39,8 @@ La page **Non battus** lit `data/niveaux-non-battus.xlsx` automatiquement depuis
 ## Mise à jour V2.2 — Clans avancés
 
 Classements, profils de clans, candidatures, officiers, créations et collection de niveaux : voir `V2.2-CLANS-AREDL.md`. Les nouveaux changements sont pour le mode démo uniquement et ne changent pas Supabase.
+
+
+## V2.3 — Drapeaux et régions françaises
+
+Les drapeaux des pays sont désormais de véritables fichiers images locaux dans `assets/flags/countries/` (sans emoji Unicode dans le HTML). Le sélecteur de région n'apparaît que pour la France. Voir `INSTALLER-DRAPEAUX-V2.3.md` et `assets/flags/regions/fr/EMPLACEMENTS.md`. Les illustrations régionales fournies ne sont pas officielles et doivent être remplacées par les drapeaux souhaités.

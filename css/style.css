@@ -317,3 +317,19 @@ html.unrated-mode .level-badge.unrated-badge{background:#54206e;color:#fff}
 .clan-v22-edit{margin:14px 0}.clan-v22-check{font-size:12px;display:flex;align-items:center;gap:8px}
 [data-clan-searchable][hidden]{display:none!important}
 @media(max-width:700px){.clan-v22-rank-row{grid-template-columns:30px 42px minmax(0,1fr);gap:8px}.clan-v22-rank-row>.clan-v22-rank-metric{grid-column:3;text-align:left}.clan-v22-rank-row>span:last-child{display:none}.clan-v22-mark{height:40px;min-width:40px}.clan-v22-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.clan-v22-ranks{grid-template-columns:repeat(2,minmax(0,1fr))}.clan-v22-hero-body{padding:16px;gap:12px}.clan-v22-logo{width:60px;height:60px;flex-basis:60px;font-size:13px}.clan-v22-hero-body h2{font-size:20px}.clan-v22-form{grid-template-columns:1fr}.clan-v22-boardhead .field{width:100%;min-width:0}.clan-v22-level{grid-template-columns:35px minmax(0,1fr) 68px;font-size:11px}}
+
+/* V2.3 — vrais fichiers images pour pays et emplacements régionaux locaux */
+.flag-img{width:22px;height:16px;object-fit:contain;display:inline-block;vertical-align:-3px;flex:none;border:0;max-width:none}
+.flag-country{margin-right:4px}
+.flag-region{width:24px;height:17px;margin-right:4px}
+.flag-img[src$=".png"]{image-rendering:auto}
+.rank-name .flag-img{vertical-align:-3px}
+.region-identity{display:inline-flex;align-items:center;gap:4px;font-weight:600;font-size:12px;vertical-align:middle}
+.profile-region-line{text-align:center;min-height:21px;margin:-3px 0 6px;color:var(--muted)}
+.profile-hero .region-identity{color:#f4f7fc;font-size:12px}
+.country-select-row{display:flex;align-items:center;gap:8px;min-width:0}
+.country-select-row>span:first-child{flex:0 0 28px;display:inline-flex;align-items:center;justify-content:center}
+.country-select-row select{width:100%;min-width:0;flex:1}
+.profile-location-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.profile-location-fields .field[hidden]{display:none!important}
+@media(max-width:690px){.profile-location-fields{grid-template-columns:1fr}.country-select-row{width:100%}}

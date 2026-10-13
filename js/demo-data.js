@@ -51,3 +51,8 @@ window.DEMONLIST_DEMO = {
  {player_key:'spleen',snapshot_day:'2026-05-01',rank:27,points:80},{player_key:'spleen',snapshot_day:'2026-06-01',rank:25,points:121},{player_key:'spleen',snapshot_day:'2026-07-01',rank:21,points:175},{player_key:'spleen',snapshot_day:'2026-08-01',rank:18,points:225},{player_key:'spleen',snapshot_day:'2026-09-01',rank:14,points:300},{player_key:'spleen',snapshot_day:'2026-10-01',rank:12,points:345.2}
  ],demon_position_history:[],community_audit_log:[]
 };
+// Régions fictives pour illustrer les drapeaux dans l'aperçu uniquement.
+for (const p of window.DEMONLIST_DEMO.player_profiles) {
+  if (p.player_key === 'spleen') p.region_code = 'BRE';
+  if (p.player_key === 'cryostaz') p.region_code = 'IDF';
+}
