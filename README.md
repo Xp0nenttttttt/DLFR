@@ -34,3 +34,8 @@ Conserver l'ancien site et les sauvegardes SQL jusqu'à la validation intégrale
 
 ## Nouveauté V2.0.1 : Excel communautaire
 La page **Non battus** lit `data/niveaux-non-battus.xlsx` automatiquement depuis GitHub Pages ; elle affiche uniquement les démons encore non vérifiés. Les changements sont détaillés dans `EXCEL-NON-VERIFIES.md`.
+
+
+## Mise à jour V2.2 — Clans avancés
+
+Classements, profils de clans, candidatures, officiers, créations et collection de niveaux : voir `V2.2-CLANS-AREDL.md`. Les nouveaux changements sont pour le mode démo uniquement et ne changent pas Supabase.

@@ -6,6 +6,7 @@ const key=x=>String(x??'').trim().toLocaleLowerCase('fr');
 const member=(data,who)=>data.clan_members.find(m=>key(m.player_key)===key(who))||null;
 const clan=(data,id)=>data.clans.find(c=>Number(c.id)===Number(id))||null;
 const leader=(data,id,who)=>{const m=member(data,who);return !!m&&Number(m.clan_id)===Number(id)&&m.role==='leader';};
+const manager=(data,id,who)=>{const m=member(data,who);return !!m&&Number(m.clan_id)===Number(id)&&['leader','officer'].includes(m.role);};
 const account=(data,who)=>data.players.find(p=>key(p.player_key)===key(who)&&p.has_account&&!p.hidden_from_stats)||null;
 const pending=(data,who)=>data.clan_invites.filter(i=>i.status==='pending'&&key(i.invitee_key)===key(who));
 function apply(source,command){
@@ -27,7 +28,7 @@ function apply(source,command){
   return data;
  }
  case 'invite':{
-  if(!clan(data,id)||!leader(data,id,actor))throw Error('Seul le chef peut envoyer des invitations.');
+  if(!clan(data,id)||!manager(data,id,actor))throw Error('Seuls le chef et les officiers peuvent inviter.');
   if(!account(data,target))throw Error('Le joueur doit posséder un compte et être visible.');
   if(member(data,target))throw Error('Ce joueur appartient déjà à un clan.');
   if(data.clan_members.filter(m=>Number(m.clan_id)===id).length>=25)throw Error('Limite de 25 membres atteinte.');
@@ -42,18 +43,20 @@ function apply(source,command){
    if(!clan(data,invitation.clan_id))throw Error('Ce clan n’existe plus.');
    if(data.clan_members.filter(m=>Number(m.clan_id)===Number(invitation.clan_id)).length>=25)throw Error('Clan complet.');
    data.clan_members.push({clan_id:invitation.clan_id,player_key:actor,role:'member'});
+   for(const req of data.clan_requests||[])if(key(req.player_key)===actor&&req.status==='pending')req.status='withdrawn';
    // Other invitations cannot be accepted after a player joins a clan.
    for(const x of data.clan_invites)if(x.status==='pending'&&key(x.invitee_key)===actor)x.status=Number(x.id)===Number(invitation.id)?'accepted':'declined';
   }else invitation.status='declined';
   invitation.updated_at=now;return data;
  }
  case 'cancel':{
-  if(!invitation||invitation.status!=='pending'||!leader(data,invitation.clan_id,actor))throw Error('Annulation réservée au chef du clan.');
+  if(!invitation||invitation.status!=='pending'||!manager(data,invitation.clan_id,actor))throw Error('Annulation réservée au chef du clan.');
   invitation.status='cancelled';invitation.updated_at=now;return data;
  }
  case 'remove':{
-  if(!leader(data,id,actor)||target===actor)throw Error('Seul le chef peut retirer un autre membre.');
+  if(!manager(data,id,actor)||target===actor)throw Error('Seuls le chef et les officiers peuvent retirer un membre.');
   if(!member(data,target)||Number(member(data,target).clan_id)!==id)throw Error('Ce joueur n’appartient pas au clan.');
+  if(member(data,target).role==='leader'||(member(data,target).role==='officer'&&!leader(data,id,actor)))throw Error('Un officier ne peut retirer ni le chef ni un autre officier.');
   data.clan_members=data.clan_members.filter(m=>key(m.player_key)!==target);return data;
  }
  case 'transfer':{
@@ -71,10 +74,11 @@ function apply(source,command){
   data.clans=data.clans.filter(c=>Number(c.id)!==id);
   data.clan_members=data.clan_members.filter(m=>Number(m.clan_id)!==id);
   data.clan_invites=data.clan_invites.filter(i=>Number(i.clan_id)!==id);
+  if(Array.isArray(data.clan_requests))data.clan_requests=data.clan_requests.filter(r=>Number(r.clan_id)!==id);
   return data;
  }
  default:throw Error('Action de clan inconnue.');
  }
 }
-return {key,member,leader,account,pending,apply};
+return {key,member,leader,manager,account,pending,apply};
 });

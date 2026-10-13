@@ -50,31 +50,56 @@
     }
     return [...found.values()].sort((a,b)=>(Number(a.aredl_rank)||1e9)-(Number(b.aredl_rank)||1e9));
   }
-  function verifiedOnSite(row,demons=[]){
-    const levelName=normalize(row.name), levelId=text(row.level_id);
-    return demons.some(d=>{
-      const demonId=text(d.level_id);
-      const same=levelId && demonId ? levelId===demonId : normalize(d.name)===levelName;
-      if(!same)return false;
-      const verifier=text(d.verifier);
-      return truthy(d.verified)||Boolean(d.verified_at)||
-        (verifier!=='' && !['inconnu','unknown','nonverifie','nonverified','enattente','pending','aucun','none','?','-'].includes(normalize(verifier)));
-    });
+  // Priorité à l'ID Geometry Dash. Le nom est un recours lorsque l'un des ID manque.
+  // Être présent dans AREDL ne prouve PAS une complétion francophone.
+  function findOnDemonlist(row, demons=[]){
+    const name=normalize(row.name), id=text(row.level_id);
+    return demons.find(d=>{
+      const listId=text(d.level_id);
+      if(id && listId)return id===listId;
+      return name && normalize(d.name)===name;
+    })||null;
   }
-  function classify(rows, demons=[]){
+  function hasVerifier(demon){
+    if(!demon)return false;
+    const verifier=text(demon.verifier);
+    return truthy(demon.verified) || Boolean(demon.verified_at) ||
+      (normalize(verifier)!=='' && !['inconnu','unknown','nonverifie','nonverified','enattente','pending','aucun','none'].includes(normalize(verifier)));
+  }
+  function completedOnSite(demon,completions=[]){
+    if(!demon)return false;
+    return completions.some(c=>String(c.demon_id)===String(demon.id) && Number(c.progress)>=100);
+  }
+  function verificationOnSite(row,demons=[],completions=[]){
+    const demon=findOnDemonlist(row,demons);
+    if(!demon)return {verified:false,reason:'',demon:null};
+    if(hasVerifier(demon))return {verified:true,reason:'Vérificateur sur la Demonlist',demon};
+    if(completedOnSite(demon,completions))return {verified:true,reason:'Complétion 100 % sur la Demonlist',demon};
+    return {verified:false,reason:'Présent sur la Demonlist, sans preuve de complétion',demon};
+  }
+  function verifiedOnSite(row,demons=[],completions=[]){
+    return verificationOnSite(row,demons,completions).verified;
+  }
+  function classify(rows,demons=[],completions=[]){
     const available=[],verified=[];
-    let unknownCount=0, explicitUnverifiedCount=0;
+    let unknownCount=0,explicitUnverifiedCount=0,confirmedOnSite=0,confirmedManual=0;
     for(const row of rows){
-      if(row.verified || verifiedOnSite(row,demons)){verified.push(row);continue;}
+      const detection=verificationOnSite(row,demons,completions);
+      if(row.verified || detection.verified){
+        const reason=detection.verified?detection.reason:'Marqué vérifié dans Excel';
+        verified.push({...row,verification_source:reason,demonlist_id:detection.demon?.id??null});
+        if(detection.verified)confirmedOnSite++;else confirmedManual++;
+        continue;
+      }
       available.push(row);
       if(!row.verification_known)unknownCount++;
       else explicitUnverifiedCount++;
     }
-    return {available,verified,unknownCount,explicitUnverifiedCount};
+    return {available,verified,unknownCount,explicitUnverifiedCount,confirmedOnSite,confirmedManual};
   }
   const OFFLINE_EXAMPLES=[
     {name:'DÉMO — Crystal Mirage',aredl_rank:'521',aredl_points:'',level_id:'',nlw_tier:'',difficulty:'',video_url:'',verified:false,verification_known:false,notes:'Exemple fictif'},
     {name:'DÉMO — Silent Twilight',aredl_rank:'840',aredl_points:'',level_id:'',nlw_tier:'',difficulty:'',video_url:'',verified:false,verification_known:false,notes:'Exemple fictif'}
   ];
-  return {normalize,fromSheet,verifiedOnSite,classify,OFFLINE_EXAMPLES};
+  return {normalize,fromSheet,findOnDemonlist,verificationOnSite,verifiedOnSite,classify,OFFLINE_EXAMPLES};
 });

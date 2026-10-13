@@ -1,0 +1,18 @@
+const assert=require('node:assert/strict');
+const P=require('../js/clan-plus.js');
+const Core=require('../js/clan-core.js');
+let d={players:['spleen','cryostaz','niwox_','illyes','litoks'].map(player_key=>({player_key,has_account:true,hidden_from_stats:false})),clans:[{id:1,name:'Aurora',tag:'AUR',recruiting:true},{id:2,name:'Nova',tag:'NVA',recruiting:false}],clan_members:[{clan_id:1,player_key:'spleen',role:'leader'},{clan_id:1,player_key:'cryostaz',role:'member'},{clan_id:2,player_key:'niwox_',role:'leader'}],clan_invites:[],clan_requests:[],completions:[{demon_id:1,player:'spleen',progress:100},{demon_id:1,player:'cryostaz',progress:100},{demon_id:2,player:'cryostaz',progress:100},{demon_id:3,player:'cryostaz',progress:70}],demons:[{id:1,position:20,name:'A'},{id:2,position:140,name:'B'},{id:3,position:180,name:'C'}]};
+const next=(type,actor,more={})=>d=P.apply(d,{type,actor,...more});
+const ranked=[{player_key:'spleen',score:100,nlwScore:5},{player_key:'cryostaz',score:80,nlwScore:0},{player_key:'niwox_',score:50,nlwScore:0}];
+let r=P.stats(d,ranked,d.demons,()=>10)[0];assert.equal(r.totalPoints,180);assert.equal(r.levelPoints,20);assert.equal(r.uniqueCount,2);assert.equal(r.topCount,2);assert.equal(r.mainCount,1);assert.equal(r.extendedCount,1);assert.equal(r.hardestPosition,20);
+assert.throws(()=>next('request','illyes',{clan_id:2}),/n’accepte/);
+next('request','illyes',{clan_id:1,message:'Bonjour'});assert.equal(d.clan_requests.length,1);
+assert.throws(()=>next('approve','niwox_',{request_id:1}),/réservée/);
+next('promote','spleen',{clan_id:1,target:'cryostaz'});assert.equal(P.membership(d,'cryostaz').role,'officer');
+next('approve','cryostaz',{request_id:1});assert.equal(P.membership(d,'illyes').clan_id,1);
+assert.throws(()=>next('demote','cryostaz',{clan_id:1,target:'spleen'}),/chef/);
+assert.throws(()=>next('update','cryostaz',{clan_id:1,name:'Aurora',description:'Ok'}),/chef/);
+next('update','spleen',{clan_id:1,name:'Aurora Plus',description:'Updated',color:'#2468ab',recruiting:true});assert.equal(d.clans[0].name,'Aurora Plus');
+next('request','litoks',{clan_id:1,message:'x'});assert.throws(()=>next('request','litoks',{clan_id:1}),/déjà envoyée/);next('withdraw','litoks',{request_id:2});assert.equal(d.clan_requests.find(x=>x.id===2).status,'withdrawn');
+let m=Core.apply(d,{type:'invite',actor:'cryostaz',clan_id:1,target:'litoks'});assert.equal(m.clan_invites.length,1);assert.throws(()=>Core.apply(d,{type:'remove',actor:'cryostaz',clan_id:1,target:'spleen'}),/officier/);
+console.log('Clan V2.2 advanced functionality PASS');

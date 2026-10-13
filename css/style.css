@@ -269,3 +269,51 @@ html.unrated-mode .level-badge.unrated-badge{background:#54206e;color:#fff}
 .clan-roster-row .tag{font-size:10px}.clan-profile-link{display:inline-block;margin:3px 2px;text-decoration:none}
 .clan-card h3{font-size:13px;margin-top:14px}.clan-card .clan-roster{font-size:12px}
 @media(max-width:740px){.clan-player-simulator{flex-direction:column;align-items:stretch}.clan-player-simulator .field{max-width:none}.clan-create-form{grid-template-columns:1fr}.clan-section{padding:13px}.clan-actions button{font-size:11px}}
+
+/* V2.1.1 : transparence sur les retraits de la liste AREDL */
+.verified-breakdown{margin:15px 0;border:1px solid var(--line);background:var(--panel);padding:10px 13px}
+.verified-breakdown summary{cursor:pointer;font-weight:700;color:var(--ink)}
+.verified-breakdown-list{max-height:280px;overflow:auto;margin-top:8px}
+.verified-breakdown-list>div{padding:7px 3px;border-top:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px}
+.verified-breakdown-list>div span:first-child{font-weight:600;flex:1;min-width:130px}
+
+/* DLFR V2.2 — Clan leaderboard & profiles inspired by AREDL, native Pointercrate palette */
+.clan-v22-boardhead{display:flex;align-items:end;justify-content:space-between;gap:15px;flex-wrap:wrap}
+.clan-v22-boardhead h2{margin:0}.clan-v22-boardhead .field{margin:0;min-width:220px}
+.clan-v22-sort,.clan-v22-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:18px 0 12px}
+.clan-v22-sort button,.clan-v22-tabs button{background:var(--panel);border:1px solid var(--line);color:var(--ink);cursor:pointer;font-family:inherit;font-size:12px;padding:9px 12px;font-weight:700}
+.clan-v22-sort button.active,.clan-v22-tabs button.active{background:var(--blue);border-color:var(--blue);color:#fff}
+.clan-v22-rank-row{--clan-accent:var(--blue);display:grid;grid-template-columns:46px 64px minmax(0,1fr) minmax(110px,auto) 18px;gap:12px;padding:15px 10px;align-items:center;border-bottom:1px solid var(--line);border-left:4px solid transparent;text-decoration:none;color:var(--ink)}
+.clan-v22-rank-row:hover{background:var(--panel);border-left-color:var(--clan-accent)}
+.clan-v22-rank{font-weight:800;color:var(--muted);font-size:17px;text-align:center}
+.clan-v22-mark{background:var(--clan-accent);color:#fff;height:46px;min-width:46px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;border-radius:4px;overflow:hidden}
+.clan-v22-name{display:flex;flex-direction:column;gap:5px;min-width:0}.clan-v22-name strong{overflow-wrap:anywhere}.clan-v22-name small{color:var(--muted)}
+.clan-v22-rank-metric{font-weight:750;text-align:right}.clan-v22-tiny-logo{width:100%;height:100%;object-fit:cover}
+.clan-v22-back{display:inline-block;margin:12px 0 17px;color:var(--blue);font-weight:700}
+.clan-v22-hero{--clan-accent:var(--blue);position:relative;background:linear-gradient(115deg,var(--clan-accent),var(--panel));min-height:185px;border:1px solid var(--line);overflow:hidden;isolation:isolate}
+.clan-v22-hero:after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(10,16,29,.84),rgba(10,16,29,.28));z-index:-1}
+.clan-v22-banner{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
+.clan-v22-hero-body{display:flex;gap:20px;align-items:center;padding:28px;color:#fff}
+.clan-v22-logo{width:92px;height:92px;flex:0 0 92px;background:var(--clan-accent);border:3px solid rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:850;overflow:hidden}
+.clan-v22-logo-image{width:100%;height:100%;object-fit:cover}.clan-v22-hero-body h2{font-size:26px;margin:5px 0}.clan-v22-hero-body p{margin:4px 0;overflow-wrap:anywhere}
+.clan-v22-eyebrow{font-size:11px;letter-spacing:.05em;font-weight:700;text-transform:uppercase}
+.clan-v22-metrics,.clan-v22-ranks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:14px 0}
+.clan-v22-ranks{grid-template-columns:repeat(4,minmax(0,1fr))}
+.clan-v22-metrics>div,.clan-v22-ranks>div{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding:12px 7px;background:var(--panel);border:1px solid var(--line)}
+.clan-v22-metrics strong,.clan-v22-ranks strong{font-size:17px;color:var(--ink)}
+.clan-v22-metrics span,.clan-v22-ranks span{font-size:10px;color:var(--muted)}
+.clan-v22-member{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+.clan-v22-member>div:first-child{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.clan-v22-member>b{margin-left:auto}
+.clan-v22-panel,.clan-v22-create,.clan-v22-myclan{padding:17px;margin:14px 0;border:1px solid var(--line);background:var(--card)}
+.clan-v22-panel h3{margin:0 0 12px}.clan-v22-panel h4{margin:17px 0 8px}.clan-v22-myclan{font-size:13px}
+.clan-v22-create>summary,.clan-v22-edit>summary{font-weight:800;cursor:pointer;padding:4px 0;color:var(--blue)}
+.clan-v22-form{margin:14px 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.clan-v22-form .field{margin:0;min-width:0}.clan-v22-form .field:has(textarea){grid-column:1/-1}.clan-v22-form .btn{align-self:end;justify-self:start}
+.clan-v22-queue,.clan-v22-level,.clan-v22-recent{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding:10px 0;flex-wrap:wrap}
+.clan-v22-level{display:grid;grid-template-columns:50px minmax(0,1fr) 94px}.clan-v22-level>span:last-child{text-align:right;font-weight:700}
+.clan-v22-position{color:var(--muted);font-weight:800}.clan-v22-recent{justify-content:flex-start}
+.clan-v22-recent>span:first-child{min-width:110px;color:var(--muted)}
+.clan-v22-split{display:flex;flex-wrap:wrap;gap:8px}.clan-v22-split span{font-size:12px;padding:8px;border:1px solid var(--line);background:var(--panel)}
+.clan-v22-edit{margin:14px 0}.clan-v22-check{font-size:12px;display:flex;align-items:center;gap:8px}
+[data-clan-searchable][hidden]{display:none!important}
+@media(max-width:700px){.clan-v22-rank-row{grid-template-columns:30px 42px minmax(0,1fr);gap:8px}.clan-v22-rank-row>.clan-v22-rank-metric{grid-column:3;text-align:left}.clan-v22-rank-row>span:last-child{display:none}.clan-v22-mark{height:40px;min-width:40px}.clan-v22-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.clan-v22-ranks{grid-template-columns:repeat(2,minmax(0,1fr))}.clan-v22-hero-body{padding:16px;gap:12px}.clan-v22-logo{width:60px;height:60px;flex-basis:60px;font-size:13px}.clan-v22-hero-body h2{font-size:20px}.clan-v22-form{grid-template-columns:1fr}.clan-v22-boardhead .field{width:100%;min-width:0}.clan-v22-level{grid-template-columns:35px minmax(0,1fr) 68px;font-size:11px}}
