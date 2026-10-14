@@ -7,6 +7,7 @@ Ne télécharge PAS les records/victoires : uniquement le catalogue AREDL.
 from __future__ import annotations
 import argparse
 from collections import Counter
+import re
 import csv
 import io
 import json
@@ -20,11 +21,21 @@ from urllib.error import HTTPError, URLError
 from aredl_nlw_sync import Client, BASE, normalize_list
 
 
-def normalized_catalog(raw):
-    """Sépare les fiches publiables des anomalies, sans inventer d'ID.
+def detect_completion_mode(name: str) -> str:
+    """Only explicit AREDL suffixes qualify; never guess from the GD ID."""
+    name = name.strip().lower()
+    if re.search(r"\((?:2p|2[- ]?player|two[- ]?player)\)\s*$", name):
+        return 'two_player'
+    if re.search(r"\((?:solo|1p|1[- ]?player)\)\s*$", name):
+        return 'solo'
+    return 'unspecified'
 
-    Deux entrées ayant un même ID GD/AREDL sont TOUTES DEUX mises en
-    quarantaine, indépendamment de leur ordre dans le catalogue.
+
+def normalized_catalog(raw):
+    """Identity is AREDL ID, not GD ID. Two entries may share a GD level.
+
+    Ambiguous variants remain staged but are flagged for human review; exact
+    duplicate AREDL identities are quarantined. Never conflate Solo and 2P.
     """
     normalized = normalize_list(raw)
     candidates, invalid = [], []
@@ -48,19 +59,25 @@ def normalized_catalog(raw):
         else:
             candidates.append(row)
 
-    gd_counts = Counter(x['gd_level_id'] for x in candidates)
     aredl_counts = Counter(x['aredl_id'] for x in candidates)
+    gd_groups = {}
+    for row in candidates:
+        gd_groups.setdefault(row['gd_level_id'], []).append(row)
     valid = []
     for row in candidates:
-        problems = []
-        if gd_counts[row['gd_level_id']] > 1:
-            problems.append('ID Geometry Dash dupliqué')
         if aredl_counts[row['aredl_id']] > 1:
-            problems.append('ID AREDL dupliqué')
-        if problems:
-            invalid.append({**row, 'reason': '; '.join(problems), 'issue_type': 'duplicate'})
-        else:
-            valid.append(row)
+            invalid.append({**row, 'reason': 'ID AREDL dupliqué', 'issue_type': 'duplicate'})
+            continue
+        group = gd_groups[row['gd_level_id']]
+        shared = len(group) > 1
+        mode = detect_completion_mode(row['aredl_name'])
+        group_modes = {detect_completion_mode(x['aredl_name']) for x in group}
+        # Exactly one explicitly named Solo entry and one explicitly named 2P
+        # entry may safely coexist. Others are staged with review required.
+        needs_review = shared and not (len(group) == 2 and group_modes == {'solo', 'two_player'})
+        valid.append({**row, 'completion_mode': mode if shared else 'standard',
+                      'shared_gd_level': shared, 'needs_variant_review': needs_review})
+    valid.sort(key=lambda x: (x['aredl_rank'], x['aredl_id']))
     invalid.sort(key=lambda x: (x['aredl_rank'] or 0, x['aredl_name']))
     return valid, invalid
 
@@ -126,7 +143,7 @@ def save_reports(path, rows, invalid, summary):
     """Toujours fournir un rapport même lorsque la publication est bloquée."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.with_suffix('.csv').open('w', encoding='utf-8-sig', newline='') as output:
-        writer = csv.DictWriter(output, fieldnames=['aredl_rank', 'aredl_name', 'gd_level_id', 'aredl_id'])
+        writer = csv.DictWriter(output, fieldnames=['aredl_rank', 'aredl_name', 'gd_level_id', 'aredl_id', 'completion_mode', 'shared_gd_level', 'needs_variant_review'])
         writer.writeheader()
         writer.writerows(rows)
     invalid_file = path.parent / (path.name + '.invalid.csv')
@@ -154,11 +171,11 @@ def main():
     rows, invalid = normalized_catalog(payload)
     path = Path(args.output)
     report = {'mode': args.mode, 'total_levels': len(rows) + len(invalid),
-              'valid_levels': len(rows), 'invalid_count': len(invalid),
+              'valid_levels': len(rows), 'invalid_count': len(invalid), 'shared_gd_entries': sum(1 for x in rows if x['shared_gd_level']), 'variants_to_review': sum(1 for x in rows if x['needs_variant_review']),
               'invalid': invalid, 'status': 'PREVIEW', 'publish_blocked': False}
     # Le rapport existe AVANT les vérifications susceptibles de terminer le workflow.
     save_reports(path, rows, invalid, report)
-    print(f'Catalogue : {len(rows)} valides, {len(invalid)} en quarantaine.', flush=True)
+    print(f'Catalogue : {len(rows)} valides, {len(invalid)} en quarantaine, {sum(1 for r in rows if r["shared_gd_level"])} entrées partageant un ID GD.', flush=True)
     if invalid:
         print('Exemples des anomalies :', flush=True)
         for entry in invalid[:6]:

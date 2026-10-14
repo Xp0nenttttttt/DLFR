@@ -24,11 +24,25 @@ class CatalogSyncTests(unittest.TestCase):
         rows, invalid = normalized_catalog({'levels':[{'id':'a-1','name':'Level One','position':1}]})
         self.assertFalse(rows)
         self.assertEqual(len(invalid),1)
-    def test_duplicate_gd_blocks_both(self):
+    def test_duplicate_gd_unknown_variant_is_staged_for_review(self):
         rows, invalid = normalized_catalog({'levels':[{'id':'a-1','name':'A','position':1,'level_id':123},
                                                       {'id':'a-2','name':'B','position':2,'level_id':123}]})
+        self.assertEqual(len(rows),2)
+        self.assertFalse(invalid)
+        self.assertTrue(all(x['shared_gd_level'] and x['needs_variant_review'] for x in rows))
+    def test_solo_2p_share_gd_but_have_separate_aredl_keys(self):
+        rows, invalid = normalized_catalog({'levels':[{'id':'aredl-solo','name':'Duality (Solo)','position':11,'level_id':555},
+                                                      {'id':'aredl-2p','name':'Duality (2P)','position':22,'level_id':555}]})
+        self.assertEqual(len(rows),2)
+        self.assertEqual([x['completion_mode'] for x in rows],['solo','two_player'])
+        self.assertTrue(all(x['shared_gd_level'] and not x['needs_variant_review'] for x in rows))
+        self.assertFalse(invalid)
+    def test_duplicate_aredl_identity_still_quarantined(self):
+        rows, invalid = normalized_catalog({'levels':[{'id':'id1','name':'A','position':1,'level_id':99},
+                                                      {'id':'id1','name':'B','position':2,'level_id':100}]})
         self.assertFalse(rows)
-        self.assertTrue(invalid)
+        self.assertEqual(len(invalid),2)
+        self.assertTrue(all(x['issue_type']=='duplicate' for x in invalid))
     def test_mode_preview_without_secrets(self):
         res=run([{'gd_level_id':'1'}], 'preview')
         self.assertEqual(res['scanned'],1)
@@ -67,10 +81,10 @@ class QuarantineReportsTests(unittest.TestCase):
 
     def test_every_duplicate_is_quarantined_and_valid_kept(self):
         rows, invalid = normalized_catalog(self.sample())
-        self.assertEqual([r['aredl_rank'] for r in rows], [1, 5])
-        self.assertEqual([r['aredl_rank'] for r in invalid], [2, 3, 4])
+        self.assertEqual([r['aredl_rank'] for r in rows], [1, 3, 4, 5])
+        self.assertEqual([r['aredl_rank'] for r in invalid], [2])
         self.assertIn('absent', invalid[0]['reason'])
-        self.assertTrue(all(x['issue_type'] == 'duplicate' for x in invalid[1:]))
+        self.assertTrue(all(x['needs_variant_review'] for x in rows if x['gd_level_id'] == '333'))
 
     def test_reversed_catalog_same_result(self):
         rows_a, invalid_a = normalized_catalog(self.sample())
@@ -89,7 +103,7 @@ class QuarantineReportsTests(unittest.TestCase):
                 mocked.assert_not_called()
             self.assertTrue((Path(d)/'report.invalid.csv').exists())
             self.assertEqual(json.loads((Path(d)/'report.json').read_text())['status'],'BLOCKED_REVIEW_REQUIRED')
-            self.assertEqual(len((Path(d)/'report.invalid.csv').read_text(encoding='utf-8-sig').splitlines()), 4)
+            self.assertEqual(len((Path(d)/'report.invalid.csv').read_text(encoding='utf-8-sig').splitlines()), 2)
 
     def test_explicit_partial_publish_only_valid_rows(self):
         from aredl_catalog_sync import main
@@ -99,15 +113,15 @@ class QuarantineReportsTests(unittest.TestCase):
             out=Path(d)/'report'
             def fake_run(rows, mode, url, secret, batch_size):
                 self.assertEqual(mode, 'publish')
-                self.assertEqual([r['aredl_rank'] for r in rows], [1,5])
-                return {'scanned':len(rows),'staged':2,'created':2,'matched':0,'conflicts':0,'skipped':0, 'conflict_details':[]}
+                self.assertEqual([r['aredl_rank'] for r in rows], [1,3,4,5])
+                return {'scanned':len(rows),'staged':4,'created':4,'matched':0,'conflicts':0,'skipped':0, 'conflict_details':[]}
             with patch.object(sys,'argv',['sync','--mode','publish','--catalog-json',str(fixture),'--output',str(out),'--allow-partial-publish']),patch('aredl_catalog_sync.run', side_effect=fake_run) as mocked:
                 self.assertEqual(main(),0)
             self.assertEqual(mocked.call_count,1)
             report=json.loads((Path(d)/'report.json').read_text())
             self.assertEqual(report['status'],'COMPLETED_WITH_EXCEPTIONS')
-            self.assertEqual(report['invalid_count'],3)
-            self.assertEqual(report['created'],2)
+            self.assertEqual(report['invalid_count'],1)
+            self.assertEqual(report['created'],4)
 
     def test_stage_valid_rows_with_exceptions(self):
         from aredl_catalog_sync import main
@@ -115,9 +129,9 @@ class QuarantineReportsTests(unittest.TestCase):
             fixture = Path(d)/'api.json'
             fixture.write_text(json.dumps(self.sample()), encoding='utf8')
             out=Path(d)/'report'
-            with patch.object(sys,'argv',['sync','--mode','stage','--catalog-json',str(fixture),'--output',str(out)]),patch('aredl_catalog_sync.run',return_value={'scanned':2,'staged':2,'created':0,'matched':0,'conflicts':0,'skipped':0,'conflict_details':[]}) as mocked:
+            with patch.object(sys,'argv',['sync','--mode','stage','--catalog-json',str(fixture),'--output',str(out)]),patch('aredl_catalog_sync.run',return_value={'scanned':4,'staged':4,'created':0,'matched':0,'conflicts':0,'skipped':0,'conflict_details':[]}) as mocked:
                 self.assertEqual(main(),0)
-                self.assertEqual([x['aredl_rank'] for x in mocked.call_args.args[0]],[1,5])
+                self.assertEqual([x['aredl_rank'] for x in mocked.call_args.args[0]],[1,3,4,5])
 
     def test_network_rpc_error_does_not_erase_diagnostic(self):
         from aredl_catalog_sync import main

@@ -60,13 +60,14 @@ function stageSection(s){
  const issues=(s.data.dlfr_aredl_level_stage||[]).filter(x=>x.review_state==='conflict').length;
  const demons=s.data.demons||[];
  const rendered=stages.sort((a,b)=>(a.review_state==='pending'?0:1)-(b.review_state==='pending'?0:1)||a.aredl_rank-b.aredl_rank).slice(0,100).map(x=>{
-  const existing=demons.find(d=>String(d.level_id||'').trim()===x.gd_level_id || String(d.aredl_id||'')===x.aredl_id);
+  const existing=demons.find(d=>String(d.aredl_id||'')===x.aredl_id || (!x.source_payload?.shared_gd_level && !stages.some(y=>y.aredl_id!==x.aredl_id && y.gd_level_id===x.gd_level_id) && !d.aredl_id && String(d.level_id||'').trim()===x.gd_level_id));
   const occupied=demons.find(d=>Number(d.position)===Number(x.aredl_rank));
-  return `<div class="prod-stage-entry"><div class="prod-stage-info"><strong>AREDL #${esc(x.aredl_rank)} · ${esc(x.aredl_name)}</strong><div class="small muted">GD ID : ${esc(x.gd_level_id)} · ${esc(x.evidence_state)} · ${existing?`Fiche DLFR existante : #${esc(existing.position)} (conservé)`:'Niveau non publié'} ${occupied&&!existing?' · Rang occupé':''}</div></div>
-  <form data-form="prodPublishAREDL"><input type="hidden" name="gd_level_id" value="${esc(x.gd_level_id)}">
+  const variantUnclear=!!x.source_payload?.needs_variant_review;
+  return `<div class="prod-stage-entry"><div class="prod-stage-info"><strong>AREDL #${esc(x.aredl_rank)} · ${esc(x.aredl_name)}</strong><div class="small muted">GD ID : ${esc(x.gd_level_id)} · Entrée : ${esc(x.aredl_id)} · ${x.completion_mode==='two_player'?'2P':x.completion_mode==='solo'?'Solo':'Standard'} · ${esc(x.evidence_state)} · ${existing?`Fiche DLFR existante : #${esc(existing.position)} (conservé)`:'Niveau non publié'} ${occupied&&!existing?' · Rang occupé':''}</div></div>
+  <form data-form="prodPublishAREDL"><input type="hidden" name="aredl_id" value="${esc(x.aredl_id)}">
   ${row('Position DLFR initiale (si nouvelle fiche)',`<input name="position" type="number" min="1" max="99999998" value="${esc(x.aredl_rank)}" ${existing?'disabled':''} required>`)}
   <label class="prod-checkbox"><input type="checkbox" name="shift" value="yes"> Décaler les niveaux suivants si la position est occupée (pour un nouveau niveau seulement)</label>
-  <button class="btn" type="submit">${existing?'Rapprocher / compléter la fiche':'Publier le niveau'}</button></form></div>`;
+  ${variantUnclear?row('Confirmer le mode de complétion','<select name="variant_mode" required><option value="">Vérifier la variante</option><option value="solo">Solo</option><option value="two_player">2P</option></select>'):''}<button class="btn" type="submit">${existing?'Rapprocher / compléter la fiche':'Publier le niveau'}</button></form></div>`;
  }).join('');
  return `<section class="prod-panel"><h2>Import AREDL · validation avant publication</h2><p class="small muted">Ce panneau utilise la table d’attente Supabase. Le rang AREDL sert de position initiale, mais les prochaines synchronisations ne changent jamais la position DLFR. Aucune victoire n'est créée depuis ce bouton. ${issues?'Conflits signalés : '+issues+'.':''}</p>
  ${s.data.aredlStageError?`<p class="notice warning">Table d'attente inaccessible : ${esc(s.data.aredlStageError)}</p>`:''}
@@ -95,8 +96,8 @@ async function send(db,type,f,submitter){
   return r('dlfr_set_moderator',{p_auth_user_id:f.auth_user_id,p_role:f.role,p_enabled:f.enabled==='yes'});
  }
  if(type==='prodPublishAREDL'){
-  return r('dlfr_publish_staged_aredl',{p_gd_level_id:f.gd_level_id,
-    p_position:f.position?Number(f.position):null,p_shift:f.shift==='yes'});
+  return r('dlfr_publish_staged_aredl_by_id',{p_aredl_id:f.aredl_id,
+    p_position:f.position?Number(f.position):null,p_shift:f.shift==='yes',p_mode_override:f.variant_mode||null});
  }
  if(type==='prodPlayer'){
   const name=trim(f.username),key=slug(name);if(!key||name.length<2)throw Error('Pseudo invalide');
