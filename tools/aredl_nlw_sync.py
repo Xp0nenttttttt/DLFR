@@ -26,6 +26,8 @@ BASE = "https://api.aredl.net/v2/api/aredl"
 UA = "DLFR-NLW-Preview/1.0 (respectful read-only sync)"
 COUNTRIES = {"FR": "FR", "FRANCE": "FR", "FRA": "FR", "FRENCH": "FR",
              "BE": "BE", "BELGIUM": "BE", "BELGIQUE": "BE", "BEL": "BE", "BELGIAN": "BE"}
+# AREDL uses ISO 3166-1 *numeric* values in user.country (not ISO alpha-2).
+NUMERIC_COUNTRIES = {250: "FR", 56: "BE"}
 
 
 def obj(value):
@@ -52,10 +54,15 @@ def numeric_id(value):
 
 def country(value):
     if isinstance(value, dict):
-        value = pick(value, "country_code", "iso2", "code", "name")
+        value = pick(value, "country_code", "iso2", "code", "name", "country")
+    if isinstance(value, int) and not isinstance(value, bool):
+        return NUMERIC_COUNTRIES.get(value)
     if not isinstance(value, str):
         return None
-    return COUNTRIES.get(value.strip().upper())
+    value = value.strip().upper()
+    if value.isdecimal():
+        return NUMERIC_COUNTRIES.get(int(value))
+    return COUNTRIES.get(value)
 
 
 def identity(entity):
@@ -64,7 +71,7 @@ def identity(entity):
     entity = obj(entity)
     return {
         "aredl_player_id": str(pick(entity, "player_id", "user_id", "id", "uuid") or "") or None,
-        "name": str(pick(entity, "username", "display_name", "name") or "") or None,
+        "name": str(pick(entity, "global_name", "display_name", "username", "name") or "") or None,
         "country": country(pick(entity, "country_code", "country", "nationality", "country_name")),
     }
 
@@ -86,7 +93,7 @@ def unwrap_collection(payload, possible_keys):
 
 def verified_date(record):
     """N'invente JAMAIS une date de victoire depuis created_at/submitted_at."""
-    raw = pick(record, "completed_at", "completion_date", "beaten_at", "victory_date")
+    raw = pick(record, "achieved_at", "completed_at", "completion_date", "beaten_at", "victory_date")
     if not isinstance(raw, str):
         return None
     try:
@@ -100,7 +107,7 @@ def verified_date(record):
 
 def record_player(record):
     record = obj(record)
-    nested = pick(record, "player", "user", "submitter")
+    nested = pick(record, "submitted_by", "player", "user", "submitter")
     data = identity(nested)
     if not data["aredl_player_id"]:
         v = pick(record, "player_id", "user_id")
@@ -276,11 +283,16 @@ def extract_one(item, detail, existing, resolve_player=None, extra_records=None)
             if other:
                 p["country"] = other["country"]
                 p["name"] = p["name"] or other["name"]
+        # Conserver dans la copie locale pour rechercher la premiere victoire,
+        # sans modifier la reponse API mise en cache.
+        if p["country"]:
+            ver["country_code"] = p["country"]
         # IMPORTANT: si pays inconnu on ne l'infère jamais à partir du pseudo
         if p["country"] in ("FR", "BE"):
             source["verifiers"].append({"player": p, "video_url": pick(ver, "video_url", "video", "url"),
-                                        "verification_id": pick(ver, "id", "verification_id")})
-        elif p["name"] and not (pick(obj(pick(ver, "player", "user", "submitter", "submitted_by", "verified_by", "verifier")), "country_code", "country", "nationality") or pick(ver, "country_code", "country")):
+                                        "verification_id": pick(ver, "id", "verification_id"),
+                                        "achieved_at": verified_date(ver)})
+        elif p["name"] and not (pick(obj(pick(ver, "submitted_by", "player", "user", "submitter", "verified_by", "verifier")), "country_code", "country", "nationality") or pick(ver, "country_code", "country")):
             unresolved_verifiers.append({"name": p["name"], "aredl_player_id": p["aredl_player_id"], "reason": "pays non confirmé"})
     source["unresolved_verifiers"] = unresolved_verifiers
     records = extra_records if extra_records is not None else (unwrap_collection(body, ("records", "victors", "completions")) or [])
@@ -294,6 +306,13 @@ def extract_one(item, detail, existing, resolve_player=None, extra_records=None)
                 if other and other["country"]:
                     # enrichir dans une copie en mémoire, pour utiliser country dans first_victor
                     rec["country_code"] = other["country"]
+    # Les verifications sont dans une autre table AREDL que les records ordinaires.
+    # Une verification francaise/belge peut constituer la premiere victoire.
+    dated_verifications = []
+    for ver in verifications:
+        if isinstance(ver, dict):
+            dated_verifications.append(ver)
+    records = list(records) + dated_verifications
     source["first_fr_be"] = first_victor(records)
     source["first_fr"] = first_victor(records, "FR")
     source["first_be"] = first_victor(records, "BE")
@@ -303,11 +322,42 @@ def extract_one(item, detail, existing, resolve_player=None, extra_records=None)
     return source
 
 
+
+def fetch_record_pages(client, aredl_id, max_pages=4):
+    """Records non-verificateurs, du plus ancien au plus recent (AREDL).
+
+    /levels/{id}/records renvoie un objet pagine ``{page,pages,count,data:{data:[...]}}``.
+    Si la limite est atteinte, ne jamais annoncer un import complet.
+    """
+    if max_pages < 1:
+        raise ValueError("--max-record-pages doit etre >= 1")
+    all_records = []
+    known_pages = None
+    for page in range(1, max_pages + 1):
+        path = f"/levels/{quote(str(aredl_id), safe='')}/records?page={page}&per_page=100"
+        payload = client.get(path)
+        found = unwrap_collection(payload, ("data", "records", "results", "items"))
+        if found is None:
+            raise ValueError(f"Records AREDL: schema inattendu pour {path}")
+        if any(not isinstance(x, dict) for x in found):
+            raise ValueError(f"Records AREDL: objets invalides pour {path}")
+        all_records.extend(found)
+        pages = obj(payload).get("pages")
+        if isinstance(pages, int) and not isinstance(pages, bool) and pages >= 0:
+            known_pages = pages
+            if page >= pages:
+                return all_records, {"complete": True, "pages_fetched": page, "total_pages": pages}
+        elif len(found) < 100:
+            return all_records, {"complete": True, "pages_fetched": page, "total_pages": None}
+    return all_records, {"complete": False, "pages_fetched": max_pages,
+                         "total_pages": known_pages}
+
+
 def save_csv(path, rows):
     with open(path, "w", newline="", encoding="utf-8-sig") as fp:
         writer = csv.DictWriter(fp, fieldnames=["rank", "name", "gd_level_id", "aredl_id", "action",
                                                 "verifier_fr_be", "verifier_country", "first_record_fr_be",
-                                                "first_record_country", "first_record_date", "first_record_status", "records_inspected"])
+                                                "first_record_country", "first_record_date", "first_record_status", "records_inspected", "records_complete", "record_fetch_error"])
         writer.writeheader()
         for x in rows:
             ver = x["verifiers"]
@@ -319,7 +369,9 @@ def save_csv(path, rows):
                              "first_record_fr_be": obj(first.get("player")).get("name"),
                              "first_record_country": obj(first.get("player")).get("country"),
                              "first_record_date": first.get("completed_at"), "first_record_status": first["status"],
-                             "records_inspected": x["records_inspected"]})
+                             "records_inspected": x["records_inspected"],
+                             "records_complete": x.get("records_complete"),
+                             "record_fetch_error": x.get("record_fetch_error")})
 
 
 def run(args, client):
@@ -344,22 +396,40 @@ def run(args, client):
                 return player_cache[aredl_player_id]
             # On sérialise la résolution : pas de requêtes répétées pour un même joueur.
             try:
-                raw = client.get("/players/" + quote(str(aredl_player_id), safe=""))
+                raw = client.get("/profile/" + quote(str(aredl_player_id), safe=""))
                 value = identity(obj(raw).get("data") if isinstance(obj(raw).get("data"), dict) else raw)
-            except (HTTPError, URLError, ValueError, KeyError) as exc:
+            except (HTTPError, URLError, ValueError, KeyError, RuntimeError) as exc:
+                # Profil inconnu ou route devenue inaccessible : ne JAMAIS supprimer
+                # le niveau entier ou inferer la nationalite depuis le pseudo.
                 value = None
             player_cache[aredl_player_id] = value
             return value
     def work(x):
         detail = client.get("/levels/" + quote(x["aredl_id"], safe=""))
         extra_records = None
-        if args.records_url_template:
+        record_meta = None
+        record_error = None
+        if getattr(args, "fetch_records", False):
+            try:
+                extra_records, record_meta = fetch_record_pages(client, x["aredl_id"], args.max_record_pages)
+            except Exception as exc:
+                record_error = str(exc)
+                extra_records = []
+                record_meta = {"complete": False, "pages_fetched": 0, "total_pages": None}
+        elif args.records_url_template:
             path = args.records_url_template.replace("{id}", quote(x["aredl_id"], safe=""))
             payload = client.get(path)
             extra_records = unwrap_collection(payload, ("records", "victors", "completions", "data"))
             if extra_records is None:
                 raise ValueError("Endpoint records non conforme : aucune liste de records")
-        return extract_one(x, detail, existing, resolve_player, extra_records)
+        result = extract_one(x, detail, existing, resolve_player, extra_records)
+        result["records_complete"] = record_meta["complete"] if record_meta else None
+        result["records_pages_fetched"] = record_meta["pages_fetched"] if record_meta else 0
+        result["records_total_pages"] = record_meta["total_pages"] if record_meta else None
+        result["record_fetch_error"] = record_error
+        if record_error or (record_meta and not record_meta["complete"]):
+            result["needs_review"] = True
+        return result
     with ThreadPoolExecutor(max_workers=max(1, min(args.workers, 4))) as pool:
         futures = {pool.submit(work, x): x for x in selected}
         for fut in as_completed(futures):
@@ -371,6 +441,12 @@ def run(args, client):
     rows.sort(key=lambda x: x["rank"])
     if failures:
         warnings.append(f"{len(failures)} fiches en erreur : NE PAS publier cette tranche incomplète.")
+    fetch_errors = sum(bool(x.get("record_fetch_error")) for x in rows)
+    partial_records = sum(x.get("records_complete") is False for x in rows)
+    if fetch_errors:
+        warnings.append(f"{fetch_errors} lectures des records AREDL en erreur : premiere victoire a verifier.")
+    if partial_records:
+        warnings.append(f"{partial_records} jeux de records non exhaustifs (pagination/erreur). Aucune premiere victoire historique certifiee.")
     seen = {}
     for row in rows:
         gid = row["gd_level_id"]
@@ -385,7 +461,8 @@ def run(args, client):
             "countries": ["FR", "BE"], "mode": "preview_only"},
             "summary": {"levels": len(rows), "with_fr_be_verifier": sum(bool(x["verifiers"]) for x in rows),
             "with_first_dated_record": sum(x["first_fr_be"]["status"] == "first_dated_record" for x in rows),
-            "manual_matches": sum(x["action"] == "MATCH_MANUAL_KEEP" for x in rows)},
+            "manual_matches": sum(x["action"] == "MATCH_MANUAL_KEEP" for x in rows),
+            "record_fetch_errors": fetch_errors, "partial_records": partial_records},
             "warnings": warnings, "failures": failures, "levels": rows}
 
 
@@ -397,11 +474,15 @@ def main(argv=None):
     parser.add_argument("--base-url", default=BASE)
     parser.add_argument("--cache-dir", default=".cache/aredl")
     parser.add_argument("--offline", action="store_true")
-    parser.add_argument("--resolve-players", action="store_true", help="Essayer /players/{id} lorsque le pays manque ; sinon signaler les indéterminés")
+    parser.add_argument("--resolve-players", action="store_true", help="Interroger /profile/{id} si le pays est inconnu ; signaler les cas non resolus")
     parser.add_argument("--records-url-template", help="Chemin validé pour les records, contenant {id} ; aucun endpoint deviné par défaut")
+    parser.add_argument("--fetch-records", action="store_true", help="Lire /levels/{id}/records (victors, pagination incluse)")
+    parser.add_argument("--max-record-pages", type=int, default=4, help="Maximum de pages de 100 records par niveau, 4 par defaut")
     parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--output", default="out/aredl-nlw-review")
     args = parser.parse_args(argv)
+    if args.max_record_pages < 1:
+        parser.error("--max-record-pages doit etre >= 1")
     if args.start_rank < 220 or (args.end_rank is not None and args.end_rank < args.start_rank):
         parser.error("Périmètre autorisé : rang AREDL >= 220 et end_rank >= start_rank")
     client = Client(args.base_url, args.cache_dir, args.offline)

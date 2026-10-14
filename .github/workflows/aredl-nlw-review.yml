@@ -39,6 +39,8 @@ jobs:
             --start-rank "$START_RANK" \
             --end-rank "$END_RANK" \
             --resolve-players \
+            --fetch-records \
+            --max-record-pages 4 \
             --output out/aredl-nlw-review
       - name: Joindre les resultats meme si une fiche echoue
         if: always()
