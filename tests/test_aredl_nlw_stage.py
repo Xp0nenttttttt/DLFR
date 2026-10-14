@@ -25,7 +25,7 @@ class TestPlan(unittest.TestCase):
         self.assertEqual(p['counts']['stage_candidates'],1)
         self.assertEqual(p['included'][0]['source_action'],'NO_DLFR_EXPORT_REVIEW')
         s=to_sql(p)
-        self.assertIn('public.dlfr_aredl_nlw_stage',s)
+        self.assertIn('public.dlfr_aredl_level_stage',s)
         self.assertNotIn('INSERT INTO public.demons',s)
         self.assertNotIn('INSERT INTO public.completions',s)
         self.assertIn("manually_locked=false",s)
@@ -50,8 +50,9 @@ class TestPlan(unittest.TestCase):
         self.assertEqual(p['counts']['stage_candidates'],0)
         self.assertEqual(p['counts']['excluded'],2)
 
-    def test_bad_anchor_blocks_everything(self):
-        with self.assertRaises(ValueError):build_plan(preview([level(0)],anchor=False))
+    def test_anchor_not_required_for_full_aredl(self):
+        plan=build_plan(preview([level(0)],anchor=False))
+        self.assertEqual(plan["counts"]["stage_candidates"],1)
 
     def test_invalid_gd_id(self):
         self.assertIsNone(valid_gd_id('0'))
@@ -73,3 +74,27 @@ class MediaReviewV294(unittest.TestCase):
         media=p.media_review_export(plan)
         self.assertFalse(media['levels'][0]['approved'])
         self.assertEqual(media['status'],'REVIEW_REQUIRED')
+
+class TestFullCatalog(unittest.TestCase):
+    def test_rank_one_can_be_staged(self):
+        d=level(0,rank=1)
+        plan=build_plan({"scope":{"start_rank":1,"end_rank":1,"countries":["FR","BE"],"scan_mode":"detailed"},"failures":[],"levels":[d]})
+        self.assertEqual(plan["included"][0]["aredl_rank"],1)
+        self.assertIn("dlfr_aredl_level_stage", to_sql(plan))
+
+    def test_catalog_mode_preserves_existing_video_proofs(self):
+        d=level(0,rank=1,records_complete=None,first_fr_be={"status":"not_scanned"})
+        plan=build_plan({"scope":{"start_rank":1,"end_rank":1,"countries":["FR","BE"],"scan_mode":"catalog"},"failures":[],"levels":[d]})
+        self.assertEqual(plan["included"][0]["evidence_state"],"not_scanned")
+        self.assertEqual(plan["counts"]["stage_candidates"],1)
+        sql=to_sql(plan)
+        self.assertIn("CASE WHEN EXCLUDED.evidence_state='complete'",sql)
+        self.assertIn("manually_locked=false",sql)
+        self.assertNotIn('INSERT INTO public.demons',sql)
+        self.assertNotIn('INSERT INTO public.completions',sql)
+
+    def test_bad_scope_and_partial_records_refused(self):
+        with self.assertRaises(ValueError):
+            build_plan({"scope":{"start_rank":0,"countries":["FR","BE"]},"failures":[],"levels":[level(0)]})
+        plan=build_plan({"scope":{"start_rank":1,"countries":["FR","BE"],"scan_mode":"detailed"},"failures":[],"levels":[level(0,rank=1,records_complete=False)]})
+        self.assertEqual(plan["counts"]["excluded"],1)

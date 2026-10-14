@@ -208,3 +208,26 @@ class TestMediaV294(unittest.TestCase):
              'achieved_at':'2023-02-01T00:00:00Z',
              'video_url':'https://youtube.com/watch?v=OKEHsJPaeQY'}]}, [])
         self.assertIn('OKEHsJPaeQY',x['verifiers'][0]['thumbnail_url'])
+
+class TestFullAredlV30(unittest.TestCase):
+    def test_catalog_one_http_call_all_ranks(self):
+        from argparse import Namespace
+        class Stub:
+            base='https://example.test'
+            def __init__(self): self.calls=[]
+            def get(self,path):
+                self.calls.append(path)
+                if path=='/levels':
+                    return [{"id":"uuid1","name":"TOP","position":1,"level_id":1234},
+                            {"id":"uuid2","name":"LOW","position":2200,"level_id":5678}]
+                raise AssertionError("catalog mode should not request details")
+        s=Stub()
+        args=Namespace(start_rank=1,end_rank=2500,existing_json=None,workers=2,
+                       catalog_only=True,resolve_players=False,fetch_records=False,records_url_template=None)
+        data=a.run(args,s)
+        self.assertEqual(s.calls,['/levels'])
+        self.assertEqual(data['summary']['levels'],2)
+        self.assertEqual([v['rank'] for v in data['levels']],[1,2200])
+        self.assertEqual(data['scope']['scan_mode'],'catalog')
+        self.assertTrue(all(v['records_complete'] is None for v in data['levels']))
+        self.assertEqual(data['status'],'PREVIEW_REVIEW_REQUIRED')

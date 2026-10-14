@@ -1,26 +1,28 @@
 {
-  "generated_at": "2026-10-14T12:36:03.879814+00:00",
-  "status": "INCOMPLETE_REVIEW_REQUIRED",
+  "generated_at": "2026-10-14T13:15:14.179815+00:00",
+  "status": "PREVIEW_REVIEW_REQUIRED",
   "source": "https://api.aredl.net/v2/api/aredl",
   "scope": {
     "start_rank": 220,
-    "end_rank": 319,
+    "end_rank": 260,
     "countries": [
       "FR",
       "BE"
     ],
-    "mode": "preview_only"
+    "mode": "preview_only",
+    "existing_export_supplied": false,
+    "anchor_verified": true
   },
   "summary": {
-    "levels": 100,
-    "with_fr_be_verifier": 3,
-    "with_first_dated_record": 66,
+    "levels": 41,
+    "with_fr_be_verifier": 1,
+    "with_first_dated_record": 24,
     "manual_matches": 0,
     "record_fetch_errors": 0,
-    "partial_records": 4
+    "partial_records": 0
   },
   "warnings": [
-    "4 jeux de records non exhaustifs (pagination/erreur). Aucune premiere victoire historique certifiee."
+    "Aucun export DLFR fourni : doublons avec les validations manuelles non vérifiés. Staging uniquement, sans publication."
   ],
   "failures": [],
   "levels": [
@@ -48,6 +50,8 @@
           "country": "FR"
         },
         "completed_at": "2023-04-24T19:34:17+00:00",
+        "video_url": "https://www.youtube.com/watch?v=1nH-LccRhug",
+        "thumbnail_url": "https://i.ytimg.com/vi/1nH-LccRhug/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_fr": {
@@ -59,6 +63,8 @@
           "country": "FR"
         },
         "completed_at": "2023-04-24T19:34:17+00:00",
+        "video_url": "https://www.youtube.com/watch?v=1nH-LccRhug",
+        "thumbnail_url": "https://i.ytimg.com/vi/1nH-LccRhug/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_be": {
@@ -97,6 +103,8 @@
           "country": "FR"
         },
         "completed_at": "2022-10-30T15:25:18+00:00",
+        "video_url": "https://www.youtube.com/watch?v=Xbknfe9flKI",
+        "thumbnail_url": "https://i.ytimg.com/vi/Xbknfe9flKI/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_fr": {
@@ -108,6 +116,8 @@
           "country": "FR"
         },
         "completed_at": "2022-10-30T15:25:18+00:00",
+        "video_url": "https://www.youtube.com/watch?v=Xbknfe9flKI",
+        "thumbnail_url": "https://i.ytimg.com/vi/Xbknfe9flKI/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_be": {
@@ -119,6 +129,8 @@
           "country": "BE"
         },
         "completed_at": "2025-09-01T21:15:51+00:00",
+        "video_url": "https://www.youtube.com/watch?v=Jf6m3cQUe2g",
+        "thumbnail_url": "https://i.ytimg.com/vi/Jf6m3cQUe2g/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "records_inspected": 232,
@@ -153,6 +165,8 @@
           "country": "FR"
         },
         "completed_at": "2024-03-23T15:57:08+00:00",
+        "video_url": "https://www.youtube.com/watch?v=HnLKPeqn-Qo",
+        "thumbnail_url": "https://i.ytimg.com/vi/HnLKPeqn-Qo/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_fr": {
@@ -164,6 +178,8 @@
           "country": "FR"
         },
         "completed_at": "2024-03-23T15:57:08+00:00",
+        "video_url": "https://www.youtube.com/watch?v=HnLKPeqn-Qo",
+        "thumbnail_url": "https://i.ytimg.com/vi/HnLKPeqn-Qo/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_be": {
@@ -237,6 +253,8 @@
           "country": "FR"
         },
         "completed_at": "2024-09-23T18:01:28+00:00",
+        "video_url": "https://www.youtube.com/watch?v=h4iy30nCy6g",
+        "thumbnail_url": "https://i.ytimg.com/vi/h4iy30nCy6g/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_fr": {
@@ -248,6 +266,8 @@
           "country": "FR"
         },
         "completed_at": "2024-09-23T18:01:28+00:00",
+        "video_url": "https://www.youtube.com/watch?v=h4iy30nCy6g",
+        "thumbnail_url": "https://i.ytimg.com/vi/h4iy30nCy6g/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_be": {
@@ -356,6 +376,8 @@
           "country": "FR"
         },
         "completed_at": "2024-03-23T10:33:42+00:00",
+        "video_url": "https://www.youtube.com/watch?v=x38UX7k3lHs",
+        "thumbnail_url": "https://i.ytimg.com/vi/x38UX7k3lHs/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_fr": {
@@ -367,6 +389,8 @@
           "country": "FR"
         },
         "completed_at": "2024-03-23T10:33:42+00:00",
+        "video_url": "https://www.youtube.com/watch?v=x38UX7k3lHs",
+        "thumbnail_url": "https://i.ytimg.com/vi/x38UX7k3lHs/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_be": {
@@ -405,6 +429,8 @@
           "country": "FR"
         },
         "completed_at": "2023-02-13T22:09:07+00:00",
+        "video_url": "https://www.youtube.com/watch?v=_tb7erPMiho",
+        "thumbnail_url": "https://i.ytimg.com/vi/_tb7erPMiho/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_fr": {
@@ -416,6 +442,8 @@
           "country": "FR"
         },
         "completed_at": "2023-02-13T22:09:07+00:00",
+        "video_url": "https://www.youtube.com/watch?v=_tb7erPMiho",
+        "thumbnail_url": "https://i.ytimg.com/vi/_tb7erPMiho/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_be": {
@@ -524,6 +552,8 @@
           "country": "FR"
         },
         "completed_at": "2026-09-29T06:55:53+00:00",
+        "video_url": "https://www.youtube.com/watch?v=LInbPh9DMw8",
+        "thumbnail_url": "https://i.ytimg.com/vi/LInbPh9DMw8/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_fr": {
@@ -535,6 +565,8 @@
           "country": "FR"
         },
         "completed_at": "2026-09-29T06:55:53+00:00",
+        "video_url": "https://www.youtube.com/watch?v=LInbPh9DMw8",
+        "thumbnail_url": "https://i.ytimg.com/vi/LInbPh9DMw8/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_be": {
@@ -573,6 +605,8 @@
           "country": "FR"
         },
         "completed_at": "2023-02-12T21:35:32+00:00",
+        "video_url": "https://www.youtube.com/watch?v=3Sqizxikdy4",
+        "thumbnail_url": "https://i.ytimg.com/vi/3Sqizxikdy4/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_fr": {
@@ -584,6 +618,8 @@
           "country": "FR"
         },
         "completed_at": "2023-02-12T21:35:32+00:00",
+        "video_url": "https://www.youtube.com/watch?v=3Sqizxikdy4",
+        "thumbnail_url": "https://i.ytimg.com/vi/3Sqizxikdy4/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_be": {
@@ -595,6 +631,8 @@
           "country": "BE"
         },
         "completed_at": "2023-03-01T17:50:31+00:00",
+        "video_url": "https://www.youtube.com/watch?v=EgHV2TVXk9U",
+        "thumbnail_url": "https://i.ytimg.com/vi/EgHV2TVXk9U/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "records_inspected": 164,
@@ -655,6 +693,7 @@
             "country": "FR"
           },
           "video_url": "https://www.youtube.com/watch?v=OKEHsJPaeQY",
+          "thumbnail_url": "https://i.ytimg.com/vi/OKEHsJPaeQY/hqdefault.jpg",
           "verification_id": "6df59b8f-772b-4099-a3c6-ec235c8b61d5",
           "achieved_at": "2023-07-18T18:23:35+00:00"
         }
@@ -669,6 +708,8 @@
           "country": "FR"
         },
         "completed_at": "2023-07-18T18:23:35+00:00",
+        "video_url": "https://www.youtube.com/watch?v=OKEHsJPaeQY",
+        "thumbnail_url": "https://i.ytimg.com/vi/OKEHsJPaeQY/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_fr": {
@@ -680,6 +721,8 @@
           "country": "FR"
         },
         "completed_at": "2023-07-18T18:23:35+00:00",
+        "video_url": "https://www.youtube.com/watch?v=OKEHsJPaeQY",
+        "thumbnail_url": "https://i.ytimg.com/vi/OKEHsJPaeQY/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_be": {
@@ -718,6 +761,8 @@
           "country": "FR"
         },
         "completed_at": "2025-08-26T16:43:52+00:00",
+        "video_url": "https://www.youtube.com/watch?v=jw8vdB__XXY",
+        "thumbnail_url": "https://i.ytimg.com/vi/jw8vdB__XXY/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_fr": {
@@ -729,6 +774,8 @@
           "country": "FR"
         },
         "completed_at": "2025-08-26T16:43:52+00:00",
+        "video_url": "https://www.youtube.com/watch?v=jw8vdB__XXY",
+        "thumbnail_url": "https://i.ytimg.com/vi/jw8vdB__XXY/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_be": {
@@ -767,6 +814,8 @@
           "country": "FR"
         },
         "completed_at": "2022-12-26T17:43:00+00:00",
+        "video_url": "https://www.youtube.com/watch?v=wqAPYwszE5Y",
+        "thumbnail_url": "https://i.ytimg.com/vi/wqAPYwszE5Y/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_fr": {
@@ -778,6 +827,8 @@
           "country": "FR"
         },
         "completed_at": "2022-12-26T17:43:00+00:00",
+        "video_url": "https://www.youtube.com/watch?v=wqAPYwszE5Y",
+        "thumbnail_url": "https://i.ytimg.com/vi/wqAPYwszE5Y/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_be": {
@@ -816,6 +867,8 @@
           "country": "FR"
         },
         "completed_at": "2026-05-03T00:28:56+00:00",
+        "video_url": "https://www.youtube.com/watch?v=aZYNOKbUHqI",
+        "thumbnail_url": "https://i.ytimg.com/vi/aZYNOKbUHqI/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_fr": {
@@ -827,6 +880,8 @@
           "country": "FR"
         },
         "completed_at": "2026-05-03T00:28:56+00:00",
+        "video_url": "https://www.youtube.com/watch?v=aZYNOKbUHqI",
+        "thumbnail_url": "https://i.ytimg.com/vi/aZYNOKbUHqI/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_be": {
@@ -865,6 +920,8 @@
           "country": "FR"
         },
         "completed_at": "2024-02-20T22:16:39+00:00",
+        "video_url": "https://www.youtube.com/watch?v=tf6E-TpIJxw",
+        "thumbnail_url": "https://i.ytimg.com/vi/tf6E-TpIJxw/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_fr": {
@@ -876,6 +933,8 @@
           "country": "FR"
         },
         "completed_at": "2024-02-20T22:16:39+00:00",
+        "video_url": "https://www.youtube.com/watch?v=tf6E-TpIJxw",
+        "thumbnail_url": "https://i.ytimg.com/vi/tf6E-TpIJxw/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_be": {
@@ -914,6 +973,8 @@
           "country": "FR"
         },
         "completed_at": "2021-05-25T09:49:38+00:00",
+        "video_url": "https://www.youtube.com/watch?v=KrcbPo5pmMc",
+        "thumbnail_url": "https://i.ytimg.com/vi/KrcbPo5pmMc/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_fr": {
@@ -925,6 +986,8 @@
           "country": "FR"
         },
         "completed_at": "2021-05-25T09:49:38+00:00",
+        "video_url": "https://www.youtube.com/watch?v=KrcbPo5pmMc",
+        "thumbnail_url": "https://i.ytimg.com/vi/KrcbPo5pmMc/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_be": {
@@ -963,6 +1026,8 @@
           "country": "BE"
         },
         "completed_at": "2025-04-29T19:54:26+00:00",
+        "video_url": "https://drive.google.com/file/d/1bS5Umzi4i9wKMPuFeVxf7Mclw5yANtq6",
+        "thumbnail_url": null,
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_fr": {
@@ -978,6 +1043,8 @@
           "country": "BE"
         },
         "completed_at": "2025-04-29T19:54:26+00:00",
+        "video_url": "https://drive.google.com/file/d/1bS5Umzi4i9wKMPuFeVxf7Mclw5yANtq6",
+        "thumbnail_url": null,
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "records_inspected": 32,
@@ -1117,6 +1184,8 @@
           "country": "FR"
         },
         "completed_at": "2022-01-18T15:37:39+00:00",
+        "video_url": "https://www.youtube.com/watch?v=nGHzLSoUfL0",
+        "thumbnail_url": "https://i.ytimg.com/vi/nGHzLSoUfL0/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_fr": {
@@ -1128,6 +1197,8 @@
           "country": "FR"
         },
         "completed_at": "2022-01-18T15:37:39+00:00",
+        "video_url": "https://www.youtube.com/watch?v=nGHzLSoUfL0",
+        "thumbnail_url": "https://i.ytimg.com/vi/nGHzLSoUfL0/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_be": {
@@ -1166,6 +1237,8 @@
           "country": "FR"
         },
         "completed_at": "2026-05-31T15:17:21+00:00",
+        "video_url": "https://www.youtube.com/watch?v=Y2v4Tl6D1q8",
+        "thumbnail_url": "https://i.ytimg.com/vi/Y2v4Tl6D1q8/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_fr": {
@@ -1177,6 +1250,8 @@
           "country": "FR"
         },
         "completed_at": "2026-05-31T15:17:21+00:00",
+        "video_url": "https://www.youtube.com/watch?v=Y2v4Tl6D1q8",
+        "thumbnail_url": "https://i.ytimg.com/vi/Y2v4Tl6D1q8/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_be": {
@@ -1215,6 +1290,8 @@
           "country": "FR"
         },
         "completed_at": "2022-11-05T16:38:37+00:00",
+        "video_url": "https://www.youtube.com/watch?v=Utg4OSpl100",
+        "thumbnail_url": "https://i.ytimg.com/vi/Utg4OSpl100/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_fr": {
@@ -1226,6 +1303,8 @@
           "country": "FR"
         },
         "completed_at": "2022-11-05T16:38:37+00:00",
+        "video_url": "https://www.youtube.com/watch?v=Utg4OSpl100",
+        "thumbnail_url": "https://i.ytimg.com/vi/Utg4OSpl100/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_be": {
@@ -1369,6 +1448,8 @@
           "country": "FR"
         },
         "completed_at": "2026-05-28T21:31:01+00:00",
+        "video_url": "https://www.youtube.com/watch?v=58gYhsto11k",
+        "thumbnail_url": "https://i.ytimg.com/vi/58gYhsto11k/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_fr": {
@@ -1380,6 +1461,8 @@
           "country": "FR"
         },
         "completed_at": "2026-05-28T21:31:01+00:00",
+        "video_url": "https://www.youtube.com/watch?v=58gYhsto11k",
+        "thumbnail_url": "https://i.ytimg.com/vi/58gYhsto11k/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_be": {
@@ -1528,6 +1611,8 @@
           "country": "FR"
         },
         "completed_at": "2024-12-12T15:04:23+00:00",
+        "video_url": "https://www.youtube.com/watch?v=7EGLVe9oGhw",
+        "thumbnail_url": "https://i.ytimg.com/vi/7EGLVe9oGhw/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_fr": {
@@ -1539,6 +1624,8 @@
           "country": "FR"
         },
         "completed_at": "2024-12-12T15:04:23+00:00",
+        "video_url": "https://www.youtube.com/watch?v=7EGLVe9oGhw",
+        "thumbnail_url": "https://i.ytimg.com/vi/7EGLVe9oGhw/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_be": {
@@ -1647,6 +1734,8 @@
           "country": "FR"
         },
         "completed_at": "2021-07-20T17:07:21+00:00",
+        "video_url": "https://www.youtube.com/watch?v=vQ0xOqJ_jgo",
+        "thumbnail_url": "https://i.ytimg.com/vi/vQ0xOqJ_jgo/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_fr": {
@@ -1658,6 +1747,8 @@
           "country": "FR"
         },
         "completed_at": "2021-07-20T17:07:21+00:00",
+        "video_url": "https://www.youtube.com/watch?v=vQ0xOqJ_jgo",
+        "thumbnail_url": "https://i.ytimg.com/vi/vQ0xOqJ_jgo/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_be": {
@@ -1669,13 +1760,15 @@
           "country": "BE"
         },
         "completed_at": "2022-02-25T12:00:12+00:00",
+        "video_url": "https://www.youtube.com/watch?v=Ysg7vG3ny90",
+        "thumbnail_url": "https://i.ytimg.com/vi/Ysg7vG3ny90/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
-      "records_inspected": 401,
+      "records_inspected": 846,
       "action": "NEW_CANDIDATE",
       "needs_review": true,
-      "records_complete": false,
-      "records_pages_fetched": 4,
+      "records_complete": true,
+      "records_pages_fetched": 9,
       "records_total_pages": 9,
       "record_fetch_error": null
     },
@@ -1708,6 +1801,8 @@
           "country": "FR"
         },
         "completed_at": "2023-08-14T21:25:09+00:00",
+        "video_url": "https://www.youtube.com/watch?v=Rp9NKn7rtQ4",
+        "thumbnail_url": "https://i.ytimg.com/vi/Rp9NKn7rtQ4/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_fr": {
@@ -1719,6 +1814,8 @@
           "country": "FR"
         },
         "completed_at": "2023-08-14T21:25:09+00:00",
+        "video_url": "https://www.youtube.com/watch?v=Rp9NKn7rtQ4",
+        "thumbnail_url": "https://i.ytimg.com/vi/Rp9NKn7rtQ4/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_be": {
@@ -1730,6 +1827,8 @@
           "country": "BE"
         },
         "completed_at": "2025-01-28T09:52:55+00:00",
+        "video_url": "https://www.youtube.com/watch?v=koyEimCdxe4",
+        "thumbnail_url": "https://i.ytimg.com/vi/koyEimCdxe4/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "records_inspected": 124,
@@ -1764,6 +1863,8 @@
           "country": "FR"
         },
         "completed_at": "2024-07-27T21:46:35+00:00",
+        "video_url": "https://www.youtube.com/watch?v=GYwUIhyFKCk",
+        "thumbnail_url": "https://i.ytimg.com/vi/GYwUIhyFKCk/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_fr": {
@@ -1775,6 +1876,8 @@
           "country": "FR"
         },
         "completed_at": "2024-07-27T21:46:35+00:00",
+        "video_url": "https://www.youtube.com/watch?v=GYwUIhyFKCk",
+        "thumbnail_url": "https://i.ytimg.com/vi/GYwUIhyFKCk/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_be": {
@@ -1813,6 +1916,8 @@
           "country": "FR"
         },
         "completed_at": "2024-02-19T00:13:19+00:00",
+        "video_url": "https://www.youtube.com/watch?v=ZFPidntVXVI",
+        "thumbnail_url": "https://i.ytimg.com/vi/ZFPidntVXVI/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_fr": {
@@ -1824,2761 +1929,20 @@
           "country": "FR"
         },
         "completed_at": "2024-02-19T00:13:19+00:00",
+        "video_url": "https://www.youtube.com/watch?v=ZFPidntVXVI",
+        "thumbnail_url": "https://i.ytimg.com/vi/ZFPidntVXVI/hqdefault.jpg",
         "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
       },
       "first_be": {
         "status": "unknown",
         "reason": "aucune victoire datée ET localisée dans les records disponibles"
       },
-      "records_inspected": 401,
+      "records_inspected": 419,
       "action": "NEW_CANDIDATE",
       "needs_review": true,
-      "records_complete": false,
-      "records_pages_fetched": 4,
+      "records_complete": true,
+      "records_pages_fetched": 5,
       "records_total_pages": 5,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "c90c017b-e7f8-4055-98cb-08ac761d63ba",
-      "rank": 261,
-      "name": "Excruciation Chamber",
-      "gd_level_id": "93020424",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "spcreat",
-          "aredl_player_id": "497f9f43-afc4-4fd7-891f-ba45b6c12691",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_fr": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 28,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "5db466e4-ce58-4d84-b35f-19926fe33fcd",
-      "rank": 262,
-      "name": "Terminux",
-      "gd_level_id": "76865589",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Laniakea",
-          "aredl_player_id": "fb0a184e-77c6-492b-abce-b91f531b7343",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "251f2966-0a35-46b5-ac4f-c3e7d12937ea",
-        "player": {
-          "aredl_player_id": "0cf6541f-cbf3-447d-a085-4facf8f46eb5",
-          "name": "nei",
-          "country": "FR"
-        },
-        "completed_at": "2022-04-09T14:11:04+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "251f2966-0a35-46b5-ac4f-c3e7d12937ea",
-        "player": {
-          "aredl_player_id": "0cf6541f-cbf3-447d-a085-4facf8f46eb5",
-          "name": "nei",
-          "country": "FR"
-        },
-        "completed_at": "2022-04-09T14:11:04+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 74,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "19341d85-4050-424c-be1f-8096c033aad1",
-      "rank": 263,
-      "name": "Twilight",
-      "gd_level_id": "90193093",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [
-        {
-          "player": {
-            "aredl_player_id": "0cf6541f-cbf3-447d-a085-4facf8f46eb5",
-            "name": "nei",
-            "country": "FR"
-          },
-          "video_url": "https://www.youtube.com/watch?v=5bZ3RQP7fjs",
-          "verification_id": "45a42f1f-0bed-4baf-8735-1d995f0676b9",
-          "achieved_at": "2023-04-20T14:32:55+00:00"
-        }
-      ],
-      "unresolved_verifiers": [],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "45a42f1f-0bed-4baf-8735-1d995f0676b9",
-        "player": {
-          "aredl_player_id": "0cf6541f-cbf3-447d-a085-4facf8f46eb5",
-          "name": "nei",
-          "country": "FR"
-        },
-        "completed_at": "2023-04-20T14:32:55+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "45a42f1f-0bed-4baf-8735-1d995f0676b9",
-        "player": {
-          "aredl_player_id": "0cf6541f-cbf3-447d-a085-4facf8f46eb5",
-          "name": "nei",
-          "country": "FR"
-        },
-        "completed_at": "2023-04-20T14:32:55+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "first_dated_record",
-        "record_id": "5e68c1c4-d31b-4aea-a2d1-78759000a4be",
-        "player": {
-          "aredl_player_id": "8d6c8c6b-d62d-46b4-ab08-fe01f9aa7ba0",
-          "name": "cavedjv",
-          "country": "BE"
-        },
-        "completed_at": "2025-12-23T20:22:09+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "records_inspected": 70,
-      "action": "NEW_CANDIDATE",
-      "needs_review": false,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "56002f69-116c-4321-b4a3-130df1bea6f8",
-      "rank": 264,
-      "name": "CITRA",
-      "gd_level_id": "80966089",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "VARSE",
-          "aredl_player_id": "42e27d95-ad3d-4c22-8537-d33bb6f44f60",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "0fbabe26-7c30-4407-a583-7bffd1ba9ed8",
-        "player": {
-          "aredl_player_id": "0cf6541f-cbf3-447d-a085-4facf8f46eb5",
-          "name": "nei",
-          "country": "FR"
-        },
-        "completed_at": "2022-08-06T14:32:59+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "0fbabe26-7c30-4407-a583-7bffd1ba9ed8",
-        "player": {
-          "aredl_player_id": "0cf6541f-cbf3-447d-a085-4facf8f46eb5",
-          "name": "nei",
-          "country": "FR"
-        },
-        "completed_at": "2022-08-06T14:32:59+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 280,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 3,
-      "records_total_pages": 3,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "821db59b-9c95-4693-9a67-49decb6f7c8d",
-      "rank": 265,
-      "name": "Disordered Stars",
-      "gd_level_id": "131712402",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "CactuzGD",
-          "aredl_player_id": "7d04939c-c37e-464a-be22-b886fd304ad5",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_fr": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 6,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "27d0205c-1ae3-4220-be36-f26af526c104",
-      "rank": 266,
-      "name": "IthacropoliX",
-      "gd_level_id": "80293947",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "cobrablitz",
-          "aredl_player_id": "1dcdbe8f-6bb2-4364-a851-42ad9435d3ba",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_fr": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 25,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "18ff9b73-6515-4cb6-ab0a-5ec9a8e518ad",
-      "rank": 267,
-      "name": "Awedsy",
-      "gd_level_id": "92132505",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Zeronium",
-          "aredl_player_id": "b3a8d110-d1c3-4bd1-b803-18fb8719231a",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "e1b05031-3d00-4052-a5d9-6db5b50d2190",
-        "player": {
-          "aredl_player_id": "3bf1197c-17da-4a72-9bcf-9c9004e7a415",
-          "name": "Lonox",
-          "country": "FR"
-        },
-        "completed_at": "2026-07-03T11:51:31+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "e1b05031-3d00-4052-a5d9-6db5b50d2190",
-        "player": {
-          "aredl_player_id": "3bf1197c-17da-4a72-9bcf-9c9004e7a415",
-          "name": "Lonox",
-          "country": "FR"
-        },
-        "completed_at": "2026-07-03T11:51:31+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 23,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "36442c99-3c78-4ef5-b4be-1ad6c19a4eec",
-      "rank": 268,
-      "name": "Nhelv",
-      "gd_level_id": "68353244",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "guillester",
-          "aredl_player_id": "21a0d985-d2da-4b5f-8f4c-60670a937315",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "2dc5db35-7ec0-423a-b6d7-ca3683e60088",
-        "player": {
-          "aredl_player_id": "e2916d23-40ef-48b5-a692-4c0933bcc7d7",
-          "name": "GDonut",
-          "country": "FR"
-        },
-        "completed_at": "2023-12-21T21:55:59+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "2dc5db35-7ec0-423a-b6d7-ca3683e60088",
-        "player": {
-          "aredl_player_id": "e2916d23-40ef-48b5-a692-4c0933bcc7d7",
-          "name": "GDonut",
-          "country": "FR"
-        },
-        "completed_at": "2023-12-21T21:55:59+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 271,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 3,
-      "records_total_pages": 3,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "0bd7e38a-152b-403d-81f6-39b019aada28",
-      "rank": 269,
-      "name": "Gustavo Fring",
-      "gd_level_id": "80585951",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Acratic",
-          "aredl_player_id": "68abe4ce-65a8-4629-8085-8839c0e75e67",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "68a4a068-f7c1-4e58-b8a0-6b5b18ae4d57",
-        "player": {
-          "aredl_player_id": "e2916d23-40ef-48b5-a692-4c0933bcc7d7",
-          "name": "GDonut",
-          "country": "FR"
-        },
-        "completed_at": "2023-02-21T14:45:38+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "68a4a068-f7c1-4e58-b8a0-6b5b18ae4d57",
-        "player": {
-          "aredl_player_id": "e2916d23-40ef-48b5-a692-4c0933bcc7d7",
-          "name": "GDonut",
-          "country": "FR"
-        },
-        "completed_at": "2023-02-21T14:45:38+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 69,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "e8baab49-301a-4fb6-89c3-d7a2ff69fb71",
-      "rank": 270,
-      "name": "TORN",
-      "gd_level_id": "91816388",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "diamond",
-          "aredl_player_id": "e4cb0877-0fb8-4913-97b2-dcbd24c74d55",
-          "reason": "pays non confirmé"
-        },
-        {
-          "name": "Slijee",
-          "aredl_player_id": "c320f158-49f3-48a4-9667-f1063627e8b5",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "14926c21-86e4-4747-a3e0-698e9badba3e",
-        "player": {
-          "aredl_player_id": "8f45a062-dd10-488c-b0ca-4a8078e0bb2f",
-          "name": "Twister21",
-          "country": "FR"
-        },
-        "completed_at": "2023-09-10T17:49:34+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "14926c21-86e4-4747-a3e0-698e9badba3e",
-        "player": {
-          "aredl_player_id": "8f45a062-dd10-488c-b0ca-4a8078e0bb2f",
-          "name": "Twister21",
-          "country": "FR"
-        },
-        "completed_at": "2023-09-10T17:49:34+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 97,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "9f052bd7-9038-4d07-a572-cf31045ad5d2",
-      "rank": 271,
-      "name": "MewneI",
-      "gd_level_id": "109447394",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Maple 🍁",
-          "aredl_player_id": "10007860-accb-4c06-91ba-c3f7c4d8e2d0",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_fr": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 13,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "96f87d0c-dbd4-4452-a121-15739f7bf06e",
-      "rank": 272,
-      "name": "Gracefully",
-      "gd_level_id": "88226064",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "noxiom",
-          "aredl_player_id": "1a4a7ff6-3fe7-4c24-8123-8c21c0db529d",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "4aa73d3d-352c-4132-9c4e-40ca4b0a3f09",
-        "player": {
-          "aredl_player_id": "73e83aa7-3dd9-4376-8b58-c46ca8af3627",
-          "name": "coubitic 🍫",
-          "country": "FR"
-        },
-        "completed_at": "2024-03-30T18:45:35+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "4aa73d3d-352c-4132-9c4e-40ca4b0a3f09",
-        "player": {
-          "aredl_player_id": "73e83aa7-3dd9-4376-8b58-c46ca8af3627",
-          "name": "coubitic 🍫",
-          "country": "FR"
-        },
-        "completed_at": "2024-03-30T18:45:35+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 65,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "62fc2ce2-c539-40c8-8c15-97d3b05e50f6",
-      "rank": 273,
-      "name": "Deimos (EndLevel)",
-      "gd_level_id": "52955167",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "npesta",
-          "aredl_player_id": "b22b4f8f-868c-4bc7-a71f-c57c70bf4a61",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "0d1edef9-4f93-4c0c-a114-ff22730e8553",
-        "player": {
-          "aredl_player_id": "e2916d23-40ef-48b5-a692-4c0933bcc7d7",
-          "name": "GDonut",
-          "country": "FR"
-        },
-        "completed_at": "2022-10-17T20:03:54+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "0d1edef9-4f93-4c0c-a114-ff22730e8553",
-        "player": {
-          "aredl_player_id": "e2916d23-40ef-48b5-a692-4c0933bcc7d7",
-          "name": "GDonut",
-          "country": "FR"
-        },
-        "completed_at": "2022-10-17T20:03:54+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 39,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "ce627a2f-ed3f-498a-ba3c-c808449107d7",
-      "rank": 274,
-      "name": "Jesse Pinkman",
-      "gd_level_id": "79918576",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Comlayze",
-          "aredl_player_id": "5672cc78-b69e-4688-9e24-49d7ed66460d",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "d2ae69b0-d7fe-4bc6-9307-89db05a7fd62",
-        "player": {
-          "aredl_player_id": "0cf6541f-cbf3-447d-a085-4facf8f46eb5",
-          "name": "nei",
-          "country": "FR"
-        },
-        "completed_at": "2022-07-05T19:09:43+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "d2ae69b0-d7fe-4bc6-9307-89db05a7fd62",
-        "player": {
-          "aredl_player_id": "0cf6541f-cbf3-447d-a085-4facf8f46eb5",
-          "name": "nei",
-          "country": "FR"
-        },
-        "completed_at": "2022-07-05T19:09:43+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "first_dated_record",
-        "record_id": "6a7ff390-e7a5-44b8-8299-3fa25b0c782d",
-        "player": {
-          "aredl_player_id": "348ff927-56bc-4538-a82c-f6a105b690a6",
-          "name": "chill",
-          "country": "BE"
-        },
-        "completed_at": "2024-12-05T21:11:26+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "records_inspected": 244,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 3,
-      "records_total_pages": 3,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "c658cc61-4991-4f45-a401-54a20eb6b780",
-      "rank": 275,
-      "name": "Congregation",
-      "gd_level_id": "68668045",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Floofle",
-          "aredl_player_id": "82313a56-397c-4b50-a3e8-b094adfd6324",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "1d2c61e1-1be9-4a4a-b4ae-46ea3983d07b",
-        "player": {
-          "aredl_player_id": "09896c69-dbd9-440b-9a6f-cdfa650c308c",
-          "name": "rose;",
-          "country": "FR"
-        },
-        "completed_at": "2024-04-01T08:10:32+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "1d2c61e1-1be9-4a4a-b4ae-46ea3983d07b",
-        "player": {
-          "aredl_player_id": "09896c69-dbd9-440b-9a6f-cdfa650c308c",
-          "name": "rose;",
-          "country": "FR"
-        },
-        "completed_at": "2024-04-01T08:10:32+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 220,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 3,
-      "records_total_pages": 3,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "93ad7efc-8923-431d-b1d2-561c16fa44cd",
-      "rank": 276,
-      "name": "Sazerix",
-      "gd_level_id": "86787878",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "skycrab",
-          "aredl_player_id": "4627c95b-b54f-4c7f-aaa5-53f97a09f648",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "430bc935-9103-4033-bc54-98ab2424d509",
-        "player": {
-          "aredl_player_id": "0cf6541f-cbf3-447d-a085-4facf8f46eb5",
-          "name": "nei",
-          "country": "FR"
-        },
-        "completed_at": "2023-03-02T19:46:33+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "430bc935-9103-4033-bc54-98ab2424d509",
-        "player": {
-          "aredl_player_id": "0cf6541f-cbf3-447d-a085-4facf8f46eb5",
-          "name": "nei",
-          "country": "FR"
-        },
-        "completed_at": "2023-03-02T19:46:33+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 144,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 2,
-      "records_total_pages": 2,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "2f0de150-b63e-4218-b021-9dc89695ff36",
-      "rank": 277,
-      "name": "Sigma",
-      "gd_level_id": "51657783",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Technical",
-          "aredl_player_id": "989f4be5-d5b5-4f50-a341-fb50827c7905",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "77fe50ae-9f73-4ddb-9d9a-2c88b83dbc80",
-        "player": {
-          "aredl_player_id": "09896c69-dbd9-440b-9a6f-cdfa650c308c",
-          "name": "rose;",
-          "country": "FR"
-        },
-        "completed_at": "2023-08-17T17:41:06+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "77fe50ae-9f73-4ddb-9d9a-2c88b83dbc80",
-        "player": {
-          "aredl_player_id": "09896c69-dbd9-440b-9a6f-cdfa650c308c",
-          "name": "rose;",
-          "country": "FR"
-        },
-        "completed_at": "2023-08-17T17:41:06+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 110,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 2,
-      "records_total_pages": 2,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "6113c143-f544-4707-8ddc-8396d37aca92",
-      "rank": 278,
-      "name": "Pootis Engage XTREME",
-      "gd_level_id": "102243781",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "falloostic",
-          "aredl_player_id": "4a754fbc-3b12-49e1-9ddf-2b8e2a6f3302",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_fr": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 15,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "b91a726a-0f1f-4a19-ac84-9802b16c30a1",
-      "rank": 279,
-      "name": "Aronia",
-      "gd_level_id": "60564010",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Kotamon",
-          "aredl_player_id": "4b29944d-32b9-4b34-917e-c5f1927049ca",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "0f7cb4c0-77ba-4382-be09-27abbe2c3707",
-        "player": {
-          "aredl_player_id": "e2916d23-40ef-48b5-a692-4c0933bcc7d7",
-          "name": "GDonut",
-          "country": "FR"
-        },
-        "completed_at": "2020-09-27T15:42:28+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "0f7cb4c0-77ba-4382-be09-27abbe2c3707",
-        "player": {
-          "aredl_player_id": "e2916d23-40ef-48b5-a692-4c0933bcc7d7",
-          "name": "GDonut",
-          "country": "FR"
-        },
-        "completed_at": "2020-09-27T15:42:28+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 90,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "cfc2ccd6-6243-473f-a0ec-90c15a72f53d",
-      "rank": 280,
-      "name": "Exosphere",
-      "gd_level_id": "93247638",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "DijonGD",
-          "aredl_player_id": "b0ddc95b-9424-47a5-91e0-72b0da70b4df",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "6265d464-8874-45ef-9e07-d2ab046d85ba",
-        "player": {
-          "aredl_player_id": "4dd1a66c-7515-4a13-89f7-78c943e7aa96",
-          "name": "_blueberry",
-          "country": "FR"
-        },
-        "completed_at": "2026-01-18T20:45:02+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "6265d464-8874-45ef-9e07-d2ab046d85ba",
-        "player": {
-          "aredl_player_id": "4dd1a66c-7515-4a13-89f7-78c943e7aa96",
-          "name": "_blueberry",
-          "country": "FR"
-        },
-        "completed_at": "2026-01-18T20:45:02+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 13,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "0736b4b6-f6b3-4350-8f53-da5861d1dd07",
-      "rank": 281,
-      "name": "untitled unmastered",
-      "gd_level_id": "82217720",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "vinny",
-          "aredl_player_id": "57affb2b-8c32-4201-888e-c8c6bbf0438e",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "be8c1dc1-f119-4113-8aea-fb0228e00580",
-        "player": {
-          "aredl_player_id": "0cf6541f-cbf3-447d-a085-4facf8f46eb5",
-          "name": "nei",
-          "country": "FR"
-        },
-        "completed_at": "2022-10-24T21:25:45+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "be8c1dc1-f119-4113-8aea-fb0228e00580",
-        "player": {
-          "aredl_player_id": "0cf6541f-cbf3-447d-a085-4facf8f46eb5",
-          "name": "nei",
-          "country": "FR"
-        },
-        "completed_at": "2022-10-24T21:25:45+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 38,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "74953c18-dc6c-4de1-ba04-b399103d145a",
-      "rank": 282,
-      "name": "Pagoda",
-      "gd_level_id": "77669659",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Seturan",
-          "aredl_player_id": "e07e90af-94d5-4c4e-975d-85cffd7242c7",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "5d3b4ac4-6f7f-4e87-a2c5-8b776fe1a7d3",
-        "player": {
-          "aredl_player_id": "223a3248-dd38-43da-83f7-e6ab7acb307c",
-          "name": "Drax",
-          "country": "FR"
-        },
-        "completed_at": "2022-12-29T19:36:12+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "5d3b4ac4-6f7f-4e87-a2c5-8b776fe1a7d3",
-        "player": {
-          "aredl_player_id": "223a3248-dd38-43da-83f7-e6ab7acb307c",
-          "name": "Drax",
-          "country": "FR"
-        },
-        "completed_at": "2022-12-29T19:36:12+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 54,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "cdd5b88f-d84e-445c-beb5-e592970deb76",
-      "rank": 283,
-      "name": "Knights of Thunder",
-      "gd_level_id": "86412942",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Helix (LGGD)",
-          "aredl_player_id": "7248961d-373f-44d9-9a77-d129955a2902",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "e4fb5cdd-339c-4e81-9a1e-f2e8e5c574f4",
-        "player": {
-          "aredl_player_id": "0cf6541f-cbf3-447d-a085-4facf8f46eb5",
-          "name": "nei",
-          "country": "FR"
-        },
-        "completed_at": "2023-03-25T16:52:54+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "e4fb5cdd-339c-4e81-9a1e-f2e8e5c574f4",
-        "player": {
-          "aredl_player_id": "0cf6541f-cbf3-447d-a085-4facf8f46eb5",
-          "name": "nei",
-          "country": "FR"
-        },
-        "completed_at": "2023-03-25T16:52:54+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "first_dated_record",
-        "record_id": "12cab932-9253-45ec-8864-4efb6d74f6c1",
-        "player": {
-          "aredl_player_id": "ed9ce645-5cd5-436c-ad4b-573bf266e842",
-          "name": "Couropsnov♣",
-          "country": "BE"
-        },
-        "completed_at": "2023-07-15T19:40:32+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "records_inspected": 334,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 4,
-      "records_total_pages": 4,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "e4054615-8655-427b-a00f-eeb746a3815c",
-      "rank": 284,
-      "name": "X84",
-      "gd_level_id": "110791899",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Xav",
-          "aredl_player_id": "20bb44ee-19b9-4333-b17a-315e2ecaf62a",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "bb2f3159-7528-45a5-93b0-4edcd8ad9b65",
-        "player": {
-          "aredl_player_id": "5bc897b9-5403-4e91-a146-b38b4875ecfd",
-          "name": "EZ/DCO",
-          "country": "FR"
-        },
-        "completed_at": "2026-01-26T21:00:57+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "bb2f3159-7528-45a5-93b0-4edcd8ad9b65",
-        "player": {
-          "aredl_player_id": "5bc897b9-5403-4e91-a146-b38b4875ecfd",
-          "name": "EZ/DCO",
-          "country": "FR"
-        },
-        "completed_at": "2026-01-26T21:00:57+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "first_dated_record",
-        "record_id": "5115fdcd-8373-4f36-b8b0-33aa946a4448",
-        "player": {
-          "aredl_player_id": "d76a69d7-7f32-4991-b4e3-9f44a6faabe5",
-          "name": "puufy",
-          "country": "BE"
-        },
-        "completed_at": "2026-05-27T16:54:01+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "records_inspected": 61,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "9a57f011-ec00-45d5-85ca-901b0c8253d8",
-      "rank": 285,
-      "name": "ATOMIC CANNON",
-      "gd_level_id": "77681476",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Zeronium",
-          "aredl_player_id": "b3a8d110-d1c3-4bd1-b803-18fb8719231a",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "88c687cf-4ce9-4b2f-b571-5878ead7cb6e",
-        "player": {
-          "aredl_player_id": "0cf6541f-cbf3-447d-a085-4facf8f46eb5",
-          "name": "nei",
-          "country": "FR"
-        },
-        "completed_at": "2022-06-09T16:07:55+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "88c687cf-4ce9-4b2f-b571-5878ead7cb6e",
-        "player": {
-          "aredl_player_id": "0cf6541f-cbf3-447d-a085-4facf8f46eb5",
-          "name": "nei",
-          "country": "FR"
-        },
-        "completed_at": "2022-06-09T16:07:55+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "first_dated_record",
-        "record_id": "8ac86f7e-3ddd-4687-8ccc-a9b8b082c45f",
-        "player": {
-          "aredl_player_id": "8d6c8c6b-d62d-46b4-ab08-fe01f9aa7ba0",
-          "name": "cavedjv",
-          "country": "BE"
-        },
-        "completed_at": "2025-08-07T17:25:27+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "records_inspected": 314,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 4,
-      "records_total_pages": 4,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "1ddbf99e-6320-4eaf-b425-f60210e40d7a",
-      "rank": 286,
-      "name": "Fog",
-      "gd_level_id": "90853661",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Kaza",
-          "aredl_player_id": "966f2102-9511-47c0-b51b-b042aa4f50be",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "9d89e622-333b-48aa-a704-51ea7461b66c",
-        "player": {
-          "aredl_player_id": "0cf6541f-cbf3-447d-a085-4facf8f46eb5",
-          "name": "nei",
-          "country": "FR"
-        },
-        "completed_at": "2023-06-24T17:49:11+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "9d89e622-333b-48aa-a704-51ea7461b66c",
-        "player": {
-          "aredl_player_id": "0cf6541f-cbf3-447d-a085-4facf8f46eb5",
-          "name": "nei",
-          "country": "FR"
-        },
-        "completed_at": "2023-06-24T17:49:11+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 267,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 3,
-      "records_total_pages": 3,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "221e785a-afc1-4359-9a66-82c8233c7bc6",
-      "rank": 287,
-      "name": "Cicatrize",
-      "gd_level_id": "93941971",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Bleamer",
-          "aredl_player_id": "bac1ddb9-ff05-44e5-8836-10b40f99dfe7",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "3f58235d-7100-4122-9fe0-444a453c6c4a",
-        "player": {
-          "aredl_player_id": "eb01b257-a038-400f-8742-c87648b5e251",
-          "name": "Gaby2211",
-          "country": "FR"
-        },
-        "completed_at": "2024-07-28T17:06:40+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "3f58235d-7100-4122-9fe0-444a453c6c4a",
-        "player": {
-          "aredl_player_id": "eb01b257-a038-400f-8742-c87648b5e251",
-          "name": "Gaby2211",
-          "country": "FR"
-        },
-        "completed_at": "2024-07-28T17:06:40+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 41,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "8043f305-e0fe-46ed-acb5-93d4917a82f3",
-      "rank": 288,
-      "name": "Dust Bowl",
-      "gd_level_id": "94120931",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "proudgiraffe",
-          "aredl_player_id": "04600f7f-ba2c-4105-863b-787730275b2d",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_fr": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 9,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "4c7a6a86-cfbd-49de-aad3-3210e3d9d821",
-      "rank": 289,
-      "name": "Strabit",
-      "gd_level_id": "127865552",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "MyCatsHellaFat",
-          "aredl_player_id": "9de3c2ba-57e0-48e9-9ff3-44994b0f6a20",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_fr": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 2,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "09a64e60-b0a5-4fdf-a813-8ade83f9a5ea",
-      "rank": 290,
-      "name": "Astrion",
-      "gd_level_id": "135703625",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "whim.",
-          "aredl_player_id": "a289d14c-e67e-431e-8e62-233052fcfe0b",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_fr": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 10,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "512b2e17-5e29-440f-b065-4666721f7b01",
-      "rank": 291,
-      "name": "Ari Om",
-      "gd_level_id": "128938821",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Knicide",
-          "aredl_player_id": "33e07cf9-2c7f-4402-9609-8fbcc3131482",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_fr": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 3,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "e25a2ddb-46ce-4fa6-961a-f016e0b9ce9b",
-      "rank": 292,
-      "name": "SEVENTY SEVEN",
-      "gd_level_id": "124006227",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "nilscoef",
-          "aredl_player_id": "dce0751f-2878-4119-ba32-cdc7221c387c",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_fr": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 7,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "1c0e4eab-c699-4c3d-912b-8904e2da20ab",
-      "rank": 293,
-      "name": "Fragmented",
-      "gd_level_id": "71571300",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [
-        {
-          "player": {
-            "aredl_player_id": "f3f97518-649b-473e-91f5-726c9b412fe3",
-            "name": "TGM05",
-            "country": "FR"
-          },
-          "video_url": "https://www.youtube.com/watch?v=RnLoliyy4k0",
-          "verification_id": "edf8c2b3-7476-4bd9-ad53-13298137b7a2",
-          "achieved_at": "2025-09-08T01:30:11+00:00"
-        }
-      ],
-      "unresolved_verifiers": [],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "5189fcf7-0e9e-4360-bf4c-21ff14d8f2b7",
-        "player": {
-          "aredl_player_id": "136f6531-6ed8-44aa-8504-98a88da37f90",
-          "name": "Baprag",
-          "country": "FR"
-        },
-        "completed_at": "2024-01-24T17:21:38+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "5189fcf7-0e9e-4360-bf4c-21ff14d8f2b7",
-        "player": {
-          "aredl_player_id": "136f6531-6ed8-44aa-8504-98a88da37f90",
-          "name": "Baprag",
-          "country": "FR"
-        },
-        "completed_at": "2024-01-24T17:21:38+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 42,
-      "action": "NEW_CANDIDATE",
-      "needs_review": false,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "b382cf9a-6efb-4b2e-9dc0-735f295d9553",
-      "rank": 294,
-      "name": "Ploink",
-      "gd_level_id": "96590328",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "rWooshi",
-          "aredl_player_id": "521d1930-9b23-4040-9917-ddad4562510e",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "127c2b31-fcdb-4f46-8878-b1ffe443057b",
-        "player": {
-          "aredl_player_id": "136f6531-6ed8-44aa-8504-98a88da37f90",
-          "name": "Baprag",
-          "country": "FR"
-        },
-        "completed_at": "2024-04-18T23:26:57+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "127c2b31-fcdb-4f46-8878-b1ffe443057b",
-        "player": {
-          "aredl_player_id": "136f6531-6ed8-44aa-8504-98a88da37f90",
-          "name": "Baprag",
-          "country": "FR"
-        },
-        "completed_at": "2024-04-18T23:26:57+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 53,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "8d895121-2d7c-4d1b-9a0d-4798659f8e7a",
-      "rank": 295,
-      "name": "kowareta",
-      "gd_level_id": "46763581",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Gablor",
-          "aredl_player_id": "c9280745-12db-46e5-8602-eb6f2e51b756",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "dd2448d3-6fe6-417f-8e6a-9f327d5f2fb6",
-        "player": {
-          "aredl_player_id": "e2916d23-40ef-48b5-a692-4c0933bcc7d7",
-          "name": "GDonut",
-          "country": "FR"
-        },
-        "completed_at": "2020-03-23T22:42:14+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "dd2448d3-6fe6-417f-8e6a-9f327d5f2fb6",
-        "player": {
-          "aredl_player_id": "e2916d23-40ef-48b5-a692-4c0933bcc7d7",
-          "name": "GDonut",
-          "country": "FR"
-        },
-        "completed_at": "2020-03-23T22:42:14+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 401,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": false,
-      "records_pages_fetched": 4,
-      "records_total_pages": 5,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "86248445-17b4-4ced-81ca-c453638a8df3",
-      "rank": 296,
-      "name": "FRIDAY",
-      "gd_level_id": "94107500",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Metalface221",
-          "aredl_player_id": "d9c81cd2-755a-4cb3-9c8c-983b52d26f2c",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_fr": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 18,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "cf04b126-d92e-4950-955f-43b697230e82",
-      "rank": 297,
-      "name": "End of the Universe",
-      "gd_level_id": "122636906",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "fusion425",
-          "aredl_player_id": "74fe2a05-eea2-4f45-b333-9e9b0443376b",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "b0b28929-c117-4dd6-b591-0eba1c72039e",
-        "player": {
-          "aredl_player_id": "77320b96-f510-480b-89ee-a7b891d69294",
-          "name": "SevenTrack",
-          "country": "FR"
-        },
-        "completed_at": "2026-04-15T19:02:33+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "b0b28929-c117-4dd6-b591-0eba1c72039e",
-        "player": {
-          "aredl_player_id": "77320b96-f510-480b-89ee-a7b891d69294",
-          "name": "SevenTrack",
-          "country": "FR"
-        },
-        "completed_at": "2026-04-15T19:02:33+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 27,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "c0aa9860-3ef9-41c7-8dd5-8a67dd695026",
-      "rank": 298,
-      "name": "Ouroboros",
-      "gd_level_id": "56703691",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Technical",
-          "aredl_player_id": "989f4be5-d5b5-4f50-a341-fb50827c7905",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "1b55acac-dab1-4a19-a917-0585b48a824c",
-        "player": {
-          "aredl_player_id": "dbddf154-6088-476a-a2b1-db571fa8784b",
-          "name": "Arveal",
-          "country": "BE"
-        },
-        "completed_at": "2021-09-22T19:10:27+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "71f9d1a2-8250-42b4-a4c1-e64d97f2be11",
-        "player": {
-          "aredl_player_id": "09896c69-dbd9-440b-9a6f-cdfa650c308c",
-          "name": "rose;",
-          "country": "FR"
-        },
-        "completed_at": "2023-01-19T20:18:50+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "first_dated_record",
-        "record_id": "1b55acac-dab1-4a19-a917-0585b48a824c",
-        "player": {
-          "aredl_player_id": "dbddf154-6088-476a-a2b1-db571fa8784b",
-          "name": "Arveal",
-          "country": "BE"
-        },
-        "completed_at": "2021-09-22T19:10:27+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "records_inspected": 197,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 2,
-      "records_total_pages": 2,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "5ede18f3-e4e7-41a1-a912-7ecb6601bd94",
-      "rank": 299,
-      "name": "CONNECT",
-      "gd_level_id": "95089240",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "mac",
-          "aredl_player_id": "c45b4100-4542-445d-b5b1-52da90c7de99",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_fr": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 10,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "ceddd123-8cf9-4887-8db9-ade52d3d7d1e",
-      "rank": 300,
-      "name": "Visible Ray",
-      "gd_level_id": "48267315",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Seturan",
-          "aredl_player_id": "e07e90af-94d5-4c4e-975d-85cffd7242c7",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "460f4c2c-12e2-427d-9ef9-174bc56184f8",
-        "player": {
-          "aredl_player_id": "8f45a062-dd10-488c-b0ca-4a8078e0bb2f",
-          "name": "Twister21",
-          "country": "FR"
-        },
-        "completed_at": "2023-05-29T19:44:48+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "460f4c2c-12e2-427d-9ef9-174bc56184f8",
-        "player": {
-          "aredl_player_id": "8f45a062-dd10-488c-b0ca-4a8078e0bb2f",
-          "name": "Twister21",
-          "country": "FR"
-        },
-        "completed_at": "2023-05-29T19:44:48+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "first_dated_record",
-        "record_id": "2c05c1c9-15a7-46da-93ee-89abcdafac5c",
-        "player": {
-          "aredl_player_id": "dbddf154-6088-476a-a2b1-db571fa8784b",
-          "name": "Arveal",
-          "country": "BE"
-        },
-        "completed_at": "2024-05-14T11:47:45+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "records_inspected": 116,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 2,
-      "records_total_pages": 2,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "eb481554-c20d-4d2f-8465-054ce87a1a2d",
-      "rank": 301,
-      "name": "Ourwa",
-      "gd_level_id": "61598653",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Demishio",
-          "aredl_player_id": "893da248-1b80-4581-ad27-eb8cf0b3db3b",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_fr": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 65,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "c83e895b-5e7d-4536-99c7-bf9324458cf2",
-      "rank": 302,
-      "name": "XRAY",
-      "gd_level_id": "99465112",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "GMDElite",
-          "aredl_player_id": "4c63392f-89ca-4375-9697-428b38841c76",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "07d73083-c15c-469b-92f8-3681513b2ba2",
-        "player": {
-          "aredl_player_id": "09896c69-dbd9-440b-9a6f-cdfa650c308c",
-          "name": "rose;",
-          "country": "FR"
-        },
-        "completed_at": "2024-07-04T13:17:40+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "07d73083-c15c-469b-92f8-3681513b2ba2",
-        "player": {
-          "aredl_player_id": "09896c69-dbd9-440b-9a6f-cdfa650c308c",
-          "name": "rose;",
-          "country": "FR"
-        },
-        "completed_at": "2024-07-04T13:17:40+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 17,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "710f1e5c-bb69-4a3b-9d91-a18c46f02756",
-      "rank": 303,
-      "name": "the wiener",
-      "gd_level_id": "91019161",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "taiago",
-          "aredl_player_id": "76723fe8-0c98-43a6-b4db-95f8383c2a3b",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_fr": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 14,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "8142f6d9-4cf6-4f17-8a77-b71428e0452f",
-      "rank": 304,
-      "name": "Hardry",
-      "gd_level_id": "94928487",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "IcaroX",
-          "aredl_player_id": "7f1da0e3-0397-4349-9dee-1964eb82ed71",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_fr": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 29,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "7d5a3010-1bbe-402d-991c-5b6469b476a4",
-      "rank": 305,
-      "name": "Apotheosis",
-      "gd_level_id": "123730441",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Xav",
-          "aredl_player_id": "20bb44ee-19b9-4333-b17a-315e2ecaf62a",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "ef45c4cf-fb32-42fd-b18b-691b46bde4cb",
-        "player": {
-          "aredl_player_id": "5bc897b9-5403-4e91-a146-b38b4875ecfd",
-          "name": "EZ/DCO",
-          "country": "FR"
-        },
-        "completed_at": "2026-02-01T11:36:33+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "ef45c4cf-fb32-42fd-b18b-691b46bde4cb",
-        "player": {
-          "aredl_player_id": "5bc897b9-5403-4e91-a146-b38b4875ecfd",
-          "name": "EZ/DCO",
-          "country": "FR"
-        },
-        "completed_at": "2026-02-01T11:36:33+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 32,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "01e17fa2-f8e4-4639-b2db-3bac3101846a",
-      "rank": 306,
-      "name": "EGO KILLING",
-      "gd_level_id": "90463207",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "♡Oliver",
-          "aredl_player_id": "c5212f3f-93b4-415f-94d0-26cb3988f96e",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "26bb1906-b281-457c-abdf-0d1064def49b",
-        "player": {
-          "aredl_player_id": "3bf1197c-17da-4a72-9bcf-9c9004e7a415",
-          "name": "Lonox",
-          "country": "FR"
-        },
-        "completed_at": "2025-10-12T08:13:31+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "26bb1906-b281-457c-abdf-0d1064def49b",
-        "player": {
-          "aredl_player_id": "3bf1197c-17da-4a72-9bcf-9c9004e7a415",
-          "name": "Lonox",
-          "country": "FR"
-        },
-        "completed_at": "2025-10-12T08:13:31+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 25,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "4c550c3e-9a4c-4b35-8ddc-692d4aae0024",
-      "rank": 307,
-      "name": "Frozen Cave",
-      "gd_level_id": "68908396",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "khrizmass",
-          "aredl_player_id": "9f7c5339-1d7a-4ad4-b540-dbb36f82a8c0",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "d3102f45-0cd5-4858-aa21-04f278921de3",
-        "player": {
-          "aredl_player_id": "e2916d23-40ef-48b5-a692-4c0933bcc7d7",
-          "name": "GDonut",
-          "country": "FR"
-        },
-        "completed_at": "2021-08-07T18:35:51+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "d3102f45-0cd5-4858-aa21-04f278921de3",
-        "player": {
-          "aredl_player_id": "e2916d23-40ef-48b5-a692-4c0933bcc7d7",
-          "name": "GDonut",
-          "country": "FR"
-        },
-        "completed_at": "2021-08-07T18:35:51+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 281,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 3,
-      "records_total_pages": 3,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "2ed92495-45d0-4825-91ad-f333ab5eb72b",
-      "rank": 308,
-      "name": "Dump",
-      "gd_level_id": "89513590",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "ZeusGD",
-          "aredl_player_id": "4478a683-99ed-453b-9b0e-88f046e9305f",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "a9ba9c92-8162-4dfc-b47f-04dcb4af3083",
-        "player": {
-          "aredl_player_id": "73e83aa7-3dd9-4376-8b58-c46ca8af3627",
-          "name": "coubitic 🍫",
-          "country": "FR"
-        },
-        "completed_at": "2024-04-20T16:49:00+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "a9ba9c92-8162-4dfc-b47f-04dcb4af3083",
-        "player": {
-          "aredl_player_id": "73e83aa7-3dd9-4376-8b58-c46ca8af3627",
-          "name": "coubitic 🍫",
-          "country": "FR"
-        },
-        "completed_at": "2024-04-20T16:49:00+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 134,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 2,
-      "records_total_pages": 2,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "40beee36-4cbd-47df-a936-f6513a2d9ed2",
-      "rank": 309,
-      "name": "SZYSLAK",
-      "gd_level_id": "84114885",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "maxis044",
-          "aredl_player_id": "4aec6b9f-0362-4321-8548-2f728a3cb4a0",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "d87ff531-1bbd-4432-b98b-4ed69596d29b",
-        "player": {
-          "aredl_player_id": "0cf6541f-cbf3-447d-a085-4facf8f46eb5",
-          "name": "nei",
-          "country": "FR"
-        },
-        "completed_at": "2022-12-19T21:45:44+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "d87ff531-1bbd-4432-b98b-4ed69596d29b",
-        "player": {
-          "aredl_player_id": "0cf6541f-cbf3-447d-a085-4facf8f46eb5",
-          "name": "nei",
-          "country": "FR"
-        },
-        "completed_at": "2022-12-19T21:45:44+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 37,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "9f68ca24-5d53-4038-9c7f-cce12ab1f648",
-      "rank": 310,
-      "name": "Th3Dev0n",
-      "gd_level_id": "95929957",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Smokes",
-          "aredl_player_id": "ce8b2a68-4fb0-4f85-8a1c-1a0ddc46cae4",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_fr": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 10,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "cf7add86-95c2-48c7-a69c-bdc289744d14",
-      "rank": 311,
-      "name": "The Yandere",
-      "gd_level_id": "54615662",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Dorami",
-          "aredl_player_id": "f3b9d61f-0f2a-494c-8c60-e3e7a940af48",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "13036a90-7623-4687-8da7-9f88c55721cc",
-        "player": {
-          "aredl_player_id": "e2916d23-40ef-48b5-a692-4c0933bcc7d7",
-          "name": "GDonut",
-          "country": "FR"
-        },
-        "completed_at": "2020-08-25T20:21:23+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "13036a90-7623-4687-8da7-9f88c55721cc",
-        "player": {
-          "aredl_player_id": "e2916d23-40ef-48b5-a692-4c0933bcc7d7",
-          "name": "GDonut",
-          "country": "FR"
-        },
-        "completed_at": "2020-08-25T20:21:23+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "first_dated_record",
-        "record_id": "f1ef3659-a83b-456f-9005-3e4065968834",
-        "player": {
-          "aredl_player_id": "ed9ce645-5cd5-436c-ad4b-573bf266e842",
-          "name": "Couropsnov♣",
-          "country": "BE"
-        },
-        "completed_at": "2022-08-15T18:30:17+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "records_inspected": 211,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 3,
-      "records_total_pages": 3,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "e800f0f3-ce64-46d1-bd0a-85d08bb41cda",
-      "rank": 312,
-      "name": "2 Comme le vent",
-      "gd_level_id": "124596045",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Graydient",
-          "aredl_player_id": "e123a1eb-1fc5-4beb-9a6f-b7a42e6692e1",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_fr": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 2,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "268d1543-1f3d-4b90-80e5-63b217817546",
-      "rank": 313,
-      "name": "Death Corridor Z",
-      "gd_level_id": "38403655",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Sunix",
-          "aredl_player_id": "d8830c29-d073-43d1-95f2-a31943d3ca3e",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "e3072550-939e-4292-8ddd-663ad2b376ea",
-        "player": {
-          "aredl_player_id": "f3f97518-649b-473e-91f5-726c9b412fe3",
-          "name": "TGM05",
-          "country": "FR"
-        },
-        "completed_at": "2021-05-20T20:02:28+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "e3072550-939e-4292-8ddd-663ad2b376ea",
-        "player": {
-          "aredl_player_id": "f3f97518-649b-473e-91f5-726c9b412fe3",
-          "name": "TGM05",
-          "country": "FR"
-        },
-        "completed_at": "2021-05-20T20:02:28+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 39,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "80301ace-ca84-414d-8d40-39befadb9c38",
-      "rank": 314,
-      "name": "Arctic Lights",
-      "gd_level_id": "52919433",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Metalface221",
-          "aredl_player_id": "d9c81cd2-755a-4cb3-9c8c-983b52d26f2c",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "c96a0ee2-6d31-4ffc-8fa8-0f1b5b422c3b",
-        "player": {
-          "aredl_player_id": "e2916d23-40ef-48b5-a692-4c0933bcc7d7",
-          "name": "GDonut",
-          "country": "FR"
-        },
-        "completed_at": "2019-12-08T18:02:36+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "c96a0ee2-6d31-4ffc-8fa8-0f1b5b422c3b",
-        "player": {
-          "aredl_player_id": "e2916d23-40ef-48b5-a692-4c0933bcc7d7",
-          "name": "GDonut",
-          "country": "FR"
-        },
-        "completed_at": "2019-12-08T18:02:36+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "first_dated_record",
-        "record_id": "8e92ff21-1768-45ed-8c5f-de8a3ec6b099",
-        "player": {
-          "aredl_player_id": "ed9ce645-5cd5-436c-ad4b-573bf266e842",
-          "name": "Couropsnov♣",
-          "country": "BE"
-        },
-        "completed_at": "2022-06-22T14:10:52+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "records_inspected": 401,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": false,
-      "records_pages_fetched": 4,
-      "records_total_pages": 7,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "46d9295b-f233-4a7a-8530-865afa6c0572",
-      "rank": 315,
-      "name": "PROTON LAUNCHER",
-      "gd_level_id": "108514663",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Tyson",
-          "aredl_player_id": "ef7ef4ac-38ae-4689-8b08-8d8463f4f255",
-          "reason": "pays non confirmé"
-        },
-        {
-          "name": "MrOozer",
-          "aredl_player_id": "14ca26e2-25ab-4940-81ee-a68c1138cea8",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "25b10464-08a4-491f-b1a2-5bfc07f820ec",
-        "player": {
-          "aredl_player_id": "3bf1197c-17da-4a72-9bcf-9c9004e7a415",
-          "name": "Lonox",
-          "country": "FR"
-        },
-        "completed_at": "2026-09-29T06:55:53+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "25b10464-08a4-491f-b1a2-5bfc07f820ec",
-        "player": {
-          "aredl_player_id": "3bf1197c-17da-4a72-9bcf-9c9004e7a415",
-          "name": "Lonox",
-          "country": "FR"
-        },
-        "completed_at": "2026-09-29T06:55:53+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 36,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "8497b8e8-88b5-4ec5-b14d-6fd025a38b43",
-      "rank": 316,
-      "name": "Dedohexdragon",
-      "gd_level_id": "81998680",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "royen",
-          "aredl_player_id": "15773808-42a4-425b-8b49-a0e2c21a8895",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "f594aee4-d646-41fc-8f87-74fac93a5454",
-        "player": {
-          "aredl_player_id": "e2916d23-40ef-48b5-a692-4c0933bcc7d7",
-          "name": "GDonut",
-          "country": "FR"
-        },
-        "completed_at": "2023-10-24T21:26:07+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "f594aee4-d646-41fc-8f87-74fac93a5454",
-        "player": {
-          "aredl_player_id": "e2916d23-40ef-48b5-a692-4c0933bcc7d7",
-          "name": "GDonut",
-          "country": "FR"
-        },
-        "completed_at": "2023-10-24T21:26:07+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 11,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "a4996841-7047-489f-9b3e-fb79b0b3bd70",
-      "rank": 317,
-      "name": "ROCKY ROAD",
-      "gd_level_id": "113775365",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "rain",
-          "aredl_player_id": "53b23de1-6274-4632-87a6-268ba38ecc67",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "39a0b8d1-c1eb-4539-a2e2-cd66ebe5aff6",
-        "player": {
-          "aredl_player_id": "3bf1197c-17da-4a72-9bcf-9c9004e7a415",
-          "name": "Lonox",
-          "country": "FR"
-        },
-        "completed_at": "2026-07-03T11:51:31+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "39a0b8d1-c1eb-4539-a2e2-cd66ebe5aff6",
-        "player": {
-          "aredl_player_id": "3bf1197c-17da-4a72-9bcf-9c9004e7a415",
-          "name": "Lonox",
-          "country": "FR"
-        },
-        "completed_at": "2026-07-03T11:51:31+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 21,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "4925fe59-68c9-42bf-9864-f17fb369670c",
-      "rank": 318,
-      "name": "Plasma Pulse Finale",
-      "gd_level_id": "38655495",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "Smokes",
-          "aredl_player_id": "ce8b2a68-4fb0-4f85-8a1c-1a0ddc46cae4",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "a7a82041-a985-464e-ab05-f3b6ba7a5de3",
-        "player": {
-          "aredl_player_id": "e2916d23-40ef-48b5-a692-4c0933bcc7d7",
-          "name": "GDonut",
-          "country": "FR"
-        },
-        "completed_at": "2020-03-29T16:21:50+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "a7a82041-a985-464e-ab05-f3b6ba7a5de3",
-        "player": {
-          "aredl_player_id": "e2916d23-40ef-48b5-a692-4c0933bcc7d7",
-          "name": "GDonut",
-          "country": "FR"
-        },
-        "completed_at": "2020-03-29T16:21:50+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "first_dated_record",
-        "record_id": "225c1e06-75b1-4d7d-b61f-d0ba31c72f7c",
-        "player": {
-          "aredl_player_id": "dbddf154-6088-476a-a2b1-db571fa8784b",
-          "name": "Arveal",
-          "country": "BE"
-        },
-        "completed_at": "2025-05-11T12:50:29+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "records_inspected": 294,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 3,
-      "records_total_pages": 3,
-      "record_fetch_error": null
-    },
-    {
-      "aredl_id": "fc81ff5a-fc66-46f0-a24e-ad5df266ca99",
-      "rank": 319,
-      "name": "CHROMA FINALE",
-      "gd_level_id": "72570152",
-      "source": "aredl",
-      "rated": true,
-      "verifiers": [],
-      "unresolved_verifiers": [
-        {
-          "name": "saturn",
-          "aredl_player_id": "f29052ef-82f4-4ebc-917f-469a357d472e",
-          "reason": "pays non confirmé"
-        }
-      ],
-      "first_fr_be": {
-        "status": "first_dated_record",
-        "record_id": "ff1dcad6-0a7d-4eec-8ef4-43f598bc2741",
-        "player": {
-          "aredl_player_id": "0cf6541f-cbf3-447d-a085-4facf8f46eb5",
-          "name": "nei",
-          "country": "FR"
-        },
-        "completed_at": "2022-12-26T14:16:26+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_fr": {
-        "status": "first_dated_record",
-        "record_id": "ff1dcad6-0a7d-4eec-8ef4-43f598bc2741",
-        "player": {
-          "aredl_player_id": "0cf6541f-cbf3-447d-a085-4facf8f46eb5",
-          "name": "nei",
-          "country": "FR"
-        },
-        "completed_at": "2022-12-26T14:16:26+00:00",
-        "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"
-      },
-      "first_be": {
-        "status": "unknown",
-        "reason": "aucune victoire datée ET localisée dans les records disponibles"
-      },
-      "records_inspected": 85,
-      "action": "NEW_CANDIDATE",
-      "needs_review": true,
-      "records_complete": true,
-      "records_pages_fetched": 1,
-      "records_total_pages": 1,
       "record_fetch_error": null
     }
   ]

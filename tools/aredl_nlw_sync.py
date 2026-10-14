@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AREDL -> DLFR NLW : import PREVIEW, jamais d'écriture SQL. Python stdlib.
+"""AREDL -> DLFR : catalogue et preuves (PREVIEW), jamais d'écriture SQL. Python stdlib.
 
 Identités : le niveau est identifié par son ID Geometry Dash (gd_level_id) ;
 la fiche AREDL par son id AREDL, les joueurs par leur identifiant AREDL.
@@ -23,7 +23,7 @@ from urllib.parse import quote, urlparse, parse_qs
 from urllib.request import Request, urlopen
 
 BASE = "https://api.aredl.net/v2/api/aredl"
-UA = "DLFR-NLW-Preview/1.0 (respectful read-only sync)"
+UA = "DLFR-AREDL-Catalog/3.0 (respectful read-only sync)"
 COUNTRIES = {"FR": "FR", "FRANCE": "FR", "FRA": "FR", "FRENCH": "FR",
              "BE": "BE", "BELGIUM": "BE", "BELGIQUE": "BE", "BEL": "BE", "BELGIAN": "BE"}
 # AREDL uses ISO 3166-1 *numeric* values in user.country (not ISO alpha-2).
@@ -219,7 +219,7 @@ class Client:
         if self.cache_dir:
             filename = re.sub(r"[^a-zA-Z0-9_-]+", "_", path.strip("/")) + ".json"
             file = self.cache_dir / filename
-            if file.is_file() and (self.offline or time.time() - file.stat().st_mtime < (3600 if path == "/levels" else 86400)):
+            if file.is_file() and (self.offline or time.time() - file.stat().st_mtime < (3600 if path == "/levels" else 21600)):
                 return json.loads(file.read_text(encoding="utf8"))
         if self.offline:
             raise ValueError(f"Mode hors ligne : fichier cache manquant pour {path}")
@@ -437,11 +437,10 @@ def run(args, client):
     anchor = next((x for x in listed if x["name"].strip().casefold() == "cobwebs"), None)
     boundary = next((x for x in listed if x["rank"] == 219), None)
     warnings = []
-    if not anchor or anchor["rank"] != 219:
-        warnings.append(f"ATTENTION: Cobwebs non confirmé au rang 219 (rang observé: {anchor['rank'] if anchor else 'inconnu'}). Vérifier la frontière avant publication.")
-    if boundary and boundary["name"].strip().casefold() != "cobwebs":
-        warnings.append(f"Rang 219 actuellement : {boundary['name']}. Pas de changement automatique de frontière.")
+    # Le rang de Cobwebs est informatif. Il ne délimite plus les données importables :
+    # DLFR Main / Extended / NLW est un classement indépendant de l'AREDL.
     selected = [x for x in listed if x["rank"] >= args.start_rank and (args.end_rank is None or x["rank"] <= args.end_rank)]
+    catalog_only = bool(getattr(args, "catalog_only", False))
     existing = read_existing(args.existing_json)
     if not args.existing_json:
         warnings.append("Aucun export DLFR fourni : doublons avec les validations manuelles non vérifiés. Staging uniquement, sans publication.")
@@ -465,6 +464,15 @@ def run(args, client):
             player_cache[aredl_player_id] = value
             return value
     def work(x):
+        if catalog_only:
+            source = {k: x[k] for k in ("aredl_id", "rank", "name", "gd_level_id")}
+            source.update({"source":"aredl", "rated":True, "verifiers":[], "unresolved_verifiers":[],
+                "first_fr_be":{"status":"not_scanned"}, "first_fr":{"status":"not_scanned"},
+                "first_be":{"status":"not_scanned"}, "records_inspected":0, "records_complete":None,
+                "records_pages_fetched":0, "records_total_pages":None, "record_fetch_error":None,
+                "scan_mode":"catalog", "needs_review":True,
+                "action":level_action(source, existing)})
+            return source
         detail = client.get("/levels/" + quote(x["aredl_id"], safe=""))
         extra_records = None
         record_meta = None
@@ -483,6 +491,7 @@ def run(args, client):
             if extra_records is None:
                 raise ValueError("Endpoint records non conforme : aucune liste de records")
         result = extract_one(x, detail, existing, resolve_player, extra_records)
+        result["scan_mode"] = "detailed"
         result["records_complete"] = record_meta["complete"] if record_meta else None
         result["records_pages_fetched"] = record_meta["pages_fetched"] if record_meta else 0
         result["records_total_pages"] = record_meta["total_pages"] if record_meta else None
@@ -516,24 +525,27 @@ def run(args, client):
         if gid:
             seen[gid] = row
     is_anchor_valid = bool(anchor and anchor["rank"] == 219 and boundary and boundary["name"].strip().casefold() == "cobwebs")
-    incomplete = bool(failures or partial_records or fetch_errors or not is_anchor_valid)
+    incomplete = bool(failures or partial_records or fetch_errors)
     return {"generated_at": datetime.now(timezone.utc).isoformat(),
             "status": "INCOMPLETE_REVIEW_REQUIRED" if incomplete else "PREVIEW_REVIEW_REQUIRED",
             "source": client.base, "scope": {"start_rank": args.start_rank, "end_rank": args.end_rank,
             "countries": ["FR", "BE"], "mode": "preview_only",
             "existing_export_supplied": bool(args.existing_json),
+            "scan_mode": "catalog" if catalog_only else "detailed",
+            "aredl_rank_is_not_dlfr_rank": True,
             "anchor_verified": is_anchor_valid},
             "summary": {"levels": len(rows), "with_fr_be_verifier": sum(bool(x["verifiers"]) for x in rows),
             "with_first_dated_record": sum(x["first_fr_be"]["status"] == "first_dated_record" for x in rows),
             "manual_matches": sum(x["action"] == "MATCH_MANUAL_KEEP" for x in rows),
-            "record_fetch_errors": fetch_errors, "partial_records": partial_records},
+            "record_fetch_errors": fetch_errors, "partial_records": partial_records,
+            "catalog_only": catalog_only},
             "warnings": warnings, "failures": failures, "levels": rows}
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Prévisualisation NLW AREDL FR/BE (sans écriture Supabase)")
-    parser.add_argument("--start-rank", type=int, default=220)
-    parser.add_argument("--end-rank", type=int, default=319)
+    parser = argparse.ArgumentParser(description="AREDL entier : catalogue rapide ou preuves FR/BE (sans écriture Supabase)")
+    parser.add_argument("--start-rank", type=int, default=1)
+    parser.add_argument("--end-rank", type=int, default=100)
     parser.add_argument("--existing-json", help="Export JSON facultatif des demons DLFR (lecture seule)")
     parser.add_argument("--base-url", default=BASE)
     parser.add_argument("--cache-dir", default=".cache/aredl")
@@ -541,14 +553,17 @@ def main(argv=None):
     parser.add_argument("--resolve-players", action="store_true", help="Interroger /profile/{id} si le pays est inconnu ; signaler les cas non resolus")
     parser.add_argument("--records-url-template", help="Chemin validé pour les records, contenant {id} ; aucun endpoint deviné par défaut")
     parser.add_argument("--fetch-records", action="store_true", help="Lire /levels/{id}/records (victors, pagination incluse)")
+    parser.add_argument("--catalog-only", action="store_true", help="Un appel /levels seulement : aucun record, aucune vérification, pas de détails")
     parser.add_argument("--max-record-pages", type=int, default=25, help="Maximum de pages de 100 records par niveau, 25 par défaut (max 200)")
     parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--output", default="out/aredl-nlw-review")
     args = parser.parse_args(argv)
     if not 1 <= args.max_record_pages <= 200:
         parser.error("--max-record-pages doit être entre 1 et 200")
-    if args.start_rank < 220 or (args.end_rank is not None and args.end_rank < args.start_rank):
-        parser.error("Périmètre autorisé : rang AREDL >= 220 et end_rank >= start_rank")
+    if args.start_rank < 1 or (args.end_rank is not None and args.end_rank < args.start_rank):
+        parser.error("Rangs AREDL valides : start_rank >= 1 et end_rank >= start_rank")
+    if args.catalog_only and (args.fetch_records or args.resolve_players or args.records_url_template):
+        parser.error("--catalog-only est incompatible avec la récupération de profils ou de records")
     client = Client(args.base_url, args.cache_dir, args.offline)
     result = run(args, client)
     target = Path(args.output)
