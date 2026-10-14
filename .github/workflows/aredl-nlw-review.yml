@@ -8,9 +8,9 @@ on:
         required: true
         default: '220'
       end_rank:
-        description: "Dernier rang AREDL (premier essai: 319)"
+        description: "Dernier rang AREDL (lot court conseille: 260)"
         required: true
-        default: '319'
+        default: '260'
       max_record_pages:
         description: "Pages records par niveau (25 recommandé, maximum 200)"
         required: true

@@ -553,3 +553,21 @@ html.unrated-mode .level-badge.unrated-badge{background:#54206e;color:#fff}
   .dlfr-badge[data-rarity="ultra"]::before,.dlfr-badge[data-rarity="ultra"]::after,
   .dlfr-badge[data-rarity="mythique"]::after{animation:none!important}
 }
+
+
+/* DLFR V2.9.4 - preuves vidéo NLW FR/BE */
+.nlw-proof-section{padding:15px 0 22px}
+.nlw-proof-section h2{margin:0 0 5px;font-size:18px}
+.nlw-proof-context{font-size:12px;color:var(--muted);margin:4px 0 14px}
+.nlw-proof-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px}
+.nlw-proof-card{border:1px solid var(--line);background:var(--panel);border-radius:12px;overflow:hidden;min-width:0}
+.nlw-proof-picture{display:block;aspect-ratio:16/9;background:var(--card);position:relative}
+.nlw-proof-picture img{width:100%;height:100%;object-fit:cover;display:block}
+.nlw-proof-picture:hover img{filter:brightness(1.08)}
+.nlw-proof-play{position:absolute;inset:auto auto 10px 12px;border-radius:4px;padding:5px 10px;background:#000c;color:#fff;font-weight:700;font-size:12px}
+.nlw-proof-placeholder{display:grid;place-items:center;color:var(--muted);font-size:12px;min-height:80px}
+.nlw-proof-body{padding:12px}
+.nlw-proof-body h3{font-size:13px;margin:0 0 7px}
+.nlw-proof-body p{font-size:12px;color:var(--muted);margin:0 0 7px}
+.nlw-proof-body a{font-size:12px}
+@media(prefers-reduced-motion:reduce){.nlw-proof-picture img{transition:none!important}}

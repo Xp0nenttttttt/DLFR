@@ -19,7 +19,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote
+from urllib.parse import quote, urlparse, parse_qs
 from urllib.request import Request, urlopen
 
 BASE = "https://api.aredl.net/v2/api/aredl"
@@ -91,6 +91,53 @@ def unwrap_collection(payload, possible_keys):
     return None
 
 
+
+def safe_video_url(value):
+    """Ne conserve que des URLs HTTP(S) propres ; jamais de script ou HTML."""
+    if not isinstance(value, str):
+        return None
+    url = value.strip()
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("https", "http") or not parsed.hostname or parsed.username or parsed.password:
+            return None
+        if any(c in url for c in ("<", ">", "\n", "\r", "\t")):
+            return None
+        return url if len(url) <= 2048 else None
+    except ValueError:
+        return None
+
+
+def video_of(row):
+    raw = pick(row, "video_url", "video", "url", "proof_url", "proof")
+    return safe_video_url(raw)
+
+
+def youtube_id(value):
+    url = safe_video_url(value)
+    if not url:
+        return None
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower()
+    if host.startswith("www."):
+        host = host[4:]
+    parts = [p for p in parsed.path.split("/") if p]
+    candidate = None
+    if host == "youtu.be" and parts:
+        candidate = parts[0]
+    elif host in ("youtube.com", "m.youtube.com", "music.youtube.com", "youtube-nocookie.com"):
+        if parsed.path == "/watch":
+            candidate = parse_qs(parsed.query).get("v", [None])[0]
+        elif len(parts) >= 2 and parts[0] in ("shorts", "live", "embed"):
+            candidate = parts[1]
+    return candidate if candidate and re.fullmatch(r"[a-zA-Z0-9_-]{11}", candidate) else None
+
+
+def youtube_thumbnail(value):
+    video_id = youtube_id(value)
+    return f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg" if video_id else None
+
+
 def verified_date(record):
     """N'invente JAMAIS une date de victoire depuis created_at/submitted_at."""
     raw = pick(record, "achieved_at", "completed_at", "completion_date", "beaten_at", "victory_date")
@@ -146,15 +193,16 @@ def first_victor(records, target=None):
             continue
         date = verified_date(rec)
         if date:
-            eligible.append((date, p, str(pick(rec, "id", "record_id") or "") or None))
+            eligible.append((date, p, str(pick(rec, "id", "record_id") or "") or None, video_of(rec)))
     eligible.sort(key=lambda x: x[0])
     if not eligible:
         return {"status": "unknown", "reason": "aucune victoire datée ET localisée dans les records disponibles"}
     if len(eligible) > 1 and eligible[0][0] == eligible[1][0]:
         return {"status": "ambiguous", "reason": "égalité de date, examen humain nécessaire"}
-    date, p, rid = eligible[0]
+    date, p, rid, video = eligible[0]
     return {"status": "first_dated_record", "record_id": rid,
             "player": p, "completed_at": date,
+            "video_url": video, "thumbnail_url": youtube_thumbnail(video),
             "note": "Plus ancien record FR/BE daté disponible, pas forcément première victoire historique"}
 
 
@@ -289,7 +337,8 @@ def extract_one(item, detail, existing, resolve_player=None, extra_records=None)
             ver["country_code"] = p["country"]
         # IMPORTANT: si pays inconnu on ne l'infère jamais à partir du pseudo
         if p["country"] in ("FR", "BE"):
-            source["verifiers"].append({"player": p, "video_url": pick(ver, "video_url", "video", "url"),
+            source["verifiers"].append({"player": p, "video_url": video_of(ver),
+                                        "thumbnail_url": youtube_thumbnail(video_of(ver)),
                                         "verification_id": pick(ver, "id", "verification_id"),
                                         "achieved_at": verified_date(ver)})
         elif p["name"] and not (pick(obj(pick(ver, "submitted_by", "player", "user", "submitter", "verified_by", "verifier")), "country_code", "country", "nationality") or pick(ver, "country_code", "country")):
@@ -362,7 +411,7 @@ def save_csv(path, rows):
     with open(path, "w", newline="", encoding="utf-8-sig") as fp:
         writer = csv.DictWriter(fp, fieldnames=["rank", "name", "gd_level_id", "aredl_id", "action",
                                                 "verifier_fr_be", "verifier_country", "first_record_fr_be",
-                                                "first_record_country", "first_record_date", "first_record_status", "records_inspected", "records_complete", "record_fetch_error"])
+                                                "first_record_country", "first_record_date", "first_record_status", "verification_video_urls", "verification_thumbnail_urls", "first_record_video_url", "first_record_thumbnail_url", "records_inspected", "records_complete", "record_fetch_error"])
         writer.writeheader()
         for x in rows:
             ver = x["verifiers"]
@@ -374,6 +423,10 @@ def save_csv(path, rows):
                              "first_record_fr_be": obj(first.get("player")).get("name"),
                              "first_record_country": obj(first.get("player")).get("country"),
                              "first_record_date": first.get("completed_at"), "first_record_status": first["status"],
+                             "verification_video_urls": "; ".join(str(z.get("video_url") or "") for z in ver if z.get("video_url")),
+                             "verification_thumbnail_urls": "; ".join(str(z.get("thumbnail_url") or "") for z in ver if z.get("thumbnail_url")),
+                             "first_record_video_url": first.get("video_url"),
+                             "first_record_thumbnail_url": first.get("thumbnail_url"),
                              "records_inspected": x["records_inspected"],
                              "records_complete": x.get("records_complete"),
                              "record_fetch_error": x.get("record_fetch_error")})

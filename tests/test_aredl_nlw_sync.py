@@ -167,3 +167,44 @@ class TestPaginationV293(unittest.TestCase):
         self.assertFalse(meta['complete'])
         self.assertEqual(meta['pages_fetched'],2)
         self.assertIn('Page 3',meta['error'])
+
+class TestMediaV294(unittest.TestCase):
+    def test_youtube_formats(self):
+        for url in ('https://www.youtube.com/watch?v=OKEHsJPaeQY',
+                    'https://youtu.be/OKEHsJPaeQY?t=32',
+                    'https://youtube.com/shorts/OKEHsJPaeQY',
+                    'https://www.youtube.com/live/OKEHsJPaeQY'):
+            self.assertEqual(a.youtube_id(url), 'OKEHsJPaeQY')
+            self.assertEqual(a.youtube_thumbnail(url),'https://i.ytimg.com/vi/OKEHsJPaeQY/hqdefault.jpg')
+
+    def test_invalid_video_no_html_or_thumbnail(self):
+        for url in ('javascript:alert(1)','https://notyoutube.com/watch?v=OKEHsJPaeQY',
+                    'https://youtube.com/watch?v=bad', 'https://u:p@youtu.be/OKEHsJPaeQY'):
+            self.assertIsNone(a.youtube_thumbnail(url))
+        self.assertIsNone(a.safe_video_url('javascript:alert(1)'))
+
+    def test_first_record_keeps_actual_video(self):
+        rows=[{'id':'later','submitted_by':{'id':'2','name':'Later','country':250},
+               'achieved_at':'2024-02-01T00:00:00Z','video_url':'https://youtu.be/AAAAAAAAAAA'},
+              {'id':'first','submitted_by':{'id':'1','name':'First','country':56},
+               'achieved_at':'2023-02-01T00:00:00Z','video_url':'https://youtu.be/BBBBBBBBBBB'}]
+        first=a.first_victor(rows)
+        self.assertEqual(first['record_id'],'first')
+        self.assertEqual(first['video_url'],'https://youtu.be/BBBBBBBBBBB')
+        self.assertIn('BBBBBBBBBBB', first['thumbnail_url'])
+
+    def test_missing_first_video_is_not_replaced_with_later(self):
+        rows=[{'id':'first','player':{'name':'First','country':'FR'},
+               'achieved_at':'2023-02-01T00:00:00Z'},
+              {'id':'later','player':{'name':'Later','country':'FR'},
+               'achieved_at':'2024-02-01T00:00:00Z','video_url':'https://youtu.be/BBBBBBBBBBB'}]
+        first=a.first_victor(rows)
+        self.assertEqual(first['record_id'],'first')
+        self.assertIsNone(first['video_url'])
+
+    def test_verifier_video_and_thumb(self):
+        x=a.extract_one({'aredl_id':'test','rank':220,'name':'Level','gd_level_id':'123'}, {'verifications':[
+            {'submitted_by':{'id':'1','name':'Verifier','country':250},
+             'achieved_at':'2023-02-01T00:00:00Z',
+             'video_url':'https://youtube.com/watch?v=OKEHsJPaeQY'}]}, [])
+        self.assertIn('OKEHsJPaeQY',x['verifiers'][0]['thumbnail_url'])

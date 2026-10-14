@@ -143,6 +143,22 @@ def write_csv(path, plan):
                         "decision": "EXCLUDED", "reason": x["reason"]})
 
 
+
+def media_review_export(plan):
+    """Fichier destiné à la revue humaine, pas une publication automatique."""
+    result = []
+    for row in plan["included"]:
+        first = row.get("first_observed_fr_be") or {}
+        result.append({"gd_level_id": row["gd_level_id"],
+                       "aredl_id": row["aredl_id"], "aredl_rank": row["aredl_rank"],
+                       "name": row["aredl_name"], "approved": False,
+                       "records_complete": True,
+                       "verifiers": row["verifiers_fr_be"],
+                       "first_fr_be": first,
+                       "notice": "Premier record FR/BE daté disponible, pas nécessairement première victoire historique."})
+    return {"schema_version": 1, "status": "REVIEW_REQUIRED", "levels": result}
+
+
 def main():
     p = argparse.ArgumentParser(description="Prépare un staging SQL sécurisé, sans exécution")
     p.add_argument("--input", default="out/aredl-nlw-review.json")
@@ -154,6 +170,8 @@ def main():
     target.with_suffix(".json").write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
     target.with_suffix(".sql").write_text(to_sql(plan), encoding="utf-8")
     write_csv(target.with_suffix(".csv"), plan)
+    media_path = target.with_name(target.name + "-media.json")
+    media_path.write_text(json.dumps(media_review_export(plan), ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps({"status":plan["status"], **plan["counts"], "warning": "AUCUNE ECRITURE SUPABASE"}, ensure_ascii=False, indent=2))
 
 

@@ -64,3 +64,12 @@ class TestPlan(unittest.TestCase):
         self.assertIn("ON CONFLICT (gd_level_id)",s)
 
 if __name__ == '__main__': unittest.main()
+
+class MediaReviewV294(unittest.TestCase):
+    def test_media_is_not_published_automatically(self):
+        import aredl_nlw_stage_plan as p
+        plan={'included':[{'gd_level_id':'123','aredl_id':'id','aredl_rank':220,'aredl_name':'Level',
+                           'verifiers_fr_be':[], 'first_observed_fr_be':{}}]}
+        media=p.media_review_export(plan)
+        self.assertFalse(media['levels'][0]['approved'])
+        self.assertEqual(media['status'],'REVIEW_REQUIRED')

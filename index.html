@@ -1,17 +1,13 @@
 <!doctype html>
 <html lang="fr">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description"
-    content="DemonlistFrancophone — listes Geometry Dash, statistiques, clans et palmarès communautaire.">
-  <title>DemonlistFrancophone V2.7</title>
-  <link rel="icon" type="image/png" href="assets/icon.png">
+  <meta name="description" content="DemonlistFrancophone — listes Geometry Dash, statistiques, clans et palmarès communautaire.">
+  <title>DemonlistFrancophone V2.9.4</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap"
-    rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=280">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=294">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="js/config.js?v=210" defer></script>
@@ -26,9 +22,9 @@
   <script src="js/submission-core.js?v=243" defer></script>
   <script src="js/discord-auth.js?v=250" defer></script>
   <script src="js/badge-system.js?v=280" defer></script>
-  <script src="js/app.js?v=280" defer></script>
+  <script src="js/nlw-media.js?v=294" defer></script>
+  <script src="js/app.js?v=294" defer></script>
 </head>
-
 <body>
   <header class="site-header">
     <nav class="navigation" aria-label="Navigation principale">
@@ -65,24 +61,13 @@
         </details>
       </div>
       <div class="nav-tools">
-        <label class="nav-theme">Thème <select id="themeSelect" aria-label="Thème">
-            <option value="light">Clair</option>
-            <option value="dark">Sombre</option>
-            <option value="midnight">Midnight</option>
-            <option value="autumn">Automne</option>
-          </select></label>
+        <label class="nav-theme">Thème <select id="themeSelect" aria-label="Thème"><option value="light">Clair</option><option value="dark">Sombre</option><option value="midnight">Midnight</option><option value="autumn">Automne</option></select></label>
         <button class="unrated-switch" id="unratedToggle" type="button" aria-pressed="false">◈ UNRATED OFF</button>
       </div>
     </nav>
   </header>
-  <main class="layout" id="app" aria-live="polite">
-    <div class="center-panel loading">Chargement de la Demonlist…<p class="small muted">Si rien ne s’affiche, vérifie
-        que les scripts V2 sont bien présents.</p><a class="btn subtle small"
-        href="?page=list&amp;demo=1&amp;reset=1">Réinitialiser la démo</a></div>
-  </main>
-  <footer class="site-footer">DemonlistFrancophone · Projet de migration vers GitHub Pages &amp; Supabase · <span
-      id="sourceLabel">Mode démo</span></footer>
+  <main class="layout" id="app" aria-live="polite"><div class="center-panel loading">Chargement de la Demonlist…<p class="small muted">Si rien ne s’affiche, vérifie que les scripts V2 sont bien présents.</p><a class="btn subtle small" href="?page=list&amp;demo=1&amp;reset=1">Réinitialiser la démo</a></div></main>
+  <footer class="site-footer">DemonlistFrancophone · Projet de migration vers GitHub Pages &amp; Supabase · <span id="sourceLabel">Mode démo</span></footer>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 </body>
-
 </html>
