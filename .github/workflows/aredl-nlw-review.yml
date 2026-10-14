@@ -1,0 +1,50 @@
+name: AREDL NLW – aperçu FR BE (aucune ecriture SQL)
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_rank:
+        description: "Premier rang AREDL (minimum 220)"
+        required: true
+        default: '220'
+      end_rank:
+        description: "Dernier rang AREDL (premier essai: 319)"
+        required: true
+        default: '319'
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/cache@v4
+        with:
+          path: .cache/aredl
+          key: aredl-nlw-details-${{ github.run_id }}
+          restore-keys: |
+            aredl-nlw-details-
+      - name: Generer l'apercu sans modifier la base
+        env:
+          START_RANK: ${{ inputs.start_rank }}
+          END_RANK: ${{ inputs.end_rank }}
+        run: |
+          python tools/aredl_nlw_sync.py \
+            --start-rank "$START_RANK" \
+            --end-rank "$END_RANK" \
+            --resolve-players \
+            --output out/aredl-nlw-review
+      - name: Joindre les resultats meme si une fiche echoue
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aredl-nlw-preview-${{ inputs.start_rank }}-${{ inputs.end_rank }}
+          path: out/aredl-nlw-review.*
+          if-no-files-found: warn
+          retention-days: 14
