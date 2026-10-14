@@ -85,6 +85,12 @@ function productionProofMedia(d){
   add('Premier record français daté disponible',d.first_fr_player,d.first_fr_video_url,d.first_fr_thumbnail_url,d.first_fr_achieved_at);
   return items.length?`<section class="prod-proof-media" aria-label="Preuves vidéo AREDL">${items.join('')}</section>`:(d.data_source==='aredl'?'<p class="small muted">Preuves françaises non encore renseignées : une synchronisation détaillée est nécessaire.</p>':'');
 }
+function staffNamesHTML(team){
+ if(state.data?.staff_directory_error)return '<p class="small muted">Annuaire indisponible : installer la migration SQL 21.</p>';
+ const members=(state.data?.staff_directory||[]).filter(m=>m.team===team).sort((a,b)=>Number(b.role==='owner')-Number(a.role==='owner')||String(a.display_name).localeCompare(String(b.display_name),'fr'));
+ if(!members.length)return '<p class="small muted">Aucun membre renseigné pour le moment.</p>';
+ return members.map(m=>`<div class="staff-name">${m.country_code?flag(m.country_code)+' ':''}${esc(m.display_name||'Modérateur')}${m.role==='owner'?' <span class="muted">· propriétaire</span>':''}</div>`).join('');
+}
 const flag = code => GEO?.countryImage(code) || '';
 const regionFor = p=> p?.country_code==='FR' ? (state.data.player_profiles.find(x=>x.player_key===p.player_key)?.region_code||'') : '';
 const regionFlag = p=>GEO?.regionImage(regionFor(p))||'';
@@ -116,6 +122,11 @@ async function refreshLiveData(){
  // Les fiches AREDL catalogue brut sont conservées en base, mais exclues de la liste publique.
  state.unpublishedAredlDemons=(state.data.demons||[]).filter(x=>x.is_public===false);
  state.data.demons=(state.data.demons||[]).filter(x=>x.is_public!==false);
+ // Annuaire public des modérateurs : noms publics seulement, aucune donnée Auth sensible.
+ const staffDirectory=await db.rpc('dlfr_public_staff_directory');
+ state.data.staff_directory=staffDirectory.error?[]:(staffDirectory.data||[]);
+ state.data.staff_directory_error=staffDirectory.error?.message||null;
+ if(staffDirectory.error)console.warn('Annuaire équipe indisponible :',staffDirectory.error.message);
  for(const t of v2Tables)state.data[t]=[];
  for(const t of [...livePublicTables,...(state.session?livePrivateTables:[]),...(state.staff?liveStaffTables:[])])state.data[t]=await readAll(t);
  if(state.staff){
@@ -221,7 +232,7 @@ function cardsHTML(demons){if(!demons.length)return '<div class="paper empty">Au
 function listPage(){const d=state.data,nav=['main','nlw','legacy'],labels=['Main List · Top 150','NLW · rang 151+','Legacy List'];
  const sLabel=state.list;const levels=catalog().filter(x=>sLabel==='legacy'?x.legacy:sLabel==='nlw'?x.position>150:x.position<=150);
  const top=`<div class="list-tabs">${nav.map((x,i)=>`<button type="button" class="${sLabel===x?'active':''}" data-list="${x}">${esc(labels[i])}</button>`).join('')}</div>${sLabel==='main'?'<div class="v2-legend"><span class="hist-main">Main List · #1–75</span><span>Extended List · #76–150</span></div>':''}`;
- return `${templateNotice()}${state.unrated?callout('<b>Mode UNRATED</b> — estimation alternative des positions et points, sans modifier le classement officiel.'):''}${top}<div class="page-columns"><section><div class="center-panel"><h1>${sLabel==='nlw'?'NLW · Non List Worthy':sLabel==='legacy'?'Legacy List':'Geometry Dash Demonlist'}</h1><p>${sLabel==='nlw'?'Classement indépendant pour les niveaux à partir de la position 151. Points et rangs NLW distincts.':sLabel==='legacy'?'Anciens niveaux de la Main List. Les records réalisés après leur sortie ne deviennent pas des records Legacy.':'Les 150 niveaux classés de la DemonlistFrancophone.'}</p><label class="filterbox"><span>⌕</span><input id="demonSearch" type="search" placeholder="Filtrer les démons affichés..." value="${esc(state.keyword)}" autocomplete="off"></label></div><div id="demonItems">${cardsHTML(levels.filter(x=>key(x.name).includes(key(state.keyword))))}</div></section><aside class="right-side"><div class="info-panel right-panel"><h2>Éditeurs de liste</h2><p>Contacter les éditeurs pour les changements de classement.</p><div class="staff-name">🇫🇷 YOMAYOCB</div><div class="staff-name">🇫🇷 SOFFAX</div><h2>Équipe NLW</h2><p>Les modérateurs NLW peuvent gérer uniquement les niveaux au-delà du Top 150.</p></div><div class="info-panel right-panel"><h2>Directives</h2><p>Seules les runs légitimes avec preuves claires sont acceptées.</p><button class="btn" data-route="news">Actualités de la liste</button></div></aside></div>`;
+ return `${templateNotice()}${state.unrated?callout('<b>Mode UNRATED</b> — estimation alternative des positions et points, sans modifier le classement officiel.'):''}${top}<div class="page-columns"><section><div class="center-panel"><h1>${sLabel==='nlw'?'NLW · Non List Worthy':sLabel==='legacy'?'Legacy List':'Geometry Dash Demonlist'}</h1><p>${sLabel==='nlw'?'Classement indépendant pour les niveaux à partir de la position 151. Points et rangs NLW distincts.':sLabel==='legacy'?'Anciens niveaux de la Main List. Les records réalisés après leur sortie ne deviennent pas des records Legacy.':'Les 150 niveaux classés de la DemonlistFrancophone.'}</p><label class="filterbox"><span>⌕</span><input id="demonSearch" type="search" placeholder="Filtrer les démons affichés..." value="${esc(state.keyword)}" autocomplete="off"></label></div><div id="demonItems">${cardsHTML(levels.filter(x=>key(x.name).includes(key(state.keyword))))}</div></section><aside class="right-side"><div class="info-panel right-panel"><h2>Éditeurs de liste</h2><p>Contacter les éditeurs pour les changements de classement.</p>${staffNamesHTML("general")}<h2>Équipe NLW</h2><p>Équipe NLW déclarée dans Supabase (permissions spécifiques encore en cours d’activation).</p>${staffNamesHTML("nlw")}</div><div class="info-panel right-panel"><h2>Directives</h2><p>Seules les runs légitimes avec preuves claires sont acceptées.</p><button class="btn" data-route="news">Actualités de la liste</button></div></aside></div>`;
 }
 function completionLinks(levels){return levels.length?levels.sort((a,b)=>a.position-b.position).map(d=>`<a class="link" href="${url('demon',{id:d.id})}" data-nav>#${esc(d.position)} ${esc(d.name)}</a>`).join(' - '):'<span class="muted">Aucun</span>';}
 function titleHTML(p){return BADGES.gallery(state.data,p.player_key,esc,date);}
