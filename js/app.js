@@ -14,6 +14,9 @@ const SUBMISSIONS = window.DLFR_SUBMISSIONS;
 const DISCORD = window.DLFR_DISCORD;
 const BADGES = window.DLFR_BADGES;
 const PROD = window.DLFR_PRODUCTION;
+const HISTORY = window.DLFR_HISTORY || {levels:[],records:[],snapshot:null};
+const historicLevels = () => HISTORY.levels || [];
+const oldArchive = () => historicLevels().filter(d=>Number(d.old_position)>150).sort((a,b)=>a.old_position-b.old_position);
 const discordState=()=>null;
 const discordIdentity=()=>LIVE?DISCORD.sessionDiscordIdentity(state.session):discordState();
 function avatarOf(playerKey,profile){
@@ -181,7 +184,7 @@ function nav(){
  });
  return page;
 }
-function go(page,fields={}){closeNavMenus();history.pushState({},'',url(page,fields));state.keyword='';render();window.scrollTo({top:0,behavior:'instant'});}
+function go(page,fields={}){closeNavMenus();history.pushState({},'',url(page,fields));if(page==='list')state.list=fields.tab||'main';state.keyword='';render();window.scrollTo({top:0,behavior:'instant'});}
 function box(label,value){return `<div class="statbox"><div class="stat-label">${esc(label)}</div><div class="stat-value">${esc(value)}</div></div>`;}
 function scoreBase(position){const p=+position;return p>=56?1.039035131*((185.7*Math.exp(-.02715*p))+14.84):p>=36?1.0371139743*((212.61*Math.pow(1.036,1-p))+25.071):p>=21?((250-83.389)*Math.pow(1.0099685,2-p)-31.152)*1.0371139743:p>=4?((326.1*Math.exp(-.0871*p))+51.09)*1.037117142:p>=1?(-18.2899079915*p)+368.2899079915:0;}
 function score(demon,progress=100){
@@ -193,8 +196,8 @@ function score(demon,progress=100){
 function ranked(){
  const d=state.data,demons=catalog(),byId=Object.fromEntries(demons.map(v=>[v.id,v]));
  const completionScoreByPlayer = new Map();
- const people=new Map(d.players.map(p=>[p.player_key,{...p,total_records:0,total_completions:0,main:[],extended:[],beyond:[],legacy:[],progress:[],created:[],published:[],verified:[],pointsComputed:num(p.bonus_points),hardest:null}]));
- const ensure=(name)=>{const k=key(name);if(!k)return null;if(!people.has(k))people.set(k,{player_key:k,username:name,display_name:name,country_code:'',has_account:false,hidden_from_stats:false,points:0,bonus_points:0,pointsComputed:0,total_records:0,total_completions:0,main:[],extended:[],beyond:[],legacy:[],progress:[],created:[],published:[],verified:[],hardest:null});return people.get(k);};
+ const people=new Map(d.players.map(p=>[p.player_key,{...p,total_records:0,total_completions:0,main:[],extended:[],beyond:[],legacy:[],progress:[],created:[],published:[],verified:[],pointsComputed:num(p.bonus_points),hardest:null,hardestKind:null,hardestHistorical:false}]));
+ const ensure=(name)=>{const k=key(name);if(!k)return null;if(!people.has(k))people.set(k,{player_key:k,username:name,display_name:name,country_code:'',has_account:false,hidden_from_stats:false,points:0,bonus_points:0,pointsComputed:0,total_records:0,total_completions:0,main:[],extended:[],beyond:[],legacy:[],progress:[],created:[],published:[],verified:[],hardest:null,hardestKind:null,hardestHistorical:false});return people.get(k);};
  for(const demon of demons){for(const [field,dest] of [['creator','created'],['publisher','published'],['verifier','verified']]){
    const names=field==='creator'?[demon.creator,...plain(demon.creator_more).split(',')]:[demon[field]];
    for(const name of names){const player=ensure(name);if(player&&!player[dest].some(x=>x.id===demon.id))player[dest].push(demon);}
@@ -207,7 +210,7 @@ function ranked(){
     player.pointsComputed+=points;
     if(!completionScoreByPlayer.has(player.player_key))completionScoreByPlayer.set(player.player_key,new Map());
     completionScoreByPlayer.get(player.player_key).set(demon.id,points);
-    if(r.progress>=100 && demon.position<=cfg().extended_limit && (!player.hardest || +demon.position<+player.hardest.position))player.hardest=demon;
+    if(r.progress>=100 && +demon.position>0 && +demon.position<=cfg().extended_limit && (!player.hardest || +demon.position<+player.hardest.position)){player.hardest=demon;player.hardestKind='complété';player.hardestHistorical=false;}
  }
  // Comme dans le PHP original : vérification = points 100%, moins les points déjà obtenus sur ce niveau.
  for(const demon of demons){
@@ -219,6 +222,18 @@ function ranked(){
   if(!verifier)continue;
   const existing=completionScoreByPlayer.get(verifier.player_key)?.get(demon.id)||0;
   verifier.pointsComputed+=Math.max(0,score(demon,100)-existing);
+  if(!verifier.hardest||+demon.position<+verifier.hardest.position){verifier.hardest=demon;verifier.hardestKind='vérifié';verifier.hardestHistorical=false;}
+ }
+ // Références de vérification du site historique : informatives et sans points.
+ // Si une fiche d'import est encore masquée, son rang historique peut figurer sur le
+ // profil mais ne devient pas automatiquement un rang DLFR publié.
+ for(const old of historicLevels()){
+   const pos=Number(old.old_position);if(!(pos>=1&&pos<=150))continue;
+   const verifier=people.get(key(old.verifier));if(!verifier)continue;
+   if(!verifier.hardest||pos<Number(verifier.hardest.position)){
+     verifier.hardest={id:null,position:pos,name:old.name,legacy_id:old.legacy_id};
+     verifier.hardestKind='vérifié';verifier.hardestHistorical=true;
+   }
  }
  const nlw=V2.project(d.players,d.demons,d.completions,state.unrated),extras=new Map(nlw.map(x=>[x.player_key,x]));
  const result=[...people.values()].map(p=>{const n=extras.get(p.player_key);const nlwScore=n?.nlw_score||0;return {...p,score:(LIVE||state.unrated)?p.pointsComputed:num(p.points),nlwScore,nlwRank:n?.nlw_rank||null,autoBadges:V2.badges(p,demons,d.completions),clan:(d.clan_members||[]).find(c=>c.player_key===p.player_key)};});
@@ -227,16 +242,42 @@ function ranked(){
  return result;
 }
 function getPlayer(value){return ranked().find(p=>p.player_key===key(value))||null;}
+function hardestLabel(p){
+ if(!p?.hardest)return 'Aucun';
+ return `#${p.hardest.position} ${p.hardest.name}${p.hardestHistorical?' (rang historique · vérifié)':p.hardestKind==='vérifié'?' (vérifié)':''}`;
+}
+function archiveCardsHTML(rows){
+ if(!rows.length)return '<div class="paper empty">Aucun niveau historique correspondant.</div>';
+ return rows.map(d=>{
+  const image=imageLink(d.thumbnail_url);
+  return `<article class="paper list-entry"><a href="${url('archive',{id:d.legacy_id})}" data-nav>${image?`<img loading="lazy" class="demon-thumb" src="${esc(image)}" alt="Miniature ${esc(d.name)}">`:`<div class="demon-thumb faux-thumb">${esc(d.name)}</div>`}</a><div><h2><a href="${url('archive',{id:d.legacy_id})}" data-nav>Ancien #${esc(d.old_position)} — ${esc(d.name)}</a></h2><div class="entry-meta">Vérifié par <b>${esc(d.verifier||'Non renseigné')}</b></div><p class="muted small">Archive historique · hors Top 150 · aucun point NLW</p></div></article>`;
+ }).join('');
+}
+function archivePage(){
+ const id=Number(new URLSearchParams(location.search).get('id'));
+ const d=historicLevels().find(x=>Number(x.legacy_id)===id);
+ if(!d)return '<div class="center-panel">Fiche historique introuvable.</div>';
+ const outside=Number(d.old_position)>150;
+ const all=(HISTORY.records||[]).filter(r=>Number(r.legacy_id)===id);
+ const img=imageLink(d.thumbnail_url);
+ return `<div class="paper"><p><a href="${url('list',{tab:'archive'})}" data-nav class="link">← Archives hors Top 150</a></p><h1>${esc(d.name)}</h1><p class="notice">${outside?'Hors Top 150':'Ancien Top 150'} · rang de l’ancien site : #${esc(d.old_position)}. Fiche d’archive (instantané du 14 octobre 2026), sans effet sur les rangs ni les points de la DLFR actuelle.</p><div class="level-detail">${img?`<img class="demon-thumb" src="${esc(img)}" alt="Miniature ${esc(d.name)}">`:`<div class="demon-thumb faux-thumb">${esc(d.name)}</div>`}<div><p><b>GD ID :</b> ${esc(d.level_id||'—')}<br><b>Créateur :</b> ${esc(d.creator||'—')}<br><b>Publiant :</b> ${esc(d.publisher||'—')}<br><b>Vérificateur :</b> ${esc(d.verifier||'—')}<br><b>Minimum historique :</b> ${esc(d.requirement)}%</p>${http(d.video_url)?`<a class="btn" rel="noopener noreferrer" target="_blank" href="${esc(http(d.video_url))}">Vidéo historique ↗</a>`:''}</div></div><h2>Records de l’ancienne liste (${all.length})</h2>${all.length?all.map(r=>`<div class="record-row"><div><a class="link" data-nav href="${url('stats',{player:key(r.player)})}">${esc(r.player)}</a> — ${esc(r.progress)}% <span class="muted small">(date d'enregistrement : ${esc(plain(r.recorded_at).slice(0,10)||'inconnue')})</span></div>${http(r.video_url)?`<a target="_blank" rel="noopener noreferrer" class="link" href="${esc(http(r.video_url))}">Preuve ↗</a>`:''}</div>`).join(''):'<p class="muted">Aucun record archivé dans cet instantané.</p>'}</div>`;
+}
 function cardsHTML(demons){if(!demons.length)return '<div class="paper empty">Aucun niveau dans cette catégorie.</div>';
  return demons.map(d=>{const p=num(d.position),req=+d.requirement||100,isRank=p<=cfg().extended_limit;
-   const pills=`<div class="level-status">${p>150?`<span class="level-badge outside">NLW #${V2.nlwRank(d)} · ${fmt(nlwPoints(d))} pts NLW</span>`:''}${d.legacy?'<span class="level-badge legacy">Legacy</span>':''}${d.unrated?'<span class="level-badge unrated-badge">UNRATED</span>':''}</div>`;
+   const pills=`<div class="level-status">${V2.nlwRank(d)>0?`<span class="level-badge outside">NLW #${V2.nlwRank(d)} · ${fmt(nlwPoints(d))} pts NLW</span>`:''}${d.legacy?'<span class="level-badge legacy">Legacy</span>':''}${d.unrated?'<span class="level-badge unrated-badge">UNRATED</span>':''}</div>`;
    const thumb=http(d.thumbnail_url),image=thumb?`<img loading="lazy" class="demon-thumb" src="${esc(thumb)}" alt="Miniature de ${esc(d.name)}">`:(String(d.thumbnail_url||'').startsWith('assets/')?`<img class="demon-thumb" src="${esc(d.thumbnail_url)}" alt="Miniature de ${esc(d.name)}">`:`<div class="demon-thumb faux-thumb">${esc(d.name)}</div>`);
-   return `<article class="paper list-entry ${p<=75?'main-rank':''}"><a href="${url('demon',{id:d.id})}" data-nav>${image}</a><div><h2><a href="${url('demon',{id:d.id})}" data-nav style="text-decoration:none">#${p} - ${esc(d.name)}</a></h2><div class="entry-meta">publié par <b>${esc(d.publisher||'-')}</b>, vérifié par <b>${esc(d.verifier||'-')}</b></div><div class="points ${isRank?'':'no-points'}">${isRank?`${fmt(score(d,req))} (${req}%) — ${fmt(score(d,100))} (100%) points`:`NLW : ${fmt(nlwPoints(d))} points NLW (0 point principal)`}</div>${(p>cfg().extended_limit||d.legacy||d.unrated)?pills:''}</div></article>`;
+   return `<article class="paper list-entry ${p<=75?'main-rank':''}"><a href="${url('demon',{id:d.id})}" data-nav>${image}</a><div><h2><a href="${url('demon',{id:d.id})}" data-nav style="text-decoration:none">${p<=150?'#'+p:V2.nlwRank(d)>0?'NLW #'+V2.nlwRank(d):'Hors liste'} - ${esc(d.name)}</a></h2><div class="entry-meta">publié par <b>${esc(d.publisher||'-')}</b>, vérifié par <b>${esc(d.verifier||'-')}</b></div><div class="points ${isRank?'':'no-points'}">${isRank?`${fmt(score(d,req))} (${req}%) — ${fmt(score(d,100))} (100%) points`:V2.nlwRank(d)>0?`NLW : ${fmt(nlwPoints(d))} points NLW (0 point principal)`:'Hors classement · 0 point'}</div>${(p>cfg().extended_limit||d.legacy||d.unrated)?pills:''}</div></article>`;
  }).join('');}
-function listPage(){const d=state.data,nav=['main','nlw','legacy'],labels=['Main List · Top 150','NLW · rang 151+','Legacy List'];
- const sLabel=state.list;const levels=catalog().filter(x=>sLabel==='legacy'?x.legacy:sLabel==='nlw'?V2.nlwRank(x)>0:x.position<=150);
+function listPage(){
+ const nav=['main','nlw','legacy','archive'],labels=['Main List · Top 150','NLW · rang 151+','Legacy List','Archives · hors Top 150'];
+ const sLabel=nav.includes(state.list)?state.list:'main';
+ const historic=sLabel==='archive';
+ const levels=historic?oldArchive():catalog().filter(x=>sLabel==='legacy'?x.legacy:sLabel==='nlw'?V2.nlwRank(x)>0:!x.unrated&&+x.position>0&&+x.position<=150);
  const top=`<div class="list-tabs">${nav.map((x,i)=>`<button type="button" class="${sLabel===x?'active':''}" data-list="${x}">${esc(labels[i])}</button>`).join('')}</div>${sLabel==='main'?'<div class="v2-legend"><span class="hist-main">Main List · #1–75</span><span>Extended List · #76–150</span></div>':''}`;
- return `${templateNotice()}${state.unrated?callout('<b>Mode UNRATED</b> — estimation alternative des positions et points, sans modifier le classement officiel.'):''}${top}<div class="page-columns"><section><div class="center-panel"><h1>${sLabel==='nlw'?'NLW · Non List Worthy':sLabel==='legacy'?'Legacy List':'Geometry Dash Demonlist'}</h1><p>${sLabel==='nlw'?'Classement indépendant pour les niveaux à partir de la position 151. Points et rangs NLW distincts.':sLabel==='legacy'?'Anciens niveaux de la Main List. Les records réalisés après leur sortie ne deviennent pas des records Legacy.':'Les 150 niveaux classés de la DemonlistFrancophone.'}</p><label class="filterbox"><span>⌕</span><input id="demonSearch" type="search" placeholder="Filtrer les démons affichés..." value="${esc(state.keyword)}" autocomplete="off"></label></div><div id="demonItems">${cardsHTML(levels.filter(x=>key(x.name).includes(key(state.keyword))))}</div></section><aside class="right-side"><div class="info-panel right-panel"><h2>Éditeurs de liste</h2><p>Contacter les éditeurs pour les changements de classement.</p>${staffNamesHTML("general")}<h2>Équipe NLW</h2><p>Équipe NLW déclarée dans Supabase (permissions spécifiques encore en cours d’activation).</p>${staffNamesHTML("nlw")}</div><div class="info-panel right-panel"><h2>Directives</h2><p>Seules les runs légitimes avec preuves claires sont acceptées.</p><button class="btn" data-route="news">Actualités de la liste</button></div></aside></div>`;
+ const heading={main:'Geometry Dash Demonlist',nlw:'NLW · Non List Worthy',legacy:'Legacy List',archive:'Archives historiques · hors Top 150'}[sLabel];
+ const description={main:'Les 150 niveaux classés de la DemonlistFrancophone.',nlw:'Classement NLW indépendant : uniquement les niveaux approuvés et publiés au-delà du #150. Les archives n’en font pas partie.',legacy:'Anciens niveaux de la Main List, après validation de leur statut Legacy.',archive:`${levels.length} niveaux hors Top 150 dans la sauvegarde de l’ancien site du 14 octobre 2026. Catalogue historique consultable, sans points ni badges NLW, indépendant de la liste officielle.`}[sLabel];
+ const html=historic?archiveCardsHTML(levels.filter(x=>key(x.name).includes(key(state.keyword)))):cardsHTML(levels.filter(x=>key(x.name).includes(key(state.keyword))));
+ return `${templateNotice()}${state.unrated?callout('<b>Mode UNRATED</b> — estimation alternative des positions et points, sans modifier le classement officiel.'):''}${top}<div class="page-columns"><section><div class="center-panel"><h1>${heading}</h1><p>${description}</p><label class="filterbox"><span>⌕</span><input id="demonSearch" type="search" placeholder="Filtrer les niveaux affichés..." value="${esc(state.keyword)}" autocomplete="off"></label></div><div id="demonItems">${html}</div></section><aside class="right-side"><div class="info-panel right-panel"><h2>Éditeurs de liste</h2><p>Contacter les éditeurs pour les changements de classement.</p>${staffNamesHTML("general")}<h2>Équipe NLW</h2><p>Équipe NLW déclarée dans Supabase.</p>${staffNamesHTML("nlw")}</div><div class="info-panel right-panel"><h2>Directives</h2><p>Les archives sont une copie de l’ancien classement, pas une publication de niveaux dans la DLFR actuelle.</p><button class="btn" data-route="news">Actualités de la liste</button></div></aside></div>`;
 }
 function completionLinks(levels){return levels.length?levels.sort((a,b)=>a.position-b.position).map(d=>`<a class="link" href="${url('demon',{id:d.id})}" data-nav>#${esc(d.position)} ${esc(d.name)}</a>`).join(' - '):'<span class="muted">Aucun</span>';}
 function titleHTML(p){return BADGES.gallery(state.data,p.player_key,esc,date);}
@@ -340,10 +381,10 @@ function statProfile(p){if(!p)return '<div class="stats-profile empty">Sélectio
   .map(([n,v])=>`<a class="social-link" target="_blank" rel="noopener noreferrer" href="${esc(http(v))}">${n} ↗</a>`).join('');
  return `<div class="stats-profile"><div class="profile-hero">${banner?`<img class="profile-cover-img" src="${esc(banner)}" alt="" aria-hidden="true">`:''}
     <div class="profile-hero-inner">${avatar?`<img class="profile-avatar" src="${esc(avatar)}" alt="Avatar de ${esc(p.display_name||p.username)}">`:`<div class="profile-avatar profile-avatar-fallback" aria-hidden="true">${esc((p.display_name||p.username||'?').slice(0,1).toUpperCase())}</div>`}
-      <div class="profile-hero-copy"><span class="profile-pretitle">Profil joueur · ${p.has_account?'Compte':'Sans compte'}</span><strong>${flag(p.country_code)} ${esc(p.display_name||p.username)}</strong>${regionIdentity(p)}<span>${p.hardest?'Hardest : '+esc(p.hardest.name):'Aucun hardest connu'}</span></div>
+      <div class="profile-hero-copy"><span class="profile-pretitle">Profil joueur · ${p.has_account?'Compte':'Sans compte'}</span><strong>${flag(p.country_code)} ${esc(p.display_name||p.username)}</strong>${regionIdentity(p)}<span>${p.hardest?'Hardest : '+esc(hardestLabel(p)):'Aucun hardest connu'}</span></div>
     </div></div>
  ${isSuspended?'<p class="notice warning"><b>Profil suspendu en démonstration</b> — cette sanction n’affecte pas l’authentification réelle.</p>':''}<h2 class="player-title">${flag(p.country_code)} ${esc(p.display_name||p.username)} ${!p.has_account?'<span class="tag">Sans compte</span>':''}</h2><div class="profile-region-line">${regionIdentity(p)}</div><div style="text-align:center;margin-bottom:8px">${p.clan?` <a class="tag clan-profile-link" href="${url('clans')}" data-nav>Clan : ${esc(state.data.clans.find(c=>Number(c.id)===Number(p.clan.clan_id))?.tag||'—')}</a>`:''}</div>
- <div class="statboxes">${box('Classement Demonlist',rankedStr)}${box('Points totaux',fmt(p.score))}${box('Démon le plus difficile',p.hardest?`#${p.hardest.position} ${p.hardest.name}`:'Aucun')}</div>
+ <div class="statboxes">${box('Classement Demonlist',rankedStr)}${box('Points totaux',fmt(p.score))}${box('Hardest (complété ou vérifié)',hardestLabel(p))}</div>
  <div class="statboxes two">${box('Points NLW',fmt(p.nlwScore||0))}${box('Rang NLW',p.nlwRank?'#'+p.nlwRank:'—')}</div><div class="statboxes two">${box('UNRATED complétés',unratedData().players.find(x=>x.player_key===p.player_key)?.completions||0)}${box('Points UNRATED (estimation)',fmt(unratedData().players.find(x=>x.player_key===p.player_key)?.points||0))}</div><div class="statboxes two main-stats-highlight">${box('MAIN LIST · #1–75',new Set(p.main.map(d=>d.id)).size)}${box('EXTENDED LIST · #76–150',new Set(p.extended.map(d=>d.id)).size)}</div><div class="statboxes two">${box('Contributions',`${p.created.length} Créés, ${p.published.length} Publiés, ${p.verified.length} Vérifiés`)}${box('Autres complétions',`${p.legacy.length} Legacy, ${p.beyond.length} NLW`)}</div>
  <div class="profile-section badge-gallery badge-gallery-v27"><h3>Collection de badges permanents</h3>${titleHTML(p)||'<span class="muted">Aucun badge attribué.</span>'}<p class="small muted">Chaque badge reste acquis et conserve sa date, même si les critères évoluent. Les anciens titres importés n'ont pas de date historique vérifiable.</p></div><div class="profile-section profile-tabs" role="tablist" aria-label="Sections du profil">${[['overview','Présentation'],['records','Records'],['charts','Graphiques'],['achievements','Distinctions']].map(([id,label])=>`<button type="button" role="tab" aria-selected="${state.profileTab===id}" data-profile-tab="${id}" class="${state.profileTab===id?'active':''}">${label}</button>`).join('')}</div>
  <div class="profile-pane ${state.profileTab==='overview'?'':'is-hidden'}" data-pane="overview">
@@ -352,7 +393,7 @@ function statProfile(p){if(!p)return '<div class="stats-profile empty">Sélectio
   ${socials?`<div class="profile-socials">${socials}</div>`:''}
   <div class="profile-section"><h3>Dernières complétions</h3>${recent.length?`<div class="recent-completions">${recent.map(r=>{const dem=demonLookup.get(+r.demon_id);return `<div class="recent-item"><span>✓</span><a class="link" href="${url('demon',{id:r.demon_id})}" data-nav>${esc(dem?.name||'Niveau inconnu')}</a><time>${date(r.created_at)}</time></div>`;}).join('')}</div>`:'<p class="muted">Aucun record daté.</p>'}</div>
  </div><div class="profile-pane ${state.profileTab==='records'?'':'is-hidden'}" data-pane="records">${recordTable(p)}
- <div class="profile-section"><h3>Top 150 complété</h3><p>${completionLinks([...p.main,...p.extended])}</p></div><div class="profile-section"><h3>NLW — ${p.beyond.length} niveau(x) complété(s)</h3><p class="muted small">Les détails des niveaux hors liste ne sont pas affichés dans les statistiques principales.</p></div><div class="profile-section"><h3>Liste héritée complétée (avant sortie uniquement)</h3><p>${completionLinks(p.legacy)}</p></div>
+ <div class="profile-section"><h3>Top 150 complété</h3><p>${completionLinks([...p.main,...p.extended])}</p></div><div class="profile-section"><h3>NLW — ${p.beyond.length} niveau(x) complété(s)</h3><p class="muted small">Les détails des niveaux hors liste ne sont pas affichés dans les statistiques principales.</p></div>${p.hardestHistorical?`<div class="profile-section"><h3>Vérification dans les archives historiques</h3><p><a class="link" data-nav href="${url('archive',{id:p.hardest.legacy_id})}">${esc(hardestLabel(p))} ↗</a></p><p class="small muted">Cette référence historique ne crée pas de record ou de points dans la liste officielle actuelle.</p></div>`:''}<div class="profile-section"><h3>Liste héritée complétée (avant sortie uniquement)</h3><p>${completionLinks(p.legacy)}</p></div>
  ${[['Démons créés',p.created],['Démons publiés',p.published],['Démons vérifiés',p.verified]].map(([t,a])=>`<div class="profile-section"><h3>${t}</h3><p>${completionLinks(a)}</p></div>`).join('')}
  <div class="profile-section"><h3>Progression sur</h3><p>${p.progress.length?p.progress.map(r=>esc(r.demon.name)+' : '+r.progress+'%').join(' · '):'Aucun'}</p></div>
  </div><div class="profile-pane ${state.profileTab==='charts'?'':'is-hidden'}" data-pane="charts">
@@ -381,7 +422,7 @@ function rankRows(users,chosen){return users.length?users.map(p=>`<button type="
 function demonPage(){const id=+(new URLSearchParams(location.search)).get('id'),d=catalog().find(x=>+x.id===id);if(!d)return '<div class="center-panel">Niveau introuvable.</div>';
  const recs=state.data.completions.filter(c=>+c.demon_id===id).sort((a,b)=>+b.progress - +a.progress);
  const thumb=http(d.thumbnail_url)|| (plain(d.thumbnail_url).startsWith('assets/')?d.thumbnail_url:'');
- return `${templateNotice()}<div class="paper"><p><a href="${url('list')}" data-nav class="link">← Retour à la liste</a></p><h1>#${d.position} - ${esc(d.name)}</h1><div class="level-detail">${thumb?`<img class="demon-thumb" style="width:100%;height:auto" src="${esc(thumb)}" alt="Miniature">`:'<div class="demon-thumb faux-thumb" style="width:100%">'+esc(d.name)+'</div>'}<div><p>Publié par <b>${esc(d.publisher)}</b><br>Vérifié par <b>${esc(d.verifier||'-')}</b><br>Créé par <b>${esc(d.creator||'-')}</b></p><p><b>Rang :</b> #${d.position} · <b>Minimum :</b> ${d.requirement}%</p><p class="small">${+d.position>cfg().extended_limit?'NLW : '+fmt(nlwPoints(d))+' points NLW':fmt(score(d,100))+' points (100%)'}</p><div class="level-status">${+d.position>cfg().extended_limit?'<span class="level-badge outside">NLW #'+V2.nlwRank(d)+'</span>':''}${d.unrated?'<span class="level-badge unrated-badge">UNRATED</span>':''}${d.legacy?'<span class="level-badge legacy">Legacy · ancien Top 150</span>':''}</div>${http(d.video_url)?`<a class="btn" target="_blank" rel="noopener noreferrer" href="${esc(http(d.video_url))}">Regarder la vidéo ↗</a>`:''}</div></div><hr class="divider">${productionProofMedia(d)}<p>${esc(d.description||'')}</p><h2>Records (${recs.length})</h2>${recs.length?recs.map(r=>`<div class="record-row"><div><a class="link" data-nav href="${url('stats',{player:key(r.player)})}">${esc(r.player)}</a> — ${esc(r.progress)}%</div>${http(r.video_url)?`<a target="_blank" rel="noopener noreferrer" class="link" href="${esc(http(r.video_url))}">Vidéo ↗</a>`:''}</div>`).join(''):'<p class="empty">Aucun record enregistré.</p>'}</div>`;
+ return `${templateNotice()}<div class="paper"><p><a href="${url('list')}" data-nav class="link">← Retour à la liste</a></p><h1>#${d.position} - ${esc(d.name)}</h1><div class="level-detail">${thumb?`<img class="demon-thumb" style="width:100%;height:auto" src="${esc(thumb)}" alt="Miniature">`:'<div class="demon-thumb faux-thumb" style="width:100%">'+esc(d.name)+'</div>'}<div><p>Publié par <b>${esc(d.publisher)}</b><br>Vérifié par <b>${esc(d.verifier||'-')}</b><br>Créé par <b>${esc(d.creator||'-')}</b></p><p><b>Rang :</b> #${d.position} · <b>Minimum :</b> ${d.requirement}%</p><p class="small">${V2.nlwRank(d)>0?'NLW : '+fmt(nlwPoints(d))+' points NLW':+d.position>cfg().extended_limit?'Hors classement · 0 point':fmt(score(d,100))+' points (100%)'}</p><div class="level-status">${V2.nlwRank(d)>0?'<span class="level-badge outside">NLW #'+V2.nlwRank(d)+'</span>':''}${d.unrated?'<span class="level-badge unrated-badge">UNRATED</span>':''}${d.legacy?'<span class="level-badge legacy">Legacy · ancien Top 150</span>':''}</div>${http(d.video_url)?`<a class="btn" target="_blank" rel="noopener noreferrer" href="${esc(http(d.video_url))}">Regarder la vidéo ↗</a>`:''}</div></div><hr class="divider">${productionProofMedia(d)}<p>${esc(d.description||'')}</p><h2>Records (${recs.length})</h2>${recs.length?recs.map(r=>`<div class="record-row"><div><a class="link" data-nav href="${url('stats',{player:key(r.player)})}">${esc(r.player)}</a> — ${esc(r.progress)}%</div>${http(r.video_url)?`<a target="_blank" rel="noopener noreferrer" class="link" href="${esc(http(r.video_url))}">Vidéo ↗</a>`:''}</div>`).join(''):'<p class="empty">Aucun record enregistré.</p>'}</div>`;
 }
 function newsPage(){const all=[...state.data.news_items].filter(x=>x.is_published||state.staff).sort((a,b)=>(+(!!b.is_pinned)-+(!!a.is_pinned))||new Date(b.created_at)-new Date(a.created_at));
  const items=all.filter(n=>(state.newsFilter==='all'||getNewsCategory(n)===state.newsFilter)&&`${key(n.headline)} ${key(n.body)} ${key(n.player_name)}`.includes(key(state.newsSearch)));
@@ -615,7 +656,7 @@ function showPageError(error){
 function render(){if(!state.data)return;try{
  if(!BADGES?.init || !UNRATED_STATS?.calculate || !V2?.decorate || !V2?.project || !UNVERIFIED?.classify || !CLANS?.apply || !CLAN_PLUS?.stats || !SUBMISSIONS?.approve)throw Error('Fichier JavaScript V2 manquant ou version incohérente : réinstalle les scripts du pack V2.0.3.');
  if(!LIVE){const first=state.data.badge_baseline_scanned!==true;const changed=BADGES.captureAutomatic(state.data,ranked(),new Date().toISOString().slice(0,10),first);if(first){state.data.badge_baseline_scanned=true;}if(changed||first)saveDemo();}
- const page=nav(),params=new URLSearchParams(location.search);if(page==='stats'&&params.has('player'))state.selectedPlayer=key(params.get('player'));const content=page==='stats'?statsPage():page==='my-profile'?selfProfilePage():page==='demon'?demonPage():page==='news'?newsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();document.title=({list:'Demonlist',stats:'Statistiques',news:'Actualités',hall:'Palmarès & exploits',honors:'Palmarès & exploits',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Palmarès & exploits',clans:'Clans',history:'Historique','my-profile':'Mon profil','submit-record':'Soumettre un record',demon:'Niveau'})[page]+' · DemonlistFrancophone';
+ const page=nav(),params=new URLSearchParams(location.search);if(page==='stats'&&params.has('player'))state.selectedPlayer=key(params.get('player'));if(page==='list')state.list=new URLSearchParams(location.search).get('tab')||'main';const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='my-profile'?selfProfilePage():page==='demon'?demonPage():page==='news'?newsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();document.title=({list:'Demonlist',stats:'Statistiques',news:'Actualités',hall:'Palmarès & exploits',honors:'Palmarès & exploits',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Palmarès & exploits',clans:'Clans',history:'Historique','my-profile':'Mon profil','submit-record':'Soumettre un record',demon:'Niveau',archive:'Archives historiques'})[page]+' · DemonlistFrancophone';
  }catch(error){showPageError(error);}
 }
 function auditV2(action,target){state.data.community_audit_log.push({action_key:action,target,created_at:new Date().toISOString()});saveDemo();}
@@ -783,7 +824,7 @@ function bootEvents(){
    if(current){closeNavMenus();current.querySelector('summary')?.focus();}
  });
  document.addEventListener('click',async(ev)=>{const a=ev.target.closest('a[data-nav]');if(a){ev.preventDefault();const link=new URL(a.href);history.pushState({},'',link.search);state.keyword='';render();window.scrollTo(0,0);return;}
- const list=ev.target.closest('[data-list]');if(list){state.list=list.dataset.list;state.keyword='';render();return;}
+ const list=ev.target.closest('[data-list]');if(list){go('list',{tab:list.dataset.list});return;}
  const p=ev.target.closest('[data-player]');if(p){state.selectedPlayer=p.dataset.player;history.replaceState({},'',url('stats',{player:state.selectedPlayer}));const chosen=getPlayer(state.selectedPlayer);$('profileContent').innerHTML=statProfile(chosen);document.querySelectorAll('.rank-item').forEach(x=>x.classList.toggle('selected',x.dataset.player===state.selectedPlayer));return;}
  const route=ev.target.closest('[data-route]');if(route){go(route.dataset.route);return;}
  const st=ev.target.closest('[data-stats-tab]');if(st){state.statsTab=st.dataset.statsTab;state.keyword='';render();return;}
@@ -824,7 +865,7 @@ function bootEvents(){
  if(ev.target.id==='newsSearch'){state.newsSearch=ev.target.value;const items=state.data.news_items.filter(n=>(n.is_published||state.staff)&&(state.newsFilter==='all'||getNewsCategory(n)===state.newsFilter)&&`${key(n.headline)} ${key(n.body)} ${key(n.player_name)}`.includes(key(state.newsSearch)));$('newsItems').innerHTML=newsItemsHTML(items.sort((a,b)=>+(!!b.is_pinned)-+(!!a.is_pinned)||new Date(b.created_at)-new Date(a.created_at)));}
  if(ev.target.closest('[data-form="news"]'))updateNewsPreview(ev.target.closest('form'));
  if(ev.target.id==='calcSearch'){const q=key(ev.target.value);document.querySelectorAll('.v2-check-level').forEach(x=>x.hidden=!key(x.textContent).includes(q));}
- if(ev.target.id==='demonSearch'){state.keyword=ev.target.value;const d=catalog().filter(x=>state.list==='legacy'?x.legacy:state.list==='nlw'?x.position>150:x.position<=150);$('demonItems').innerHTML=cardsHTML(d.filter(x=>key(x.name).includes(key(state.keyword))));}
+ if(ev.target.id==='demonSearch'){state.keyword=ev.target.value;const d=state.list==='archive'?oldArchive():catalog().filter(x=>state.list==='legacy'?x.legacy:state.list==='nlw'?V2.nlwRank(x)>0:x.position<=150);const filtered=d.filter(x=>key(x.name).includes(key(state.keyword)));$('demonItems').innerHTML=state.list==='archive'?archiveCardsHTML(filtered):cardsHTML(filtered);}
  if(ev.target.id==='playerSearch'){state.keyword=ev.target.value;const ppl=ranked().filter(x=>!x.hidden_from_stats&&(state.country==='MONDE'||x.country_code===state.country)&&(state.country!=='FR'||state.region==='ALL'||regionFor(x)===state.region)&&key(x.display_name||x.username).includes(key(state.keyword)));$('rankList').innerHTML=rankRows(ppl,getPlayer(state.selectedPlayer));}
  });
  document.addEventListener('change',ev=>{
@@ -841,7 +882,7 @@ function bootEvents(){
  if(ev.target.closest('[data-form="news"]'))updateNewsPreview(ev.target.closest('form'));
 });
  document.addEventListener('submit',ev=>{if(ev.target.matches('[data-form="clanCreate"], [data-form="clanInvite"], [data-form="clanRequest"], [data-form="clanEdit"]')){ev.preventDefault();handleClanForm(ev.target);return;}if(ev.target.matches('[data-form]')){ev.preventDefault();handleForm(ev.target,ev.submitter||null);}});
- document.querySelectorAll('.nav-links a,.brand').forEach(a=>a.addEventListener('click',ev=>{ev.preventDefault();go(a.dataset.link||'list');}));
+ document.querySelectorAll('.nav-links a,.brand').forEach(a=>a.addEventListener('click',ev=>{ev.preventDefault();if(a.dataset.link==='archive-list')go('list',{tab:'archive'});else go(a.dataset.link||'list');}));
  $('themeSelect').addEventListener('change',e=>setTheme(e.target.value));
  $('unratedToggle').addEventListener('click',()=>{state.unrated=!state.unrated;state.calcDemons=[];refreshUnrated();render();});
  window.addEventListener('popstate',()=>{closeNavMenus();state.keyword='';render();});

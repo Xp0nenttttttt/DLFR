@@ -1,34 +1,21 @@
-# DLFR — Correctif classement des pays + badges NLW
+# DLFR — Archives historiques et hardest vérifié
 
-Compatible avec le **correctif Rain précédent** et avec les fichiers fournis dans `DLFR (4).zip`. Ce patch contient la dernière version corrigée de `js/app.js` (il conserve les corrections `localeCompare`, Discord/modération et points de vérification), ainsi que deux modules JS modifiés. Si ton dépôt GitHub a changé depuis, fusionner plutôt que remplacer aveuglément.
+**Patch par-dessus `DLFR_correctif_pays_badges_NLW.zip`.** Il conserve les corrections précédentes (Rain, annuaire/modération, pays, badges NLW).
 
-## 1) GitHub Pages
+## Installer
 
-Copier les **trois** fichiers de `js/` dans le dossier `js/` du dépôt, puis commit :
-- `js/app.js`
-- `js/badge-system.js`
-- `js/v2-core.js`
+1. Sauvegarder le dépôt GitHub (ou faire un commit). Attendre que le précédent patch soit déjà installé.
+2. Copier **uniquement** `index.html`, `js/app.js` et le nouveau `js/history-archive.js` à la racine / dans `js/` comme dans le ZIP.
+3. Commit, attendre GitHub Pages, rafraîchir Ctrl + F5.
+4. Sur le site, ouvrir Demonlist → **Archives · hors Top 150** ; ou dans Classements → Archives hors Top 150.
+5. Vérifier Rain : dans la fiche joueur, **Andromeda #3 (rang historique · vérifié)** apparaît si aucune autre victoire/vérification publiée plus difficile n'est disponible.
 
-Actualiser le site avec Ctrl + F5 une fois le déploiement terminé.
+## Principe
 
-Le classement des pays et le compteur des joueurs classés incluent désormais tous les profils publics, y compris `has_account=false`. Les joueurs dont le pays est inconnu sont regroupés en « Non renseigné », sans inventer de nationalité.
+- Archives : copie de l'ancien classement au **14 octobre 2026**, extraite de `supabase/02_charger_dump.sql` (données publiques de niveaux et de records historiques uniquement). 11 niveaux aux anciens rangs 151–161 ; leurs fiches, vidéos et records archivés sont consultables. Les niveaux historiquement dans le Top 150 peuvent aussi être ouverts par leur lien d'archive, notamment Andromeda.
+- Les archives n'accordent **aucun point, aucun badge, aucun rang officiel et aucun accès modérateur**. Elles sont clairement étiquetées **historiques** et ne deviennent pas du NLW.
+- Le hardest utilise les complétions publiques ET les vérifications des niveaux publiés. Si une ancienne vérification plus difficile reste encore dans une fiche cachée, le rang et le nom **historiques** sont affichés, explicitement étiquetés comme tels (ex : Andromeda #3).
+- La rubrique NLW ne liste toujours que les niveaux NLW approuvés et publics, et est vide si aucun n'existe.
+- L'archive est un **instantané statique**, pas une synchronisation automatique. Pour ajouter de nouveaux niveaux historiques ou mettre à jour les rangs après cette date, régénérer le fichier à partir d'une source validée. Les niveaux AREDL masqués/non approuvés restent privés et ne sont pas publiés.
 
-Les profils sans véritable record NLW affichent désormais « — » à la place d’un rang NLW, et les anciennes fiches Legacy ne sont plus comptées comme du NLW.
-
-Le système de badges affiche un badge NLW comme obtenu **uniquement si les complétions à 100 % d'un joueur concernent suffisamment de niveaux NLW actuellement publiés et éligibles**, et non les niveaux masqués, Legacy, UNRATED ou les positions techniques >= 100000000. Les autres badges et leurs attributions sont inchangés. Le classement et les points NLW sont également protégés dans `v2-core.js`.
-
-## 2) Supabase SQL Editor
-
-Après sauvegarde, exécuter `CORRECTIF-SQL-BADGES-NLW.sql` pour corriger la fonction serveur `public.dlfr_award_progress`. L'appel du déclencheur existant continue de fonctionner. La fonction ne considère plus un niveau masqué ou technique comme NLW.
-
-Exécuter `DIAGNOSTIC-PAYS-BADGES-LECTURE-SEULE.sql` pour contrôler les attributions NLW passées et les pays de l'ancien site. Les requêtes sont en lecture seule. **Aucune attribution passée n'est effacée automatiquement :** certains badges enregistrés antérieurement peuvent rester dans `public.badge_awards` et apparaître dans le diagnostic comme « à vérifier ». Le frontend n'affiche plus les attributions NLW dépourvues des complétions publiées requises.
-
-Important : si une autre migration a remplacé `dlfr_award_progress` après la version `11_production.sql`, comparer sa fonction avant d'appliquer ce SQL. Ne pas relancer `11_production.sql` pour corriger ce problème.
-
-## Ce qui reste hors du patch
-
-- Aucune importation rétroactive du pays d'un joueur qui a `country_code` vide. Le diagnostic les recense.
-- Aucun changement de rang, aucune publication de niveaux en attente, aucune correction automatique des records absents de Rain.
-- Aucune modification de la connexion Discord, des rôles SQL ni des politiques RLS.
-
-**Ne toucher ni à `js/config.js`, ni à `assets/flags/`, ni aux clés/secrets Supabase.**
+**Aucun SQL nécessaire.** Aucune modification de `js/config.js`, `assets/flags/`, de la base Supabase ou des permissions RLS. Aucun secret, mot de passe, e-mail ni donnée Auth incluse. Les points de Rain restent à rapprocher avec les records historiques manquants (ce patch ne les invente pas).
