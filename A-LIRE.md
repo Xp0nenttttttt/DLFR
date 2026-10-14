@@ -1,23 +1,22 @@
-# DLFR — Correction SQL rôles (26) et badges historiques (27)
+# DLFR — Statistiques joueurs et NLW réunifiée (patch V3.2)
 
-## Pourquoi la migration des rôles échouait
+À installer **après** `DLFR_correctif_profils_roles_moderation.zip` et ses correctifs SQL nécessaires. Patch frontal uniquement : `index.html` et `js/app.js`. Ne remplacez **pas** `js/production-tools.js` depuis une version plus ancienne.
 
-PostgreSQL n'acceptait pas `position` comme nom de colonne non échappé dans `RETURNS TABLE(...)`. Le script 26 corrigé écrit `"position" integer`, en **conservant** la clé de retour `position` attendue par le JavaScript. Le `BEGIN`/`COMMIT` de la migration fait qu'une erreur SQL annule normalement toute cette transaction.
+## Corrections
 
-**Installation** : dans Supabase SQL Editor, exécuter l'**intégralité** de `26_roles_moderation_scoped_CORRIGE.sql`, à la place du fichier 26 d'origine, sur une sauvegarde / instance de test. Ne pas exécuter une ligne isolée. Les prérequis sont les migrations 11, 14, 19 et 21. Vérifier ensuite le rôle depuis un compte test réel. Le SQL n'a pas été exécuté sur votre instance Supabase depuis cet environnement.
+1. **Statistiques :** les personnes présentes uniquement dans les crédits de création ou de publication, sans record, vérification ni points attestés dans les données chargées, ne figurent plus dans les classements joueurs/pays, le sélecteur de comparaison et la synthèse des badges. Les personnes qui sont **aussi** de vrais joueurs restent visibles, même sans compte Discord. Les noms des auteurs restent sur les fiches des niveaux. Aucun joueur ou record n'est supprimé de Supabase.
+2. **NLW :** suppression du quatrième onglet « Archives · hors Top 150 » et du lien indépendant du menu « Classements ». Les anciens niveaux historiquement hors Top 150 restent consultables **dans l'onglet NLW**, au même endroit que les vrais NLW publiés, via leurs fiches historiques. Les archives déjà présentes dans la liste NLW officielle sont dédoublonnées par GD ID ou nom.
+3. **Sécurité des scores :** les fiches historiques portent la mention « non homologuée NLW », et **ne donnent ni points, ni rang, ni badges NLW** tant qu'une validation officielle n'a pas eu lieu. Le compteur général utilise « NLW publiés » au lieu de compter des positions techniques masquées.
+4. Les anciennes URLs `?page=list&tab=archive` ouvrent désormais le listing NLW. Les liens de détail historiques `?page=archive&id=...` restent valides.
 
-## Pourquoi les anciens joueurs n'avaient pas de badges
+## Installation
 
-La migration 11 comprenait un rattrapage des badges, mais l'import des records dans la migration `05_import_sans_ecrasement.sql` était postérieur. Le rattrapage initial n'a donc pas forcément vu ces records. En mode production, le navigateur n'attribue pas lui-même les badges Supabase. Il faut une **attribution historique après import**.
+1. Sauvegarder / faire un commit GitHub.
+2. Déposer `index.html` et `js/app.js` aux chemins correspondants, en conservant `js/history-archive.js` déjà installé.
+3. Attendre GitHub Pages, puis forcer le rafraîchissement (`Ctrl+F5`). Vérifier : Statistiques → Joueurs / Pays, NLW, recherche, et le profil de Rain.
 
-1. Exécuter `27a_APERCU_badges_historiques_LEC_SEULE.sql` : il liste précisément les badges qui seraient ajoutés, sans aucune modification.
-2. Examiner le résultat, notamment quelques joueurs connus. Si les listes manquent des records, **ne pas lancer 27b** : contrôler la correspondance des records et la publication des démons avec `27c_DIAGNOSTIC_records_historiques_LECTURE_SEULE.sql`.
-3. Sauvegarder `public.badge_awards`, `public.players`, `public.completions`, `public.demons`.
-4. Exécuter `27b_ATTRIBUER_badges_historiques.sql` : ajoute seulement les badges AUTOMATIQUES justifiés (progression list, Main, UNRATED et vrai NLW public), `origin='historical'`, `obtained_at=NULL`. `ON CONFLICT DO NOTHING` rend le script réexécutable sans doublons. Aucune modification de record, rang ou badge existant.
-5. Recharger GitHub Pages avec Ctrl+F5 et vérifier plusieurs profils. **Aucune modification du JavaScript n'est nécessaire** pour ces deux problèmes.
+**Pas de migration SQL**, aucune modification de `js/config.js`, `js/history-archive.js`, `assets/flags/`, Supabase, rôles ou permissions.
 
-**Les niveaux masqués, les positions techniques >= 100000000, les niveaux Legacy hors Top 150, les records <100%, et les NLW non publiés ne créent pas de badge NLW.** Aucun badge « Goat », « Clash of Clans » ni autre distinction manuelle ne sera inventé. Le rattrapage reflète les records et positions **actuellement publiés** et non les anciens rangs à une date historique ; pour les exploits disparus du catalogue actuel, un mécanisme d'archives vérifiées serait nécessaire.
+## Limites
 
-**Important** : Ce correctif ne réconcilie pas encore les 6 records manquants de Rain ; ceux-ci doivent être vérifiés séparément. Il ne réattribue pas automatiquement les badges survenus uniquement sur des niveaux encore masqués.
-
-Aucun fichier `js/config.js` ni `assets/flags/` fourni ou modifié.
+L'archive statique est une photographie de l'ancien site datée du 14/10/2026 ; elle ne constitue pas une NLW officielle. Les personnes dont l'unique performance se trouve sur une fiche importée encore masquée sans points ni record public peuvent nécessiter une vérification des migrations de records. Ce correctif n'invente aucune victoire.
