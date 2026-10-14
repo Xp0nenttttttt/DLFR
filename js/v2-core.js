@@ -17,7 +17,16 @@
  }
  function nlwRank(d){return Number(d.position)>LIMIT?Number(d.position)-LIMIT:0;}
  // Independent provisional NLW scale, never mixed into official primary score.
- function nlwPoints(d,progress=100){const p=nlwRank(d);if(!p||Number(progress)<100)return 0;return Math.round(100*Math.exp(-.018*(p-1))*100)/100;}
+ // NLW v2.8.2: stable power-law curve independent of the total list size.
+ // Exponent > 1 means that even an endlessly growing NLW has a bounded
+ // theoretical maximum for the sum of all awarded points.
+ const NLW_SCORING_VERSION='nlw-2026-01';
+ function nlwPoints(d,progress=100){
+  const p=nlwRank(d);
+  if(!Number.isSafeInteger(p)||p<1||Number(progress)<100||d?.unrated)return 0;
+  const amount=100/Math.pow(1+(p-1)/130,1.5);
+  return Math.round(amount*100)/100;
+ }
  function primaryPoints(d,progress=100,baseScore,top1=350){return Number(d.position)>0&&Number(d.position)<=LIMIT?baseScore(d,progress,top1):0;}
  function mainCompleted(r,d){return Number(r.progress)>=100&&!!d&&Number(d.position)>0&&Number(d.position)<=LIMIT;}
  function historicalLegacy(r,d){if(!d?.legacy||Number(r.progress)<100)return false;
@@ -43,11 +52,19 @@
  function actualPoints(d,progress=100,top1=350){const pos=Number(d.position),min=Math.max(1,Math.min(100,Number(d.requirement)||100));if(pos<1||pos>LIMIT||Number(progress)<min)return 0;
   const base=primaryBase(pos)*Number(top1)/primaryBase(1);return Number(progress)===100?base:base*Math.pow(5,(Number(progress)-min)/Math.max(1,100-min))/10;}
  function project(players,demons,completions,unrated=false){const catalog=decorate(demons,unrated),map=new Map(catalog.map(d=>[Number(d.id),d]));const rows=new Map(players.map(p=>[clean(p.player_key),{...p,main_score:0,nlw_score:0,main_count:0,nlw_count:0}]));
-  const scored=new Set();for(const r of completions){const d=map.get(Number(r.demon_id)),player=rows.get(clean(r.player));if(!player||!d)continue;
-   const unique=player.player_key+'|'+d.id;if(scored.has(unique))continue;scored.add(unique);
-   if(Number(d.position)<=LIMIT)player.main_score+=actualPoints(d,r.progress);
-   else player.nlw_score+=nlwPoints(d,r.progress);
-   if(Number(r.progress)===100){if(Number(d.position)<=LIMIT)player.main_count++;else player.nlw_count++;}
+  // Always retain the best valid progress per player and level; the order
+  // of imported records must never affect the computed standings.
+  const best=new Map();for(const r of completions){
+   const d=map.get(Number(r.demon_id)),player=rows.get(clean(r.player));if(!player||!d)continue;
+   const progress=Number(r.progress);if(!Number.isFinite(progress)||progress<0||progress>100)continue;
+   const unique=clean(player.player_key)+'|'+Number(d.id);
+   const prev=best.get(unique);if(!prev||progress>prev.progress)best.set(unique,{player,d,progress});
+  }
+  for(const {player,d,progress} of best.values()){
+   if(d.unrated)continue; // Unrated has its own distinct scoring system.
+   if(Number(d.position)<=LIMIT)player.main_score+=actualPoints(d,progress);
+   else player.nlw_score+=nlwPoints(d,progress);
+   if(progress===100){if(Number(d.position)<=LIMIT)player.main_count++;else player.nlw_count++;}
   }
   const output=[...rows.values()];output.forEach(p=>{p.main_score=Math.round(p.main_score*100)/100;p.nlw_score=Math.round(p.nlw_score*100)/100;});
   for(const col of ['main','nlw']){const sorted=[...output].sort((a,b)=>b[col+'_score']-a[col+'_score']);sorted.forEach((p,i)=>{p[col+'_rank']=i+1;});}
@@ -58,5 +75,5 @@
   else if(ch!=='\r'||quoted)buf+=ch;
  }line.push(buf);if(line.some(s=>s.trim()))rows.push(line);return rows;}
  function parseAredl(text){const rows=csvParse(text);if(!rows.length)return[];const header=rows[0].map(clean),ix=header.findIndex(x=>['name','level','level name','niveau','level_name'].includes(x));const start=ix>=0?1:0;return rows.slice(start).map((r,i)=>({name:(r[ix>=0?ix:0]||'').trim(),aredl_rank: ix>=0?(r[header.findIndex(x=>['rank','position'].includes(x))]||''):''})).filter(x=>x.name).slice(0,20000);}
- return {LIMIT,decorate,nlwRank,nlwPoints,primaryPoints,mainCompleted,historicalLegacy,badges,actualPoints,project,csvParse,parseAredl,reaperSteps,challengeSteps};
+ return {LIMIT,NLW_SCORING_VERSION,decorate,nlwRank,nlwPoints,primaryPoints,mainCompleted,historicalLegacy,badges,actualPoints,project,csvParse,parseAredl,reaperSteps,challengeSteps};
 });
