@@ -45,3 +45,19 @@ html.midnight .prod-panel input,html.midnight .prod-panel select,html.midnight .
 .prod-proof-card{border:1px solid var(--border,var(--line));background:var(--panel);color:var(--ink);border-radius:12px;overflow:hidden;padding:12px}
 .prod-proof-card img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;border-radius:7px;background:var(--card)}
 .prod-proof-card h3{margin:9px 0 3px;font-size:.95rem}.prod-proof-card p{font-size:.83rem;color:var(--muted);margin:5px 0}
+
+
+/* V3.0.5 : une seule identité visuelle Main List (#1 à #75). */
+:root { --main-list-accent: #5297d5; }
+.list-entry.main-rank, .list-entry.top30, .list-entry.top75 {
+  border-left: 4px solid var(--main-list-accent) !important;
+  outline: 1px solid color-mix(in srgb, var(--main-list-accent) 25%, transparent) !important;
+}
+.timeline-record.main-rank, .timeline-record.top30, .timeline-record.top75 {
+  border: 2px solid var(--main-list-accent) !important;
+  box-shadow: inset 4px 0 var(--main-list-accent) !important;
+}
+.hist-main, .hist-top30, .hist-top75 {
+  border-color: var(--main-list-accent) !important;
+  color: var(--main-list-accent) !important;
+}
