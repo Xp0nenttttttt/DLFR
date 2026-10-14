@@ -7,7 +7,7 @@ const safeUrl=v=>/^https:\/\//i.test(trim(v))?esc(trim(v)):'#';
 const slug=v=>trim(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,70);
 const row=(label,value)=>`<label class="field">${label}${value}</label>`;
 const button=(text)=>`<button class="btn" type="submit">${text}</button>`;
-const handles=t=>['prodPlayer','prodCompletion','prodClaim','prodClaimReview','selfCreatePlayer','submitRecord','prodReviewSubmission','prodBadgeManual','prodManageStaff','prodPublishAccepted'].includes(t);
+const handles=t=>['prodPlayer','prodCompletion','prodClaim','prodClaimReview','selfCreatePlayer','submitRecord','prodReviewSubmission','prodBadgeManual','prodManageStaff','prodPublishAccepted','prodArchiveLevel','prodRestoreLevel'].includes(t);
 const errorOf=r=>{if(r.error)throw Error(r.error.message);return r.data;};
 function claimSection(s){
  if(!s.session)return '';
@@ -112,6 +112,17 @@ function moderation(s){if(!s.staff)return '';
 async function send(db,type,f,submitter){
  const r=(method,args)=>db.rpc(method,args).then(errorOf);
  const yes=submitter?.value==='yes';
+ if(type==='prodArchiveLevel'){
+  if(!Number.isSafeInteger(Number(f.demon_id))||Number(f.demon_id)<=0)throw Error('Choisis un niveau valide');
+  if(!trim(f.confirm_name))throw Error('Saisis le nom exact du niveau à retirer');
+  return r('dlfr_archive_demon',{p_demon_id:Number(f.demon_id),p_confirm_name:f.confirm_name,p_reason:trim(f.reason||'')});
+ }
+ if(type==='prodRestoreLevel'){
+  if(!Number.isSafeInteger(Number(f.demon_id))||Number(f.demon_id)<=0)throw Error('Choisis un niveau valide');
+  const p=f.position?Number(f.position):null;
+  if(p!==null&&(!Number.isInteger(p)||p<1||p>=99999999))throw Error('Rang de restauration invalide');
+  return r('dlfr_restore_demon',{p_demon_id:Number(f.demon_id),p_position:p});
+ }
  if(type==='prodManageStaff'){
   if(!/^[a-f0-9]{8}-[a-f0-9-]{27}$/i.test(f.auth_user_id||''))throw Error('UID Supabase Auth invalide');
   return r('dlfr_set_moderator',{p_auth_user_id:f.auth_user_id,p_role:f.role,p_enabled:f.enabled==='yes'});
