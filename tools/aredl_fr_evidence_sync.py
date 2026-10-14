@@ -72,6 +72,38 @@ def stage_rows(url, secret, rows):
     return counts
 
 
+# Champs volontairement limités aux colonnes du CSV : le JSON conserve
+# les objets détaillés nécessaires au futur import Supabase.
+REVIEW_CSV_FIELDS = (
+    'aredl_rank', 'aredl_name', 'aredl_id', 'gd_level_id',
+    'records_complete', 'records_seen', 'verifiers_fr', 'first_fr'
+)
+
+
+def write_review_csv(path, rows):
+    """Exporte un CSV stable, sans passer les champs JSON internes à DictWriter."""
+    with Path(path).open('w', encoding='utf-8-sig', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=REVIEW_CSV_FIELDS)
+        writer.writeheader()
+        for item in rows:
+            first = item.get('first_fr') or {}
+            player = first.get('player') or {} if isinstance(first, dict) else {}
+            verifiers = item.get('verifiers_fr') or []
+            writer.writerow({
+                'aredl_rank': item.get('aredl_rank'),
+                'aredl_name': item.get('aredl_name'),
+                'aredl_id': item.get('aredl_id'),
+                'gd_level_id': item.get('gd_level_id'),
+                'records_complete': item.get('records_complete'),
+                'records_seen': item.get('records_seen'),
+                'verifiers_fr': '; '.join(
+                    str((v.get('player') or {}).get('name') or '')
+                    for v in verifiers if isinstance(v, dict)
+                ),
+                'first_fr': player.get('name', '') if isinstance(player, dict) else '',
+            })
+
+
 def main(argv=None):
     p=argparse.ArgumentParser(description='Preuves françaises AREDL, jamais de publication automatique')
     p.add_argument('--start-rank',type=int,default=1)
@@ -88,12 +120,7 @@ def main(argv=None):
            if args.start_rank<=r['rank']<=args.end_rank]
     rows, problems=collect(items,client,max_pages=args.max_record_pages)
     dest=Path(args.output);dest.parent.mkdir(parents=True,exist_ok=True)
-    with dest.with_suffix('.csv').open('w',encoding='utf-8-sig',newline='') as f:
-        writer=csv.DictWriter(f,fieldnames=['aredl_rank','aredl_name','aredl_id','gd_level_id',
-            'records_complete','verifiers_fr','first_fr'])
-        writer.writeheader()
-        for x in rows:writer.writerow({**x,'verifiers_fr':'; '.join(z['player']['name'] for z in x['verifiers_fr']),
-                                       'first_fr':x['first_fr'].get('player',{}).get('name','')})
+    write_review_csv(dest.with_suffix('.csv'), rows)
     report={'scope':{'start_rank':args.start_rank,'end_rank':args.end_rank,'country':'FR'},
             'status':'REVIEW_REQUIRED' if problems else 'READY_FOR_REVIEW',
             'rows':rows,'problems':problems,'scan_complete':len(problems)==0}
