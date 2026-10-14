@@ -35,6 +35,9 @@ const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;',
 const plain = v=>String(v??'').trim();
 // Les profils historiques peuvent ne pas avoir de display_name dans Supabase.
 const sortPlayerName = p => plain(p?.display_name) || plain(p?.username) || plain(p?.player_key);
+// "X and more" est un crédit de megacollab, pas un vrai pseudo de joueur.
+const isCreatorGroupCredit = name => /\band\s+more\b/i.test(plain(name).replace(/[\u2066-\u2069]/g,''));
+const hasFullStaffPowers = () => ['owner','editor','supermoderator'].includes(state.staffRole);
 const key = s=>plain(s).toLocaleLowerCase('fr');
 const fmt = n => Number(n||0).toLocaleString('fr-FR',{maximumFractionDigits:2,minimumFractionDigits:2});
 const num = n => Number(n||0);
@@ -92,9 +95,10 @@ function productionProofMedia(d){
 }
 function staffNamesHTML(team){
  if(state.data?.staff_directory_error)return '<p class="small muted">Annuaire indisponible : installer la migration SQL 21.</p>';
+ const labels={owner:'propriétaire',editor:'supermodo (ancien rôle)',supermoderator:'supermodo',moderator:'modo',nlw:'modo NLW'};
  const members=(state.data?.staff_directory||[]).filter(m=>m.team===team).sort((a,b)=>Number(b.role==='owner')-Number(a.role==='owner')||sortPlayerName(a).localeCompare(sortPlayerName(b),'fr'));
  if(!members.length)return '<p class="small muted">Aucun membre renseigné pour le moment.</p>';
- return members.map(m=>`<div class="staff-name">${m.country_code?flag(m.country_code)+' ':''}${esc(m.display_name||'Modérateur')}${m.role==='owner'?' <span class="muted">· propriétaire</span>':''}</div>`).join('');
+ return members.map(m=>`<div class="staff-name">${m.country_code?flag(m.country_code)+' ':''}${esc(m.display_name||'Modérateur')}${labels[m.role]?` <span class="muted">· ${esc(labels[m.role])}</span>`:''}</div>`).join('');
 }
 const flag = code => GEO?.countryImage(code) || '';
 const regionFor = p=> p?.country_code==='FR' ? (state.data.player_profiles.find(x=>x.player_key===p.player_key)?.region_code||'') : '';
@@ -133,7 +137,13 @@ async function refreshLiveData(){
  state.data.staff_directory_error=staffDirectory.error?.message||null;
  if(staffDirectory.error)console.warn('Annuaire équipe indisponible :',staffDirectory.error.message);
  for(const t of v2Tables)state.data[t]=[];
- for(const t of [...livePublicTables,...(state.session?livePrivateTables:[]),...(state.staff?liveStaffTables:[])])state.data[t]=await readAll(t);
+ for(const t of [...livePublicTables,...(state.session?livePrivateTables:[]),...(hasFullStaffPowers()?liveStaffTables:[])])state.data[t]=await readAll(t);
+ state.scopedQueue=[];
+ if(['nlw','moderator'].includes(state.staffRole)){
+   const queue=await db.rpc('dlfr_pending_review_queue');
+   if(queue.error)state.scopedQueueError=queue.error.message;
+   else state.scopedQueue=queue.data||[];
+ }
  if(state.staff){
   for(const t of ['staff_roles','nlw_staff_roles']){
    try{state.data[t]=await readAll(t);}catch(error){state.data[t]=[]; if(t==='dlfr_aredl_level_stage')state.data.aredlStageError=error.message;}
@@ -163,7 +173,11 @@ async function checkStaff(){
  state.staff=false;state.staffRole=null;
  if(!state.session)return;
  const {data,error}=await db.from('staff_roles').select('role').eq('auth_user_id',state.session.user.id).maybeSingle();
- if(!error && data){state.staffRole=data.role;state.staff=['editor','owner'].includes(data.role);}
+ if(!error && data){state.staffRole=data.role;state.staff=['editor','owner','supermoderator','moderator'].includes(data.role);}
+ if(!state.staff){
+  const nlw=await db.from('nlw_staff_roles').select('auth_user_id').eq('auth_user_id',state.session.user.id).maybeSingle();
+  if(!nlw.error&&nlw.data){state.staffRole='nlw';state.staff=true;}
+ }
 }
 async function checkSelfOwner(){
  state.ownKey=null;state.ownAccountMessage='';
@@ -197,7 +211,7 @@ function ranked(){
  const d=state.data,demons=catalog(),byId=Object.fromEntries(demons.map(v=>[v.id,v]));
  const completionScoreByPlayer = new Map();
  const people=new Map(d.players.map(p=>[p.player_key,{...p,total_records:0,total_completions:0,main:[],extended:[],beyond:[],legacy:[],progress:[],created:[],published:[],verified:[],pointsComputed:num(p.bonus_points),hardest:null,hardestKind:null,hardestHistorical:false}]));
- const ensure=(name)=>{const k=key(name);if(!k)return null;if(!people.has(k))people.set(k,{player_key:k,username:name,display_name:name,country_code:'',has_account:false,hidden_from_stats:false,points:0,bonus_points:0,pointsComputed:0,total_records:0,total_completions:0,main:[],extended:[],beyond:[],legacy:[],progress:[],created:[],published:[],verified:[],hardest:null,hardestKind:null,hardestHistorical:false});return people.get(k);};
+ const ensure=(name)=>{const k=key(name);if(!k)return null;if(isCreatorGroupCredit(name)&&!people.has(k))return null;if(!people.has(k))people.set(k,{player_key:k,username:name,display_name:name,country_code:'',has_account:false,hidden_from_stats:false,points:0,bonus_points:0,pointsComputed:0,total_records:0,total_completions:0,main:[],extended:[],beyond:[],legacy:[],progress:[],created:[],published:[],verified:[],hardest:null,hardestKind:null,hardestHistorical:false});return people.get(k);};
  for(const demon of demons){for(const [field,dest] of [['creator','created'],['publisher','published'],['verifier','verified']]){
    const names=field==='creator'?[demon.creator,...plain(demon.creator_more).split(',')]:[demon[field]];
    for(const name of names){const player=ensure(name);if(player&&!player[dest].some(x=>x.id===demon.id))player[dest].push(demon);}
@@ -424,13 +438,14 @@ function demonPage(){const id=+(new URLSearchParams(location.search)).get('id'),
  const thumb=http(d.thumbnail_url)|| (plain(d.thumbnail_url).startsWith('assets/')?d.thumbnail_url:'');
  return `${templateNotice()}<div class="paper"><p><a href="${url('list')}" data-nav class="link">← Retour à la liste</a></p><h1>#${d.position} - ${esc(d.name)}</h1><div class="level-detail">${thumb?`<img class="demon-thumb" style="width:100%;height:auto" src="${esc(thumb)}" alt="Miniature">`:'<div class="demon-thumb faux-thumb" style="width:100%">'+esc(d.name)+'</div>'}<div><p>Publié par <b>${esc(d.publisher)}</b><br>Vérifié par <b>${esc(d.verifier||'-')}</b><br>Créé par <b>${esc(d.creator||'-')}</b></p><p><b>Rang :</b> #${d.position} · <b>Minimum :</b> ${d.requirement}%</p><p class="small">${V2.nlwRank(d)>0?'NLW : '+fmt(nlwPoints(d))+' points NLW':+d.position>cfg().extended_limit?'Hors classement · 0 point':fmt(score(d,100))+' points (100%)'}</p><div class="level-status">${V2.nlwRank(d)>0?'<span class="level-badge outside">NLW #'+V2.nlwRank(d)+'</span>':''}${d.unrated?'<span class="level-badge unrated-badge">UNRATED</span>':''}${d.legacy?'<span class="level-badge legacy">Legacy · ancien Top 150</span>':''}</div>${http(d.video_url)?`<a class="btn" target="_blank" rel="noopener noreferrer" href="${esc(http(d.video_url))}">Regarder la vidéo ↗</a>`:''}</div></div><hr class="divider">${productionProofMedia(d)}<p>${esc(d.description||'')}</p><h2>Records (${recs.length})</h2>${recs.length?recs.map(r=>`<div class="record-row"><div><a class="link" data-nav href="${url('stats',{player:key(r.player)})}">${esc(r.player)}</a> — ${esc(r.progress)}%</div>${http(r.video_url)?`<a target="_blank" rel="noopener noreferrer" class="link" href="${esc(http(r.video_url))}">Vidéo ↗</a>`:''}</div>`).join(''):'<p class="empty">Aucun record enregistré.</p>'}</div>`;
 }
-function newsPage(){const all=[...state.data.news_items].filter(x=>x.is_published||state.staff).sort((a,b)=>(+(!!b.is_pinned)-+(!!a.is_pinned))||new Date(b.created_at)-new Date(a.created_at));
+function newsPage(){const all=[...state.data.news_items].filter(x=>x.is_published||hasFullStaffPowers()).sort((a,b)=>(+(!!b.is_pinned)-+(!!a.is_pinned))||new Date(b.created_at)-new Date(a.created_at));
  const items=all.filter(n=>(state.newsFilter==='all'||getNewsCategory(n)===state.newsFilter)&&`${key(n.headline)} ${key(n.body)} ${key(n.player_name)}`.includes(key(state.newsSearch)));
  const categories=['all','Annonce','Record','Classement','Communauté'];
  return `${templateNotice()}<div class="paper news-page"><div class="center-panel" style="box-shadow:none;border:0"><h1>Actualités</h1><p>Informations, nouveaux records et événements de la communauté.</p></div><div class="news-controls"><div class="news-filters">${categories.map(c=>`<button type="button" class="${state.newsFilter===c?'active':''}" data-news-filter="${esc(c)}">${c==='all'?'Tout voir':esc(c)}</button>`).join('')}</div><label class="filterbox"><span>⌕</span><input id="newsSearch" type="search" value="${esc(state.newsSearch)}" placeholder="Rechercher une actualité"></label></div><div id="newsItems">${newsItemsHTML(items)}</div></div>`;
 }
-function newsItemsHTML(items){return items.length?items.map(n=>`<article class="news-card ${n.is_pinned?'pinned':''}"><div class="news-meta"><span class="news-category">${esc(getNewsCategory(n))}</span>${n.is_pinned?'<span class="news-pin">★ À la une</span>':''}<time>${date(n.created_at)}${!n.is_published?' · Brouillon':''}</time></div><h3>${esc(n.headline)}</h3><p class="news-body">${esc(n.body)}</p>${newsMedia(n)}${n.player_name?`<a class="tag" href="${url('stats',{player:key(n.player_name)})}" data-nav>${esc(n.player_name)}</a>`:''}${state.staff?`<div class="news-editor-actions"><button class="btn subtle small" data-edit-news="${n.id}">Modifier</button><button class="btn subtle small" data-toggle-news="${n.id}">${n.is_published?'Mettre en brouillon':'Publier'}</button></div>`:''}</article>`).join(''):'<p class="empty">Aucune actualité trouvée.</p>';}
-const playerOptions=()=>ranked().sort((a,b)=>sortPlayerName(a).localeCompare(sortPlayerName(b),'fr')).map(x=>`<option value="${esc(x.player_key)}">${esc(x.display_name||x.username)}</option>`).join('');
+function newsItemsHTML(items){return items.length?items.map(n=>`<article class="news-card ${n.is_pinned?'pinned':''}"><div class="news-meta"><span class="news-category">${esc(getNewsCategory(n))}</span>${n.is_pinned?'<span class="news-pin">★ À la une</span>':''}<time>${date(n.created_at)}${!n.is_published?' · Brouillon':''}</time></div><h3>${esc(n.headline)}</h3><p class="news-body">${esc(n.body)}</p>${newsMedia(n)}${n.player_name?`<a class="tag" href="${url('stats',{player:key(n.player_name)})}" data-nav>${esc(n.player_name)}</a>`:''}${hasFullStaffPowers()?`<div class="news-editor-actions"><button class="btn subtle small" data-edit-news="${n.id}">Modifier</button><button class="btn subtle small" data-toggle-news="${n.id}">${n.is_published?'Mettre en brouillon':'Publier'}</button></div>`:''}</article>`).join(''):'<p class="empty">Aucune actualité trouvée.</p>';}
+// Un champ de modération ne doit proposer que de vrais joueurs enregistrés.
+const playerOptions=()=>state.data.players.slice().sort((a,b)=>sortPlayerName(a).localeCompare(sortPlayerName(b),'fr')).map(x=>`<option value="${esc(x.player_key)}">${esc(sortPlayerName(x))}</option>`).join('');
 function submitRecordPage(){return `${templateNotice()}<section class="paper v2-page"><div class="v2-intro"><h1>Soumettre un record</h1><p>Propose un record pour un niveau présent ou absent de la Demonlist. S'il est nouveau, un modérateur choisira Rated ou UNRATED avant de l'ajouter.</p></div>${LIVE&&!state.session?'<div class="notice warning">Connecte-toi avec Discord dans Mon profil pour envoyer une soumission réelle.</div>':`<form data-form="submitRecord" class="submission-form"><label class="field">Niveau<input name="level_name" maxlength="120" required placeholder="Nom du niveau"></label><label class="field">ID Geometry Dash (facultatif)<input name="level_id" inputmode="numeric" maxlength="30" placeholder="Ex. 123456"></label><label class="field">Joueur ayant réalisé le record<input name="player" maxlength="120" required placeholder="Pseudo du joueur"></label><label class="field">Progression (%)<input name="progress" type="number" min="1" max="100" value="100" required></label><label class="field">Vidéo de preuve<input name="video_url" type="url" required placeholder="https://youtu.be/…"></label><label class="field">Créateur du niveau<input name="creator" maxlength="120" placeholder="Créateur"></label><label class="field">Publieur du niveau<input name="publisher" maxlength="120" required placeholder="Publieur"></label><label class="field">Vérificateur (si connu)<input name="verifier" maxlength="120"></label><label class="field">Rang suggéré (facultatif)<input name="suggested_position" type="number" min="1" placeholder="Par exemple 80"></label><p class="small muted">Pas besoin de décider Rated / UNRATED lors de la soumission : ce choix est réservé au modérateur lors de l'acceptation.</p><button type="submit" class="btn">Envoyer en modération</button></form>`}</section>`;}
 function adminPage(){if(LIVE&&!state.staff){
   // Être connecté via Discord et être autorisé à modérer sont deux contrôles séparés.
@@ -438,12 +453,15 @@ function adminPage(){if(LIVE&&!state.staff){
   if(state.session){
     const identity=discordIdentity();
     const name=identity?.username||state.session.user?.user_metadata?.full_name||'compte Supabase';
-    return `<div class="paper"><h1>Modération</h1><p>Compte connecté : <b>${esc(name)}</b>.</p><div class="notice warning"><b>Pas d’accès modérateur pour cette session.</b><p>Le propriétaire doit attribuer le rôle <code>editor</code> à l’UID de ce compte dans Supabase. La connexion Discord seule ne donne aucun droit de modération.</p></div><div class="form-actions"><button type="button" class="btn" data-action="refreshStaffAccess">Actualiser mes droits</button><button type="button" class="btn subtle" data-action="logout">Déconnexion</button></div></div>`;
+    return `<div class="paper"><h1>Modération</h1><p>Compte connecté : <b>${esc(name)}</b>.</p><div class="notice warning"><b>Pas d’accès modérateur pour cette session.</b><p>Le propriétaire doit attribuer un rôle à l’UID de ce compte dans Supabase. La connexion Discord seule ne donne aucun droit de modération.</p></div><div class="form-actions"><button type="button" class="btn" data-action="refreshStaffAccess">Actualiser mes droits</button><button type="button" class="btn subtle" data-action="logout">Déconnexion</button></div></div>`;
   }
   const emailLogin=`<form data-form="login"><label class="field">Adresse e-mail<input name="email" type="email" required autocomplete="email"></label><label class="field">Mot de passe<input name="password" type="password" required autocomplete="current-password"></label><button class="btn" type="submit">Se connecter par e-mail</button></form>`;
   return `<div class="paper"><h1>Modération</h1><p>Connecte-toi avec Discord, puis utilise un compte autorisé par Supabase.</p>${discordPanel(null)}<details class="alternate-login"><summary>Autre méthode : e-mail et mot de passe</summary>${emailLogin}</details></div>`;
  }
  if(!LIVE&&!state.staff)return `<div class="paper"><h1>Laboratoire de modération</h1><p>Cette démonstration sauvegarde tes essais <b>uniquement dans le navigateur</b> et n’a aucun effet sur le site original.</p><button class="btn" data-action="demoStaff">Activer la simulation modérateur</button></div>`;
+ if(LIVE&&['nlw','moderator'].includes(state.staffRole)){
+   return `${templateNotice()}<div class="paper"><div class="admin-mode">Modération · ${state.staffRole==='nlw'?'NLW':'Top 150 + NLW'}</div><div class="row-between"><h1>Validation des complétions</h1><button class="btn subtle small" data-action="logout">Déconnexion</button></div><p class="muted">Les validations sont vérifiées côté serveur. Les nouveaux niveaux, rangs et contenus communautaires sont réservés à la supermodération.</p></div>${PROD.scopedReview(state)}`;
+ }
  const players=playerOptions();return `${templateNotice()}<div class="paper"><div class="admin-mode">Modération connectée · changements sur Supabase</div><div class="row-between"><h1>Modération</h1><div><button class="btn subtle small" data-action="logout">Déconnexion</button></div></div><p class="muted">Le contrôle d’accès réel est assuré par les policies Supabase. Le journal des changements est automatique.</p></div>${LIVE?PROD.moderation(state):''}<div class="admin-workspace" data-role="${state.demoRole}"><div class="admin-nav" role="tablist" aria-label="Sections de modération">${[['overview','Vue d’ensemble'],['levels','Niveaux'],['news','Actualités'],['profiles','Profils'],['awards','Badges & Palmarès'],['achievements','Achievements FR'],['clans','Clans'],['safety','Sanctions'],['nlw','Modos NLW'],['audit','Journal']].map(([id,label])=>`<button type="button" role="tab" aria-selected="${state.adminTab===id}" class="${state.adminTab===id?'active':''}" data-admin-tab="${id}">${label}</button>`).join('')}</div><div class="admin-content"><div class="admin-intro ${state.adminTab==='overview'?'':'is-hidden'}"><h2>Tableau de bord</h2>${statsOverview()}<p class="muted">Choisis une rubrique pour ajouter ou modifier les informations de la Demonlist. Les changements réels demandent les permissions Supabase.</p></div><div class="moderation-sections" data-active-admin="${state.adminTab}">
  <div class="admin-card" data-admin-section="levels"><h3>Ajouter directement un niveau</h3><p class="small muted">Pour accepter une soumission, utilise le panneau ci-dessous. La liste est maintenant entièrement gérée par les modérateurs. Indique un rang : les niveaux Rated suivants seront décalés si nécessaire. Les UNRATED sont gérés séparément.</p><form data-form="demon"><label class="field">Réutiliser une fiche importée et masquée (facultatif)<select name="existing_demon_id"><option value="">Nouveau niveau</option>${(state.unpublishedAredlDemons||[]).filter(d=>!(state.data.dlfr_level_archive_log||[]).some(a=>!a.restored_at&&String(a.demon_id)===String(d.id))).map(d=>`<option value="${esc(d.id)}">#${esc(d.position)} — ${esc(d.name)} (GD ${esc(d.level_id||"?")})</option>`).join("")}</select></label><p class="small muted">Si le niveau existe déjà dans l’ancien catalogue AREDL masqué, sélectionne sa fiche ici pour éviter les doublons Solo/2P.</p><label class="field">Position dans la liste globale (151 = NLW #1)<input name="position" type="number" min="1" required></label><label class="field">Nom<input name="name" required maxlength="120"></label><label class="field">ID Geometry Dash<input name="level_id" inputmode="numeric" maxlength="30"></label><label class="field">Publié par<input name="publisher" required></label><label class="field">Vérifié par<input name="verifier"></label><label class="field">Créateur<input name="creator"></label><label class="field">Mode de complétion<select name="completion_mode"><option value="">Conserver le mode existant / Standard</option><option value="solo">Solo</option><option value="two_player">2-Player</option></select></label><label class="field">Vidéo de vérification (facultatif)<input name="verifier_video_url" type="url" placeholder="https://youtu.be/…"></label><label class="field">Miniature YouTube ou image (facultatif)<input name="thumbnail_url" type="url" placeholder="https://i.ytimg.com/vi/…/hqdefault.jpg"></label><label class="field">Progression minimum (%)<input name="requirement" type="number" min="1" max="100" value="100" required></label><label class="field"><input name="legacy" type="checkbox" style="width:auto"> A déjà appartenu au Top 150 (Legacy)</label><label class="field">Date de sortie de liste (si connue)<input name="legacy_since" type="date"></label><label class="field"><input type="checkbox" name="unrated"> Niveau UNRATED (position estimée en mode alternatif)</label><button class="btn">Ajouter le niveau</button><p class="small muted">Après le #150, le niveau rejoint la NLW avec ses points NLW séparés des points Main/Extended.</p></form></div>
  <div class="admin-card" data-admin-section="levels"><h3>Retirer ou restaurer un niveau</h3>
@@ -673,6 +691,7 @@ async function handleForm(form,submitter=null){if(state.busy)return;state.busy=t
  const type=form.dataset.form, f=Object.fromEntries(new FormData(form).entries());
  if(LIVE&&PROD.handles(type)){
   if(type!=='prodClaim'&&type!=='selfCreatePlayer'&&type!=='submitRecord'&&!state.staff)throw Error('Modérateur requis.');
+  if(['nlw','moderator'].includes(state.staffRole)&&type!=='prodScopedReview')throw Error('Action réservée aux supermodérateurs.');
   await PROD.send(db,type,f,submitter);
   await refreshLiveData();
   await checkSelfOwner();
@@ -774,7 +793,9 @@ async function handleForm(form,submitter=null){if(state.busy)return;state.busy=t
  else if(type==='hall')await save('hall_of_fame',{player_key:f.player_key,headline:f.headline,description:f.description,award_year:f.award_year?+f.award_year:null,category:f.category,source_url:f.source_url||null,is_published:true});
  else if(type==='visibility'){
   const p=state.data.players.find(x=>x.player_key===f.player_key);if(!p)throw Error('Ce joueur n’est pas un compte importé. Ajoute son profil à la table players pour modifier sa visibilité.');
-  await save('players',{...p,hidden_from_stats:f.hidden_from_stats==='true'},{upsert:true,on:['player_key']});
+  // UPDATE ciblé uniquement, pour ne jamais écraser les stats importées du joueur.
+  const {error}=await db.from('players').update({hidden_from_stats:f.hidden_from_stats==='true'}).eq('player_key',p.player_key);
+  if(error)throw Error(error.message);
  }
  if(LIVE)await refreshLiveData();
  toast('Modification enregistrée dans Supabase !');render();

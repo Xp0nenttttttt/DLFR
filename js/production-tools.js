@@ -7,7 +7,7 @@ const safeUrl=v=>/^https:\/\//i.test(trim(v))?esc(trim(v)):'#';
 const slug=v=>trim(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,70);
 const row=(label,value)=>`<label class="field">${label}${value}</label>`;
 const button=(text)=>`<button class="btn" type="submit">${text}</button>`;
-const handles=t=>['prodPlayer','prodCompletion','prodClaim','prodClaimReview','selfCreatePlayer','submitRecord','prodReviewSubmission','prodBadgeManual','prodManageStaff','prodPublishAccepted','prodArchiveLevel','prodRestoreLevel'].includes(t);
+const handles=t=>['prodScopedReview','prodPlayer','prodCompletion','prodClaim','prodClaimReview','selfCreatePlayer','submitRecord','prodReviewSubmission','prodBadgeManual','prodManageStaff','prodPublishAccepted','prodArchiveLevel','prodRestoreLevel'].includes(t);
 const errorOf=r=>{if(r.error)throw Error(r.error.message);return r.data;};
 function claimSection(s){
  if(!s.session)return '';
@@ -47,12 +47,12 @@ function staffSection(s){
  return `<section class="prod-panel"><h2>Gestion des modérateurs</h2><p class="small muted">Propriétaire uniquement. Le joueur doit s'être connecté une fois à Supabase Auth avec Discord. Copie son User UID dans Authentication → Users. N'utilise pas son pseudo.</p>
  <form data-form="prodManageStaff" class="prod-staff-grid">
  ${row('UID Supabase Auth','<input name="auth_user_id" required placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" pattern="[a-fA-F0-9-]{36}">')}
- ${row('Équipe','<select name="role"><option value="editor">Modération générale</option><option value="nlw">Équipe NLW (sans droits de publication générale)</option></select>')}
+ ${row('Équipe','<select name="role"><option value="nlw">Modo NLW · complétions NLW seulement</option><option value="moderator">Modo · complétions Top 150 + NLW</option><option value="supermoderator">Supermodo · niveaux, actus et administration</option></select>')}
  ${row('Action','<select name="enabled"><option value="yes">Ajouter / attribuer</option><option value="no">Retirer ce rôle</option></select>')}
  ${button('Enregistrer les permissions')}
  </form>
  <p class="small"><b>Modération générale :</b> ${everyone}</p><p class="small"><b>Équipe NLW :</b> ${nlw}</p>
- <p class="small muted">Les permissions NLW spécifiques aux validations restent à finaliser. L'inscription dans l'équipe n'octroie pas de droits généraux.</p></section>`;
+ <p class="small muted">Les droits de chaque rôle sont vérifiés par les fonctions SQL de Supabase. Les anciens comptes editor gardent leurs droits jusqu’à leur réattribution par le propriétaire.</p></section>`;
 }
 function stageSection(s){
  if(!s.staff)return '';
@@ -109,9 +109,19 @@ function moderation(s){if(!s.staff)return '';
  <h3>Badges de classement (attribution manuelle)</h3><form data-form="prodBadgeManual"><label class="field">Joueur<select name="player_key">${selectPlayers}</select></label><label class="field">Badge<select name="badge_id"><option value="goat-pays">Le Goat tout simplement</option><option value="goat-region">Le Goat de ta région</option><option value="clash-clans">Clash of Clans</option></select></label>${row('Date d’obtention','<input type="date" name="obtained_at" required>')}${button('Attribuer définitivement')}</form>
  </section>${staffSection(s)}`;
 }
+function scopedReview(s){
+ const rows=s.scopedQueue||[];
+ const role=s.staffRole==='nlw'?'NLW (rang 151+)':'Top 150 et NLW';
+ const cards=rows.map(x=>`<article class="prod-review"><strong>${esc(x.level_name)}</strong> · ${esc(x.player)} · #${esc(x.position)} · ${role}<p><a class="link" href="${safeUrl(x.video_url)}" rel="noopener noreferrer" target="_blank">Voir la preuve ↗</a></p><form data-form="prodScopedReview"><input type="hidden" name="request_id" value="${esc(x.id)}"><button class="btn" name="approve" value="yes">Accepter la complétion</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form></article>`).join('');
+ return `<section class="prod-panel"><h2>Soumissions admissibles · ${esc(role)}</h2>${s.scopedQueueError?`<p class="notice warning">Impossible de charger la file : ${esc(s.scopedQueueError)}. Vérifie la migration 26.</p>`:''}${cards||'<p class="muted">Aucune complétion éligible en attente. Les niveaux non publiés ou ambigus sont traités par les supermodérateurs.</p>'}</section>`;
+}
 async function send(db,type,f,submitter){
  const r=(method,args)=>db.rpc(method,args).then(errorOf);
  const yes=submitter?.value==='yes';
+ if(type==='prodScopedReview'){
+  if(!Number.isSafeInteger(Number(f.request_id))||Number(f.request_id)<=0)throw Error('Soumission invalide.');
+  return r('dlfr_review_existing_record',{p_request_id:Number(f.request_id),p_approve:yes});
+ }
  if(type==='prodArchiveLevel'){
   if(!Number.isSafeInteger(Number(f.demon_id))||Number(f.demon_id)<=0)throw Error('Choisis un niveau valide');
   if(!trim(f.confirm_name))throw Error('Saisis le nom exact du niveau à retirer');
@@ -175,5 +185,5 @@ async function send(db,type,f,submitter){
  }
  throw Error('Action inconnue');
 }
-return {handles,claimSection,moderation,send,slug};
+return {handles,claimSection,moderation,scopedReview,send,slug};
 });
