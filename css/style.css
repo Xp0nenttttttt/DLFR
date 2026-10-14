@@ -366,3 +366,94 @@ html.unrated-mode .level-badge.unrated-badge{background:#54206e;color:#fff}
 .discord-link-flow>strong{font-size:13px}.discord-link-flow p{margin:7px 0}
 .discord-disclaimer{font-size:11px;color:var(--muted);margin:14px 0 0;line-height:1.5}
 @media(max-width:690px){.discord-panel{padding:12px}.discord-panel-head{flex-wrap:wrap}.discord-avatar{margin-left:auto}.discord-actions .btn{max-width:100%}}
+
+
+/* DLFR V2.6 — navigation condensée : 3 catégories, clavier et mobile. */
+.navigation{
+ max-width:1180px;min-height:70px;margin:auto;padding:11px 18px;
+ display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:16px;
+}
+.navigation .brand{flex:0 0 auto;margin:0;font-size:17px;line-height:1.2}
+.navigation .nav-links{
+ order:0;flex:1 1 auto;width:auto;max-width:none;min-width:0;
+ display:flex;align-items:center;justify-content:center;flex-wrap:nowrap;gap:6px;overflow:visible;
+}
+.navigation .nav-links>.nav-primary,.navigation .nav-menu>summary{
+ display:flex;align-items:center;justify-content:center;gap:8px;
+ min-height:40px;padding:10px 12px;font-size:12px;font-weight:750;
+ line-height:1.25;text-decoration:none;border:1px solid transparent;
+ border-radius:9px;background:transparent;color:var(--ink);white-space:nowrap;
+}
+.navigation .nav-links>.nav-primary:hover,.navigation .nav-links>.nav-primary.active,
+.navigation .nav-menu>summary:hover,.navigation .nav-menu.active>summary,.navigation .nav-menu[open]>summary{
+ background:var(--panel);border-color:var(--line);color:var(--ink);
+}
+.nav-menu{position:relative;flex:0 0 auto}
+.nav-menu>summary{cursor:pointer;list-style:none;user-select:none}
+.nav-menu>summary::-webkit-details-marker{display:none}
+.nav-menu>summary:focus-visible,.navigation .nav-links>a:focus-visible,.nav-menu-panel a:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.nav-chevron{display:inline-block;font-size:18px;line-height:10px;color:var(--muted);transition:transform .16s}
+.nav-menu[open] .nav-chevron{transform:rotate(180deg)}
+.nav-menu-panel{
+ position:absolute;top:calc(100% + 8px);left:0;z-index:90;
+ width:244px;padding:9px;background:var(--card);border:1px solid var(--line);
+ box-shadow:0 15px 35px rgba(13,24,41,.17);border-radius:12px;
+ display:flex;flex-direction:column;gap:3px;
+}
+.nav-menu:last-of-type .nav-menu-panel{left:auto;right:0}
+.nav-menu-title{font-size:10px;font-weight:800;color:var(--muted);padding:8px 10px;text-transform:uppercase;letter-spacing:.045em}
+.nav-menu-panel a{padding:10px 11px;min-height:38px;border-radius:7px;color:var(--ink);text-decoration:none;font-size:12px;font-weight:650;white-space:normal}
+.nav-menu-panel a:hover,.nav-menu-panel a.active{background:var(--panel);color:var(--ink)}
+.nav-tools{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex:0 0 auto}
+.navigation .nav-theme,.navigation .unrated-switch{margin:0;align-self:center}
+@media(max-width:1090px){
+ .navigation{flex-wrap:wrap;gap:7px 16px;padding:10px 14px}
+ .navigation .brand{order:0;margin-right:auto}
+ .nav-tools{order:1}
+ .navigation .nav-links{order:2;flex:0 0 100%;width:100%;justify-content:center;gap:5px}
+}
+@media(max-width:560px){
+ .navigation{padding:10px 12px;gap:10px 6px}
+ .navigation .brand{width:auto;max-width:100%;text-align:left;font-size:17px}
+ .navigation .nav-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;width:100%}
+ .navigation .nav-links>.nav-primary,.navigation .nav-menu>summary{width:100%;min-height:43px;padding:9px 5px;font-size:11px;white-space:normal;text-align:center}
+ .nav-menu{min-width:0}
+ .nav-menu-panel{width:min(250px,88vw);top:calc(100% + 4px);left:0}
+ .navigation .nav-menu:nth-child(even) .nav-menu-panel{left:auto;right:0}
+ .nav-tools{width:100%;justify-content:space-between;gap:8px}
+ .navigation .nav-theme{margin:0}
+ .navigation .unrated-switch{margin:0}
+}
+/* Un palmarès unique, avec deux types de contributions dans un même flux. */
+.honors-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 19px}
+.honors-overview>div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:17px 10px;display:flex;flex-direction:column;text-align:center;gap:5px}
+.honors-overview strong{font-size:23px;line-height:1.1;color:var(--ink)}
+.honors-overview span{font-size:11px;color:var(--muted);font-weight:650}
+.honors-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 19px}
+.honors-tabs a{display:flex;align-items:center;justify-content:space-between;gap:11px;border:1px solid var(--line);border-radius:8px;color:var(--ink);background:var(--card);padding:10px 13px;text-decoration:none;font-size:12px;font-weight:750}
+.honors-tabs a.active{background:var(--blue);color:white;border-color:var(--blue)}
+.honors-tabs a span{opacity:.85;font-size:11px}
+.honors-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.honors-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:19px 20px;min-width:0;box-shadow:0 3px 14px rgba(0,0,0,.025);border-left:4px solid var(--blue)}
+.honors-distinction{border-left-color:#c6a45d}
+.honors-card-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.honors-category{font-size:10px;text-transform:uppercase;letter-spacing:.04em;font-weight:800;color:var(--blue)}
+.honors-distinction .honors-category{color:#b28b40}
+.honors-date{font-size:11px;color:var(--muted);font-weight:700}
+.honors-card h2{font-size:17px;line-height:1.35;margin:0 0 8px;overflow-wrap:anywhere}
+.honors-meta{font-size:11px;color:var(--muted);margin:0 0 10px}
+.honors-card p{font-size:12px;line-height:1.55}
+.honors-description{margin:10px 0}
+.honors-proof{display:inline-block;font-size:12px;font-weight:700;color:var(--blue);margin-top:6px}
+.honors-empty{grid-column:1/-1;margin:0}
+.honors-explainer{margin:18px 0 0}
+@media(max-width:650px){
+ .honors-grid{grid-template-columns:1fr}
+ .honors-overview{gap:5px}
+ .honors-overview>div{padding:12px 4px}
+ .honors-overview strong{font-size:18px}
+ .honors-overview span{font-size:9px}
+ .honors-tabs a{flex:1;min-width:0;padding:9px 8px;justify-content:center;font-size:11px}
+ .honors-tabs a span{display:none}
+ .honors-card{padding:15px}
+}

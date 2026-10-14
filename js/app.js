@@ -127,8 +127,18 @@ async function checkSelfOwner(){
  if(!data){state.ownAccountMessage='Ce compte Supabase n’est pas encore relié à un joueur. Un administrateur doit valider la liaison.';return;}
  state.ownKey=data.player_key;
 }
-function nav(){const page=(new URLSearchParams(location.search)).get('page')||'list';document.querySelectorAll('[data-link]').forEach(a=>a.classList.toggle('active',a.dataset.link===page));return page;}
-function go(page,fields={}){history.pushState({},'',url(page,fields));state.keyword='';render();window.scrollTo({top:0,behavior:'instant'});}
+function closeNavMenus(){document.querySelectorAll('.nav-menu[open]').forEach(menu=>menu.open=false);}
+function nav(){
+ const page=new URLSearchParams(location.search).get('page')||'list';
+ const canonical=['hall','achievements'].includes(page)?'honors':page;
+ document.querySelectorAll('[data-link]').forEach(a=>a.classList.toggle('active',a.dataset.link===canonical));
+ document.querySelectorAll('.nav-menu').forEach(menu=>{
+   const active=!!menu.querySelector('a[data-link="'+canonical+'"]');
+   menu.classList.toggle('active',active);
+ });
+ return page;
+}
+function go(page,fields={}){closeNavMenus();history.pushState({},'',url(page,fields));state.keyword='';render();window.scrollTo({top:0,behavior:'instant'});}
 function box(label,value){return `<div class="statbox"><div class="stat-label">${esc(label)}</div><div class="stat-value">${esc(value)}</div></div>`;}
 function scoreBase(position){const p=+position;return p>=56?1.039035131*((185.7*Math.exp(-.02715*p))+14.84):p>=36?1.0371139743*((212.61*Math.pow(1.036,1-p))+25.071):p>=21?((250-83.389)*Math.pow(1.0099685,2-p)-31.152)*1.0371139743:p>=4?((326.1*Math.exp(-.0871*p))+51.09)*1.037117142:p>=1?(-18.2899079915*p)+368.2899079915:0;}
 function score(demon,progress=100){
@@ -337,7 +347,6 @@ function newsPage(){const all=[...state.data.news_items].filter(x=>x.is_publishe
  return `${templateNotice()}<div class="paper news-page"><div class="center-panel" style="box-shadow:none;border:0"><h1>Actualités</h1><p>Informations, nouveaux records et événements de la communauté.</p></div><div class="news-controls"><div class="news-filters">${categories.map(c=>`<button type="button" class="${state.newsFilter===c?'active':''}" data-news-filter="${esc(c)}">${c==='all'?'Tout voir':esc(c)}</button>`).join('')}</div><label class="filterbox"><span>⌕</span><input id="newsSearch" type="search" value="${esc(state.newsSearch)}" placeholder="Rechercher une actualité"></label></div><div id="newsItems">${newsItemsHTML(items)}</div></div>`;
 }
 function newsItemsHTML(items){return items.length?items.map(n=>`<article class="news-card ${n.is_pinned?'pinned':''}"><div class="news-meta"><span class="news-category">${esc(getNewsCategory(n))}</span>${n.is_pinned?'<span class="news-pin">★ À la une</span>':''}<time>${date(n.created_at)}${!n.is_published?' · Brouillon':''}</time></div><h3>${esc(n.headline)}</h3><p class="news-body">${esc(n.body)}</p>${newsMedia(n)}${n.player_name?`<a class="tag" href="${url('stats',{player:key(n.player_name)})}" data-nav>${esc(n.player_name)}</a>`:''}${state.staff?`<div class="news-editor-actions"><button class="btn subtle small" data-edit-news="${n.id}">Modifier</button><button class="btn subtle small" data-toggle-news="${n.id}">${n.is_published?'Mettre en brouillon':'Publier'}</button></div>`:''}</article>`).join(''):'<p class="empty">Aucune actualité trouvée.</p>';}
-function hallPage(){const items=state.data.hall_of_fame.filter(x=>x.is_published||state.staff).sort((a,b)=>(b.award_year||0)-(a.award_year||0));return `${templateNotice()}<div class="paper"><div class="center-panel" style="border:0;box-shadow:none"><h1>Hall of Fame</h1><p>Les accomplissements marquants de la communauté francophone.</p></div><div class="hof-grid">${items.length?items.map(h=>`<article class="hof-item"><div class="hof-year">${esc(h.award_year||'—')} · ${esc(h.category)}${!h.is_published?' · Brouillon':''}</div><h3>${esc(h.headline)}</h3><p><a class="link" data-nav href="${url('stats',{player:h.player_key})}">${esc(h.player_key)}</a></p><p>${esc(h.description||'')}</p>${http(h.source_url)?`<a class="link small" href="${esc(http(h.source_url))}" target="_blank" rel="noopener noreferrer">Source ↗</a>`:''}</article>`).join(''):'<p class="empty">Aucune récompense pour le moment.</p>'}</div></div>`;}
 const playerOptions=()=>ranked().sort((a,b)=>a.display_name.localeCompare(b.display_name)).map(x=>`<option value="${esc(x.player_key)}">${esc(x.display_name||x.username)}</option>`).join('');
 function submitRecordPage(){return `${templateNotice()}<section class="paper v2-page"><div class="v2-intro"><h1>Soumettre un record</h1><p>Propose un record pour un niveau présent ou absent de la Demonlist. S'il est nouveau, un modérateur choisira Rated ou UNRATED avant de l'ajouter.</p></div>${LIVE?'<div class="notice warning"><b>Soumissions réelles indisponibles pour le moment.</b><p>La migration Supabase Auth et la validation serveur ne sont pas encore en place. Le formulaire n’écrit pas dans la base.</p></div>':`<form data-form="submitRecord" class="submission-form"><label class="field">Niveau<input name="level_name" maxlength="120" required placeholder="Nom du niveau"></label><label class="field">ID Geometry Dash (facultatif)<input name="level_id" inputmode="numeric" maxlength="30" placeholder="Ex. 123456"></label><label class="field">Joueur ayant réalisé le record<input name="player" maxlength="120" required placeholder="Pseudo du joueur"></label><label class="field">Progression (%)<input name="progress" type="number" min="1" max="100" value="100" required></label><label class="field">Vidéo de preuve<input name="video_url" type="url" required placeholder="https://youtu.be/…"></label><label class="field">Créateur du niveau<input name="creator" maxlength="120" placeholder="Créateur"></label><label class="field">Publieur du niveau<input name="publisher" maxlength="120" required placeholder="Publieur"></label><label class="field">Vérificateur (si connu)<input name="verifier" maxlength="120"></label><label class="field">Rang suggéré (facultatif)<input name="suggested_position" type="number" min="1" placeholder="Par exemple 80"></label><p class="small muted">Pas besoin de décider Rated / UNRATED lors de la soumission : ce choix est réservé au modérateur lors de l'acceptation.</p><button type="submit" class="btn">Envoyer en modération (démo)</button></form>`}</section>`;}
 function adminPage(){if(LIVE&&!state.staff){return `<div class="paper"><h1>Modération</h1><p class="muted">Les rôles sont validés par Supabase Auth et les règles RLS, pas par le navigateur.</p><form data-form="login"><label class="field">Adresse e-mail<input name="email" type="email" required autocomplete="email"></label><label class="field">Mot de passe<input name="password" type="password" required autocomplete="current-password"></label><div class="form-actions"><button class="btn">Connexion</button>${state.session?'<button type="button" class="btn subtle" data-action="logout">Déconnexion</button>':''}</div></form>${state.session?'<p class="notice warning">Ce compte n’a pas encore le rôle de modérateur. Celui-ci doit être attribué par un propriétaire depuis Supabase.</p>':''}</div>`;}
@@ -364,7 +373,7 @@ function adminPage(){if(LIVE&&!state.staff){return `<div class="paper"><h1>Modé
  <div class="admin-card" data-admin-section="audit"><h3>Journal de modération</h3><p class="muted small">Dernières actions enregistrées automatiquement par la base.</p><div>${(state.data.community_audit_log||[]).slice(-20).reverse().map(x=>`<div class="record-row small"><b>${esc(x.action_key)} · ${esc(x.target)}</b><span>${date(x.created_at)}</span></div>`).join('')||'<p class="empty">Aucune action récente.</p>'}</div></div>
  </div></div></div>`;
 }
-function v2Header(title,sub){return `${templateNotice()}<section class="paper v2-page"><div class="v2-intro"><span class="kicker">DEMONLIST FRANCOPHONE · V2.2</span><h1>${title}</h1><p>${sub}</p></div>`;}
+function v2Header(title,sub){return `${templateNotice()}<section class="paper v2-page"><div class="v2-intro"><span class="kicker">DEMONLIST FRANCOPHONE · V2.6</span><h1>${title}</h1><p>${sub}</p></div>`;}
 function calculatorPage(){const demons=catalog(),user=getPlayer(state.calcPlayer)||ranked().find(p=>p.has_account),completed=new Set(state.data.completions.filter(r=>key(r.player)===user?.player_key&&Number(r.progress)===100).map(r=>Number(r.demon_id)));
  const plans=demons.filter(d=>state.calcDemons.includes(Number(d.id))&&!completed.has(Number(d.id)));
  const gainMain=plans.filter(d=>d.position<=150).reduce((x,d)=>x+score(d),0),gainNLW=plans.filter(d=>d.position>150).reduce((x,d)=>x+nlwPoints(d),0);
@@ -432,7 +441,6 @@ async function loadCommunityExcel(){
  }catch(error){state.communityExcel={status:'error',items:[],message:String(error.message||error),offline:false};}
  if(state.data && nav()==='unbeaten')render();
 }
-function achievementsPage(){const items=state.data.fr_achievements||[];return v2Header('Achievements français','Runs, défis et exploits remarquables : sans points et sans classement entre les entrées.')+`<div class="v2-achievements">${items.map(a=>`<article class="achievement-card"><span class="news-category">Achievement communautaire</span><h2>${esc(a.title)}</h2><p class="muted">${esc(a.level_name)} · ${esc(a.run_text||'')}</p><p><a data-nav class="link" href="${url('stats',{player:a.player_key})}">${esc(a.player_key)}</a> · ${date(a.created_at)}</p><p>${esc(a.description||'')}</p>${http(a.video_url)?`<a class="btn small" target="_blank" rel="noopener noreferrer" href="${esc(http(a.video_url))}">Voir la preuve ↗</a>`:''}</article>`).join('')||'<p class="empty">Aucun achievement.</p>'}</div></section>`;}
 function updateClanDemo(command){
  if(LIVE)throw Error('Les actions de clan réelles nécessitent la migration Supabase Auth et RLS.');
  const engine=['update','promote','demote','request','withdraw','approve','reject'].includes(command.type)?CLAN_PLUS:CLANS;
@@ -512,7 +520,27 @@ function clansPage(){
 }
 function historyPage(){const lookup=new Map(catalog().map(d=>[Number(d.id),d]));const records=state.data.completions.map(r=>({...r,demon:lookup.get(Number(r.demon_id))})).filter(r=>r.demon&&r.demon.position<=150&&Number(r.progress)>=100).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));return v2Header('Historique des complétions · Top 150','Un flux chronologique des complétions, avec mise en valeur des niveaux Top 30 et Top 75.')+`<div class="v2-legend"><span class="hist-top30">Top 30 · rouge</span><span class="hist-top75">Top 31–75 · jaune</span><span>Top 76–150 · neutre</span></div><div class="v2-timeline">${records.map(r=>`<article class="timeline-record ${r.demon.position<=30?'top30':r.demon.position<=75?'top75':''}"><time>${date(r.created_at)}</time><div><a class="link" data-nav href="${url('stats',{player:key(r.player)})}">${esc(r.player)}</a> a terminé <a class="link" data-nav href="${url('demon',{id:r.demon.id})}"><b>#${r.demon.position} ${esc(r.demon.name)}</b></a>${r.demon.unrated?' <span class="tag">UNRATED</span>':''}</div>${http(r.video_url)?`<a href="${esc(http(r.video_url))}" rel="noopener noreferrer" target="_blank">Preuve ↗</a>`:''}</article>`).join('')||'<p class="empty">Aucune complétion Top 150.</p>'}</div></section>`;}
 function renderBadgeSummary(){const p=ranked().filter(p=>p.has_account&&!p.hidden_from_stats);return `<div class="badge-summary">${['Faucheur de liste','Vérificateur','Amateur de difficulté'].map(n=>`<article><b>${n}</b><p>${p.filter(x=>x.autoBadges.some(a=>a.id===n)).length} joueur(s) ayant un palier</p></article>`).join('')}</div>`;}
-function hallV2(){const items=state.data.hall_of_fame.filter(x=>x.is_published||state.staff).sort((a,b)=>(b.award_year||0)-(a.award_year||0));return v2Header('Hall of Fame','Les distinctions de la communauté, par année et catégorie.')+`<div class="hof-hero"><span>✦</span><div><small>ARCHIVES & PALMARÈS</small><h2>Les noms qui ont marqué la communauté</h2><p>Les titres historiques restent visibles indépendamment des classements actuels.</p></div></div><div class="hof-grid">${items.map(h=>`<article class="hof-item hof-premium"><div class="hof-year">✦ ${esc(h.award_year||'—')} · ${esc(h.category)}</div><h3>${esc(h.headline)}</h3><p><a class="link" data-nav href="${url('stats',{player:h.player_key})}">${esc(h.player_key)}</a></p><p>${esc(h.description||'')}</p>${http(h.source_url)?`<a class="link" target="_blank" rel="noopener noreferrer" href="${esc(http(h.source_url))}">Source ↗</a>`:''}</article>`).join('')||'<p class="empty">Aucune récompense.</p>'}</div></section>`;}
+// V2.6 — page unique pour le Hall of Fame historique et les achievements français.
+// Les anciennes routes ?page=hall et ?page=achievements restent compatibles.
+function honorsPage(page='honors'){
+ const qs=new URLSearchParams(location.search);
+ const tab=['all','hall','achievements'].includes(qs.get('tab'))?qs.get('tab'):(page==='hall'?'hall':page==='achievements'?'achievements':'all');
+ const halls=(state.data.hall_of_fame||[]).filter(x=>x.is_published||state.staff);
+ const achievements=state.data.fr_achievements||[];
+ const items=[
+  ...halls.map(h=>({type:'hall',sortTime:Number(h.award_year)>0?Date.UTC(Number(h.award_year),0,1):0,title:h.headline,player:h.player_key,description:h.description||'',category:h.category||'Distinction',when:plain(h.award_year)||'—',source:http(h.source_url),isDraft:!h.is_published})),
+  ...achievements.map(a=>({type:'achievements',sortTime:new Date(a.created_at).getTime()||0,title:a.title,player:a.player_key,description:a.description||'',category:a.level_name||'Exploit communautaire',when:date(a.created_at),run:a.run_text||'',source:http(a.video_url),isDraft:false}))
+ ];
+ // Tri chronologique commun : date exacte pour les exploits, début d’année pour les distinctions.
+ items.sort((a,b)=>b.sortTime-a.sortTime||(a.type==='hall'?-1:1));
+ const shown=items.filter(i=>tab==='all'||i.type===tab);
+ const tabs=[['all','Tout voir',items.length],['hall','Distinctions',halls.length],['achievements','Exploits FR',achievements.length]];
+ const header=v2Header('Palmarès & exploits','Un seul espace pour les distinctions historiques, les runs et les exploits marquants de la communauté.');
+ const counters=`<div class="honors-overview"><div><strong>${halls.length}</strong><span>Distinctions</span></div><div><strong>${achievements.length}</strong><span>Exploits français</span></div><div><strong>${new Set(items.map(i=>key(i.player)).filter(Boolean)).size}</strong><span>Joueurs mis à l'honneur</span></div></div>`;
+ const nav=`<nav class="honors-tabs" aria-label="Filtrer le palmarès">${tabs.map(([id,label,n])=>`<a data-nav href="${url('honors',{tab:id})}" class="${tab===id?'active':''}" ${tab===id?'aria-current="page"':''}>${label}<span>${n}</span></a>`).join('')}</nav>`;
+ const cards=shown.map(item=>`<article class="honors-card ${item.type==='hall'?'honors-distinction':'honors-exploit'}"><div class="honors-card-top"><span class="honors-category">${item.type==='hall'?'✦ Distinction':'◇ Exploit FR'}</span><span class="honors-date">${esc(item.when)}</span></div><h2>${esc(item.title)}</h2><p class="honors-meta">${esc(item.category)}${item.run?' · '+esc(item.run):''}${item.isDraft?' · Brouillon':''}</p><p><a class="link" data-nav href="${url('stats',{player:item.player})}">${esc(item.player)}</a></p>${item.description?`<p class="honors-description">${esc(item.description)}</p>`:''}${item.source?`<a class="honors-proof" href="${esc(item.source)}" target="_blank" rel="noopener noreferrer">${item.type==='hall'?'Voir la source':'Voir la preuve'} ↗</a>`:''}</article>`).join('');
+ return header+counters+nav+`<div class="honors-grid">${cards||'<p class="empty honors-empty">Aucune entrée dans cette catégorie pour le moment.</p>'}</div><p class="small muted honors-explainer">Les distinctions sont des récompenses historiques. Les exploits mettent en avant des runs ou des défis, sans attribution de points.</p></section>`;
+}
 function showPageError(error){
  console.error('[DLFR] Erreur de démarrage / affichage :',error);
  const msg=esc(error?.message||String(error)||'Erreur inconnue');
@@ -520,7 +548,7 @@ function showPageError(error){
 }
 function render(){if(!state.data)return;try{
  if(!UNRATED_STATS?.calculate || !V2?.decorate || !V2?.project || !UNVERIFIED?.classify || !CLANS?.apply || !CLAN_PLUS?.stats || !SUBMISSIONS?.approve)throw Error('Fichier JavaScript V2 manquant ou version incohérente : réinstalle les scripts du pack V2.0.3.');
- const page=nav(),params=new URLSearchParams(location.search);if(page==='stats'&&params.has('player'))state.selectedPlayer=key(params.get('player'));const content=page==='stats'?statsPage():page==='my-profile'?selfProfilePage():page==='demon'?demonPage():page==='news'?newsPage():page==='hall'?hallV2():page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='achievements'?achievementsPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();document.title=({list:'Demonlist',stats:'Statistiques',news:'Actualités',hall:'Hall of Fame',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Achievements',clans:'Clans',history:'Historique','my-profile':'Mon profil','submit-record':'Soumettre un record',demon:'Niveau'})[page]+' · DemonlistFrancophone';
+ const page=nav(),params=new URLSearchParams(location.search);if(page==='stats'&&params.has('player'))state.selectedPlayer=key(params.get('player'));const content=page==='stats'?statsPage():page==='my-profile'?selfProfilePage():page==='demon'?demonPage():page==='news'?newsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();document.title=({list:'Demonlist',stats:'Statistiques',news:'Actualités',hall:'Palmarès & exploits',honors:'Palmarès & exploits',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Palmarès & exploits',clans:'Clans',history:'Historique','my-profile':'Mon profil','submit-record':'Soumettre un record',demon:'Niveau'})[page]+' · DemonlistFrancophone';
  }catch(error){showPageError(error);}
 }
 function auditV2(action,target){state.data.community_audit_log.push({action_key:action,target,created_at:new Date().toISOString()});saveDemo();}
@@ -645,6 +673,16 @@ async function importDemo(file){if(!file||LIVE)return;try{if(file.size>3*1024*10
 function setTheme(theme){const t=['light','dark','midnight','autumn'].includes(theme)?theme:'light';document.documentElement.classList.remove('dark','midnight','autumn');if(t!=='light')document.documentElement.classList.add(t);$('themeSelect').value=t;try{localStorage.setItem('demonlist-theme',t);}catch{}}
 function refreshUnrated(){document.documentElement.classList.toggle('unrated-mode',state.unrated);const button=$('unratedToggle');button.textContent=state.unrated?'◈ UNRATED ON':'◈ UNRATED OFF';button.setAttribute('aria-pressed',String(state.unrated));}
 function bootEvents(){
+ // Un seul menu déroulant ouvert ; Echap ferme le menu et rend le focus au bouton.
+ document.addEventListener('click',ev=>{
+   const current=ev.target.closest('.nav-menu');
+   document.querySelectorAll('.nav-menu[open]').forEach(menu=>{if(menu!==current)menu.open=false;});
+ });
+ document.addEventListener('keydown',ev=>{
+   if(ev.key!=='Escape')return;
+   const current=document.querySelector('.nav-menu[open]');
+   if(current){closeNavMenus();current.querySelector('summary')?.focus();}
+ });
  document.addEventListener('click',async(ev)=>{const a=ev.target.closest('a[data-nav]');if(a){ev.preventDefault();const link=new URL(a.href);history.pushState({},'',link.search);state.keyword='';render();window.scrollTo(0,0);return;}
  const list=ev.target.closest('[data-list]');if(list){state.list=list.dataset.list;state.keyword='';render();return;}
  const p=ev.target.closest('[data-player]');if(p){state.selectedPlayer=p.dataset.player;history.replaceState({},'',url('stats',{player:state.selectedPlayer}));const chosen=getPlayer(state.selectedPlayer);$('profileContent').innerHTML=statProfile(chosen);document.querySelectorAll('.rank-item').forEach(x=>x.classList.toggle('selected',x.dataset.player===state.selectedPlayer));return;}
@@ -714,7 +752,7 @@ function bootEvents(){
  document.querySelectorAll('.nav-links a,.brand').forEach(a=>a.addEventListener('click',ev=>{ev.preventDefault();go(a.dataset.link||'list');}));
  $('themeSelect').addEventListener('change',e=>setTheme(e.target.value));
  $('unratedToggle').addEventListener('click',()=>{state.unrated=!state.unrated;state.calcDemons=[];refreshUnrated();render();});
- window.addEventListener('popstate',()=>{state.keyword='';render();});
+ window.addEventListener('popstate',()=>{closeNavMenus();state.keyword='';render();});
  try{setTheme(localStorage.getItem('demonlist-theme')||'light');}catch{}refreshUnrated();
 }
 try{

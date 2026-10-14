@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="DemonlistFrancophone — listes Geometry Dash, statistiques des joueurs et Hall of Fame.">
-  <title>DemonlistFrancophone V2.5</title>
+  <meta name="description" content="DemonlistFrancophone — listes Geometry Dash, statistiques, clans et palmarès communautaire.">
+  <title>DemonlistFrancophone V2.6</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=250">
+  <link rel="stylesheet" href="css/style.css?v=260">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="js/config.js?v=210" defer></script>
@@ -21,28 +21,47 @@
   <script src="js/clan-plus.js?v=220" defer></script>
   <script src="js/submission-core.js?v=243" defer></script>
   <script src="js/discord-auth.js?v=250" defer></script>
-  <script src="js/app.js?v=250" defer></script>
+  <script src="js/app.js?v=260" defer></script>
 </head>
 <body>
   <header class="site-header">
     <nav class="navigation" aria-label="Navigation principale">
       <a href="?page=list" class="brand" data-link="list">DemonlistFrancophone</a>
-      <div class="nav-links">
-        <a href="?page=list" data-link="list">DemonlistFrancophone <span class="chevron">⌄</span></a>
-        <a href="?page=stats" data-link="stats">Statistiques</a>
-        <a href="?page=my-profile" data-link="my-profile">Mon profil</a>
-        <a href="?page=news" data-link="news">Actualités</a>
-        <a href="?page=hall" data-link="hall">Hall of Fame</a>
-        <a href="?page=calculator" data-link="calculator">Calculateur</a>
-        <a href="?page=unbeaten" data-link="unbeaten">Non vérifiés</a>
-        <a href="?page=achievements" data-link="achievements">Achievements FR</a>
-        <a href="?page=clans" data-link="clans">Clans</a>
-        <a href="?page=history" data-link="history">Historique</a>
-        <a href="?page=submit-record" data-link="submit-record">Soumettre</a>
-        <a href="?page=admin" data-link="admin">Modération</a>
+      <div class="nav-links" id="primaryNavigation">
+        <a class="nav-primary" href="?page=list" data-link="list">Demonlist</a>
+        <details class="nav-menu" data-nav-group="classements">
+          <summary>Classements <span class="nav-chevron" aria-hidden="true">⌄</span></summary>
+          <div class="nav-menu-panel">
+            <span class="nav-menu-title">Niveaux &amp; statistiques</span>
+            <a href="?page=stats" data-link="stats">Statistiques des joueurs</a>
+            <a href="?page=calculator" data-link="calculator">Calculateur de points</a>
+            <a href="?page=unbeaten" data-link="unbeaten">Niveaux non vérifiés</a>
+            <a href="?page=history" data-link="history">Historique des records</a>
+          </div>
+        </details>
+        <details class="nav-menu" data-nav-group="communaute">
+          <summary>Communauté <span class="nav-chevron" aria-hidden="true">⌄</span></summary>
+          <div class="nav-menu-panel">
+            <span class="nav-menu-title">La communauté francophone</span>
+            <a href="?page=clans" data-link="clans">Clans</a>
+            <a href="?page=news" data-link="news">Actualités</a>
+            <a href="?page=honors" data-link="honors">Palmarès &amp; exploits</a>
+          </div>
+        </details>
+        <details class="nav-menu" data-nav-group="compte">
+          <summary>Mon espace <span class="nav-chevron" aria-hidden="true">⌄</span></summary>
+          <div class="nav-menu-panel">
+            <span class="nav-menu-title">Compte &amp; participation</span>
+            <a href="?page=my-profile" data-link="my-profile">Mon profil &amp; Discord</a>
+            <a href="?page=submit-record" data-link="submit-record">Soumettre un record</a>
+            <a href="?page=admin" data-link="admin">Modération</a>
+          </div>
+        </details>
       </div>
-      <label class="nav-theme">Thème <select id="themeSelect" aria-label="Thème"><option value="light">Clair</option><option value="dark">Sombre</option><option value="midnight">Midnight</option><option value="autumn">Automne</option></select></label>
-      <button class="unrated-switch" id="unratedToggle" type="button" aria-pressed="false">◈ UNRATED OFF</button>
+      <div class="nav-tools">
+        <label class="nav-theme">Thème <select id="themeSelect" aria-label="Thème"><option value="light">Clair</option><option value="dark">Sombre</option><option value="midnight">Midnight</option><option value="autumn">Automne</option></select></label>
+        <button class="unrated-switch" id="unratedToggle" type="button" aria-pressed="false">◈ UNRATED OFF</button>
+      </div>
     </nav>
   </header>
   <main class="layout" id="app" aria-live="polite"><div class="center-panel loading">Chargement de la Demonlist…<p class="small muted">Si rien ne s’affiche, vérifie que les scripts V2 sont bien présents.</p><a class="btn subtle small" href="?page=list&amp;demo=1&amp;reset=1">Réinitialiser la démo</a></div></main>
