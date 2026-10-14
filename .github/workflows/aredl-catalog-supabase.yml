@@ -12,6 +12,11 @@ on:
           - preview
           - stage
           - publish
+      allow_partial_publish:
+        description: 'Publier uniquement les fiches valides si des ID sont manquants / dupliqués (consulter le rapport preview avant)'
+        type: boolean
+        required: false
+        default: false
   schedule:
     - cron: '0 */6 * * *'  # Actualise uniquement la table d'attente, sans publier.
 
@@ -41,10 +46,15 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           USER_MODE: ${{ inputs.mode }}
           EVENT_NAME: ${{ github.event_name }}
+          ALLOW_PARTIAL: ${{ inputs.allow_partial_publish }}
         run: |
           if [[ "$EVENT_NAME" == "schedule" ]]; then MODE=stage; else MODE="${USER_MODE:-preview}"; fi
           echo "Mode : $MODE"
-          python tools/aredl_catalog_sync.py --mode "$MODE" --output out/aredl-global
+          args=(--mode "$MODE" --output out/aredl-global)
+          if [[ "$MODE" == "publish" && "$ALLOW_PARTIAL" == "true" ]]; then
+            args+=(--allow-partial-publish)
+          fi
+          python tools/aredl_catalog_sync.py "${args[@]}"
       - name: Conserver le rapport de contrôle (sans secret)
         if: always()
         uses: actions/upload-artifact@v4

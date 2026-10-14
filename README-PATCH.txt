@@ -1,7 +1,11 @@
-DLFR V3.0.5 - PATCH UNIQUEMENT
-------------------------------
-Avant publication, lire INSTALLATION-V3.0.5.md.
-Ne remplace PAS assets/flags/ ni js/config.js.
-SQL (une fois): supabase/15_aredl_global_sync.sql
-GitHub: Actions -> AREDL - synchronisation globale Supabase -> preview / stage / publish
-AUCUN CSV A IMPORTER MANUELLEMENT.
+Patch V3.0.6 : correction du blocage catalogue AREDL (18 identifiants)
+
+Fichiers a remplacer :
+- tools/aredl_catalog_sync.py
+- .github/workflows/aredl-catalog-supabase.yml
+
+Fichiers a ajouter (facultatif) :
+- tests/test_aredl_catalog_sync.py
+
+Mode d'emploi : INSTALLATION-V3.0.6.md
+Aucun SQL ni drapeau PNG inclus. Pas d'ecriture dans le site public.

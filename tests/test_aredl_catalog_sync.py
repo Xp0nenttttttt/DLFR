@@ -53,4 +53,83 @@ class CatalogSyncTests(unittest.TestCase):
     def test_missing_secret_rejected(self):
         with self.assertRaises(ValueError): rpc('https://example.org','',[],False)
 
-if __name__=='__main__':unittest.main()
+
+class QuarantineReportsTests(unittest.TestCase):
+    @staticmethod
+    def sample():
+        return {'levels':[
+          {'id':'a1','position':1,'name':'Good A','level_id':111},
+          {'id':'a2','position':2,'name':'No ID'},
+          {'id':'a3','position':3,'name':'Collision A','level_id':333},
+          {'id':'a4','position':4,'name':'Collision B','level_id':333},
+          {'id':'a5','position':5,'name':'Good B','level_id':555},
+        ]}
+
+    def test_every_duplicate_is_quarantined_and_valid_kept(self):
+        rows, invalid = normalized_catalog(self.sample())
+        self.assertEqual([r['aredl_rank'] for r in rows], [1, 5])
+        self.assertEqual([r['aredl_rank'] for r in invalid], [2, 3, 4])
+        self.assertIn('absent', invalid[0]['reason'])
+        self.assertTrue(all(x['issue_type'] == 'duplicate' for x in invalid[1:]))
+
+    def test_reversed_catalog_same_result(self):
+        rows_a, invalid_a = normalized_catalog(self.sample())
+        rows_b, invalid_b = normalized_catalog({'levels':list(reversed(self.sample()['levels']))})
+        self.assertEqual(rows_a,rows_b)
+        self.assertEqual(invalid_a,invalid_b)
+
+    def test_main_publish_blocked_but_reports_written(self):
+        from aredl_catalog_sync import main
+        with tempfile.TemporaryDirectory() as d:
+            fixture = Path(d)/'api.json'
+            fixture.write_text(json.dumps(self.sample()), encoding='utf8')
+            out=Path(d)/'report'
+            with patch.object(sys,'argv',['sync','--mode','publish','--catalog-json',str(fixture),'--output',str(out)]),patch('aredl_catalog_sync.run') as mocked:
+                self.assertEqual(main(), 2)
+                mocked.assert_not_called()
+            self.assertTrue((Path(d)/'report.invalid.csv').exists())
+            self.assertEqual(json.loads((Path(d)/'report.json').read_text())['status'],'BLOCKED_REVIEW_REQUIRED')
+            self.assertEqual(len((Path(d)/'report.invalid.csv').read_text(encoding='utf-8-sig').splitlines()), 4)
+
+    def test_explicit_partial_publish_only_valid_rows(self):
+        from aredl_catalog_sync import main
+        with tempfile.TemporaryDirectory() as d:
+            fixture = Path(d)/'api.json'
+            fixture.write_text(json.dumps(self.sample()), encoding='utf8')
+            out=Path(d)/'report'
+            def fake_run(rows, mode, url, secret, batch_size):
+                self.assertEqual(mode, 'publish')
+                self.assertEqual([r['aredl_rank'] for r in rows], [1,5])
+                return {'scanned':len(rows),'staged':2,'created':2,'matched':0,'conflicts':0,'skipped':0, 'conflict_details':[]}
+            with patch.object(sys,'argv',['sync','--mode','publish','--catalog-json',str(fixture),'--output',str(out),'--allow-partial-publish']),patch('aredl_catalog_sync.run', side_effect=fake_run) as mocked:
+                self.assertEqual(main(),0)
+            self.assertEqual(mocked.call_count,1)
+            report=json.loads((Path(d)/'report.json').read_text())
+            self.assertEqual(report['status'],'COMPLETED_WITH_EXCEPTIONS')
+            self.assertEqual(report['invalid_count'],3)
+            self.assertEqual(report['created'],2)
+
+    def test_stage_valid_rows_with_exceptions(self):
+        from aredl_catalog_sync import main
+        with tempfile.TemporaryDirectory() as d:
+            fixture = Path(d)/'api.json'
+            fixture.write_text(json.dumps(self.sample()), encoding='utf8')
+            out=Path(d)/'report'
+            with patch.object(sys,'argv',['sync','--mode','stage','--catalog-json',str(fixture),'--output',str(out)]),patch('aredl_catalog_sync.run',return_value={'scanned':2,'staged':2,'created':0,'matched':0,'conflicts':0,'skipped':0,'conflict_details':[]}) as mocked:
+                self.assertEqual(main(),0)
+                self.assertEqual([x['aredl_rank'] for x in mocked.call_args.args[0]],[1,5])
+
+    def test_network_rpc_error_does_not_erase_diagnostic(self):
+        from aredl_catalog_sync import main
+        with tempfile.TemporaryDirectory() as d:
+            fixture = Path(d)/'api.json'
+            fixture.write_text(json.dumps(self.sample()), encoding='utf8')
+            out=Path(d)/'report'
+            with patch.object(sys,'argv',['sync','--mode','stage','--catalog-json',str(fixture),'--output',str(out)]),patch('aredl_catalog_sync.run',side_effect=RuntimeError('fake RPC fail')):
+                with self.assertRaisesRegex(RuntimeError,'fake RPC fail'):
+                    main()
+            self.assertEqual(json.loads((Path(d)/'report.json').read_text())['status'],'ERROR_DURING_IMPORT')
+            self.assertTrue((Path(d)/'report.invalid.csv').exists())
+
+if __name__ == "__main__":
+    unittest.main()
