@@ -479,3 +479,77 @@ html.unrated-mode .level-badge.unrated-badge{background:#54206e;color:#fff}
 .badge-catalog-category h4{margin-bottom:4px}
 .badge-locked{filter:saturate(.35);opacity:.66}
 .badge-locked .dlfr-badge-icon{font-weight:800}
+
+/* V2.8.1 — prestigieuses raretés. Compatible badges compacts V2.7.1/V2.8. */
+.dlfr-badge[data-rarity="legendaire"],
+.dlfr-badge[data-rarity="mythique"],
+.dlfr-badge[data-rarity="ultra"]{
+  border-width:1px;
+  transform:translateZ(0);
+}
+.dlfr-badge[data-rarity="legendaire"]{
+  --rare:247,183,75;
+  color:#fff5de;
+  background:linear-gradient(118deg,#38200f 0%,#84501c 30%,#c5882d 61%,#5c3216 100%);
+  border-color:#e9ba65;
+  box-shadow:inset 0 1px 0 rgba(255,241,187,.48),inset 0 -7px 12px rgba(63,26,7,.22),0 0 0 1px rgba(155,92,18,.32),0 3px 13px rgba(215,145,40,.24);
+}
+.dlfr-badge[data-rarity="legendaire"]::before{
+  content:"";position:absolute;inset:2px;border:1px solid rgba(255,227,147,.31);border-radius:6px;pointer-events:none;z-index:0;
+}
+.dlfr-badge[data-rarity="legendaire"] .dlfr-badge-icon{color:#ffe0a0;text-shadow:0 0 7px #ffd17b,0 0 15px rgba(243,166,65,.35)}
+.dlfr-badge[data-rarity="mythique"]{
+  --rare:232,128,243;
+  color:#fff2ff;
+  background:linear-gradient(122deg,#321044 0%,#712c97 31%,#b35dc8 58%,#49216f 83%,#281343 100%);
+  border-color:#f2afe9;
+  box-shadow:inset 0 1px 0 rgba(255,223,255,.38),0 0 0 1px rgba(167,91,232,.36),0 0 14px rgba(187,80,255,.42),0 0 23px rgba(113,44,210,.17);
+  animation:dlfrMythicAura 4.2s ease-in-out infinite;
+}
+.dlfr-badge[data-rarity="mythique"] .dlfr-badge-icon{color:#ffd2ff;text-shadow:0 0 8px #f5aaff,0 0 17px rgba(235,117,255,.72)}
+.dlfr-badge[data-rarity="mythique"]::after{z-index:1;animation:dlfrMythicSweep 7s ease-in-out infinite;background:linear-gradient(90deg,transparent,rgba(255,220,255,.34),transparent)}
+.dlfr-badge[data-rarity="ultra"]{
+  --rare:161,222,255;
+  color:#fff;
+  background:linear-gradient(115deg,#091631 0%,#254c83 23%,#67489c 47%,#9e6b54 70%,#182a52 100%);
+  border-color:#f5e6b3;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.7),inset 0 0 11px rgba(176,218,255,.23),0 0 0 1px rgba(222,193,255,.65),0 0 12px rgba(126,216,255,.75),0 0 29px rgba(172,100,255,.45),0 0 43px rgba(255,218,126,.17);
+  animation:dlfrUltraAura 3.6s ease-in-out infinite;
+}
+.dlfr-badge[data-rarity="ultra"]::before{
+  content:"";position:absolute;inset:2px;border:1px solid rgba(255,255,255,.68);border-radius:6px;pointer-events:none;z-index:0;
+  box-shadow:inset 0 0 9px rgba(133,218,255,.28);
+  animation:dlfrUltraEdge 5s linear infinite;
+}
+.dlfr-badge[data-rarity="ultra"]::after{
+  z-index:1;inset:-70% auto -70% -85%;width:35%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.08) 15%,rgba(255,255,255,.65) 50%,rgba(255,221,171,.18) 75%,transparent);
+  animation:dlfrUltraSweep 4.5s ease-in-out infinite;
+}
+.dlfr-badge[data-rarity="ultra"] .dlfr-badge-icon{
+  color:#fff5cf;text-shadow:0 0 5px #fff,0 0 10px #7cdeff,0 0 20px rgba(220,130,255,.8);
+}
+.dlfr-badge[data-rarity="ultra"] .dlfr-badge-name{letter-spacing:.055em;text-shadow:0 0 10px rgba(202,226,255,.58)}
+.dlfr-badge[data-rarity="ultra"] .dlfr-badge-meta,
+.dlfr-badge[data-rarity="mythique"] .dlfr-badge-meta,
+.dlfr-badge[data-rarity="legendaire"] .dlfr-badge-meta{color:rgba(255,255,255,.83);opacity:1}
+.dlfr-badge[data-rarity="ultra"] .dlfr-badge-copy,
+.dlfr-badge[data-rarity="mythique"] .dlfr-badge-copy,
+.dlfr-badge[data-rarity="legendaire"] .dlfr-badge-copy,
+.dlfr-badge[data-rarity="ultra"] .dlfr-badge-icon,
+.dlfr-badge[data-rarity="mythique"] .dlfr-badge-icon,
+.dlfr-badge[data-rarity="legendaire"] .dlfr-badge-icon{position:relative;z-index:2}
+.dlfr-badge[data-rarity="ultra"]:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 0 0 1px #ffe5a5,0 0 18px rgba(126,216,255,.9),0 0 39px rgba(172,100,255,.65)}
+@keyframes dlfrUltraAura{0%,100%{filter:brightness(1)}50%{filter:brightness(1.2)}}
+@keyframes dlfrUltraEdge{0%,100%{border-color:rgba(255,230,165,.8)}50%{border-color:rgba(147,224,255,.95)}}
+@keyframes dlfrUltraSweep{0%,23%{left:-85%;opacity:0}30%{opacity:1}63%,100%{left:165%;opacity:0}}
+@keyframes dlfrMythicAura{0%,100%{filter:brightness(1)}50%{filter:brightness(1.13)}}
+@keyframes dlfrMythicSweep{0%,30%{left:-90%}66%,100%{left:165%}}
+/* Les récompenses verrouillées restent sobres : pas de glow ni d'animation qui révèle leur prestige. */
+.dlfr-badge.badge-locked[data-rarity]{animation:none;filter:saturate(.35);opacity:.66;box-shadow:0 1px 5px rgba(0,0,0,.09)}
+.dlfr-badge.badge-locked::before,.dlfr-badge.badge-locked::after{animation:none;opacity:0}
+@media(prefers-reduced-motion:reduce){
+  .dlfr-badge[data-rarity="ultra"],.dlfr-badge[data-rarity="mythique"],
+  .dlfr-badge[data-rarity="ultra"]::before,.dlfr-badge[data-rarity="ultra"]::after,
+  .dlfr-badge[data-rarity="mythique"]::after{animation:none!important}
+}
