@@ -11,6 +11,14 @@ on:
         description: "Dernier rang AREDL (premier essai: 319)"
         required: true
         default: '319'
+      max_record_pages:
+        description: "Pages records par niveau (25 recommandé, maximum 200)"
+        required: true
+        default: '25'
+      existing_export_path:
+        description: "Facultatif : chemin d'un export JSON public des demons DLFR deja commite"
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -18,7 +26,7 @@ permissions:
 jobs:
   preview:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -30,23 +38,42 @@ jobs:
           key: aredl-nlw-details-${{ github.run_id }}
           restore-keys: |
             aredl-nlw-details-
-      - name: Generer l'apercu sans modifier la base
+      - name: Tests et vérification syntaxique
+        run: |
+          python -m unittest discover -s tests -p 'test_aredl_nlw_*.py' -v
+      - name: Apercu AREDL et plan d'import en attente (sans ecriture DB)
         env:
           START_RANK: ${{ inputs.start_rank }}
           END_RANK: ${{ inputs.end_rank }}
+          MAX_RECORD_PAGES: ${{ inputs.max_record_pages }}
+          EXISTING_EXPORT_PATH: ${{ inputs.existing_export_path }}
         run: |
-          python tools/aredl_nlw_sync.py \
-            --start-rank "$START_RANK" \
-            --end-rank "$END_RANK" \
-            --resolve-players \
-            --fetch-records \
-            --max-record-pages 4 \
-            --output out/aredl-nlw-review
-      - name: Joindre les resultats meme si une fiche echoue
+          set +e
+          ARGS=(--start-rank "$START_RANK" --end-rank "$END_RANK" \
+                --resolve-players --fetch-records --max-record-pages "$MAX_RECORD_PAGES" \
+                --output out/aredl-nlw-review)
+          if [[ -n "$EXISTING_EXPORT_PATH" ]]; then
+            if [[ ! -f "$EXISTING_EXPORT_PATH" ]]; then
+              echo "Export DLFR introuvable : $EXISTING_EXPORT_PATH"
+              exit 1
+            fi
+            ARGS+=(--existing-json "$EXISTING_EXPORT_PATH")
+          fi
+          python tools/aredl_nlw_sync.py "${ARGS[@]}"
+          SCAN_EXIT=$?
+          set -e
+          if [[ -f out/aredl-nlw-review.json ]]; then
+            python tools/aredl_nlw_stage_plan.py \
+              --input out/aredl-nlw-review.json \
+              --output out/aredl-nlw-stage
+          fi
+          # Si pagination incomplète, échouer après avoir généré l'artefact.
+          exit "$SCAN_EXIT"
+      - name: Joindre les resultats, y compris les anomalies
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: aredl-nlw-preview-${{ inputs.start_rank }}-${{ inputs.end_rank }}
-          path: out/aredl-nlw-review.*
+          path: out/aredl-nlw-*.*
           if-no-files-found: warn
           retention-days: 14

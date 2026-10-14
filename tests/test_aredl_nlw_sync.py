@@ -144,3 +144,26 @@ class TestNLW(unittest.TestCase):
         self.assertEqual(result['levels'][0]['verifiers'],[])
 
 if __name__ == '__main__':unittest.main()
+
+class TestPaginationV293(unittest.TestCase):
+    def test_more_than_four_pages(self):
+        class Fake:
+            def get(self,path):
+                page=int(path.split('page=')[1].split('&')[0])
+                return {"page":page,"pages":9,"data":{"data":[{"id":f"r{page}"}]}}
+        data,meta=a.fetch_record_pages(Fake(),'test',25)
+        self.assertEqual(len(data),9)
+        self.assertTrue(meta['complete'])
+        self.assertEqual(meta['total_pages'],9)
+
+    def test_page_error_preserves_previous_records_but_marks_incomplete(self):
+        class Fake:
+            def get(self,path):
+                page=int(path.split('page=')[1].split('&')[0])
+                if page==3: raise RuntimeError('temp API error')
+                return {"page":page,"pages":9,"data":{"data":[{"id":f"r{page}"}]}}
+        records,meta=a.fetch_record_pages(Fake(),'x',10)
+        self.assertEqual(len(records),2)
+        self.assertFalse(meta['complete'])
+        self.assertEqual(meta['pages_fetched'],2)
+        self.assertIn('Page 3',meta['error'])

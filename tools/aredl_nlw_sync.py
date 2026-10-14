@@ -323,34 +323,39 @@ def extract_one(item, detail, existing, resolve_player=None, extra_records=None)
 
 
 
-def fetch_record_pages(client, aredl_id, max_pages=4):
-    """Records non-verificateurs, du plus ancien au plus recent (AREDL).
+def fetch_record_pages(client, aredl_id, max_pages=25):
+    """Récupère toutes les pages dans la limite imposée, sans jeter les pages lues.
 
-    /levels/{id}/records renvoie un objet pagine ``{page,pages,count,data:{data:[...]}}``.
-    Si la limite est atteinte, ne jamais annoncer un import complet.
+    Une erreur sur une page ultérieure conserve les précédentes et force
+    complete=False. Aucun premier record ne pourra alors être publié comme sûr.
     """
-    if max_pages < 1:
-        raise ValueError("--max-record-pages doit etre >= 1")
+    if not 1 <= max_pages <= 200:
+        raise ValueError("--max-record-pages doit être entre 1 et 200")
     all_records = []
     known_pages = None
     for page in range(1, max_pages + 1):
         path = f"/levels/{quote(str(aredl_id), safe='')}/records?page={page}&per_page=100"
-        payload = client.get(path)
-        found = unwrap_collection(payload, ("data", "records", "results", "items"))
-        if found is None:
-            raise ValueError(f"Records AREDL: schema inattendu pour {path}")
-        if any(not isinstance(x, dict) for x in found):
-            raise ValueError(f"Records AREDL: objets invalides pour {path}")
+        try:
+            payload = client.get(path)
+            found = unwrap_collection(payload, ("data", "records", "results", "items"))
+            if found is None or any(not isinstance(x, dict) for x in found):
+                raise ValueError(f"Schéma records inattendu pour {path}")
+        except (HTTPError, URLError, ValueError, RuntimeError) as exc:
+            return all_records, {"complete": False, "pages_fetched": page-1,
+                                 "total_pages": known_pages,
+                                 "error": f"Page {page}: {exc}"}
         all_records.extend(found)
         pages = obj(payload).get("pages")
         if isinstance(pages, int) and not isinstance(pages, bool) and pages >= 0:
             known_pages = pages
             if page >= pages:
-                return all_records, {"complete": True, "pages_fetched": page, "total_pages": pages}
+                return all_records, {"complete": True, "pages_fetched": page,
+                                     "total_pages": pages, "error": None}
         elif len(found) < 100:
-            return all_records, {"complete": True, "pages_fetched": page, "total_pages": None}
+            return all_records, {"complete": True, "pages_fetched": page,
+                                 "total_pages": None, "error": None}
     return all_records, {"complete": False, "pages_fetched": max_pages,
-                         "total_pages": known_pages}
+                         "total_pages": known_pages, "error": None}
 
 
 def save_csv(path, rows):
@@ -385,6 +390,8 @@ def run(args, client):
         warnings.append(f"Rang 219 actuellement : {boundary['name']}. Pas de changement automatique de frontière.")
     selected = [x for x in listed if x["rank"] >= args.start_rank and (args.end_rank is None or x["rank"] <= args.end_rank)]
     existing = read_existing(args.existing_json)
+    if not args.existing_json:
+        warnings.append("Aucun export DLFR fourni : doublons avec les validations manuelles non vérifiés. Staging uniquement, sans publication.")
     rows, failures = [], []
     player_cache = {}
     players_lock = threading.Lock()
@@ -426,8 +433,8 @@ def run(args, client):
         result["records_complete"] = record_meta["complete"] if record_meta else None
         result["records_pages_fetched"] = record_meta["pages_fetched"] if record_meta else 0
         result["records_total_pages"] = record_meta["total_pages"] if record_meta else None
-        result["record_fetch_error"] = record_error
-        if record_error or (record_meta and not record_meta["complete"]):
+        result["record_fetch_error"] = record_error or (record_meta.get("error") if record_meta else None)
+        if result["record_fetch_error"] or (record_meta and not record_meta["complete"]):
             result["needs_review"] = True
         return result
     with ThreadPoolExecutor(max_workers=max(1, min(args.workers, 4))) as pool:
@@ -455,10 +462,14 @@ def run(args, client):
             seen[gid]["action"] = "CONFLICT_DUPLICATE_GD_ID"
         if gid:
             seen[gid] = row
+    is_anchor_valid = bool(anchor and anchor["rank"] == 219 and boundary and boundary["name"].strip().casefold() == "cobwebs")
+    incomplete = bool(failures or partial_records or fetch_errors or not is_anchor_valid)
     return {"generated_at": datetime.now(timezone.utc).isoformat(),
-            "status": "INCOMPLETE_REVIEW_REQUIRED" if failures or warnings else "PREVIEW_REVIEW_REQUIRED",
+            "status": "INCOMPLETE_REVIEW_REQUIRED" if incomplete else "PREVIEW_REVIEW_REQUIRED",
             "source": client.base, "scope": {"start_rank": args.start_rank, "end_rank": args.end_rank,
-            "countries": ["FR", "BE"], "mode": "preview_only"},
+            "countries": ["FR", "BE"], "mode": "preview_only",
+            "existing_export_supplied": bool(args.existing_json),
+            "anchor_verified": is_anchor_valid},
             "summary": {"levels": len(rows), "with_fr_be_verifier": sum(bool(x["verifiers"]) for x in rows),
             "with_first_dated_record": sum(x["first_fr_be"]["status"] == "first_dated_record" for x in rows),
             "manual_matches": sum(x["action"] == "MATCH_MANUAL_KEEP" for x in rows),
@@ -477,12 +488,12 @@ def main(argv=None):
     parser.add_argument("--resolve-players", action="store_true", help="Interroger /profile/{id} si le pays est inconnu ; signaler les cas non resolus")
     parser.add_argument("--records-url-template", help="Chemin validé pour les records, contenant {id} ; aucun endpoint deviné par défaut")
     parser.add_argument("--fetch-records", action="store_true", help="Lire /levels/{id}/records (victors, pagination incluse)")
-    parser.add_argument("--max-record-pages", type=int, default=4, help="Maximum de pages de 100 records par niveau, 4 par defaut")
+    parser.add_argument("--max-record-pages", type=int, default=25, help="Maximum de pages de 100 records par niveau, 25 par défaut (max 200)")
     parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--output", default="out/aredl-nlw-review")
     args = parser.parse_args(argv)
-    if args.max_record_pages < 1:
-        parser.error("--max-record-pages doit etre >= 1")
+    if not 1 <= args.max_record_pages <= 200:
+        parser.error("--max-record-pages doit être entre 1 et 200")
     if args.start_rank < 220 or (args.end_rank is not None and args.end_rank < args.start_rank):
         parser.error("Périmètre autorisé : rang AREDL >= 220 et end_rank >= start_rank")
     client = Client(args.base_url, args.cache_dir, args.offline)
@@ -494,7 +505,7 @@ def main(argv=None):
     print(json.dumps({"status": result["status"], **result["summary"], "warnings": result["warnings"],
                       "failures": len(result["failures"]), "files": [str(target.with_suffix('.json')), str(target.with_suffix('.csv'))]},
                      ensure_ascii=False, indent=2))
-    return 2 if result["failures"] else 0
+    return 2 if result["status"] == "INCOMPLETE_REVIEW_REQUIRED" else 0
 
 
 if __name__ == "__main__":
