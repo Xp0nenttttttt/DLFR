@@ -1,88 +1,10 @@
-name: AREDL – catalogue complet et preuves FR BE (lecture seule)
-
+# Synchronisation AREDL désactivée : DLFR passe en gestion manuelle.
+# Pas de schedule ni d'accès à l'API AREDL ou à Supabase.
+name: AREDL désactivé - aredl-nlw-review
 on:
   workflow_dispatch:
-    inputs:
-      scan_mode:
-        description: "catalog = rapide, niveaux seuls ; detailed = preuves FR/BE (plus lent)"
-        type: choice
-        options: [catalog, detailed]
-        default: catalog
-        required: true
-      start_rank:
-        description: "Premier rang AREDL (minimum 1)"
-        required: true
-        default: '1'
-      end_rank:
-        description: "Dernier rang AREDL (petits lots en mode detailed)"
-        required: true
-        default: '100'
-      max_record_pages:
-        description: "Pages de records par niveau en mode detailed (maximum 200)"
-        required: true
-        default: '25'
-      existing_export_path:
-        description: "Facultatif : chemin d'un export JSON des démons DLFR déjà commité"
-        required: false
-        default: ''
-
-permissions:
-  contents: read
-
 jobs:
-  preview:
+  disabled:
     runs-on: ubuntu-latest
-    timeout-minutes: 55
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - uses: actions/cache@v4
-        with:
-          path: .cache/aredl
-          key: aredl-v295-${{ github.run_id }}
-          restore-keys: |
-            aredl-v295-
-            aredl-nlw-details-
-      - name: Tests
-        run: |
-          python -m unittest discover -s tests -p 'test_aredl_nlw_*.py' -v
-      - name: Catalogue AREDL ou détails FR BE (aucune écriture SQL)
-        env:
-          SCAN_MODE: ${{ inputs.scan_mode }}
-          START_RANK: ${{ inputs.start_rank }}
-          END_RANK: ${{ inputs.end_rank }}
-          MAX_RECORD_PAGES: ${{ inputs.max_record_pages }}
-          EXISTING_EXPORT_PATH: ${{ inputs.existing_export_path }}
-        run: |
-          set +e
-          ARGS=(--start-rank "$START_RANK" --end-rank "$END_RANK" --output out/aredl-nlw-review)
-          if [[ "$SCAN_MODE" == "catalog" ]]; then
-            ARGS+=(--catalog-only)
-          else
-            ARGS+=(--resolve-players --fetch-records --max-record-pages "$MAX_RECORD_PAGES")
-          fi
-          if [[ -n "$EXISTING_EXPORT_PATH" ]]; then
-            if [[ ! -f "$EXISTING_EXPORT_PATH" ]]; then
-              echo "Export DLFR introuvable : $EXISTING_EXPORT_PATH"
-              exit 1
-            fi
-            ARGS+=(--existing-json "$EXISTING_EXPORT_PATH")
-          fi
-          python tools/aredl_nlw_sync.py "${ARGS[@]}"
-          SCAN_EXIT=$?
-          set -e
-          if [[ -f out/aredl-nlw-review.json ]]; then
-            python tools/aredl_nlw_stage_plan.py --input out/aredl-nlw-review.json \
-              --output out/aredl-nlw-stage
-          fi
-          exit "$SCAN_EXIT"
-      - name: Joindre les résultats et anomalies
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: aredl-preview-${{ inputs.scan_mode }}-${{ inputs.start_rank }}-${{ inputs.end_rank }}
-          path: out/aredl-nlw-*.*
-          if-no-files-found: warn
-          retention-days: 14
+      - run: echo "Synchronisation AREDL désactivée. Gérez les niveaux dans Modération sur la DLFR."

@@ -1,59 +1,10 @@
-name: AREDL - preuves France uniquement
+# Synchronisation AREDL désactivée : DLFR passe en gestion manuelle.
+# Pas de schedule ni d'accès à l'API AREDL ou à Supabase.
+name: AREDL désactivé - aredl-fr-evidence
 on:
   workflow_dispatch:
-    inputs:
-      start_rank:
-        description: 'Premier rang AREDL (1 à 1635+ )'
-        required: true
-        default: '1'
-        type: string
-      end_rank:
-        description: 'Dernier rang (max 40 niveaux par lancement)'
-        required: true
-        default: '20'
-        type: string
-      mode:
-        description: 'preview = rapport; stage = stocker en attente Supabase (jamais publier)'
-        type: choice
-        required: true
-        default: preview
-        options: [preview, stage]
-      max_record_pages:
-        description: 'Nombre maximum de pages de records par niveau'
-        required: true
-        default: '25'
-        type: string
-permissions:
-  contents: read
-concurrency:
-  group: dlfr-aredl-fr-evidence
-  cancel-in-progress: false
 jobs:
-  fetch:
+  disabled:
     runs-on: ubuntu-latest
-    timeout-minutes: 55
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Lire les preuves françaises et préparer le rapport
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          MODE: ${{ inputs.mode }}
-          START_RANK: ${{ inputs.start_rank }}
-          END_RANK: ${{ inputs.end_rank }}
-          MAX_RECORD_PAGES: ${{ inputs.max_record_pages }}
-        run: |
-          python tools/aredl_fr_evidence_sync.py --start-rank "$START_RANK" --end-rank "$END_RANK" \
-            --mode "$MODE" --max-record-pages "$MAX_RECORD_PAGES" --output out/aredl-fr-review
-      - name: Conserver les résultats
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: rapport-preuves-fr-${{ github.run_number }}
-          path: out/aredl-fr-review.*
-          if-no-files-found: warn
-          retention-days: 14
+      - run: echo "Synchronisation AREDL désactivée. Gérez les niveaux dans Modération sur la DLFR."

@@ -7,7 +7,7 @@ const safeUrl=v=>/^https:\/\//i.test(trim(v))?esc(trim(v)):'#';
 const slug=v=>trim(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,70);
 const row=(label,value)=>`<label class="field">${label}${value}</label>`;
 const button=(text)=>`<button class="btn" type="submit">${text}</button>`;
-const handles=t=>['prodPlayer','prodCompletion','prodClaim','prodClaimReview','selfCreatePlayer','submitRecord','prodReviewSubmission','prodBadgeManual','prodManageStaff','prodPublishAREDL','prodApproveFR','prodPublishAccepted'].includes(t);
+const handles=t=>['prodPlayer','prodCompletion','prodClaim','prodClaimReview','selfCreatePlayer','submitRecord','prodReviewSubmission','prodBadgeManual','prodManageStaff','prodPublishAccepted'].includes(t);
 const errorOf=r=>{if(r.error)throw Error(r.error.message);return r.data;};
 function claimSection(s){
  if(!s.session)return '';
@@ -107,7 +107,7 @@ function moderation(s){if(!s.staff)return '';
    </form></article>`;
  }).join(''):'<p class="muted">Aucune ancienne validation masquée.</p>'}
  <h3>Badges de classement (attribution manuelle)</h3><form data-form="prodBadgeManual"><label class="field">Joueur<select name="player_key">${selectPlayers}</select></label><label class="field">Badge<select name="badge_id"><option value="goat-pays">Le Goat tout simplement</option><option value="goat-region">Le Goat de ta région</option><option value="clash-clans">Clash of Clans</option></select></label>${row('Date d’obtention','<input type="date" name="obtained_at" required>')}${button('Attribuer définitivement')}</form>
- </section>${staffSection(s)}${stageSection(s)}`;
+ </section>${staffSection(s)}`;
 }
 async function send(db,type,f,submitter){
  const r=(method,args)=>db.rpc(method,args).then(errorOf);
@@ -117,10 +117,12 @@ async function send(db,type,f,submitter){
   return r('dlfr_set_moderator',{p_auth_user_id:f.auth_user_id,p_role:f.role,p_enabled:f.enabled==='yes'});
  }
  if(type==='prodApproveFR'){
+   throw Error('Import AREDL désactivé : utiliser la gestion manuelle des niveaux.');
    return r('dlfr_approve_fr_aredl',{p_aredl_id:f.aredl_id,
       p_position:f.position?Number(f.position):null,p_shift:f.shift==='yes'});
  }
  if(type==='prodPublishAREDL'){
+   throw Error('Import AREDL désactivé : utiliser la gestion manuelle des niveaux.');
   await r('dlfr_publish_staged_aredl_by_id',{p_aredl_id:f.aredl_id,
     p_position:f.position?Number(f.position):null,p_shift:f.shift==='yes',p_mode_override:f.variant_mode||null});
   return r('dlfr_approve_fr_aredl',{p_aredl_id:f.aredl_id,

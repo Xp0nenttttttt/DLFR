@@ -1,61 +1,10 @@
-name: AREDL - synchronisation globale Supabase
-
+# Synchronisation AREDL désactivée : DLFR passe en gestion manuelle.
+# Pas de schedule ni d'accès à l'API AREDL ou à Supabase.
+name: AREDL désactivé - aredl-catalog-supabase
 on:
   workflow_dispatch:
-    inputs:
-      mode:
-        description: 'preview = aperçu ; stage = table d’attente (aucune publication)'
-        type: choice
-        required: true
-        default: preview
-        options:
-          - preview
-          - stage
-      allow_partial_publish:
-        description: 'Option héritée inactive : aucune publication possible depuis ce workflow'
-        type: boolean
-        required: false
-        default: false
-  schedule:
-    - cron: '0 */6 * * *'  # Actualise uniquement la table d'attente, sans publier.
-
-permissions:
-  contents: read
-
-concurrency:
-  group: dlfr-aredl-global-sync
-  cancel-in-progress: false
-
 jobs:
-  sync:
+  disabled:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-    environment: aredl-import
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Tests de l'importateur
-        run: python -m unittest discover -s tests -p 'test_aredl_catalog_sync.py' -v
-      - name: Lire tout le catalogue AREDL et mettre à jour Supabase
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          USER_MODE: ${{ inputs.mode }}
-          EVENT_NAME: ${{ github.event_name }}
-          ALLOW_PARTIAL: ${{ inputs.allow_partial_publish }}
-        run: |
-          if [[ "$EVENT_NAME" == "schedule" ]]; then MODE=stage; else MODE="${USER_MODE:-preview}"; fi
-          echo "Mode : $MODE"
-          args=(--mode "$MODE" --output out/aredl-global)
-          python tools/aredl_catalog_sync.py "${args[@]}"
-      - name: Conserver le rapport de contrôle (sans secret)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: rapport-aredl-global-${{ github.run_number }}
-          path: out/aredl-global.*
-          if-no-files-found: warn
-          retention-days: 14
+      - run: echo "Synchronisation AREDL désactivée. Gérez les niveaux dans Modération sur la DLFR."
