@@ -1,22 +1,25 @@
-# DLFR — Statistiques joueurs et NLW réunifiée (patch V3.2)
+# DLFR — Crédits des niveaux et points NLW historiques
 
-À installer **après** `DLFR_correctif_profils_roles_moderation.zip` et ses correctifs SQL nécessaires. Patch frontal uniquement : `index.html` et `js/app.js`. Ne remplacez **pas** `js/production-tools.js` depuis une version plus ancienne.
+À installer **après** le patch `DLFR_correctif_stats_NLW_simplifiee.zip` et la migration de rôles 26 corrigée. Les nouveaux RPC sont réservés aux **owner / supermoderator / ancien editor**. Les modos classiques et NLW ne peuvent pas modifier les métadonnées ou publier un niveau.
 
-## Corrections
+## Problèmes corrigés
 
-1. **Statistiques :** les personnes présentes uniquement dans les crédits de création ou de publication, sans record, vérification ni points attestés dans les données chargées, ne figurent plus dans les classements joueurs/pays, le sélecteur de comparaison et la synthèse des badges. Les personnes qui sont **aussi** de vrais joueurs restent visibles, même sans compte Discord. Les noms des auteurs restent sur les fiches des niveaux. Aucun joueur ou record n'est supprimé de Supabase.
-2. **NLW :** suppression du quatrième onglet « Archives · hors Top 150 » et du lien indépendant du menu « Classements ». Les anciens niveaux historiquement hors Top 150 restent consultables **dans l'onglet NLW**, au même endroit que les vrais NLW publiés, via leurs fiches historiques. Les archives déjà présentes dans la liste NLW officielle sont dédoublonnées par GD ID ou nom.
-3. **Sécurité des scores :** les fiches historiques portent la mention « non homologuée NLW », et **ne donnent ni points, ni rang, ni badges NLW** tant qu'une validation officielle n'a pas eu lieu. Le compteur général utilise « NLW publiés » au lieu de compter des positions techniques masquées.
-4. Les anciennes URLs `?page=list&tab=archive` ouvrent désormais le listing NLW. Les liens de détail historiques `?page=archive&id=...` restent valides.
+- `AREDL` est généralement dans **« publié par » (`publisher`)**, tandis que le champ **« créé par » (`creator`)** peut être vide. Les deux sont désormais éditables dans **Modération → Niveaux**, avec sélection et préremplissage de la fiche existante.
+- **Récupérer depuis la sauvegarde** permet de compléter les champs vides / AREDL si `dlfr_legacy.level_links` contient une correspondance déjà validée. Cela ne remplace pas les crédits manuels.
+- Les anciens niveaux #151 et suivants sont aujourd'hui des **archives statiques**. Leur barème NLW est indiqué **à titre estimatif** sans leur donner automatiquement des points, des rangs ou des badges.
+- Dans **Modération → Niveaux → Homologuer un ancien niveau NLW**, les supermodos peuvent publier les fiches historiques déjà rapprochées, avec un rang NLW (151 = NLW #1). Le RPC réutilise le `demon_id` relié à la sauvegarde : ses complétions importées suivront la fiche et pourront donner des points NLW. Il ne fabrique pas de records.
 
-## Installation
+## Installation sûre
 
-1. Sauvegarder / faire un commit GitHub.
-2. Déposer `index.html` et `js/app.js` aux chemins correspondants, en conservant `js/history-archive.js` déjà installé.
-3. Attendre GitHub Pages, puis forcer le rafraîchissement (`Ctrl+F5`). Vérifier : Statistiques → Joueurs / Pays, NLW, recherche, et le profil de Rain.
+1. Sauvegarder Supabase, en particulier `demons`, `completions`, `dlfr_legacy.levels`, `dlfr_legacy.level_links`, `dlfr_level_archive_log`, et faire un commit GitHub.
+2. Exécuter `supabase/28_DIAGNOSTIC_NLW_HISTORIQUE_LECTURE_SEULE.sql` dans Supabase SQL Editor, vérifier que les niveaux voulus sont liés et que leurs records sont présents.
+3. Exécuter **une seule fois** `supabase/28_credits_et_homologation_nlw.sql` (définit trois RPC, ne publie rien immédiatement). Tester si possible dans un projet Supabase de test.
+4. Remplacer uniquement `js/app.js` depuis ce patch, publier GitHub Pages et faire `Ctrl+F5`. Ne pas remplacer la version plus récente de `js/production-tools.js`.
+5. Dans Modération → Niveaux : tester la modification des crédits d'un seul niveau. Puis homologuer **un seul ancien NLW**, choisir une position disponible, confirmer en saisissant `PUBLIER NLW`, et vérifier sa fiche et le rang/points NLW du joueur.
 
-**Pas de migration SQL**, aucune modification de `js/config.js`, `js/history-archive.js`, `assets/flags/`, Supabase, rôles ou permissions.
+## Précautions
 
-## Limites
-
-L'archive statique est une photographie de l'ancien site datée du 14/10/2026 ; elle ne constitue pas une NLW officielle. Les personnes dont l'unique performance se trouve sur une fiche importée encore masquée sans points ni record public peuvent nécessiter une vérification des migrations de records. Ce correctif n'invente aucune victoire.
+- L'ancien rang #151+ est un **rang historique**. Il sert de suggestion, pas de confirmation du rang NLW actuel. Si un rang est occupé, le RPC refuse sans décaler d'autres niveaux.
+- Si l'ancienne fiche n'est pas liée en base, la publication est refusée ; utiliser la migration V3.2 et vérifier les cas Solo/2P plutôt que de créer une fiche en double.
+- Si le joueur a encore 0 point après publication, examiner les records importés et les correspondances `demon_id`/`player`, sans inventer de victoires.
+- Les résultats SQL n'ont pas été exécutés sur ta base réelle. Ce patch n'inclut ni `assets/flags/`, ni `js/config.js`, ni synchronisation AREDL. Les crédits édités ne sont pas réécrits par l'import catalogue actuel lorsqu'il met à jour les fiches existantes.

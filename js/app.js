@@ -279,7 +279,7 @@ function archiveCardsHTML(rows){
  if(!rows.length)return '<div class="paper empty">Aucun niveau historique correspondant.</div>';
  return rows.map(d=>{
   const image=imageLink(d.thumbnail_url);
-  return `<article class="paper list-entry"><a href="${url('archive',{id:d.legacy_id})}" data-nav>${image?`<img loading="lazy" class="demon-thumb" src="${esc(image)}" alt="Miniature ${esc(d.name)}">`:`<div class="demon-thumb faux-thumb">${esc(d.name)}</div>`}</a><div><h2><a href="${url('archive',{id:d.legacy_id})}" data-nav>Ancien #${esc(d.old_position)} — ${esc(d.name)}</a></h2><div class="entry-meta">Vérifié par <b>${esc(d.verifier||'Non renseigné')}</b></div><p class="muted small">Fiche historique · non homologuée NLW · 0 point / 0 badge NLW</p></div></article>`;
+  return `<article class="paper list-entry"><a href="${url('archive',{id:d.legacy_id})}" data-nav>${image?`<img loading="lazy" class="demon-thumb" src="${esc(image)}" alt="Miniature ${esc(d.name)}">`:`<div class="demon-thumb faux-thumb">${esc(d.name)}</div>`}</a><div><h2><a href="${url('archive',{id:d.legacy_id})}" data-nav>Ancien #${esc(d.old_position)} — ${esc(d.name)}</a></h2><div class="entry-meta">Vérifié par <b>${esc(d.verifier||'Non renseigné')}</b></div><p class="muted small">Fiche historique · non homologuée NLW · barème indicatif ${fmt(V2.nlwPoints({position:Number(d.old_position)},100))} pt(s) à 100 % au rang ancien · non attribués</p></div></article>`;
  }).join('');
 }
 function archivePage(){
@@ -289,7 +289,7 @@ function archivePage(){
  const outside=Number(d.old_position)>150;
  const all=(HISTORY.records||[]).filter(r=>Number(r.legacy_id)===id);
  const img=imageLink(d.thumbnail_url);
- return `<div class="paper"><p><a href="${url('list',{tab:'nlw'})}" data-nav class="link">← Retour à la NLW</a></p><h1>${esc(d.name)}</h1><p class="notice">${outside?'Hors Top 150':'Ancien Top 150'} · rang de l’ancien site : #${esc(d.old_position)}. Fiche d’archive (instantané du 14 octobre 2026), sans effet sur les rangs ni les points de la DLFR actuelle.</p><div class="level-detail">${img?`<img class="demon-thumb" src="${esc(img)}" alt="Miniature ${esc(d.name)}">`:`<div class="demon-thumb faux-thumb">${esc(d.name)}</div>`}<div><p><b>GD ID :</b> ${esc(d.level_id||'—')}<br><b>Créateur :</b> ${esc(d.creator||'—')}<br><b>Publiant :</b> ${esc(d.publisher||'—')}<br><b>Vérificateur :</b> ${esc(d.verifier||'—')}<br><b>Minimum historique :</b> ${esc(d.requirement)}%</p>${http(d.video_url)?`<a class="btn" rel="noopener noreferrer" target="_blank" href="${esc(http(d.video_url))}">Vidéo historique ↗</a>`:''}</div></div><h2>Records de l’ancienne liste (${all.length})</h2>${all.length?all.map(r=>`<div class="record-row"><div><a class="link" data-nav href="${url('stats',{player:key(r.player)})}">${esc(r.player)}</a> — ${esc(r.progress)}% <span class="muted small">(date d'enregistrement : ${esc(plain(r.recorded_at).slice(0,10)||'inconnue')})</span></div>${http(r.video_url)?`<a target="_blank" rel="noopener noreferrer" class="link" href="${esc(http(r.video_url))}">Preuve ↗</a>`:''}</div>`).join(''):'<p class="muted">Aucun record archivé dans cet instantané.</p>'}</div>`;
+ return `<div class="paper"><p><a href="${url('list',{tab:'nlw'})}" data-nav class="link">← Retour à la NLW</a></p><h1>${esc(d.name)}</h1><p class="notice">${outside?'Hors Top 150':'Ancien Top 150'} · rang de l’ancien site : #${esc(d.old_position)}. Fiche d’archive (instantané du 14 octobre 2026), sans points officiels tant que la modération ne l’a pas publiée dans NLW.</p><div class="level-detail">${img?`<img class="demon-thumb" src="${esc(img)}" alt="Miniature ${esc(d.name)}">`:`<div class="demon-thumb faux-thumb">${esc(d.name)}</div>`}<div><p><b>GD ID :</b> ${esc(d.level_id||'—')}<br><b>Créateur :</b> ${esc(d.creator||'—')}<br><b>Publiant :</b> ${esc(d.publisher||'—')}<br><b>Vérificateur :</b> ${esc(d.verifier||'—')}<br><b>Minimum historique :</b> ${esc(d.requirement)}%</p>${http(d.video_url)?`<a class="btn" rel="noopener noreferrer" target="_blank" href="${esc(http(d.video_url))}">Vidéo historique ↗</a>`:''}</div></div><h2>Records de l’ancienne liste (${all.length})</h2>${all.length?all.map(r=>`<div class="record-row"><div><a class="link" data-nav href="${url('stats',{player:key(r.player)})}">${esc(r.player)}</a> — ${esc(r.progress)}% <span class="muted small">(date d'enregistrement : ${esc(plain(r.recorded_at).slice(0,10)||'inconnue')})</span></div>${http(r.video_url)?`<a target="_blank" rel="noopener noreferrer" class="link" href="${esc(http(r.video_url))}">Preuve ↗</a>`:''}</div>`).join(''):'<p class="muted">Aucun record archivé dans cet instantané.</p>'}</div>`;
 }
 function cardsHTML(demons){if(!demons.length)return '<div class="paper empty">Aucun niveau dans cette catégorie.</div>';
  return demons.map(d=>{const p=num(d.position),req=+d.requirement||100,isRank=p<=cfg().extended_limit;
@@ -473,6 +473,46 @@ function newsItemsHTML(items){return items.length?items.map(n=>`<article class="
 // Un champ de modération ne doit proposer que de vrais joueurs enregistrés.
 const playerOptions=()=>state.data.players.slice().sort((a,b)=>sortPlayerName(a).localeCompare(sortPlayerName(b),'fr')).map(x=>`<option value="${esc(x.player_key)}">${esc(sortPlayerName(x))}</option>`).join('');
 function submitRecordPage(){return `${templateNotice()}<section class="paper v2-page"><div class="v2-intro"><h1>Soumettre un record</h1><p>Propose un record pour un niveau présent ou absent de la Demonlist. S'il est nouveau, un modérateur choisira Rated ou UNRATED avant de l'ajouter.</p></div>${LIVE&&!state.session?'<div class="notice warning">Connecte-toi avec Discord dans Mon profil pour envoyer une soumission réelle.</div>':`<form data-form="submitRecord" class="submission-form"><label class="field">Niveau<input name="level_name" maxlength="120" required placeholder="Nom du niveau"></label><label class="field">ID Geometry Dash (facultatif)<input name="level_id" inputmode="numeric" maxlength="30" placeholder="Ex. 123456"></label><label class="field">Joueur ayant réalisé le record<input name="player" maxlength="120" required placeholder="Pseudo du joueur"></label><label class="field">Progression (%)<input name="progress" type="number" min="1" max="100" value="100" required></label><label class="field">Vidéo de preuve<input name="video_url" type="url" required placeholder="https://youtu.be/…"></label><label class="field">Créateur du niveau<input name="creator" maxlength="120" placeholder="Créateur"></label><label class="field">Publieur du niveau<input name="publisher" maxlength="120" required placeholder="Publieur"></label><label class="field">Vérificateur (si connu)<input name="verifier" maxlength="120"></label><label class="field">Rang suggéré (facultatif)<input name="suggested_position" type="number" min="1" placeholder="Par exemple 80"></label><p class="small muted">Pas besoin de décider Rated / UNRATED lors de la soumission : ce choix est réservé au modérateur lors de l'acceptation.</p><button type="submit" class="btn">Envoyer en modération</button></form>`}</section>`;}
+function levelCreditsEditor(){
+ const levels=(state.data.demons||[]).slice().sort((a,b)=>num(a.position)-num(b.position));
+ if(!levels.length)return '<p class="muted small">Aucun niveau public à éditer.</p>';
+ const selected=levels[0];
+ return `<div class="admin-card" data-admin-section="levels"><h3>Modifier les créateurs et publieurs des niveaux</h3>
+ <p class="small muted">Le nom affiché comme « publié par AREDL » vient du champ <code>publisher</code>, distinct du créateur. Ce formulaire modifie uniquement ces deux crédits, sans changer le niveau, sa position ou les records. Les corrections sont enregistrées dans Supabase et journalisées.</p>
+ <form data-form="levelCredits"><label class="field">Niveau public<select name="demon_id" id="levelCreditsSelect" required>${levels.map(d=>`<option value="${esc(d.id)}">${d.position>150?'NLW #'+esc(d.position-150):'#'+esc(d.position)} — ${esc(d.name)}</option>`).join('')}</select></label>
+ <label class="field">Créateur(s) (facultatif)<input name="creator" maxlength="200" id="levelCreditsCreator" value="${esc(selected.creator||'')}"></label>
+ <label class="field">Publié par (obligatoire)<input name="publisher" maxlength="200" id="levelCreditsPublisher" required value="${esc(selected.publisher||'')}"></label>
+ <div class="form-actions"><button class="btn" name="credits_action" value="save" type="submit">Enregistrer les crédits</button><button class="btn subtle" name="credits_action" value="recover" type="submit" formnovalidate>Récupérer depuis la sauvegarde (si disponible)</button></div>
+ <p class="small muted">La récupération remplit seulement les champs vides ou « AREDL » lorsqu’une correspondance ancienne a été confirmée en base. Elle ne remplace pas tes valeurs manuelles.</p></form></div>`;
+}
+function syncLevelCreditsEditor(){
+ const el=document.getElementById('levelCreditsSelect'),form=el?.closest('form');
+ if(!form)return;
+ const d=(state.data.demons||[]).find(x=>String(x.id)===el.value);
+ if(!d)return;
+ form.elements.creator.value=plain(d.creator);
+ form.elements.publisher.value=plain(d.publisher);
+}
+function historicNlwPublisher(){
+ const all=oldArchive();
+ const pubs=state.data.demons||[];
+ const unpublished=state.unpublishedAredlDemons||[];
+ const options=all.map(old=>{
+  const matching=pubs.some(x=>(plain(old.level_id)&&plain(x.level_id)===plain(old.level_id))||key(x.name)===key(old.name));
+  // Précaution côté interface seulement : l'identité est vérifiée une seconde fois côté SQL.
+  const hidden=unpublished.filter(x=>((plain(old.level_id)&&plain(x.level_id)===plain(old.level_id))||key(x.name)===key(old.name)));
+  return {old,matching,hidden: hidden.length===1};
+ }).filter(x=>!x.matching);
+ if(!options.length)return `<div class="admin-card" data-admin-section="levels"><h3>Homologuer un ancien niveau NLW</h3><p class="small muted">Tous les niveaux historiques hors Top 150 sont déjà présents dans la liste ou aucun n’est à homologuer.</p></div>`;
+ const first=options[0].old;
+ return `<div class="admin-card" data-admin-section="levels"><h3>Homologuer un ancien niveau NLW</h3>
+ <p class="small muted">Les archives sont consultables mais ne donnent pas de points. Après contrôle des records et du rang, publie la <b>fiche historique liée</b> dans la NLW officielle. Les victoires déjà importées sur cette fiche seront alors comptées automatiquement. Aucune victoire n’est créée par ce bouton.</p>
+ <form data-form="historicNlwPublish"><label class="field">Niveau historique<select name="legacy_id" id="historicNlwSelect" required>${options.map(({old,hidden})=>`<option value="${esc(old.legacy_id)}" data-old-position="${esc(old.old_position)}">Ancien #${esc(old.old_position)} — ${esc(old.name)}${hidden?'':' · fiche à rapprocher'}</option>`).join('')}</select></label>
+ <label class="field">Rang DLFR choisi (151 = NLW #1)<input type="number" id="historicNlwPosition" name="position" min="151" max="99999998" value="${esc(first.old_position)}" required></label>
+ <p class="small muted">Rang d’origine : uniquement une proposition. Si ce rang est déjà occupé, choisis un emplacement libre : aucune fiche n’est déplacée automatiquement. Vérifie le lien GD et les records avant publication.</p>
+ <label class="field">Confirmation<input name="confirmation" required placeholder="Écrire PUBLIER NLW" autocomplete="off"></label>
+ <button class="btn" type="submit">Publier dans NLW et activer le barème</button></form></div>`;
+}
 function adminPage(){if(LIVE&&!state.staff){
   // Être connecté via Discord et être autorisé à modérer sont deux contrôles séparés.
   // Ne pas demander un mot de passe à une personne déjà authentifiée.
@@ -489,6 +529,7 @@ function adminPage(){if(LIVE&&!state.staff){
    return `${templateNotice()}<div class="paper"><div class="admin-mode">Modération · ${state.staffRole==='nlw'?'NLW':'Top 150 + NLW'}</div><div class="row-between"><h1>Validation des complétions</h1><button class="btn subtle small" data-action="logout">Déconnexion</button></div><p class="muted">Les validations sont vérifiées côté serveur. Les nouveaux niveaux, rangs et contenus communautaires sont réservés à la supermodération.</p></div>${PROD.scopedReview(state)}`;
  }
  const players=playerOptions();return `${templateNotice()}<div class="paper"><div class="admin-mode">Modération connectée · changements sur Supabase</div><div class="row-between"><h1>Modération</h1><div><button class="btn subtle small" data-action="logout">Déconnexion</button></div></div><p class="muted">Le contrôle d’accès réel est assuré par les policies Supabase. Le journal des changements est automatique.</p></div>${LIVE?PROD.moderation(state):''}<div class="admin-workspace" data-role="${state.demoRole}"><div class="admin-nav" role="tablist" aria-label="Sections de modération">${[['overview','Vue d’ensemble'],['levels','Niveaux'],['news','Actualités'],['profiles','Profils'],['awards','Badges & Palmarès'],['achievements','Achievements FR'],['clans','Clans'],['safety','Sanctions'],['nlw','Modos NLW'],['audit','Journal']].map(([id,label])=>`<button type="button" role="tab" aria-selected="${state.adminTab===id}" class="${state.adminTab===id?'active':''}" data-admin-tab="${id}">${label}</button>`).join('')}</div><div class="admin-content"><div class="admin-intro ${state.adminTab==='overview'?'':'is-hidden'}"><h2>Tableau de bord</h2>${statsOverview()}<p class="muted">Choisis une rubrique pour ajouter ou modifier les informations de la Demonlist. Les changements réels demandent les permissions Supabase.</p></div><div class="moderation-sections" data-active-admin="${state.adminTab}">
+ ${levelCreditsEditor()}${historicNlwPublisher()}
  <div class="admin-card" data-admin-section="levels"><h3>Ajouter directement un niveau</h3><p class="small muted">Pour accepter une soumission, utilise le panneau ci-dessous. La liste est maintenant entièrement gérée par les modérateurs. Indique un rang : les niveaux Rated suivants seront décalés si nécessaire. Les UNRATED sont gérés séparément.</p><form data-form="demon"><label class="field">Réutiliser une fiche importée et masquée (facultatif)<select name="existing_demon_id"><option value="">Nouveau niveau</option>${(state.unpublishedAredlDemons||[]).filter(d=>!(state.data.dlfr_level_archive_log||[]).some(a=>!a.restored_at&&String(a.demon_id)===String(d.id))).map(d=>`<option value="${esc(d.id)}">#${esc(d.position)} — ${esc(d.name)} (GD ${esc(d.level_id||"?")})</option>`).join("")}</select></label><p class="small muted">Si le niveau existe déjà dans l’ancien catalogue AREDL masqué, sélectionne sa fiche ici pour éviter les doublons Solo/2P.</p><label class="field">Position dans la liste globale (151 = NLW #1)<input name="position" type="number" min="1" required></label><label class="field">Nom<input name="name" required maxlength="120"></label><label class="field">ID Geometry Dash<input name="level_id" inputmode="numeric" maxlength="30"></label><label class="field">Publié par<input name="publisher" required></label><label class="field">Vérifié par<input name="verifier"></label><label class="field">Créateur<input name="creator"></label><label class="field">Mode de complétion<select name="completion_mode"><option value="">Conserver le mode existant / Standard</option><option value="solo">Solo</option><option value="two_player">2-Player</option></select></label><label class="field">Vidéo de vérification (facultatif)<input name="verifier_video_url" type="url" placeholder="https://youtu.be/…"></label><label class="field">Miniature YouTube ou image (facultatif)<input name="thumbnail_url" type="url" placeholder="https://i.ytimg.com/vi/…/hqdefault.jpg"></label><label class="field">Progression minimum (%)<input name="requirement" type="number" min="1" max="100" value="100" required></label><label class="field"><input name="legacy" type="checkbox" style="width:auto"> A déjà appartenu au Top 150 (Legacy)</label><label class="field">Date de sortie de liste (si connue)<input name="legacy_since" type="date"></label><label class="field"><input type="checkbox" name="unrated"> Niveau UNRATED (position estimée en mode alternatif)</label><button class="btn">Ajouter le niveau</button><p class="small muted">Après le #150, le niveau rejoint la NLW avec ses points NLW séparés des points Main/Extended.</p></form></div>
  <div class="admin-card" data-admin-section="levels"><h3>Retirer ou restaurer un niveau</h3>
 <p class="small muted">Le retrait est réversible : la fiche disparaît du site, les records et les preuves restent enregistrés. Les rangs Rated suivants se referment. Pour éviter toute erreur, saisis le nom exact du niveau avant de confirmer.</p>
@@ -762,6 +803,27 @@ async function handleForm(form,submitter=null){if(state.busy)return;state.busy=t
  if(!state.staff)throw Error('Compte modérateur requis.');
  if(!LIVE&&state.demoRole==='nlw_editor'&&type!=='demon')throw Error('Le rôle NLW peut seulement ajouter des niveaux hors Top 150.');
  if(LIVE&&['clan','clanMember','safety','nlwStaff'].includes(type))throw Error('Nouvelle fonctionnalité en lecture seule : migration V2 Supabase non appliquée.');
+ if(type==='levelCredits'){
+  if(!LIVE||!hasFullStaffPowers())throw Error('Supermodérateur requis.');
+  const id=Number(f.demon_id);
+  if(!Number.isSafeInteger(id)||id<=0)throw Error('Niveau invalide.');
+  const recover=submitter?.value==='recover';
+  if(!recover && (!plain(f.publisher)||plain(f.publisher).length>200||plain(f.creator).length>200))throw Error('Publié par obligatoire (200 caractères maximum).');
+  const response=recover
+   ?await db.rpc('dlfr_restore_legacy_credits',{p_demon_id:id})
+   :await db.rpc('dlfr_update_level_credits',{p_demon_id:id,p_creator:plain(f.creator)||null,p_publisher:plain(f.publisher)});
+  if(response.error)throw Error(response.error.message);
+  await refreshLiveData();toast(recover?'Crédits récupérés depuis la sauvegarde.':'Crédits du niveau enregistrés.');render();return;
+ }
+ if(type==='historicNlwPublish'){
+  if(!LIVE||!hasFullStaffPowers())throw Error('Supermodérateur requis.');
+  if(plain(f.confirmation)!=='PUBLIER NLW')throw Error('Saisis exactement PUBLIER NLW pour confirmer.');
+  const legacyId=Number(f.legacy_id),position=Number(f.position);
+  if(!Number.isSafeInteger(legacyId)||legacyId<=0||!Number.isSafeInteger(position)||position<151||position>=99999999)throw Error('Identifiant historique ou rang NLW invalide.');
+  const {error}=await db.rpc('dlfr_publish_historic_nlw',{p_legacy_id:legacyId,p_position:position});
+  if(error)throw Error(error.message);
+  await refreshLiveData();toast('Niveau NLW publié. Les records déjà associés sont maintenant pris en compte.');render();return;
+ }
  if(type==='demon'){
   const pos=+f.position;if(!LIVE&&state.demoRole==='nlw_editor'&&pos<=150)throw Error('Un modérateur NLW ne peut gérer que les positions 151 et au-delà.');
   if(LIVE){
@@ -922,6 +984,8 @@ function bootEvents(){
  if(ev.target.id==='compareA'){state.selectedPlayer=ev.target.value;render();}
  if(ev.target.id==='compareB'){state.comparePlayer=ev.target.value;render();}
  if(ev.target.id==='profileEditorPlayer')fillProfileEditor();
+ if(ev.target.id==='levelCreditsSelect')syncLevelCreditsEditor();
+ if(ev.target.id==='historicNlwSelect'){const opt=ev.target.selectedOptions[0];const pos=document.getElementById('historicNlwPosition');if(opt&&pos)pos.value=opt.dataset.oldPosition||'151';}
  if(ev.target.id==='profileEditorCountry'||ev.target.id==='profileEditorRegion')syncRegionEditor();
  if(ev.target.id==='calcPlayer'){state.calcPlayer=ev.target.value;state.calcDemons=[];render();}
  if(ev.target.matches('[data-calc-demon]')){const id=+ev.target.dataset.calcDemon;state.calcDemons=ev.target.checked?[...new Set([...state.calcDemons,id])]:state.calcDemons.filter(x=>x!==id);render();}
