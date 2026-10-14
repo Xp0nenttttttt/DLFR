@@ -22,7 +22,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
-BASE = "https://api.aredl.net/v2/api"
+BASE = "https://api.aredl.net/v2/api/aredl"
 UA = "DLFR-NLW-Preview/1.0 (respectful read-only sync)"
 COUNTRIES = {"FR": "FR", "FRANCE": "FR", "FRA": "FR", "FRENCH": "FR",
              "BE": "BE", "BELGIUM": "BE", "BELGIQUE": "BE", "BEL": "BE", "BELGIAN": "BE"}
@@ -183,6 +183,13 @@ class Client:
                     file.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf8")
                 return payload
             except HTTPError as e:
+                if e.code == 404:
+                    raise RuntimeError(
+                        f"AREDL a renvoyé HTTP 404 pour {req.full_url}. "
+                        "La route semble incorrecte ou a changé. "
+                        "Vérifie la base AREDL dans le script et sa documentation : "
+                        "https://api.aredl.net/v2/docs"
+                    ) from e
                 if e.code not in (429, 500, 502, 503, 504) or attempt == 3:
                     raise
                 time.sleep(2 ** attempt * 3)
