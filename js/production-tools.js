@@ -7,7 +7,7 @@ const safeUrl=v=>/^https:\/\//i.test(trim(v))?esc(trim(v)):'#';
 const slug=v=>trim(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,70);
 const row=(label,value)=>`<label class="field">${label}${value}</label>`;
 const button=(text)=>`<button class="btn" type="submit">${text}</button>`;
-const handles=t=>['prodPlayer','prodCompletion','prodClaim','prodClaimReview','selfCreatePlayer','submitRecord','prodReviewSubmission','prodBadgeManual'].includes(t);
+const handles=t=>['prodPlayer','prodCompletion','prodClaim','prodClaimReview','selfCreatePlayer','submitRecord','prodReviewSubmission','prodBadgeManual','prodManageStaff','prodPublishAREDL'].includes(t);
 const errorOf=r=>{if(r.error)throw Error(r.error.message);return r.data;};
 function claimSection(s){
  if(!s.session)return '';
@@ -39,7 +39,40 @@ function claimSection(s){
  </section>`;
  return create+claim;
 }
-function moderation(s){if(!s.staff)return '';
+
+function staffSection(s){
+ if(s.staffRole!=='owner')return '';
+ const everyone=(s.data.staff_roles||[]).map(x=>`<span class="tag">${esc(x.auth_user_id)} — ${esc(x.role)}</span>`).join(' ')||'Aucun modérateur';
+ const nlw=(s.data.nlw_staff_roles||[]).map(x=>`<span class="tag">${esc(x.auth_user_id)} — NLW</span>`).join(' ')||'Aucun';
+ return `<section class="prod-panel"><h2>Gestion des modérateurs</h2><p class="small muted">Propriétaire uniquement. Le joueur doit s'être connecté une fois à Supabase Auth avec Discord. Copie son User UID dans Authentication → Users. N'utilise pas son pseudo.</p>
+ <form data-form="prodManageStaff" class="prod-staff-grid">
+ ${row('UID Supabase Auth','<input name="auth_user_id" required placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" pattern="[a-fA-F0-9-]{36}">')}
+ ${row('Équipe','<select name="role"><option value="editor">Modération générale</option><option value="nlw">Équipe NLW (sans droits de publication générale)</option></select>')}
+ ${row('Action','<select name="enabled"><option value="yes">Ajouter / attribuer</option><option value="no">Retirer ce rôle</option></select>')}
+ ${button('Enregistrer les permissions')}
+ </form>
+ <p class="small"><b>Modération générale :</b> ${everyone}</p><p class="small"><b>Équipe NLW :</b> ${nlw}</p>
+ <p class="small muted">Les permissions NLW spécifiques aux validations restent à finaliser. L'inscription dans l'équipe n'octroie pas de droits généraux.</p></section>`;
+}
+function stageSection(s){
+ if(!s.staff)return '';
+ const stages=(s.data.dlfr_aredl_level_stage||[]).filter(x=>x.review_state==='pending'||x.review_state==='approved');
+ const issues=(s.data.dlfr_aredl_level_stage||[]).filter(x=>x.review_state==='conflict').length;
+ const demons=s.data.demons||[];
+ const rendered=stages.sort((a,b)=>(a.review_state==='pending'?0:1)-(b.review_state==='pending'?0:1)||a.aredl_rank-b.aredl_rank).slice(0,100).map(x=>{
+  const existing=demons.find(d=>String(d.level_id||'').trim()===x.gd_level_id || String(d.aredl_id||'')===x.aredl_id);
+  const occupied=demons.find(d=>Number(d.position)===Number(x.aredl_rank));
+  return `<div class="prod-stage-entry"><div class="prod-stage-info"><strong>AREDL #${esc(x.aredl_rank)} · ${esc(x.aredl_name)}</strong><div class="small muted">GD ID : ${esc(x.gd_level_id)} · ${esc(x.evidence_state)} · ${existing?`Fiche DLFR existante : #${esc(existing.position)} (conservé)`:'Niveau non publié'} ${occupied&&!existing?' · Rang occupé':''}</div></div>
+  <form data-form="prodPublishAREDL"><input type="hidden" name="gd_level_id" value="${esc(x.gd_level_id)}">
+  ${row('Position DLFR initiale (si nouvelle fiche)',`<input name="position" type="number" min="1" max="99999998" value="${esc(x.aredl_rank)}" ${existing?'disabled':''} required>`)}
+  <label class="prod-checkbox"><input type="checkbox" name="shift" value="yes"> Décaler les niveaux suivants si la position est occupée (pour un nouveau niveau seulement)</label>
+  <button class="btn" type="submit">${existing?'Rapprocher / compléter la fiche':'Publier le niveau'}</button></form></div>`;
+ }).join('');
+ return `<section class="prod-panel"><h2>Import AREDL · validation avant publication</h2><p class="small muted">Ce panneau utilise la table d’attente Supabase. Le rang AREDL sert de position initiale, mais les prochaines synchronisations ne changent jamais la position DLFR. Aucune victoire n'est créée depuis ce bouton. ${issues?'Conflits signalés : '+issues+'.':''}</p>
+ ${s.data.aredlStageError?`<p class="notice warning">Table d'attente inaccessible : ${esc(s.data.aredlStageError)}</p>`:''}
+ <div class="prod-stage-table">${rendered||'<p class="muted">Aucune fiche AREDL en attente. Lance d’abord le SQL de pré-import.</p>'}</div></section>`;
+}
+function moderation(s){if(!s.staff)return ''; 
  const players=(s.data.players||[]).slice().sort((a,b)=>String(a.display_name||a.username).localeCompare(String(b.display_name||b.username)));
  const demons=(s.data.demons||[]).slice().sort((a,b)=>Number(a.position)-Number(b.position));
  const selectPlayers=players.map(p=>`<option value="${esc(p.player_key)}">${esc(p.display_name||p.username)} (${esc(p.player_key)})</option>`).join('');
@@ -50,13 +83,21 @@ function moderation(s){if(!s.staff)return '';
  <div class="prod-grid"><form data-form="prodPlayer"><h3>Créer une fiche joueur</h3>${row('Pseudo Geometry Dash','<input name="username" required minlength="2" maxlength="70">')}${row('Nom affiché (facultatif)','<input name="display_name" maxlength="80">')}${row('Pays','<select name="country_code"><option value="">Inconnu</option><option value="FR">France</option><option value="BE">Belgique</option><option value="CH">Suisse</option><option value="CA">Canada</option></select>')}${button('Créer la fiche')}</form>
  <form data-form="prodCompletion"><h3>Attribuer une victoire</h3>${row('Joueur','<select name="player_key" required>'+selectPlayers+'</select>')}${row('Niveau','<select name="demon_id" required>'+selectDemons+'</select>')}${row('Preuve vidéo (facultative)','<input name="video_url" type="url" maxlength="1000" placeholder="https://…">')}${row('Date réelle (facultative)','<input name="achieved_at" type="date">')}<p class="small muted">Une seule victoire par joueur et niveau. Si elle existe déjà, ses preuves ne sont pas écrasées.</p>${button('Attribuer 100 %')}</form></div>
  <h3>Demandes de liaison Discord / Geometry Dash (${claims.length})</h3>${claims.length?claims.map(x=>`<article class="prod-review"><strong>${esc(x.player_key)}</strong><p class="small">Utilisateur Auth : ${esc(x.auth_user_id)}</p><p class="small">${esc(x.note)}</p><a href="${safeUrl(x.proof_url)}" target="_blank" rel="noopener noreferrer">Examiner la preuve ↗</a><form data-form="prodClaimReview"><input type="hidden" name="request_id" value="${esc(x.id)}"><button class="btn" name="approve" value="yes">Approuver</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form></article>`).join(''):'<p class="muted">Aucune demande.</p>'}
- <h3>Soumissions à modérer (${subs.length})</h3>${subs.length?subs.map(x=>{const existing=demons.find(d=>x.level_id&&String(d.level_id)===String(x.level_id))||demons.find(d=>d.name.toLowerCase()===x.level_name.toLowerCase());return `<article class="prod-review"><strong>${esc(x.level_name)}</strong> · ${esc(x.player)} (${esc(x.progress)} %)<p><a href="${safeUrl(x.video_url)}" target="_blank" rel="noopener noreferrer">Preuve ↗</a>${existing?' · Fiche existante #'+esc(existing.id):' · Nouveau niveau'}</p><form data-form="prodReviewSubmission"><input type="hidden" name="request_id" value="${esc(x.id)}">${existing?'':row('Statut du niveau','<select name="rating"><option value="rated">Rated</option><option value="unrated">UNRATED</option></select>')}${existing?'':row('Position libre (Rated) / position estimée (UNRATED)','<input name="position" type="number" min="1" required>')}<button class="btn" name="approve" value="yes">Valider</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form></article>`;}).join(''):'<p class="muted">Aucune soumission.</p>'}
+ <h3>Soumissions à modérer (${subs.length})</h3>${subs.length?subs.map(x=>{const existing=demons.find(d=>x.level_id&&String(d.level_id)===String(x.level_id))||demons.find(d=>d.name.toLowerCase()===x.level_name.toLowerCase());return `<article class="prod-review"><strong>${esc(x.level_name)}</strong> · ${esc(x.player)} (${esc(x.progress)} %)<p><a href="${safeUrl(x.video_url)}" target="_blank" rel="noopener noreferrer">Preuve ↗</a>${existing?' · Fiche existante #'+esc(existing.id):' · Nouveau niveau'}</p><form data-form="prodReviewSubmission"><input type="hidden" name="request_id" value="${esc(x.id)}">${existing?'':row('Statut du niveau','<select name="rating"><option value="rated">Rated</option><option value="unrated">UNRATED</option></select>')}${existing?'':row('Position choisie (Rated : décalage des suivants) / position estimée (UNRATED)','<input name="position" type="number" min="1" required>')}<button class="btn" name="approve" value="yes">Valider</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form></article>`;}).join(''):'<p class="muted">Aucune soumission.</p>'}
  <h3>Badges de classement (attribution manuelle)</h3><form data-form="prodBadgeManual"><label class="field">Joueur<select name="player_key">${selectPlayers}</select></label><label class="field">Badge<select name="badge_id"><option value="goat-pays">Le Goat tout simplement</option><option value="goat-region">Le Goat de ta région</option><option value="clash-clans">Clash of Clans</option></select></label>${row('Date d’obtention','<input type="date" name="obtained_at" required>')}${button('Attribuer définitivement')}</form>
- </section>`;
+ </section>${staffSection(s)}${stageSection(s)}`;
 }
 async function send(db,type,f,submitter){
  const r=(method,args)=>db.rpc(method,args).then(errorOf);
  const yes=submitter?.value==='yes';
+ if(type==='prodManageStaff'){
+  if(!/^[a-f0-9]{8}-[a-f0-9-]{27}$/i.test(f.auth_user_id||''))throw Error('UID Supabase Auth invalide');
+  return r('dlfr_set_moderator',{p_auth_user_id:f.auth_user_id,p_role:f.role,p_enabled:f.enabled==='yes'});
+ }
+ if(type==='prodPublishAREDL'){
+  return r('dlfr_publish_staged_aredl',{p_gd_level_id:f.gd_level_id,
+    p_position:f.position?Number(f.position):null,p_shift:f.shift==='yes'});
+ }
  if(type==='prodPlayer'){
   const name=trim(f.username),key=slug(name);if(!key||name.length<2)throw Error('Pseudo invalide');
   if(!['','FR','BE','CH','CA'].includes(f.country_code))throw Error('Pays invalide');

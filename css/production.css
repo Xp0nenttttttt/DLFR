@@ -1,5 +1,5 @@
 /* Production tools V3.0. Styles limités aux nouvelles interfaces. */
-.prod-panel{background:var(--paper,#fff);border:1px solid rgba(111,132,170,.25);border-radius:16px;margin:20px 0;padding:22px}
+.prod-panel{background:var(--card,#fff);color:var(--ink,#17212e);border:1px solid rgba(111,132,170,.25);border-radius:16px;margin:20px 0;padding:22px}
 .prod-panel h2{margin-top:0}
 .prod-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:14px 0 24px}
 .prod-grid form,.prod-review{padding:16px;border-radius:12px;border:1px solid rgba(125,136,155,.2);background:rgba(125,137,165,.06)}
@@ -15,3 +15,33 @@
 .prod-create-player .field:first-child,.prod-create-player>p,.prod-create-player>button{grid-column:1/-1}
 .prod-create-player .field{min-width:0}
 @media(max-width:720px){.prod-create-player{grid-template-columns:1fr}}
+
+/* V3.0.4 — Les panneaux de production héritent de TOUS les thèmes DLFR. */
+.prod-panel,.prod-grid form,.prod-review{color:var(--ink,#17212e);border-color:var(--border,var(--line,#bbc3ce))}
+.prod-grid form,.prod-review{background:var(--panel,var(--card,#fff))}
+.prod-panel .field,.prod-panel label,.prod-panel h2,.prod-panel h3{color:var(--ink,#17212e)}
+.prod-panel input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not([type="submit"]),
+.prod-panel select,.prod-panel textarea{display:block;box-sizing:border-box;width:100%;min-width:0;
+ padding:10px 11px;margin:6px 0 12px;border:1px solid var(--border,var(--line,#ccd3dd));
+ background:var(--card,#fff);color:var(--ink,#17212e);border-radius:7px;color-scheme:inherit}
+.prod-panel input::placeholder,.prod-panel textarea::placeholder{color:var(--muted,#7a8492)}
+html.dark .prod-panel,html.midnight .prod-panel{color-scheme:dark}
+html.dark .prod-panel input,html.dark .prod-panel select,html.dark .prod-panel textarea,
+html.midnight .prod-panel input,html.midnight .prod-panel select,html.midnight .prod-panel textarea{
+ background:var(--card);color:var(--ink);border-color:var(--border)}
+.prod-panel form{min-width:0}.prod-review{overflow-wrap:anywhere}
+.prod-staff-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px}
+.prod-staff-grid>.field:first-child,.prod-staff-grid>.field:last-of-type{grid-column:1/-1}
+.prod-stage-table{max-height:520px;overflow:auto;overscroll-behavior:contain}
+.prod-stage-entry{padding:13px;border:1px solid var(--border,var(--line));background:var(--panel);margin-bottom:12px;border-radius:10px}
+.prod-stage-entry .prod-stage-info{margin-bottom:8px;overflow-wrap:anywhere}
+.prod-stage-entry form{display:flex;align-items:end;gap:12px;flex-wrap:wrap}
+.prod-stage-entry .field{flex:1 1 150px;min-width:125px}
+.prod-stage-entry .prod-checkbox{flex:1 1 260px;font-size:.9rem}
+.prod-checkbox input{width:auto;display:inline;vertical-align:middle}
+@media(max-width:720px){.prod-staff-grid{grid-template-columns:1fr}}
+
+.prod-proof-media{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px;margin:20px 0}
+.prod-proof-card{border:1px solid var(--border,var(--line));background:var(--panel);color:var(--ink);border-radius:12px;overflow:hidden;padding:12px}
+.prod-proof-card img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;border-radius:7px;background:var(--card)}
+.prod-proof-card h3{margin:9px 0 3px;font-size:.95rem}.prod-proof-card p{font-size:.83rem;color:var(--muted);margin:5px 0}

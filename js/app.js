@@ -27,7 +27,7 @@ const livePublicTables=['fr_achievements','clans','clan_members','aredl_levels',
 const livePrivateTables=['profile_claim_requests','level_submissions','clan_invites','clan_requests','player_profile_owners'];
 const liveStaffTables=['player_sanctions','community_audit_log'];
 const tables = ['site_settings','players','demons','completions','news_items','profile_titles','player_profile_titles','player_profiles','hall_of_fame','player_stat_snapshots','demon_position_history'];
-let db = null, state = { data:null, staff:false, session:null, country:'MONDE', region:'ALL', selectedPlayer:'', list:'main', keyword:'', busy:false, statsTab:'players', statsYear:'all', comparePlayer:'', profileTab:'overview', newsFilter:'all', newsSearch:'', adminTab:'overview', editingNews:null, unrated:false, calcPlayer:'', calcDemons:[], calcNlw:false, unbeatSearch:'', unbeatLimit:120, communityExcel:{status:'loading',items:[],message:'',offline:false}, demoRole:'owner', demoActor:'spleen', selectedClan:1, clanSort:'points', clanSearch:'', clanDetailTab:'overview', ownKey:null, ownAccountMessage:'' };
+let db = null, state = { data:null, staff:false, staffRole:null, session:null, country:'MONDE', region:'ALL', selectedPlayer:'', list:'main', keyword:'', busy:false, statsTab:'players', statsYear:'all', comparePlayer:'', profileTab:'overview', newsFilter:'all', newsSearch:'', adminTab:'overview', editingNews:null, unrated:false, calcPlayer:'', calcDemons:[], calcNlw:false, unbeatSearch:'', unbeatLimit:120, communityExcel:{status:'loading',items:[],message:'',offline:false}, demoRole:'owner', demoActor:'spleen', selectedClan:1, clanSort:'points', clanSearch:'', clanDetailTab:'overview', ownKey:null, ownAccountMessage:'' };
 const el = document.getElementById('app');
 const $ = id => document.getElementById(id);
 const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -69,6 +69,24 @@ async function uploadNewsImage(file){
  const {data}=db.storage.from('demonlist-news').getPublicUrl(path);
  return data.publicUrl;
 }
+function productionProofMedia(d){
+  const items=[];
+  function add(title,name,link,stored,when){
+    const v=http(link);if(!v)return;
+    let thumbnail=imageLink(stored);
+    if(!thumbnail){
+      try{const u=new URL(v);const host=u.hostname.toLowerCase().replace(/^www\./,'');
+        let id=host==='youtu.be'?u.pathname.slice(1).split('/')[0]:'';
+        if(['youtube.com','m.youtube.com'].includes(host)) id=u.pathname==='/watch'?(u.searchParams.get('v')||''):u.pathname.split('/')[2]||'';
+        if(/^[\w-]{11}$/.test(id))thumbnail=`https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+      }catch{}
+    }
+    items.push(`<article class="prod-proof-card">${thumbnail?`<a target="_blank" rel="noopener noreferrer" href="${esc(v)}"><img loading="lazy" src="${esc(thumbnail)}" alt="Miniature vidéo : ${esc(title)}"></a>`:''}<h3>${esc(title)}</h3><p>${esc(name||'Identité inconnue')}${when?' · '+esc(date(when)):''}</p><a class="link" href="${esc(v)}" target="_blank" rel="noopener noreferrer">Voir la preuve vidéo ↗</a></article>`);
+  }
+  add('Vidéo de vérification',d.verifier,d.verifier_video_url,d.thumbnail_url,null);
+  add('Plus ancien record FR/BE daté disponible',d.first_frbe_player,d.first_frbe_video_url,null,d.first_frbe_achieved_at);
+  return items.length?`<section class="prod-proof-media" aria-label="Preuves vidéo AREDL">${items.join('')}</section>`:'';
+}
 const flag = code => GEO?.countryImage(code) || '';
 const regionFor = p=> p?.country_code==='FR' ? (state.data.player_profiles.find(x=>x.player_key===p.player_key)?.region_code||'') : '';
 const regionFlag = p=>GEO?.regionImage(regionFor(p))||'';
@@ -109,6 +127,11 @@ async function refreshLiveData(){
  state.data=Object.fromEntries(tables.map((t,i)=>[t,base[i]]));
  for(const t of v2Tables)state.data[t]=[];
  for(const t of [...livePublicTables,...(state.session?livePrivateTables:[]),...(state.staff?liveStaffTables:[])])state.data[t]=await readAll(t);
+ if(state.staff){
+  for(const t of ['staff_roles','nlw_staff_roles','dlfr_aredl_level_stage']){
+   try{state.data[t]=await readAll(t);}catch(error){state.data[t]=[]; if(t==='dlfr_aredl_level_stage')state.data.aredlStageError=error.message;}
+  }
+ }
  for(const t of ['badge_awards','profile_claim_requests','player_profile_owners','level_submissions','clan_invites','clan_requests','player_sanctions','community_audit_log'])if(!Array.isArray(state.data[t]))state.data[t]=[];
  // Badges : les attributions persistantes Supabase ne doivent jamais être effacées par la migration de démonstration.
  state.data.badge_catalog_version=28;
@@ -130,10 +153,10 @@ async function load(){
 }
 async function checkStaff(){
  if(!LIVE)return;
- state.staff=false;
+ state.staff=false;state.staffRole=null;
  if(!state.session)return;
  const {data,error}=await db.from('staff_roles').select('role').eq('auth_user_id',state.session.user.id).maybeSingle();
- if(!error && data)state.staff=['editor','owner'].includes(data.role);
+ if(!error && data){state.staffRole=data.role;state.staff=['editor','owner'].includes(data.role);}
 }
 async function checkSelfOwner(){
  state.ownKey=null;state.ownAccountMessage='';
@@ -360,7 +383,7 @@ function rankRows(users,chosen){return users.length?users.map(p=>`<button type="
 function demonPage(){const id=+(new URLSearchParams(location.search)).get('id'),d=catalog().find(x=>+x.id===id);if(!d)return '<div class="center-panel">Niveau introuvable.</div>';
  const recs=state.data.completions.filter(c=>+c.demon_id===id).sort((a,b)=>+b.progress - +a.progress);
  const thumb=http(d.thumbnail_url)|| (plain(d.thumbnail_url).startsWith('assets/')?d.thumbnail_url:'');
- return `${templateNotice()}<div class="paper"><p><a href="${url('list')}" data-nav class="link">← Retour à la liste</a></p><h1>#${d.position} - ${esc(d.name)}</h1><div class="level-detail">${thumb?`<img class="demon-thumb" style="width:100%;height:auto" src="${esc(thumb)}" alt="Miniature">`:'<div class="demon-thumb faux-thumb" style="width:100%">'+esc(d.name)+'</div>'}<div><p>Publié par <b>${esc(d.publisher)}</b><br>Vérifié par <b>${esc(d.verifier||'-')}</b><br>Créé par <b>${esc(d.creator||'-')}</b></p><p><b>Rang :</b> #${d.position} · <b>Minimum :</b> ${d.requirement}%</p><p class="small">${+d.position>cfg().extended_limit?'NLW : '+fmt(nlwPoints(d))+' points NLW':fmt(score(d,100))+' points (100%)'}</p><div class="level-status">${+d.position>cfg().extended_limit?'<span class="level-badge outside">NLW #'+V2.nlwRank(d)+'</span>':''}${d.unrated?'<span class="level-badge unrated-badge">UNRATED</span>':''}${d.legacy?'<span class="level-badge legacy">Legacy · ancien Top 150</span>':''}</div>${http(d.video_url)?`<a class="btn" target="_blank" rel="noopener noreferrer" href="${esc(http(d.video_url))}">Regarder la vidéo ↗</a>`:''}</div></div><hr class="divider">${window.DLFR_NLW_MEDIA?.renderForLevel(d,esc)||''}<p>${esc(d.description||'')}</p><h2>Records (${recs.length})</h2>${recs.length?recs.map(r=>`<div class="record-row"><div><a class="link" data-nav href="${url('stats',{player:key(r.player)})}">${esc(r.player)}</a> — ${esc(r.progress)}%</div>${http(r.video_url)?`<a target="_blank" rel="noopener noreferrer" class="link" href="${esc(http(r.video_url))}">Vidéo ↗</a>`:''}</div>`).join(''):'<p class="empty">Aucun record enregistré.</p>'}</div>`;
+ return `${templateNotice()}<div class="paper"><p><a href="${url('list')}" data-nav class="link">← Retour à la liste</a></p><h1>#${d.position} - ${esc(d.name)}</h1><div class="level-detail">${thumb?`<img class="demon-thumb" style="width:100%;height:auto" src="${esc(thumb)}" alt="Miniature">`:'<div class="demon-thumb faux-thumb" style="width:100%">'+esc(d.name)+'</div>'}<div><p>Publié par <b>${esc(d.publisher)}</b><br>Vérifié par <b>${esc(d.verifier||'-')}</b><br>Créé par <b>${esc(d.creator||'-')}</b></p><p><b>Rang :</b> #${d.position} · <b>Minimum :</b> ${d.requirement}%</p><p class="small">${+d.position>cfg().extended_limit?'NLW : '+fmt(nlwPoints(d))+' points NLW':fmt(score(d,100))+' points (100%)'}</p><div class="level-status">${+d.position>cfg().extended_limit?'<span class="level-badge outside">NLW #'+V2.nlwRank(d)+'</span>':''}${d.unrated?'<span class="level-badge unrated-badge">UNRATED</span>':''}${d.legacy?'<span class="level-badge legacy">Legacy · ancien Top 150</span>':''}</div>${http(d.video_url)?`<a class="btn" target="_blank" rel="noopener noreferrer" href="${esc(http(d.video_url))}">Regarder la vidéo ↗</a>`:''}</div></div><hr class="divider">${productionProofMedia(d)||window.DLFR_NLW_MEDIA?.renderForLevel(d,esc)||''}<p>${esc(d.description||'')}</p><h2>Records (${recs.length})</h2>${recs.length?recs.map(r=>`<div class="record-row"><div><a class="link" data-nav href="${url('stats',{player:key(r.player)})}">${esc(r.player)}</a> — ${esc(r.progress)}%</div>${http(r.video_url)?`<a target="_blank" rel="noopener noreferrer" class="link" href="${esc(http(r.video_url))}">Vidéo ↗</a>`:''}</div>`).join(''):'<p class="empty">Aucun record enregistré.</p>'}</div>`;
 }
 function newsPage(){const all=[...state.data.news_items].filter(x=>x.is_published||state.staff).sort((a,b)=>(+(!!b.is_pinned)-+(!!a.is_pinned))||new Date(b.created_at)-new Date(a.created_at));
  const items=all.filter(n=>(state.newsFilter==='all'||getNewsCategory(n)===state.newsFilter)&&`${key(n.headline)} ${key(n.body)} ${key(n.player_name)}`.includes(key(state.newsSearch)));
@@ -373,7 +396,7 @@ function submitRecordPage(){return `${templateNotice()}<section class="paper v2-
 function adminPage(){if(LIVE&&!state.staff){return `<div class="paper"><h1>Modération</h1><p class="muted">Les rôles sont validés par Supabase Auth et les règles RLS, pas par le navigateur.</p><form data-form="login"><label class="field">Adresse e-mail<input name="email" type="email" required autocomplete="email"></label><label class="field">Mot de passe<input name="password" type="password" required autocomplete="current-password"></label><div class="form-actions"><button class="btn">Connexion</button>${state.session?'<button type="button" class="btn subtle" data-action="logout">Déconnexion</button>':''}</div></form>${state.session?'<p class="notice warning">Ce compte n’a pas encore le rôle de modérateur. Celui-ci doit être attribué par un propriétaire depuis Supabase.</p>':''}</div>`;}
  if(!LIVE&&!state.staff)return `<div class="paper"><h1>Laboratoire de modération</h1><p>Cette démonstration sauvegarde tes essais <b>uniquement dans le navigateur</b> et n’a aucun effet sur le site original.</p><button class="btn" data-action="demoStaff">Activer la simulation modérateur</button></div>`;
  const players=playerOptions();return `${templateNotice()}<div class="paper"><div class="admin-mode">${LIVE?'Modération connectée · changements sur Supabase':'Laboratoire local · aucune modification de la base de données'}</div><div class="row-between"><h1>Modération</h1><div>${!LIVE?'<button class="btn subtle small" data-action="resetDemo">Réinitialiser démo</button>':'<button class="btn subtle small" data-action="logout">Déconnexion</button>'}</div></div>${!LIVE?`<label class="field" style="max-width:300px">Rôle simulé<select id="demoRole"><option value="owner" ${state.demoRole==='owner'?'selected':''}>Administrateur</option><option value="editor" ${state.demoRole==='editor'?'selected':''}>Modérateur général</option><option value="nlw_editor" ${state.demoRole==='nlw_editor'?'selected':''}>Modérateur NLW seulement</option></select></label>`:''}<p class="muted">Le contrôle d’accès réel est assuré par les policies Supabase. Le journal des changements est automatique.</p></div>${LIVE?PROD.moderation(state):''}<div class="admin-workspace" data-role="${state.demoRole}"><div class="admin-nav" role="tablist" aria-label="Sections de modération">${[['overview','Vue d’ensemble'],['levels','Niveaux'],['news','Actualités'],['profiles','Profils'],['awards','Badges & Palmarès'],['achievements','Achievements FR'],['clans','Clans'],['safety','Sanctions'],['nlw','Modos NLW'],['audit','Journal']].map(([id,label])=>`<button type="button" role="tab" aria-selected="${state.adminTab===id}" class="${state.adminTab===id?'active':''}" data-admin-tab="${id}">${label}</button>`).join('')}</div><div class="admin-content"><div class="admin-intro ${state.adminTab==='overview'?'':'is-hidden'}"><h2>Tableau de bord</h2>${statsOverview()}<p class="muted">Choisis une rubrique pour ajouter ou modifier les informations de la Demonlist. ${LIVE?'Les changements réels demandent les permissions Supabase.':'Toutes les modifications ici sont locales et réinitialisables.'}</p>${!LIVE?'<button type="button" class="btn subtle" data-action="exportDemo">Exporter la démo (.json)</button> <label class="btn subtle import-label">Importer une démo (.json)<input id="importDemo" type="file" accept="application/json,.json" hidden></label>':''}</div><div class="moderation-sections" data-active-admin="${state.adminTab}">
- <div class="admin-card" data-admin-section="levels"><h3>Ajouter directement un niveau</h3><p class="small muted">Pour accepter une soumission, utilise le panneau ci-dessous. Le type Rated / UNRATED doit toujours être choisi explicitement.</p><form data-form="demon"><label class="field">Position dans la liste globale (151 = NLW #1)<input name="position" type="number" min="1" required></label><label class="field">Nom<input name="name" required maxlength="120"></label><label class="field">ID Geometry Dash<input name="level_id" inputmode="numeric" maxlength="30"></label><label class="field">Publié par<input name="publisher" required></label><label class="field">Vérifié par<input name="verifier"></label><label class="field">Créateur<input name="creator"></label><label class="field">Progression minimum (%)<input name="requirement" type="number" min="1" max="100" value="100" required></label><label class="field"><input name="legacy" type="checkbox" style="width:auto"> A déjà appartenu au Top 150 (Legacy)</label><label class="field">Date de sortie de liste (si connue)<input name="legacy_since" type="date"></label><label class="field"><input type="checkbox" name="unrated"> Niveau UNRATED (position estimée en mode alternatif)</label><button class="btn">Ajouter le niveau</button><p class="small muted">Si son rang dépasse 150, il apparaît hors classement et vaut automatiquement 0 point.</p></form></div>
+ <div class="admin-card" data-admin-section="levels"><h3>Ajouter directement un niveau</h3><p class="small muted">Pour accepter une soumission, utilise le panneau ci-dessous. En production, un nouveau niveau Rated est inséré au rang choisi et décale les suivants ; une synchronisation AREDL ne modifie pas ensuite cette position. Les UNRATED sont gérés séparément.</p><form data-form="demon"><label class="field">Position dans la liste globale (151 = NLW #1)<input name="position" type="number" min="1" required></label><label class="field">Nom<input name="name" required maxlength="120"></label><label class="field">ID Geometry Dash<input name="level_id" inputmode="numeric" maxlength="30"></label><label class="field">Publié par<input name="publisher" required></label><label class="field">Vérifié par<input name="verifier"></label><label class="field">Créateur<input name="creator"></label><label class="field">Progression minimum (%)<input name="requirement" type="number" min="1" max="100" value="100" required></label><label class="field"><input name="legacy" type="checkbox" style="width:auto"> A déjà appartenu au Top 150 (Legacy)</label><label class="field">Date de sortie de liste (si connue)<input name="legacy_since" type="date"></label><label class="field"><input type="checkbox" name="unrated"> Niveau UNRATED (position estimée en mode alternatif)</label><button class="btn">Ajouter le niveau</button><p class="small muted">Si son rang dépasse 150, il apparaît hors classement et vaut automatiquement 0 point.</p></form></div>
  <div class="admin-card" data-admin-section="levels"><h3>Soumissions de records à examiner</h3><p class="small muted">Si le niveau est déjà connu, son statut Rated / UNRATED ne change pas. Sinon, le modérateur doit choisir explicitement son statut et sa position avant l'acceptation. La simulation ne modifie pas Supabase.</p>${LIVE?'<p class="notice warning">Les soumissions réelles sont maintenant gérées dans le panneau de production ci-dessus.</p>':(state.data.level_submissions||[]).filter(s=>s.status==='pending').map(s=>{
  const existing=SUBMISSIONS.findLevel(state.data.demons,s);
  const anyRank=Number(s.suggested_position)||151;
@@ -643,8 +666,18 @@ async function handleForm(form,submitter=null){if(state.busy)return;state.busy=t
  if(LIVE&&['clan','clanMember','safety','nlwStaff'].includes(type))throw Error('Nouvelle fonctionnalité en lecture seule : migration V2 Supabase non appliquée.');
  if(type==='demon'){
   const pos=+f.position;if(!LIVE&&state.demoRole==='nlw_editor'&&pos<=150)throw Error('Un modérateur NLW ne peut gérer que les positions 151 et au-delà.');
+  if(LIVE){
+    const {error}=await db.rpc('dlfr_create_ranked_demon',{
+      p_name:plain(f.name),p_gd_level_id:plain(f.level_id)||null,p_position:pos,
+      p_publisher:plain(f.publisher),p_creator:plain(f.creator)||null,
+      p_verifier:plain(f.verifier)||null,p_unrated:!!f.unrated,p_shift:true,
+      p_requirement:+f.requirement||100
+    });
+    if(error)throw Error(error.message);
+  }else{
   if(state.data.demons.some(d=>+d.position===pos&&!d.unrated))throw Error('Un niveau occupe déjà cette position.');
   await save('demons',{position:f.unrated?100000000+pos:pos,name:plain(f.name),level_id:plain(f.level_id)||null,publisher:plain(f.publisher),verifier:plain(f.verifier),creator:plain(f.creator),requirement:+f.requirement,legacy:!!f.legacy,legacy_since:f.legacy_since||null,unrated:!!f.unrated,unrated_position:f.unrated?pos:null,difficulty:'Extreme Demon'});
+  }
  }else if(type==='news'){
   let image_url=plain(f.image_url);
   const old=state.data.news_items.find(x=>String(x.id)===String(f.news_id));

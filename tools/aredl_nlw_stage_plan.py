@@ -110,7 +110,7 @@ def build_plan(data):
 def to_sql(plan):
     """Réexécutable par lots ; le catalogue ne remplace jamais des preuves détaillées.
 
-    Ne publie rien. L'UPERT refuse de modifier une fiche revue/figée et
+    Ne publie rien. L'UPSERT actualise aussi une fiche publiée approuvée, mais refuse les fiches verrouillées / en conflit et
     interdit une fusion silencieuse si un même GD ID pointe vers deux UUID AREDL.
     """
     table = "public.dlfr_aredl_level_stage"
@@ -137,7 +137,7 @@ def to_sql(plan):
             f"  evidence_state=CASE WHEN EXCLUDED.evidence_state='complete' THEN 'complete' ELSE {table}.evidence_state END,",
             "  updated_at=now()",
             f"WHERE {table}.aredl_id=EXCLUDED.aredl_id",
-            f"  AND {table}.review_state='pending'",
+            f"  AND {table}.review_state IN ('pending','approved')",
             f"  AND {table}.manually_locked=false;",
         ]
     lines += ["COMMIT;", "-- Aucune publication. Les fiches en attente doivent être revues par un modérateur."]
