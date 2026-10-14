@@ -39,10 +39,12 @@ function counts(d,playerKey){
  const groups={list:new Set(),nlw:new Set(),unrated:new Set(),main:new Set()};
  for(const rec of d.completions||[]){
   if(norm(rec.player)!==norm(playerKey)||Number(rec.progress)<100)continue;
-  const demon=byId.get(String(rec.demon_id));if(!demon)continue;
+  const demon=byId.get(String(rec.demon_id));if(!demon||demon.is_public===false)continue;
   const id=String(demon.id),pos=Number(demon.position);if(demon.unrated===true||demon.unrated===1||demon.unrated==='true'){groups.unrated.add(id);continue;}
   if(pos>=1&&pos<=150){groups.list.add(id);if(pos<=75)groups.main.add(id);}
-  else if(pos>150)groups.nlw.add(id);
+  // Les positions techniques (>= 100 000 000), les archives Legacy et les
+  // niveaux masques ne sont pas des niveaux NLW publies.
+  else if(Number.isSafeInteger(pos)&&pos>150&&pos<100000000&&demon.legacy!==true)groups.nlw.add(id);
  }
  const ranked=(d.demons||[]).filter(x=>!(x.unrated===true||x.unrated===1||x.unrated==='true')&&Number(x.position)>=1&&Number(x.position)<=150);
  return {list:groups.list.size,nlw:groups.nlw.size,unrated:groups.unrated.size,main:groups.main.size,all150:ranked.length===150&&ranked.every(x=>groups.list.has(String(x.id))),top75:ranked.filter(x=>Number(x.position)<=75).length===75&&ranked.filter(x=>Number(x.position)<=75).every(x=>groups.main.has(String(x.id)))};
@@ -68,7 +70,17 @@ function grant(d,playerKey,badgeId,day){
  d.badge_awards.push({player_key:k,badge_id:badge.id,obtained_at:day,origin:'moderator'});
 }
 function uneditable(){throw Error('Le catalogue V2.8 est défini par la liste officielle : modification désactivée.');}
-function catalog(d,playerKey,esc,date){init(d);const owned=new Map(d.badge_awards.filter(a=>norm(a.player_key)===norm(playerKey)).map(a=>[String(a.badge_id),a]));return categories.map(cat=>`<section class="badge-catalog-category"><h4>${esc(cat.name)}</h4><div class="badge-collection">${defs.filter(b=>b.category_id===cat.id).sort((a,b)=>rarities.indexOf(b.rarity)-rarities.indexOf(a.rarity)).reverse().map(b=>{const a=owned.get(b.id);return `<div class="dlfr-badge ${a?'':'badge-locked'}" data-rarity="${slug(b.rarity)}" title="${a?'Obtenu':'Non obtenu'}"><span class="dlfr-badge-icon" aria-hidden="true">${a?esc(b.symbol):'?'}</span><span class="dlfr-badge-copy"><span class="dlfr-badge-name">${esc(b.label)}</span><span class="dlfr-badge-meta">${esc(b.rarity)} · ${a?'Obtenu'+(a.obtained_at?' le '+esc(date(a.obtained_at)):' · date inconnue'):'À découvrir'}</span></span></div>`;}).join('')}</div></section>`).join('');}
-function gallery(d,playerKey,esc,date){init(d);const owned=d.badge_awards.filter(a=>norm(a.player_key)===norm(playerKey)).map(a=>({a,b:defs.find(b=>b.id===String(a.badge_id))})).filter(x=>x.b).sort((x,y)=>rarities.indexOf(y.b.rarity)-rarities.indexOf(x.b.rarity));return owned.length?`<div class="badge-collection">${owned.map(({a,b})=>`<div class="dlfr-badge" data-rarity="${slug(b.rarity)}" title="${esc(b.label)} · ${a.obtained_at?esc(date(a.obtained_at)):'Date antérieure inconnue'}"><span class="dlfr-badge-icon">${esc(b.symbol)}</span><span class="dlfr-badge-copy"><span class="dlfr-badge-name">${esc(b.label)}</span><span class="dlfr-badge-meta">${esc(b.rarity)} · ${a.obtained_at?esc(date(a.obtained_at)):'Date antérieure inconnue'}</span></span></div>`).join('')}</div>`:'';}
-window.DLFR_BADGES={rarities,init,captureAutomatic,grant,catalog,gallery,addCategory:uneditable,create:uneditable,deleteBadge:uneditable,deleteCategory:uneditable};
+function visibleAwards(d,playerKey){
+ // Attributions historiques conservees dans Supabase; n'afficher les badges
+ // NLW que si leur seuil correspond aujourd'hui a des 100% publies et eligibles.
+ const earned=counts(d,playerKey);
+ return (d.badge_awards||[]).filter(a=>{
+  if(norm(a.player_key)!==norm(playerKey))return false;
+  const badge=defs.find(b=>b.id===String(a.badge_id));
+  return badge?.rule!=='nlw'||earned.nlw>=Number(badge.threshold||1);
+ });
+}
+function catalog(d,playerKey,esc,date){init(d);const owned=new Map(visibleAwards(d,playerKey).map(a=>[String(a.badge_id),a]));return categories.map(cat=>`<section class="badge-catalog-category"><h4>${esc(cat.name)}</h4><div class="badge-collection">${defs.filter(b=>b.category_id===cat.id).sort((a,b)=>rarities.indexOf(b.rarity)-rarities.indexOf(a.rarity)).reverse().map(b=>{const a=owned.get(b.id);return `<div class="dlfr-badge ${a?'':'badge-locked'}" data-rarity="${slug(b.rarity)}" title="${a?'Obtenu':'Non obtenu'}"><span class="dlfr-badge-icon" aria-hidden="true">${a?esc(b.symbol):'?'}</span><span class="dlfr-badge-copy"><span class="dlfr-badge-name">${esc(b.label)}</span><span class="dlfr-badge-meta">${esc(b.rarity)} · ${a?'Obtenu'+(a.obtained_at?' le '+esc(date(a.obtained_at)):' · date inconnue'):'À découvrir'}</span></span></div>`;}).join('')}</div></section>`).join('');}
+function gallery(d,playerKey,esc,date){init(d);const owned=visibleAwards(d,playerKey).map(a=>({a,b:defs.find(b=>b.id===String(a.badge_id))})).filter(x=>x.b).sort((x,y)=>rarities.indexOf(y.b.rarity)-rarities.indexOf(x.b.rarity));return owned.length?`<div class="badge-collection">${owned.map(({a,b})=>`<div class="dlfr-badge" data-rarity="${slug(b.rarity)}" title="${esc(b.label)} · ${a.obtained_at?esc(date(a.obtained_at)):'Date antérieure inconnue'}"><span class="dlfr-badge-icon">${esc(b.symbol)}</span><span class="dlfr-badge-copy"><span class="dlfr-badge-name">${esc(b.label)}</span><span class="dlfr-badge-meta">${esc(b.rarity)} · ${a.obtained_at?esc(date(a.obtained_at)):'Date antérieure inconnue'}</span></span></div>`).join('')}</div>`:'';}
+window.DLFR_BADGES={rarities,init,counts,visibleAwards,captureAutomatic,grant,catalog,gallery,addCategory:uneditable,create:uneditable,deleteBadge:uneditable,deleteCategory:uneditable};
 })();

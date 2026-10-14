@@ -15,7 +15,7 @@
   for(let i=0;i<extra.length;i++)extra[i].position=extra[i].requested_position+i;
   return [...rated,...extra].sort((a,b)=>a.position-b.position||Number(!!b.unrated)-Number(!!a.unrated));
  }
- function nlwRank(d){return Number(d.position)>LIMIT?Number(d.position)-LIMIT:0;}
+ function nlwRank(d){const p=Number(d?.position);return d?.is_public===false||d?.legacy===true||d?.unrated||!Number.isSafeInteger(p)||p<=LIMIT||p>=100000000?0:p-LIMIT;}
  // Independent provisional NLW scale, never mixed into official primary score.
  // NLW v2.8.2: stable power-law curve independent of the total list size.
  // Exponent > 1 means that even an endlessly growing NLW has a bounded
@@ -61,13 +61,14 @@
    const prev=best.get(unique);if(!prev||progress>prev.progress)best.set(unique,{player,d,progress});
   }
   for(const {player,d,progress} of best.values()){
-   if(d.unrated)continue; // Unrated has its own distinct scoring system.
-   if(Number(d.position)<=LIMIT)player.main_score+=actualPoints(d,progress);
-   else player.nlw_score+=nlwPoints(d,progress);
-   if(progress===100){if(Number(d.position)<=LIMIT)player.main_count++;else player.nlw_count++;}
+   if(d.unrated||d.is_public===false)continue; // Niveaux caches ou UNRATED : pas de points NLW.
+   const position=Number(d.position);
+   if(position>=1&&position<=LIMIT)player.main_score+=actualPoints(d,progress);
+   else if(nlwRank(d)>0)player.nlw_score+=nlwPoints(d,progress);
+   if(progress===100){if(position>=1&&position<=LIMIT)player.main_count++;else if(nlwRank(d)>0)player.nlw_count++;}
   }
   const output=[...rows.values()];output.forEach(p=>{p.main_score=Math.round(p.main_score*100)/100;p.nlw_score=Math.round(p.nlw_score*100)/100;});
-  for(const col of ['main','nlw']){const sorted=[...output].sort((a,b)=>b[col+'_score']-a[col+'_score']);sorted.forEach((p,i)=>{p[col+'_rank']=i+1;});}
+  for(const col of ['main','nlw']){const sorted=[...output].sort((a,b)=>b[col+'_score']-a[col+'_score']);sorted.forEach((p,i)=>{p[col+'_rank']=col==='nlw'&&p.nlw_score<=0?null:i+1;});}
   return output;
  }
  function csvParse(text){const rows=[],line=[];let buf='',quoted=false;const src=String(text).replace(/^\uFEFF/,'');for(let i=0;i<src.length;i++){let ch=src[i];if(ch==='"'){if(quoted&&src[i+1]==='"'){buf+='"';i++;}else quoted=!quoted;}
