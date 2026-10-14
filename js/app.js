@@ -140,7 +140,7 @@ async function checkSelfOwner(){
  if(!LIVE||!state.session)return;
  const {data,error}=await db.from('player_profile_owners').select('player_key').eq('auth_user_id',state.session.user.id).maybeSingle();
  if(error){state.ownAccountMessage='La liaison des comptes joueurs n’est pas encore installée. Consulte le guide V2.4.';return;}
- if(!data){state.ownAccountMessage='Ce compte Supabase n’est pas encore relié à un joueur. Un administrateur doit valider la liaison.';return;}
+ if(!data){state.ownAccountMessage='Ton compte Discord est connecté. Tu peux créer une fiche joueur vierge ou demander la liaison avec une fiche existante.';return;}
  state.ownKey=data.player_key;
 }
 function closeNavMenus(){document.querySelectorAll('.nav-menu[open]').forEach(menu=>menu.open=false);}
@@ -596,7 +596,7 @@ async function handleForm(form,submitter=null){if(state.busy)return;state.busy=t
  try{
  const type=form.dataset.form, f=Object.fromEntries(new FormData(form).entries());
  if(LIVE&&PROD.handles(type)){
-  if(type!=='prodClaim'&&type!=='submitRecord'&&!state.staff)throw Error('Modérateur requis.');
+  if(type!=='prodClaim'&&type!=='selfCreatePlayer'&&type!=='submitRecord'&&!state.staff)throw Error('Modérateur requis.');
   await PROD.send(db,type,f,submitter);
   await refreshLiveData();
   await checkSelfOwner();

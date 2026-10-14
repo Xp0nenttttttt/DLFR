@@ -7,13 +7,37 @@ const safeUrl=v=>/^https:\/\//i.test(trim(v))?esc(trim(v)):'#';
 const slug=v=>trim(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,70);
 const row=(label,value)=>`<label class="field">${label}${value}</label>`;
 const button=(text)=>`<button class="btn" type="submit">${text}</button>`;
-const handles=t=>['prodPlayer','prodCompletion','prodClaim','prodClaimReview','submitRecord','prodReviewSubmission','prodBadgeManual'].includes(t);
+const handles=t=>['prodPlayer','prodCompletion','prodClaim','prodClaimReview','selfCreatePlayer','submitRecord','prodReviewSubmission','prodBadgeManual'].includes(t);
 const errorOf=r=>{if(r.error)throw Error(r.error.message);return r.data;};
 function claimSection(s){
  if(!s.session)return '';
- const claims=(s.data.profile_claim_requests||[]).filter(x=>x.auth_user_id===s.session.user.id);
+ const user=s.session.user;
+ const claims=(s.data.profile_claim_requests||[]).filter(x=>x.auth_user_id===user.id);
+ const pending=claims.some(x=>x.status==='pending');
  const players=(s.data.players||[]).filter(p=>!s.data.player_profile_owners?.some(o=>o.player_key===p.player_key));
- return `<section class="prod-panel"><h3>Revendiquer mon profil Geometry Dash</h3><p class="small muted">Discord identifie ton compte Discord, pas ton compte Geometry Dash. Un modérateur vérifiera ta preuve avant la liaison.</p>${claims.some(x=>x.status==='pending')?'<div class="notice">Une demande est en attente de vérification.</div>':`<form data-form="prodClaim"><label class="field">Fiche joueur<select name="player_key" required><option value="">Choisir une fiche</option>${players.map(p=>`<option value="${esc(p.player_key)}">${esc(p.display_name||p.username||p.player_key)}</option>`).join('')}</select></label>${row('Lien de preuve (vidéo, profil public ou autre élément vérifiable)','<input name="proof_url" type="url" required pattern="https://.*" maxlength="1000" placeholder="https://…">')}${row('Précision pour les modérateurs','<textarea name="note" maxlength="600"></textarea>')}${button('Demander la liaison')}</form>`}${claims.filter(x=>x.status!=='pending').slice(-3).map(x=>`<p class="small">Demande pour ${esc(x.player_key)} · ${esc(x.status)}</p>`).join('')}</section>`;
+ const discordConnected=(user.identities||[]).some(x=>x.provider==='discord') || user.app_metadata?.provider==='discord' || (user.app_metadata?.providers||[]).includes('discord');
+ const geo=typeof window!=='undefined'?window.DLFR_GEO:null;
+ const countryOptions=(geo?.countries||[['FR','France'],['BE','Belgique'],['CH','Suisse'],['CA','Canada']])
+   .map(([code,name])=>`<option value="${esc(code)}" ${code==='FR'?'selected':''}>${esc(name)}</option>`).join('');
+ const regionOptions=(geo?.regions||[]).map(r=>`<option value="${esc(r.code)}">${esc(r.name)}</option>`).join('');
+ const create = `<section class="prod-panel prod-onboarding"><h3>✨ Je n'ai pas encore de fiche</h3><p class="small muted">Crée une fiche joueur vierge, liée à ton compte Discord. Cette action n'attribue aucun record ni badge. Si ton pseudo existe déjà, utilise plutôt la demande de liaison ci-dessous.</p>
+ ${pending?'<div class="notice warning">Une revendication est en attente : attends sa réponse avant de créer une autre fiche.</div>':
+ !discordConnected?'<div class="notice warning">Connecte-toi avec Discord pour créer ta fiche personnelle.</div>':
+ `<form data-form="selfCreatePlayer" class="prod-create-player">
+ ${row('Mon pseudo Geometry Dash','<input name="username" required minlength="2" maxlength="32" pattern="[A-Za-z0-9_-]{2,32}" title="2 à 32 caractères : lettres, chiffres, _ et -" autocomplete="nickname" placeholder="Ex. Spleen">')}
+ ${row('Pays',`<select name="country_code" required>${countryOptions}</select>`)}
+ ${row('Région (uniquement pour la France)',`<select name="region_code"><option value="">Aucune région</option>${regionOptions}</select>`)}
+ <p class="small muted">Le pays et la région sont déclaratifs. Les classements et les records sont vérifiés séparément.</p>
+ ${button('Créer ma fiche DLFR')}</form>`}
+ </section>`;
+ const claim = `<section class="prod-panel"><h3>J'ai déjà une fiche joueur</h3><p class="small muted">Discord ne prouve pas la propriété d'un compte Geometry Dash. Une demande de liaison doit être examinée par la modération.</p>
+ ${pending?'<div class="notice">Ta demande de liaison est en attente de vérification.</div>':`<form data-form="prodClaim">
+ <label class="field">Fiche existante<select name="player_key" required><option value="">Choisir une fiche</option>${players.map(p=>`<option value="${esc(p.player_key)}">${esc(p.display_name||p.username||p.player_key)}</option>`).join('')}</select></label>
+ ${row('Lien de preuve (vidéo ou profil public)','<input name="proof_url" type="url" required pattern="https://.*" maxlength="1000" placeholder="https://…">')}
+ ${row('Note aux modérateurs','<textarea name="note" maxlength="600"></textarea>')}${button('Demander la liaison')}</form>`}
+ ${claims.filter(x=>x.status!=='pending').slice(-3).map(x=>`<p class="small">Demande pour ${esc(x.player_key)} · ${esc(x.status)}</p>`).join('')}
+ </section>`;
+ return create+claim;
 }
 function moderation(s){if(!s.staff)return '';
  const players=(s.data.players||[]).slice().sort((a,b)=>String(a.display_name||a.username).localeCompare(String(b.display_name||b.username)));
@@ -41,6 +65,13 @@ async function send(db,type,f,submitter){
  if(type==='prodCompletion'){
   if(f.video_url && !/^https:\/\//i.test(f.video_url))throw Error('Preuve HTTPS requise');
   return r('dlfr_assign_completion',{p_player_key:f.player_key,p_demon_id:Number(f.demon_id),p_video_url:f.video_url||null,p_achieved_at:f.achieved_at?f.achieved_at+'T12:00:00Z':null});
+ }
+ if(type==='selfCreatePlayer'){
+  const username=trim(f.username);
+  if(!/^[a-zA-Z0-9_-]{2,32}$/.test(username))throw Error('Pseudo : entre 2 et 32 lettres, chiffres, tirets ou underscores.');
+  if(!/^[A-Z]{2}$/.test(f.country_code||''))throw Error('Choisis un pays valide.');
+  const region=f.country_code==='FR'?(f.region_code||null):null;
+  return r('dlfr_create_own_player',{p_username:username,p_country_code:f.country_code,p_region_code:region});
  }
  if(type==='prodClaim'){
   if(!/^https:\/\//i.test(f.proof_url))throw Error('Lien de preuve HTTPS requis');

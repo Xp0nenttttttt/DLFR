@@ -8,3 +8,10 @@
 .prod-review form .field{min-width:210px;flex:1}
 .prod-panel .btn{margin-top:7px}
 @media(max-width:720px){.prod-grid{grid-template-columns:1fr}.prod-panel{padding:14px}}
+
+/* V3.0.2 — Création de fiche personnelle */
+.prod-onboarding{border-color:rgba(80,153,216,.38);background:linear-gradient(135deg,rgba(88,153,228,.09),transparent 75%)}
+.prod-create-player{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px 18px;align-items:end}
+.prod-create-player .field:first-child,.prod-create-player>p,.prod-create-player>button{grid-column:1/-1}
+.prod-create-player .field{min-width:0}
+@media(max-width:720px){.prod-create-player{grid-template-columns:1fr}}
