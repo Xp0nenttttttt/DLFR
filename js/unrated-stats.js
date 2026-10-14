@@ -22,7 +22,7 @@
    const id=verifier.player_key+'|'+d.id,full=v2.actualPoints(d,100,top1Points);
    verifier.points+=Math.max(0,full-(already.get(id)||0));
   }
-  return {demons:unrated,players:[...output.values()].map(p=>({...p,points:Math.round(p.points*100)/100})).sort((a,b)=>b.points-a.points||a.name.localeCompare(b.name)),totalCompletions:completed.size,totalVerifications:unrated.filter(d=>String(d.verifier||'').trim()).length};
+  return {demons:unrated,players:[...output.values()].map(p=>({...p,points:Math.round(p.points*100)/100})).sort((a,b)=>b.points-a.points||String(a.name??'').localeCompare(String(b.name??''),'fr')),totalCompletions:completed.size,totalVerifications:unrated.filter(d=>String(d.verifier||'').trim()).length};
  }
  return {calculate};
 });
