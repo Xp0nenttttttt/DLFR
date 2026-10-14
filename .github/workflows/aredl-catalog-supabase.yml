@@ -4,16 +4,15 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'preview = aperçu ; stage = table d’attente ; publish = publier les fiches sans conflit'
+        description: 'preview = aperçu ; stage = table d’attente (aucune publication)'
         type: choice
         required: true
         default: preview
         options:
           - preview
           - stage
-          - publish
       allow_partial_publish:
-        description: 'Publier uniquement les fiches valides si des ID sont manquants / dupliqués (consulter le rapport preview avant)'
+        description: 'Option héritée inactive : aucune publication possible depuis ce workflow'
         type: boolean
         required: false
         default: false
@@ -51,9 +50,6 @@ jobs:
           if [[ "$EVENT_NAME" == "schedule" ]]; then MODE=stage; else MODE="${USER_MODE:-preview}"; fi
           echo "Mode : $MODE"
           args=(--mode "$MODE" --output out/aredl-global)
-          if [[ "$MODE" == "publish" && "$ALLOW_PARTIAL" == "true" ]]; then
-            args+=(--allow-partial-publish)
-          fi
           python tools/aredl_catalog_sync.py "${args[@]}"
       - name: Conserver le rapport de contrôle (sans secret)
         if: always()

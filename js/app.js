@@ -82,8 +82,8 @@ function productionProofMedia(d){
     items.push(`<article class="prod-proof-card">${thumbnail?`<a target="_blank" rel="noopener noreferrer" href="${esc(v)}"><img loading="lazy" src="${esc(thumbnail)}" alt="Miniature vidéo : ${esc(title)}"></a>`:''}<h3>${esc(title)}</h3><p>${esc(name||'Identité inconnue')}${when?' · '+esc(date(when)):''}</p><a class="link" href="${esc(v)}" target="_blank" rel="noopener noreferrer">Voir la preuve vidéo ↗</a></article>`);
   }
   add('Vidéo de vérification',d.verifier,d.verifier_video_url,d.thumbnail_url,null);
-  add('Plus ancien record FR/BE daté disponible',d.first_frbe_player,d.first_frbe_video_url,null,d.first_frbe_achieved_at);
-  return items.length?`<section class="prod-proof-media" aria-label="Preuves vidéo AREDL">${items.join('')}</section>`:'';
+  add('Premier record français daté disponible',d.first_fr_player,d.first_fr_video_url,d.first_fr_thumbnail_url,d.first_fr_achieved_at);
+  return items.length?`<section class="prod-proof-media" aria-label="Preuves vidéo AREDL">${items.join('')}</section>`:(d.data_source==='aredl'?'<p class="small muted">Preuves françaises non encore renseignées : une synchronisation détaillée est nécessaire.</p>':'');
 }
 const flag = code => GEO?.countryImage(code) || '';
 const regionFor = p=> p?.country_code==='FR' ? (state.data.player_profiles.find(x=>x.player_key===p.player_key)?.region_code||'') : '';
@@ -113,6 +113,9 @@ async function readAll(name){let out=[],from=0;while(true){const {data,error}=aw
 async function refreshLiveData(){
  const base=await withTimeout(Promise.all(tables.map(readAll)),45000,'Supabase ne répond pas après 45 secondes.');
  state.data=Object.fromEntries(tables.map((t,i)=>[t,base[i]]));
+ // Les fiches AREDL catalogue brut sont conservées en base, mais exclues de la liste publique.
+ state.unpublishedAredlDemons=(state.data.demons||[]).filter(x=>x.is_public===false);
+ state.data.demons=(state.data.demons||[]).filter(x=>x.is_public!==false);
  for(const t of v2Tables)state.data[t]=[];
  for(const t of [...livePublicTables,...(state.session?livePrivateTables:[]),...(state.staff?liveStaffTables:[])])state.data[t]=await readAll(t);
  if(state.staff){

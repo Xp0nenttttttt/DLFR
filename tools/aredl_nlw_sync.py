@@ -195,6 +195,15 @@ def first_victor(records, target=None):
         if date:
             eligible.append((date, p, str(pick(rec, "id", "record_id") or "") or None, video_of(rec)))
     eligible.sort(key=lambda x: x[0])
+    # Le même exploit peut figurer comme record ET vérification dans l'API.
+    # Ne pas le traiter comme deux joueurs ex aequo.
+    distinct = {}
+    for event in eligible:
+        when, p, _, _ = event
+        key = (when, p.get('aredl_player_id') or (p.get('name') or '').casefold())
+        if key not in distinct:
+            distinct[key] = event
+    eligible = sorted(distinct.values(), key=lambda x:x[0])
     if not eligible:
         return {"status": "unknown", "reason": "aucune victoire datée ET localisée dans les records disponibles"}
     if len(eligible) > 1 and eligible[0][0] == eligible[1][0]:
