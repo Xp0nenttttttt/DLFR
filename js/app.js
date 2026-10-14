@@ -214,7 +214,9 @@ function ranked(){
   if(demon.position<1 || demon.position>cfg().extended_limit)continue;
   const byUserId=d.players.find(p=>num(p.legacy_id)>0 && num(p.legacy_id)===num(demon.verifier_user_id));
   const verifier=people.get(byUserId?.player_key||key(demon.verifier));
-  if(!verifier || !verifier.has_account)continue;
+  // Les anciens profils non lies a Discord gardent leurs points de verification.
+  // has_account controle uniquement la liaison du compte, jamais le score historique.
+  if(!verifier)continue;
   const existing=completionScoreByPlayer.get(verifier.player_key)?.get(demon.id)||0;
   verifier.pointsComputed+=Math.max(0,score(demon,100)-existing);
  }
