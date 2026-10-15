@@ -1,9 +1,12 @@
-1. Sauvegarder votre base Supabase.
-2. Executer supabase/32_REPARER_CREATION_NIVEAUX_ET_JOUEURS.sql dans SQL Editor.
-3. Remplacer js/app.js par celui de ce patch.
-4. Recharger Ctrl+F5.
-5. Choisir un joueur dans les menus, ou "Creer un nouveau joueur" et renseigner son pseudo.
+DLFR — Correctif ciblé du formulaire de création de niveau
 
-Ne pas toucher assets/flags.
-La migration ajoute les nouveaux joueurs en profils publics sans compte de connexion.
-Si votre fonction dlfr_can_moderate n’existe pas, installez les migrations précédentes avant celle-ci.
+1. Sauvegarder js/app.js actuellement en ligne.
+2. Remplacer js/app.js par le fichier de cette archive.
+3. Actualiser le navigateur avec Ctrl+F5.
+
+Le créateur et l'éditeur restent des champs texte libres.
+Le vérificateur seul peut être sélectionné depuis les joueurs DLFR ou créé comme nouvelle fiche sans compte de connexion.
+Le formulaire continue à utiliser la fonction Supabase dlfr_manual_save_demon_with_players de la migration 32 déjà installée.
+Si celle-ci n'est pas installée, installer la migration 32 contenue dans l'archive complète précédente avant de tester l'ajout.
+
+Aucun fichier assets/flags/, ni fichier SQL, ni donnée existante n'est modifié par ce patch.
