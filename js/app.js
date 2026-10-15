@@ -578,6 +578,41 @@ function arrangeLevelsPanel(){
  if(!nav){nav=document.createElement('nav');nav.id='levelsToolsNav';nav.className='level-tools-nav';nav.setAttribute('aria-label','Actions sur les niveaux');container.insertBefore(nav,cards[0]);}
  nav.innerHTML=`<div class="level-tools-heading"><div><span class="kicker">ESPACE DE MODÉRATION</span><h2>Gestion des niveaux</h2><p>Édition, création, classement et archives — un outil à la fois.</p></div><span class="level-tools-counter">${cards.length} outils</span></div><div class="level-tools-tabs">${levelPanelGroups.map(([id,label])=>`<button type="button" data-level-group="${id}" class="${activeLevelPanel===id?'active':''}" aria-pressed="${activeLevelPanel===id}">${label}</button>`).join('')}</div>`;
 }
+// Préremplissage depuis une fiche AREDL masquée : aucun enregistrement en base ici.
+function fillImportedDemonForm(select){
+ const form=select?.closest('form[data-form="demon"]');
+ if(!form)return;
+ const id=String(select.value||'');
+ const demon=(state.unpublishedAredlDemons||[]).find(d=>String(d.id)===id);
+ const names=['name','level_id','publisher','verifier','creator','completion_mode','verifier_video_url','thumbnail_url','requirement','legacy_since'];
+ if(!demon){
+  if(form.dataset.importedPrefill==='yes'){
+   names.forEach(n=>{const field=form.elements.namedItem(n);if(field)field.value=n==='requirement'?'100':'';});
+   for(const n of ['legacy','unrated']){const field=form.elements.namedItem(n);if(field)field.checked=false;}
+  }
+  form.dataset.importedPrefill='no';
+  const note=form.querySelector('[data-import-prefill-note]');if(note)note.textContent='Sélectionne une fiche pour charger ses informations.';
+  return;
+ }
+ const missing=v=>!v||String(v).trim().toLowerCase()==='aredl';
+ const values={
+  name:demon.name||'',level_id:demon.level_id||'',
+  publisher:missing(demon.publisher)?'À renseigner':demon.publisher,
+  verifier:demon.verifier||'',creator:demon.creator||'',
+  completion_mode:demon.completion_mode==='standard'?'':(demon.completion_mode||''),
+  verifier_video_url:demon.verifier_video_url||'',thumbnail_url:demon.thumbnail_url||'',
+  requirement:demon.requirement??100,legacy_since:demon.legacy_since||''
+ };
+ // Ne jamais importer la position 1600+ de la sauvegarde : c'est un rangement technique.
+ for(const [name,value] of Object.entries(values)){
+  const field=form.elements.namedItem(name);
+  if(field)field.value=String(value);
+ }
+ for(const name of ['legacy','unrated']){const field=form.elements.namedItem(name);if(field)field.checked=Boolean(demon[name]);}
+ form.dataset.importedPrefill='yes';
+ const note=form.querySelector('[data-import-prefill-note]');
+ if(note)note.textContent='Informations chargées depuis '+(demon.name||'la fiche')+'. Vérifie les crédits et choisis manuellement la position DLFR/NLW. Aucun changement enregistré.';
+}
 function adminPage(){if(LIVE&&!state.staff){
   // Être connecté via Discord et être autorisé à modérer sont deux contrôles séparés.
   // Ne pas demander un mot de passe à une personne déjà authentifiée.
@@ -595,7 +630,7 @@ function adminPage(){if(LIVE&&!state.staff){
  }
  const players=playerOptions();return `${templateNotice()}<div class="paper"><div class="admin-mode">Modération connectée · changements sur Supabase</div><div class="row-between"><h1>Modération</h1><div><button class="btn subtle small" data-action="logout">Déconnexion</button></div></div><p class="muted">Le contrôle d’accès réel est assuré par les policies Supabase. Le journal des changements est automatique.</p></div>${LIVE?PROD.moderation(state):''}<div class="admin-workspace" data-role="${state.demoRole}"><div class="admin-nav" role="tablist" aria-label="Sections de modération">${[['overview','Vue d’ensemble'],['levels','Niveaux'],['news','Actualités'],['profiles','Profils'],['awards','Badges & Palmarès'],['achievements','Achievements FR'],['clans','Clans'],['safety','Sanctions'],['nlw','Modos NLW'],['audit','Journal']].map(([id,label])=>`<button type="button" role="tab" aria-selected="${state.adminTab===id}" class="${state.adminTab===id?'active':''}" data-admin-tab="${id}">${label}</button>`).join('')}</div><div class="admin-content"><div class="admin-intro ${state.adminTab==='overview'?'':'is-hidden'}"><h2>Tableau de bord</h2>${statsOverview()}<p class="muted">Choisis une rubrique pour ajouter ou modifier les informations de la Demonlist. Les changements réels demandent les permissions Supabase.</p></div><div class="moderation-sections" data-active-admin="${state.adminTab}">
  ${levelCreditsEditor()}${historicNlwPublisher()}
- <div class="admin-card" data-admin-section="levels"><h3>Ajouter directement un niveau</h3><p class="small muted">Pour accepter une soumission, utilise le panneau ci-dessous. La liste est maintenant entièrement gérée par les modérateurs. Indique un rang : les niveaux Rated suivants seront décalés si nécessaire. Les UNRATED sont gérés séparément.</p><form data-form="demon"><label class="field">Réutiliser une fiche importée et masquée (facultatif)<select name="existing_demon_id"><option value="">Nouveau niveau</option>${(state.unpublishedAredlDemons||[]).filter(d=>!(state.data.dlfr_level_archive_log||[]).some(a=>!a.restored_at&&String(a.demon_id)===String(d.id))).map(d=>`<option value="${esc(d.id)}">#${esc(d.position)} — ${esc(d.name)} (GD ${esc(d.level_id||"?")})</option>`).join("")}</select></label><p class="small muted">Si le niveau existe déjà dans l’ancien catalogue AREDL masqué, sélectionne sa fiche ici pour éviter les doublons Solo/2P.</p><label class="field">Position dans la liste globale (151 = NLW #1)<input name="position" type="number" min="1" required></label><label class="field">Nom<input name="name" required maxlength="120"></label><label class="field">ID Geometry Dash<input name="level_id" inputmode="numeric" maxlength="30"></label><label class="field">Publié par<input name="publisher" required></label><label class="field">Vérifié par<input name="verifier"></label><label class="field">Créateur<input name="creator"></label><label class="field">Mode de complétion<select name="completion_mode"><option value="">Conserver le mode existant / Standard</option><option value="solo">Solo</option><option value="two_player">2-Player</option></select></label><label class="field">Vidéo de vérification (facultatif)<input name="verifier_video_url" type="url" placeholder="https://youtu.be/…"></label><label class="field">Miniature YouTube ou image (facultatif)<input name="thumbnail_url" type="url" placeholder="https://i.ytimg.com/vi/…/hqdefault.jpg"></label><label class="field">Progression minimum (%)<input name="requirement" type="number" min="1" max="100" value="100" required></label><label class="field"><input name="legacy" type="checkbox" style="width:auto"> A déjà appartenu au Top 150 (Legacy)</label><label class="field">Date de sortie de liste (si connue)<input name="legacy_since" type="date"></label><label class="field"><input type="checkbox" name="unrated"> Niveau UNRATED (position estimée en mode alternatif)</label><button class="btn">Ajouter le niveau</button><p class="small muted">Après le #150, le niveau rejoint la NLW avec ses points NLW séparés des points Main/Extended.</p></form></div>
+ <div class="admin-card" data-admin-section="levels"><h3>Ajouter directement un niveau</h3><p class="small muted">Pour accepter une soumission, utilise le panneau ci-dessous. La liste est maintenant entièrement gérée par les modérateurs. Indique un rang : les niveaux Rated suivants seront décalés si nécessaire. Les UNRATED sont gérés séparément.</p><form data-form="demon"><label class="field">Réutiliser une fiche importée et masquée (facultatif)<select name="existing_demon_id"><option value="">Nouveau niveau</option>${(state.unpublishedAredlDemons||[]).filter(d=>!(state.data.dlfr_level_archive_log||[]).some(a=>!a.restored_at&&String(a.demon_id)===String(d.id))).map(d=>`<option value="${esc(d.id)}">#${esc(d.position)} — ${esc(d.name)} (GD ${esc(d.level_id||"?")})</option>`).join("")}</select></label><p class="small muted" data-import-prefill-note>Sélectionne une fiche pour charger ses informations. Les crédits manquants restent à vérifier.</p><label class="field">Position dans la liste globale (151 = NLW #1)<input name="position" type="number" min="1" required></label><label class="field">Nom<input name="name" required maxlength="120"></label><label class="field">ID Geometry Dash<input name="level_id" inputmode="numeric" maxlength="30"></label><label class="field">Publié par<input name="publisher" required></label><label class="field">Vérifié par<input name="verifier"></label><label class="field">Créateur<input name="creator"></label><label class="field">Mode de complétion<select name="completion_mode"><option value="">Conserver le mode existant / Standard</option><option value="solo">Solo</option><option value="two_player">2-Player</option></select></label><label class="field">Vidéo de vérification (facultatif)<input name="verifier_video_url" type="url" placeholder="https://youtu.be/…"></label><label class="field">Miniature YouTube ou image (facultatif)<input name="thumbnail_url" type="url" placeholder="https://i.ytimg.com/vi/…/hqdefault.jpg"></label><label class="field">Progression minimum (%)<input name="requirement" type="number" min="1" max="100" value="100" required></label><label class="field"><input name="legacy" type="checkbox" style="width:auto"> A déjà appartenu au Top 150 (Legacy)</label><label class="field">Date de sortie de liste (si connue)<input name="legacy_since" type="date"></label><label class="field"><input type="checkbox" name="unrated"> Niveau UNRATED (position estimée en mode alternatif)</label><button class="btn">Ajouter le niveau</button><p class="small muted">Après le #150, le niveau rejoint la NLW avec ses points NLW séparés des points Main/Extended.</p></form></div>
  <div class="admin-card" data-admin-section="levels"><h3>Retirer ou restaurer un niveau</h3>
 <p class="small muted">Le retrait est réversible : la fiche disparaît du site, les records et les preuves restent enregistrés. Les rangs Rated suivants se referment. Pour éviter toute erreur, saisis le nom exact du niveau avant de confirmer.</p>
 <form data-form="prodArchiveLevel"><label class="field">Niveau public à retirer<select name="demon_id" required><option value="">Choisir un niveau</option>${(state.data.demons||[]).slice().sort((a,b)=>+a.position-+b.position).map(d=>`<option value="${esc(d.id)}">#${esc(d.position)} — ${esc(d.name)}${d.unrated?' (UNRATED)':''}</option>`).join('')}</select></label>
@@ -1072,6 +1107,7 @@ function bootEvents(){
  if(ev.target.id==='compareB'){state.comparePlayer=ev.target.value;render();}
  if(ev.target.id==='profileEditorPlayer')fillProfileEditor();
  if(ev.target.id==='levelStudioSelect')syncLevelStudio();
+ if(ev.target.matches('[data-form="demon"] select[name="existing_demon_id"]'))fillImportedDemonForm(ev.target);
  if(ev.target.id==='historicNlwSelect'){const opt=ev.target.selectedOptions[0];const pos=document.getElementById('historicNlwPosition');if(opt&&pos)pos.value=opt.dataset.oldPosition||'151';}
  if(ev.target.id==='profileEditorCountry'||ev.target.id==='profileEditorRegion')syncRegionEditor();
  if(ev.target.id==='calcPlayer'){state.calcPlayer=ev.target.value;state.calcDemons=[];render();}
