@@ -1,19 +1,16 @@
-PATCH — Formulaire de soumission embelli
+PATCH DLFR — Suggestions de joueurs et de niveaux
 
-Contenu :
-- js/app.js
-- css/style.css
+1. Remplacer js/app.js et css/style.css sur GitHub.
+2. Attendre le déploiement GitHub Pages puis faire Ctrl+F5.
 
-Changements :
-- suppression du champ "Rang suggéré" dans la page "Soumettre un record"
-- nouveau rendu plus propre du formulaire
-- carte joueur automatique si le pseudo correspond à une fiche existante
-- carte niveau automatique si le nom ou l'ID GD correspond à un niveau existant
-- message simple si le joueur / niveau n'existe pas encore
-- préremplissage doux de creator / publisher / verifier quand un niveau existant est reconnu
+Nouveautés :
+- Cliquer dans les champs « Niveau » et « Joueur » propose une liste native des fiches disponibles.
+- Taper quelques lettres filtre les propositions.
+- Choisir un niveau renseigne son ID Geometry Dash (s'il est présent dans la fiche) et complète les crédits encore vides.
+- Choisir un joueur affiche sa fiche déjà présente.
+- La saisie reste libre quand la fiche n'existe pas.
+- Le champ rang suggéré reste supprimé.
+- Aucun SQL et aucun changement Supabase.
+- Aucun asset/drapeau inclus.
 
-Installation :
-1. sauvegarder les fichiers actuels
-2. remplacer js/app.js
-3. remplacer css/style.css
-4. recharger la page (Ctrl+F5)
+Note : les suggestions sont issues des fiches déjà chargées par le site. Le menu déroulant natif dépend du navigateur.
