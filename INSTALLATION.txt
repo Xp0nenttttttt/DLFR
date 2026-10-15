@@ -1,12 +1,11 @@
-DLFR — Correctif ciblé du formulaire de création de niveau
+DLFR - TRI DES NIVEAUX IMPORTES
 
-1. Sauvegarder js/app.js actuellement en ligne.
-2. Remplacer js/app.js par le fichier de cette archive.
-3. Actualiser le navigateur avec Ctrl+F5.
+1. Sauvegarder le fichier js/app.js actuel.
+2. Remplacer js/app.js par celui du patch.
+3. Publier le site et recharger avec Ctrl+F5.
 
-Le créateur et l'éditeur restent des champs texte libres.
-Le vérificateur seul peut être sélectionné depuis les joueurs DLFR ou créé comme nouvelle fiche sans compte de connexion.
-Le formulaire continue à utiliser la fonction Supabase dlfr_manual_save_demon_with_players de la migration 32 déjà installée.
-Si celle-ci n'est pas installée, installer la migration 32 contenue dans l'archive complète précédente avant de tester l'ajout.
+Le select "Reutiliser une fiche importee et masquee" est classe par aredl_rank croissant (les rangs inconnus passent en fin de liste), et affiche le rang AREDL plutot que la position technique en base.
 
-Aucun fichier assets/flags/, ni fichier SQL, ni donnée existante n'est modifié par ce patch.
+Aucun SQL, aucune modification de classement ou de complétion, aucun fichier assets/flags inclus.
+
+Ce fichier est base sur le dernier patch DLFR_correctif_verificateur_seul.zip. Si des changements ont ete faits ensuite dans js/app.js, reporter seulement le changement du menu pour ne pas les ecraser.
