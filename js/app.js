@@ -475,24 +475,52 @@ const playerOptions=()=>state.data.players.slice().sort((a,b)=>sortPlayerName(a)
 function submitRecordPage(){return `${templateNotice()}<section class="paper v2-page"><div class="v2-intro"><h1>Soumettre un record</h1><p>Propose un record pour un niveau présent ou absent de la Demonlist. S'il est nouveau, un modérateur choisira Rated ou UNRATED avant de l'ajouter.</p></div>${LIVE&&!state.session?'<div class="notice warning">Connecte-toi avec Discord dans Mon profil pour envoyer une soumission réelle.</div>':`<form data-form="submitRecord" class="submission-form"><label class="field">Niveau<input name="level_name" maxlength="120" required placeholder="Nom du niveau"></label><label class="field">ID Geometry Dash (facultatif)<input name="level_id" inputmode="numeric" maxlength="30" placeholder="Ex. 123456"></label><label class="field">Joueur ayant réalisé le record<input name="player" maxlength="120" required placeholder="Pseudo du joueur"></label><label class="field">Progression (%)<input name="progress" type="number" min="1" max="100" value="100" required></label><label class="field">Vidéo de preuve<input name="video_url" type="url" required placeholder="https://youtu.be/…"></label><label class="field">Créateur du niveau<input name="creator" maxlength="120" placeholder="Créateur"></label><label class="field">Publieur du niveau<input name="publisher" maxlength="120" required placeholder="Publieur"></label><label class="field">Vérificateur (si connu)<input name="verifier" maxlength="120"></label><label class="field">Rang suggéré (facultatif)<input name="suggested_position" type="number" min="1" placeholder="Par exemple 80"></label><p class="small muted">Pas besoin de décider Rated / UNRATED lors de la soumission : ce choix est réservé au modérateur lors de l'acceptation.</p><button type="submit" class="btn">Envoyer en modération</button></form>`}</section>`;}
 function levelCreditsEditor(){
  const levels=(state.data.demons||[]).slice().sort((a,b)=>num(a.position)-num(b.position));
- if(!levels.length)return '<p class="muted small">Aucun niveau public à éditer.</p>';
- const selected=levels[0];
- return `<div class="admin-card" data-admin-section="levels"><h3>Modifier les créateurs et publieurs des niveaux</h3>
- <p class="small muted">Le nom affiché comme « publié par AREDL » vient du champ <code>publisher</code>, distinct du créateur. Ce formulaire modifie uniquement ces deux crédits, sans changer le niveau, sa position ou les records. Les corrections sont enregistrées dans Supabase et journalisées.</p>
- <form data-form="levelCredits"><label class="field">Niveau public<select name="demon_id" id="levelCreditsSelect" required>${levels.map(d=>`<option value="${esc(d.id)}">${d.position>150?'NLW #'+esc(d.position-150):'#'+esc(d.position)} — ${esc(d.name)}</option>`).join('')}</select></label>
- <label class="field">Créateur(s) (facultatif)<input name="creator" maxlength="200" id="levelCreditsCreator" value="${esc(selected.creator||'')}"></label>
- <label class="field">Publié par (obligatoire)<input name="publisher" maxlength="200" id="levelCreditsPublisher" required value="${esc(selected.publisher||'')}"></label>
- <div class="form-actions"><button class="btn" name="credits_action" value="save" type="submit">Enregistrer les crédits</button><button class="btn subtle" name="credits_action" value="recover" type="submit" formnovalidate>Récupérer depuis la sauvegarde (si disponible)</button></div>
- <p class="small muted">La récupération remplit seulement les champs vides ou « AREDL » lorsqu’une correspondance ancienne a été confirmée en base. Elle ne remplace pas tes valeurs manuelles.</p></form></div>`;
+ if(!levels.length)return '<div class="admin-card" data-admin-section="levels">Aucun niveau disponible.</div>';
+ const d=levels[0];
+ return `<div class="admin-card level-studio" data-admin-section="levels"><h2>Éditeur complet de niveaux</h2>
+ <p class="small muted">Modifie une fiche existante sans supprimer ses records. Pour modifier un rang, le déplacement des autres fiches est réalisé côté serveur dans une seule transaction.</p>
+ <label class="field">Rechercher un niveau<input id="levelStudioSearch" type="search" placeholder="Nom ou ID Geometry Dash"></label>
+ <form data-form="levelStudio"><label class="field">Fiche à éditer<select id="levelStudioSelect" name="demon_id" required>${levels.map(x=>`<option value="${esc(x.id)}" data-search="${esc(key(x.name)+' '+plain(x.level_id))}">${num(x.position)>150?'NLW #'+esc(num(x.position)-150):'#'+esc(x.position)} — ${esc(x.name)} (ID ${esc(x.id)})</option>`).join('')}</select></label>
+ <div class="studio-layout"><div><h3>Identité et difficulté</h3>
+ <label class="field">Nom<input name="name" required maxlength="120"></label>
+ <label class="field">ID Geometry Dash<input name="level_id" inputmode="numeric" maxlength="30"></label>
+ <label class="field">Créateur(s)<input name="creator" maxlength="200"></label>
+ <label class="field">Créateurs supplémentaires<input name="creator_more" maxlength="300"></label>
+ <label class="field">Publié par<input name="publisher" required maxlength="200"></label>
+ <label class="field">Vérifié par<input name="verifier" maxlength="200"></label>
+ <label class="field">Difficulté<input name="difficulty" maxlength="80"></label>
+ <label class="field">Progression requise (%)<input name="requirement" type="number" min="1" max="100" required></label>
+ <label class="field">Mode de complétion<select name="completion_mode"><option value="standard">Standard</option><option value="solo">Solo</option><option value="two_player">2-Player</option></select></label>
+ </div><div><h3>Classement et publication</h3>
+ <label class="field">Position globale<input name="position" type="number" min="1" max="99999998" required></label>
+ <p class="small muted">151 = NLW #1 · 155 = NLW #5. Les positions Rated existantes sont décalées si nécessaire.</p>
+ <label class="field"><input name="is_public" type="checkbox"> Fiche publiée</label>
+ <label class="field"><input name="legacy" type="checkbox"> Niveau historique (Legacy)</label>
+ <label class="field">Date Legacy<input name="legacy_since" type="date"></label>
+ <label class="field">Vidéo du niveau<input name="video_url" type="url" placeholder="https://youtu.be/…"></label>
+ <label class="field">Vidéo de vérification<input name="verifier_video_url" type="url"></label>
+ <label class="field">URL de miniature<input name="thumbnail_url" type="url" placeholder="https://i.ytimg.com/vi/…/hqdefault.jpg"></label>
+ <button type="button" class="btn subtle small" data-studio-thumbnail>Utiliser la miniature YouTube</button>
+ <label class="field">Description<textarea name="description" rows="4"></textarea></label>
+ <div class="studio-preview" id="levelStudioPreview">Aperçu de la miniature</div>
+ </div></div>
+ <div class="notice warning small">Attention : le rang principal et le rang NLW partagent la colonne « position ». Les changements de position modifient les points calculés. Les complétions ne seront pas supprimées.</div>
+ <label class="field"><input name="confirm_move" type="checkbox"> Je confirme un éventuel changement de classement</label>
+ <button class="btn" type="submit">Enregistrer la fiche du niveau</button></form></div>`;
 }
-function syncLevelCreditsEditor(){
- const el=document.getElementById('levelCreditsSelect'),form=el?.closest('form');
- if(!form)return;
- const d=(state.data.demons||[]).find(x=>String(x.id)===el.value);
- if(!d)return;
- form.elements.creator.value=plain(d.creator);
- form.elements.publisher.value=plain(d.publisher);
+function syncLevelStudio(){
+ const select=document.getElementById('levelStudioSelect'),form=select?.closest('form');if(!form)return;
+ const d=(state.data.demons||[]).find(x=>String(x.id)===select.value);if(!d)return;
+ for(const field of ['name','level_id','creator','creator_more','publisher','verifier','difficulty','requirement','completion_mode','position','legacy_since','video_url','verifier_video_url','thumbnail_url','description']){
+  if(!form.elements[field])continue;
+  const v=d[field];form.elements[field].value=v==null?'':String(v);
+ }
+ for(const field of ['is_public','legacy'])form.elements[field].checked=!!d[field];
+ form.elements.confirm_move.checked=false;
+ updateStudioPreview(form);
 }
+function studioYoutubeThumbnail(link){try{const u=new URL(link),h=u.hostname.replace(/^www\./,'').toLowerCase();let id='';if(h==='youtu.be')id=u.pathname.split('/')[1];else if(['youtube.com','m.youtube.com'].includes(h))id=u.pathname==='/watch'?u.searchParams.get('v'):u.pathname.split('/')[2];return /^[\w-]{11}$/.test(id||'')?'https://i.ytimg.com/vi/'+id+'/hqdefault.jpg':'';}catch{return '';}}
+function updateStudioPreview(form){const container=document.getElementById('levelStudioPreview');if(!container)return;const media=imageLink(form.elements.thumbnail_url.value)||studioYoutubeThumbnail(form.elements.video_url.value)||studioYoutubeThumbnail(form.elements.verifier_video_url.value);container.innerHTML=media?`<img src="${esc(media)}" alt="Aperçu miniature" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.hidden=false"><p hidden>Miniature indisponible — vérifie son URL.</p>`:'<p class="muted small">Aucune miniature renseignée</p>';}
 function historicNlwPublisher(){
  const all=oldArchive();
  const pubs=state.data.demons||[];
@@ -741,7 +769,7 @@ function showPageError(error){
 function render(){if(!state.data)return;try{
  if(!BADGES?.init || !UNRATED_STATS?.calculate || !V2?.decorate || !V2?.project || !UNVERIFIED?.classify || !CLANS?.apply || !CLAN_PLUS?.stats || !SUBMISSIONS?.approve)throw Error('Fichier JavaScript V2 manquant ou version incohérente : réinstalle les scripts du pack V2.0.3.');
  if(!LIVE){const first=state.data.badge_baseline_scanned!==true;const changed=BADGES.captureAutomatic(state.data,ranked(),new Date().toISOString().slice(0,10),first);if(first){state.data.badge_baseline_scanned=true;}if(changed||first)saveDemo();}
- const page=nav(),params=new URLSearchParams(location.search);if(page==='stats'&&params.has('player'))state.selectedPlayer=key(params.get('player'));if(page==='list'){const tab=new URLSearchParams(location.search).get('tab');state.list=tab==='archive'?'nlw':(tab||'main');}const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='my-profile'?selfProfilePage():page==='demon'?demonPage():page==='news'?newsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();document.title=({list:'Demonlist',stats:'Statistiques',news:'Actualités',hall:'Palmarès & exploits',honors:'Palmarès & exploits',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Palmarès & exploits',clans:'Clans',history:'Historique','my-profile':'Mon profil','submit-record':'Soumettre un record',demon:'Niveau',archive:'Archives historiques'})[page]+' · DemonlistFrancophone';
+ const page=nav(),params=new URLSearchParams(location.search);if(page==='stats'&&params.has('player'))state.selectedPlayer=key(params.get('player'));if(page==='list'){const tab=new URLSearchParams(location.search).get('tab');state.list=tab==='archive'?'nlw':(tab||'main');}const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='my-profile'?selfProfilePage():page==='demon'?demonPage():page==='news'?newsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();if(page==='admin'&&state.adminTab==='levels')syncLevelStudio();document.title=({list:'Demonlist',stats:'Statistiques',news:'Actualités',hall:'Palmarès & exploits',honors:'Palmarès & exploits',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Palmarès & exploits',clans:'Clans',history:'Historique','my-profile':'Mon profil','submit-record':'Soumettre un record',demon:'Niveau',archive:'Archives historiques'})[page]+' · DemonlistFrancophone';
  }catch(error){showPageError(error);}
 }
 function auditV2(action,target){state.data.community_audit_log.push({action_key:action,target,created_at:new Date().toISOString()});saveDemo();}
@@ -803,6 +831,22 @@ async function handleForm(form,submitter=null){if(state.busy)return;state.busy=t
  if(!state.staff)throw Error('Compte modérateur requis.');
  if(!LIVE&&state.demoRole==='nlw_editor'&&type!=='demon')throw Error('Le rôle NLW peut seulement ajouter des niveaux hors Top 150.');
  if(LIVE&&['clan','clanMember','safety','nlwStaff'].includes(type))throw Error('Nouvelle fonctionnalité en lecture seule : migration V2 Supabase non appliquée.');
+ if(type==='levelStudio'){
+  if(!LIVE||!hasFullStaffPowers())throw Error('Supermodérateur requis.');
+  const id=Number(f.demon_id),pos=Number(f.position),current=(state.data.demons||[]).find(x=>Number(x.id)===id);
+  if(!current)throw Error('Fiche introuvable.');
+  if(!Number.isSafeInteger(pos)||pos<1||pos>=99999999)throw Error('Position invalide.');
+  if(pos!==Number(current.position)&&f.confirm_move!=='on')throw Error('Coche la confirmation pour modifier le classement.');
+  const {error}=await db.rpc('dlfr_update_demon_full',{
+    p_demon_id:id,p_name:plain(f.name),p_position:pos,p_level_id:plain(f.level_id),
+    p_creator:plain(f.creator),p_creator_more:plain(f.creator_more),p_publisher:plain(f.publisher),p_verifier:plain(f.verifier),
+    p_difficulty:plain(f.difficulty),p_requirement:Number(f.requirement),p_completion_mode:plain(f.completion_mode),
+    p_video_url:plain(f.video_url),p_verifier_video_url:plain(f.verifier_video_url),p_thumbnail_url:plain(f.thumbnail_url),
+    p_description:plain(f.description),p_is_public:f.is_public==='on',p_legacy:f.legacy==='on',p_legacy_since:f.legacy_since||null
+  });
+  if(error)throw Error(error.message);
+  await refreshLiveData();toast('Fiche enregistrée et classement synchronisé.');render();return;
+ }
  if(type==='levelCredits'){
   if(!LIVE||!hasFullStaffPowers())throw Error('Supermodérateur requis.');
   const id=Number(f.demon_id);
@@ -939,6 +983,7 @@ function bootEvents(){
  const st=ev.target.closest('[data-stats-tab]');if(st){state.statsTab=st.dataset.statsTab;state.keyword='';render();return;}
  const pt=ev.target.closest('[data-profile-tab]');if(pt){state.profileTab=pt.dataset.profileTab;const chosen=getPlayer(state.selectedPlayer);if($('profileContent'))$('profileContent').innerHTML=statProfile(chosen);return;}
  const nf=ev.target.closest('[data-news-filter]');if(nf){state.newsFilter=nf.dataset.newsFilter;render();return;}
+ const thumb=ev.target.closest('[data-studio-thumbnail]');if(thumb){const form=thumb.closest('form');const v=studioYoutubeThumbnail(form.elements.video_url.value)||studioYoutubeThumbnail(form.elements.verifier_video_url.value);if(v){form.elements.thumbnail_url.value=v;updateStudioPreview(form);}else toast('Ajoute d’abord une vidéo YouTube valide.');return;}
  const ad=ev.target.closest('[data-admin-tab]');if(ad){state.adminTab=ad.dataset.adminTab;render();return;}
  const ed=ev.target.closest('[data-edit-news]');if(ed){if(!state.staff)return;state.adminTab='news';go('admin');fillNewsEditor(ed.dataset.editNews);return;}
  const tn=ev.target.closest('[data-toggle-news]');if(tn){if(!state.staff)return;const item=state.data.news_items.find(x=>String(x.id)===tn.dataset.toggleNews);if(item){try{await save('news_items',{...item,is_published:!item.is_published},{upsert:true,on:['id']});if(LIVE)state.data.news_items=await readAll('news_items');toast('Statut actualisé');render();}catch(e){toast('Erreur : '+e.message);}}return;}
@@ -969,6 +1014,8 @@ function bootEvents(){
  if(act.dataset.action==='logout'&&LIVE){await db.auth.signOut();state.session=null;state.staff=false;render();}
  });
  document.addEventListener('input',ev=>{
+ if(ev.target.id==='levelStudioSearch'){const select=document.getElementById('levelStudioSelect');if(select){const q=key(ev.target.value);for(const opt of select.options)opt.hidden=!key(opt.textContent+' '+opt.dataset.search).includes(q);const first=[...select.options].find(x=>!x.hidden);if(first&&select.selectedOptions[0]?.hidden){select.value=first.value;syncLevelStudio();}}}
+ if(ev.target.closest('[data-form="levelStudio"]'))updateStudioPreview(ev.target.closest('form'));
  if(ev.target.id==='clanSearch'){state.clanSearch=ev.target.value;document.querySelectorAll('[data-clan-searchable]').forEach(r=>r.hidden=!r.dataset.clanSearchable.includes(key(state.clanSearch)));}
  if(ev.target.id==='unbeatenSearch'){state.unbeatSearch=ev.target.value;state.unbeatLimit=120;const results=$('unbeatenResults');if(results)results.innerHTML=unbeatenEntriesHTML();}
  if(ev.target.id==='newsSearch'){state.newsSearch=ev.target.value;const items=state.data.news_items.filter(n=>(n.is_published||state.staff)&&(state.newsFilter==='all'||getNewsCategory(n)===state.newsFilter)&&`${key(n.headline)} ${key(n.body)} ${key(n.player_name)}`.includes(key(state.newsSearch)));$('newsItems').innerHTML=newsItemsHTML(items.sort((a,b)=>+(!!b.is_pinned)-+(!!a.is_pinned)||new Date(b.created_at)-new Date(a.created_at)));}
@@ -984,7 +1031,7 @@ function bootEvents(){
  if(ev.target.id==='compareA'){state.selectedPlayer=ev.target.value;render();}
  if(ev.target.id==='compareB'){state.comparePlayer=ev.target.value;render();}
  if(ev.target.id==='profileEditorPlayer')fillProfileEditor();
- if(ev.target.id==='levelCreditsSelect')syncLevelCreditsEditor();
+ if(ev.target.id==='levelStudioSelect')syncLevelStudio();
  if(ev.target.id==='historicNlwSelect'){const opt=ev.target.selectedOptions[0];const pos=document.getElementById('historicNlwPosition');if(opt&&pos)pos.value=opt.dataset.oldPosition||'151';}
  if(ev.target.id==='profileEditorCountry'||ev.target.id==='profileEditorRegion')syncRegionEditor();
  if(ev.target.id==='calcPlayer'){state.calcPlayer=ev.target.value;state.calcDemons=[];render();}
