@@ -17,6 +17,8 @@ const PROD = window.DLFR_PRODUCTION;
 const HISTORY = window.DLFR_HISTORY || {levels:[],records:[],snapshot:null};
 const historicLevels = () => HISTORY.levels || [];
 const oldArchive = () => historicLevels().filter(d=>Number(d.old_position)>150).sort((a,b)=>a.old_position-b.old_position);
+const levelPanelGroups = [['edit','Modifier une fiche'],['create','Ajouter'],['review','Archives et NLW'],['remove','Retirer / restaurer']];
+let activeLevelPanel='edit';
 const discordState=()=>null;
 const discordIdentity=()=>LIVE?DISCORD.sessionDiscordIdentity(state.session):discordState();
 function avatarOf(playerKey,profile){
@@ -531,15 +533,34 @@ function historicNlwPublisher(){
   const hidden=unpublished.filter(x=>((plain(old.level_id)&&plain(x.level_id)===plain(old.level_id))||key(x.name)===key(old.name)));
   return {old,matching,hidden: hidden.length===1};
  }).filter(x=>!x.matching);
- if(!options.length)return `<div class="admin-card" data-admin-section="levels"><h3>Homologuer un ancien niveau NLW</h3><p class="small muted">Tous les niveaux historiques hors Top 150 sont déjà présents dans la liste ou aucun n’est à homologuer.</p></div>`;
+ if(!options.length)return `<div class="admin-card" data-admin-section="levels"><h3>Anciennes fiches NLW à rapprocher</h3><p class="small muted">Tous les niveaux historiques hors Top 150 sont déjà présents dans la liste ou aucun n’est à homologuer.</p></div>`;
  const first=options[0].old;
- return `<div class="admin-card" data-admin-section="levels"><h3>Homologuer un ancien niveau NLW</h3>
+ return `<div class="admin-card" data-admin-section="levels"><h3>Anciennes fiches NLW à rapprocher</h3>
  <p class="small muted">Les archives sont consultables mais ne donnent pas de points. Après contrôle des records et du rang, publie la <b>fiche historique liée</b> dans la NLW officielle. Les victoires déjà importées sur cette fiche seront alors comptées automatiquement. Aucune victoire n’est créée par ce bouton.</p>
  <form data-form="historicNlwPublish"><label class="field">Niveau historique<select name="legacy_id" id="historicNlwSelect" required>${options.map(({old,hidden})=>`<option value="${esc(old.legacy_id)}" data-old-position="${esc(old.old_position)}">Ancien #${esc(old.old_position)} — ${esc(old.name)}${hidden?'':' · rapprochement à vérifier'}</option>`).join('')}</select></label>
  <label class="field">Rang DLFR choisi (151 = NLW #1)<input type="number" id="historicNlwPosition" name="position" min="151" max="99999998" value="${esc(first.old_position)}" required></label>
  <p class="small muted">Le système vérifie une correspondance unique par ID Geometry Dash (ou par nom lorsque l’ID historique est absent). Si le rang est occupé, choisis un rang libre. Les autres fiches ne sont pas déplacées.</p>
  <label class="field">Confirmation<input name="confirmation" required placeholder="Écrire PUBLIER NLW" autocomplete="off"></label>
  <button class="btn" type="submit">Publier dans NLW et activer le barème</button></form></div>`;
+}
+function arrangeLevelsPanel(){
+ if(state.adminTab!=='levels')return;
+ const container=document.querySelector('.moderation-sections');
+ if(!container)return;
+ const cards=[...container.querySelectorAll('.admin-card[data-admin-section="levels"]')];
+ if(!cards.length)return;
+ // Classer les outils existants sans toucher aux formulaires ni aux permissions Supabase.
+ cards.forEach(card=>{
+  const heading=(card.querySelector('h2,h3')?.textContent||'').toLowerCase();
+  const group=card.classList.contains('level-studio')||heading.includes('crédit')?'edit':
+    heading.includes('ajouter directement')?'create':
+    heading.includes('retirer ou restaurer')?'remove':'review';
+  card.dataset.levelGroup=group;
+  card.hidden=group!==activeLevelPanel;
+ });
+ let nav=document.getElementById('levelsToolsNav');
+ if(!nav){nav=document.createElement('nav');nav.id='levelsToolsNav';nav.className='level-tools-nav';nav.setAttribute('aria-label','Actions sur les niveaux');container.insertBefore(nav,cards[0]);}
+ nav.innerHTML=levelPanelGroups.map(([id,label])=>`<button type="button" data-level-group="${id}" class="${activeLevelPanel===id?'active':''}" aria-pressed="${activeLevelPanel===id}">${label}</button>`).join('');
 }
 function adminPage(){if(LIVE&&!state.staff){
   // Être connecté via Discord et être autorisé à modérer sont deux contrôles séparés.
@@ -769,7 +790,7 @@ function showPageError(error){
 function render(){if(!state.data)return;try{
  if(!BADGES?.init || !UNRATED_STATS?.calculate || !V2?.decorate || !V2?.project || !UNVERIFIED?.classify || !CLANS?.apply || !CLAN_PLUS?.stats || !SUBMISSIONS?.approve)throw Error('Fichier JavaScript V2 manquant ou version incohérente : réinstalle les scripts du pack V2.0.3.');
  if(!LIVE){const first=state.data.badge_baseline_scanned!==true;const changed=BADGES.captureAutomatic(state.data,ranked(),new Date().toISOString().slice(0,10),first);if(first){state.data.badge_baseline_scanned=true;}if(changed||first)saveDemo();}
- const page=nav(),params=new URLSearchParams(location.search);if(page==='stats'&&params.has('player'))state.selectedPlayer=key(params.get('player'));if(page==='list'){const tab=new URLSearchParams(location.search).get('tab');state.list=tab==='archive'?'nlw':(tab||'main');}const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='my-profile'?selfProfilePage():page==='demon'?demonPage():page==='news'?newsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();if(page==='admin'&&state.adminTab==='levels')syncLevelStudio();document.title=({list:'Demonlist',stats:'Statistiques',news:'Actualités',hall:'Palmarès & exploits',honors:'Palmarès & exploits',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Palmarès & exploits',clans:'Clans',history:'Historique','my-profile':'Mon profil','submit-record':'Soumettre un record',demon:'Niveau',archive:'Archives historiques'})[page]+' · DemonlistFrancophone';
+ const page=nav(),params=new URLSearchParams(location.search);if(page==='stats'&&params.has('player'))state.selectedPlayer=key(params.get('player'));if(page==='list'){const tab=new URLSearchParams(location.search).get('tab');state.list=tab==='archive'?'nlw':(tab||'main');}const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='my-profile'?selfProfilePage():page==='demon'?demonPage():page==='news'?newsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();if(page==='admin'&&state.adminTab==='levels'){arrangeLevelsPanel();syncLevelStudio();}document.title=({list:'Demonlist',stats:'Statistiques',news:'Actualités',hall:'Palmarès & exploits',honors:'Palmarès & exploits',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Palmarès & exploits',clans:'Clans',history:'Historique','my-profile':'Mon profil','submit-record':'Soumettre un record',demon:'Niveau',archive:'Archives historiques'})[page]+' · DemonlistFrancophone';
  }catch(error){showPageError(error);}
 }
 function auditV2(action,target){state.data.community_audit_log.push({action_key:action,target,created_at:new Date().toISOString()});saveDemo();}
@@ -984,6 +1005,7 @@ function bootEvents(){
  const pt=ev.target.closest('[data-profile-tab]');if(pt){state.profileTab=pt.dataset.profileTab;const chosen=getPlayer(state.selectedPlayer);if($('profileContent'))$('profileContent').innerHTML=statProfile(chosen);return;}
  const nf=ev.target.closest('[data-news-filter]');if(nf){state.newsFilter=nf.dataset.newsFilter;render();return;}
  const thumb=ev.target.closest('[data-studio-thumbnail]');if(thumb){const form=thumb.closest('form');const v=studioYoutubeThumbnail(form.elements.video_url.value)||studioYoutubeThumbnail(form.elements.verifier_video_url.value);if(v){form.elements.thumbnail_url.value=v;updateStudioPreview(form);}else toast('Ajoute d’abord une vidéo YouTube valide.');return;}
+ const levelGroupButton=ev.target.closest('[data-level-group]');if(levelGroupButton){activeLevelPanel=levelGroupButton.dataset.levelGroup;arrangeLevelsPanel();return;}
  const ad=ev.target.closest('[data-admin-tab]');if(ad){state.adminTab=ad.dataset.adminTab;render();return;}
  const ed=ev.target.closest('[data-edit-news]');if(ed){if(!state.staff)return;state.adminTab='news';go('admin');fillNewsEditor(ed.dataset.editNews);return;}
  const tn=ev.target.closest('[data-toggle-news]');if(tn){if(!state.staff)return;const item=state.data.news_items.find(x=>String(x.id)===tn.dataset.toggleNews);if(item){try{await save('news_items',{...item,is_published:!item.is_published},{upsert:true,on:['id']});if(LIVE)state.data.news_items=await readAll('news_items');toast('Statut actualisé');render();}catch(e){toast('Erreur : '+e.message);}}return;}

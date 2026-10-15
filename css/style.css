@@ -574,3 +574,12 @@ html.unrated-mode .level-badge.unrated-badge{background:#54206e;color:#fff}
 
 /* Éditeur complet des fiches */
 .level-studio .studio-layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;margin:16px 0}.level-studio .studio-layout>div{min-width:0}.level-studio .studio-preview{margin:12px 0;padding:12px;border:1px dashed #63709d;border-radius:10px;min-height:110px}.level-studio .studio-preview img{display:block;width:100%;max-width:320px;aspect-ratio:16/9;object-fit:cover;border-radius:8px}.level-studio input[type=checkbox]{width:auto;margin-right:8px}@media(max-width:780px){.level-studio .studio-layout{grid-template-columns:1fr}}
+
+/* V31 : outils de modération regroupés, un seul formulaire à la fois. */
+.level-tools-nav{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;background:var(--card);padding:12px;border:1px solid var(--line);border-radius:12px}
+.level-tools-nav button{border:1px solid var(--line);border-radius:8px;padding:12px 8px;background:var(--panel);color:var(--ink);font-weight:700;cursor:pointer}
+.level-tools-nav button.active{color:#fff;background:#7755d9;border-color:#7755d9}
+.moderation-sections[data-active-admin="levels"] .admin-card[data-level-group][hidden]{display:none!important}
+.moderation-sections[data-active-admin="levels"] .admin-card[data-level-group]:not([hidden]){grid-column:1/-1}
+.moderation-sections[data-active-admin="levels"] .admin-card.level-studio{max-width:none}
+@media(max-width:700px){.level-tools-nav{grid-template-columns:repeat(2,minmax(0,1fr))}}
