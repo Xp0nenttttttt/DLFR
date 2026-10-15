@@ -1,0 +1,9 @@
+1. Sauvegarder votre base Supabase.
+2. Executer supabase/32_REPARER_CREATION_NIVEAUX_ET_JOUEURS.sql dans SQL Editor.
+3. Remplacer js/app.js par celui de ce patch.
+4. Recharger Ctrl+F5.
+5. Choisir un joueur dans les menus, ou "Creer un nouveau joueur" et renseigner son pseudo.
+
+Ne pas toucher assets/flags.
+La migration ajoute les nouveaux joueurs en profils publics sans compte de connexion.
+Si votre fonction dlfr_can_moderate n’existe pas, installez les migrations précédentes avant celle-ci.
