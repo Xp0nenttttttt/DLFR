@@ -181,7 +181,11 @@ async function send(db,type,f,submitter){
   if(!/^https:\/\//i.test(f.video_url))throw Error('Preuve HTTPS requise');
   const who=(await db.auth.getUser()).data.user;
   if(!who)throw Error('Connexion Discord requise');
-  return errorOf(await db.from('level_submissions').insert({auth_user_id:who.id,level_name:trim(f.level_name),level_id:trim(f.level_id)||null,player:trim(f.player),progress:Number(f.progress),video_url:f.video_url,publisher:trim(f.publisher),creator:trim(f.creator)||null,verifier:trim(f.verifier)||null,suggested_position:f.suggested_position?Number(f.suggested_position):null}));
+  const {data:ownership,error:ownerError}=await db.from('player_profile_owners').select('player_key,players(username)').eq('auth_user_id',who.id).maybeSingle();
+  if(ownerError)throw Error(ownerError.message);
+  const nickname=trim(ownership?.players?.username);
+  if(!nickname)throw Error('Relie ou crée une fiche DLFR avant de soumettre.');
+  return errorOf(await db.from('level_submissions').insert({auth_user_id:who.id,level_name:trim(f.level_name),level_id:trim(f.level_id)||null,player:nickname,progress:Number(f.progress),video_url:f.video_url,publisher:trim(f.publisher),creator:trim(f.creator)||null,verifier:trim(f.verifier)||null,suggested_position:f.suggested_position?Number(f.suggested_position):null}));
  }
  throw Error('Action inconnue');
 }

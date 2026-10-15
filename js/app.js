@@ -17,7 +17,7 @@ const PROD = window.DLFR_PRODUCTION;
 const HISTORY = window.DLFR_HISTORY || {levels:[],records:[],snapshot:null};
 const historicLevels = () => HISTORY.levels || [];
 const oldArchive = () => historicLevels().filter(d=>Number(d.old_position)>150).sort((a,b)=>a.old_position-b.old_position);
-const levelPanelGroups = [['edit','Modifier une fiche'],['create','Ajouter'],['review','Archives et NLW'],['remove','Retirer / restaurer']];
+const levelPanelGroups = [['edit','✎ Éditer les fiches'],['create','＋ Créer un niveau'],['review','◫ NLW et imports'],['remove','↺ Retirer / restaurer']];
 let activeLevelPanel='edit';
 const discordState=()=>null;
 const discordIdentity=()=>LIVE?DISCORD.sessionDiscordIdentity(state.session):discordState();
@@ -474,7 +474,23 @@ function newsPage(){const all=[...state.data.news_items].filter(x=>x.is_publishe
 function newsItemsHTML(items){return items.length?items.map(n=>`<article class="news-card ${n.is_pinned?'pinned':''}"><div class="news-meta"><span class="news-category">${esc(getNewsCategory(n))}</span>${n.is_pinned?'<span class="news-pin">★ À la une</span>':''}<time>${date(n.created_at)}${!n.is_published?' · Brouillon':''}</time></div><h3>${esc(n.headline)}</h3><p class="news-body">${esc(n.body)}</p>${newsMedia(n)}${n.player_name?`<a class="tag" href="${url('stats',{player:key(n.player_name)})}" data-nav>${esc(n.player_name)}</a>`:''}${hasFullStaffPowers()?`<div class="news-editor-actions"><button class="btn subtle small" data-edit-news="${n.id}">Modifier</button><button class="btn subtle small" data-toggle-news="${n.id}">${n.is_published?'Mettre en brouillon':'Publier'}</button></div>`:''}</article>`).join(''):'<p class="empty">Aucune actualité trouvée.</p>';}
 // Un champ de modération ne doit proposer que de vrais joueurs enregistrés.
 const playerOptions=()=>state.data.players.slice().sort((a,b)=>sortPlayerName(a).localeCompare(sortPlayerName(b),'fr')).map(x=>`<option value="${esc(x.player_key)}">${esc(sortPlayerName(x))}</option>`).join('');
-function submitRecordPage(){return `${templateNotice()}<section class="paper v2-page"><div class="v2-intro"><h1>Soumettre un record</h1><p>Propose un record pour un niveau présent ou absent de la Demonlist. S'il est nouveau, un modérateur choisira Rated ou UNRATED avant de l'ajouter.</p></div>${LIVE&&!state.session?'<div class="notice warning">Connecte-toi avec Discord dans Mon profil pour envoyer une soumission réelle.</div>':`<form data-form="submitRecord" class="submission-form"><label class="field">Niveau<input name="level_name" maxlength="120" required placeholder="Nom du niveau"></label><label class="field">ID Geometry Dash (facultatif)<input name="level_id" inputmode="numeric" maxlength="30" placeholder="Ex. 123456"></label><label class="field">Joueur ayant réalisé le record<input name="player" maxlength="120" required placeholder="Pseudo du joueur"></label><label class="field">Progression (%)<input name="progress" type="number" min="1" max="100" value="100" required></label><label class="field">Vidéo de preuve<input name="video_url" type="url" required placeholder="https://youtu.be/…"></label><label class="field">Créateur du niveau<input name="creator" maxlength="120" placeholder="Créateur"></label><label class="field">Publieur du niveau<input name="publisher" maxlength="120" required placeholder="Publieur"></label><label class="field">Vérificateur (si connu)<input name="verifier" maxlength="120"></label><label class="field">Rang suggéré (facultatif)<input name="suggested_position" type="number" min="1" placeholder="Par exemple 80"></label><p class="small muted">Pas besoin de décider Rated / UNRATED lors de la soumission : ce choix est réservé au modérateur lors de l'acceptation.</p><button type="submit" class="btn">Envoyer en modération</button></form>`}</section>`;}
+function submitRecordPage(){
+ const owner=(state.data.players||[]).find(p=>p.player_key===state.ownKey);
+ const myName=owner?.username||'';
+ const ready=!!(state.session&&state.ownKey&&myName);
+ return `${templateNotice()}<section class="paper v2-page dlfr-submit-clean"><div class="v2-intro"><h1>Soumettre un niveau ou un record</h1><p>Le record est soumis sous le pseudo de ta fiche DLFR liée à Discord. Ce pseudo ne peut pas être modifié ici.</p></div>
+ ${!ready?`<div class="notice warning">${!state.session?'Connecte-toi avec Discord.':'Relie ou crée ta fiche joueur DLFR depuis Mon profil avant de soumettre.'}</div><a href="${url('my-profile')}" data-nav class="btn">Accéder à mon profil</a>`:
+ `<form data-form="submitRecord" class="submission-form"><div class="submission-identity"><span class="small muted">Soumission par</span><strong>${esc(myName)}</strong><span class="small muted">Identité vérifiée avec ton compte</span></div>
+ <label class="field">Niveau<input name="level_name" maxlength="120" required placeholder="Nom du niveau"></label>
+ <label class="field">ID Geometry Dash (facultatif)<input name="level_id" inputmode="numeric" maxlength="30" placeholder="Ex. 123456"></label>
+ <label class="field">Progression (%)<input name="progress" type="number" min="1" max="100" value="100" required></label>
+ <label class="field">Vidéo de preuve<input name="video_url" type="url" required placeholder="https://youtu.be/…"></label>
+ <label class="field">Créateur du niveau<input name="creator" maxlength="120" placeholder="Créateur"></label>
+ <label class="field">Publieur du niveau<input name="publisher" maxlength="120" required placeholder="Publieur"></label>
+ <label class="field">Vérificateur (si connu)<input name="verifier" maxlength="120"></label>
+ <label class="field">Rang suggéré (facultatif)<input name="suggested_position" type="number" min="1" placeholder="Par exemple 80"></label>
+ <p class="small muted">Un modérateur décidera du classement et vérifiera la preuve. Le pseudo est déterminé côté serveur.</p><button type="submit" class="btn">Envoyer en modération</button></form>`}</section>`;
+}
 function levelCreditsEditor(){
  const levels=(state.data.demons||[]).slice().sort((a,b)=>num(a.position)-num(b.position));
  if(!levels.length)return '<div class="admin-card" data-admin-section="levels">Aucun niveau disponible.</div>';
@@ -549,7 +565,7 @@ function arrangeLevelsPanel(){
  if(!container)return;
  const cards=[...container.querySelectorAll('.admin-card[data-admin-section="levels"]')];
  if(!cards.length)return;
- // Classer les outils existants sans toucher aux formulaires ni aux permissions Supabase.
+ // Les outils existants restent accessibles, mais une seule catégorie est affichée.
  cards.forEach(card=>{
   const heading=(card.querySelector('h2,h3')?.textContent||'').toLowerCase();
   const group=card.classList.contains('level-studio')||heading.includes('crédit')?'edit':
@@ -560,7 +576,7 @@ function arrangeLevelsPanel(){
  });
  let nav=document.getElementById('levelsToolsNav');
  if(!nav){nav=document.createElement('nav');nav.id='levelsToolsNav';nav.className='level-tools-nav';nav.setAttribute('aria-label','Actions sur les niveaux');container.insertBefore(nav,cards[0]);}
- nav.innerHTML=levelPanelGroups.map(([id,label])=>`<button type="button" data-level-group="${id}" class="${activeLevelPanel===id?'active':''}" aria-pressed="${activeLevelPanel===id}">${label}</button>`).join('');
+ nav.innerHTML=`<div class="level-tools-heading"><div><span class="kicker">ESPACE DE MODÉRATION</span><h2>Gestion des niveaux</h2><p>Édition, création, classement et archives — un outil à la fois.</p></div><span class="level-tools-counter">${cards.length} outils</span></div><div class="level-tools-tabs">${levelPanelGroups.map(([id,label])=>`<button type="button" data-level-group="${id}" class="${activeLevelPanel===id?'active':''}" aria-pressed="${activeLevelPanel===id}">${label}</button>`).join('')}</div>`;
 }
 function adminPage(){if(LIVE&&!state.staff){
   // Être connecté via Discord et être autorisé à modérer sont deux contrôles séparés.
@@ -826,7 +842,9 @@ async function handleForm(form,submitter=null){if(state.busy)return;state.busy=t
  }
  if(type==='submitRecord'){
   if(LIVE)throw Error('Soumissions réelles indisponibles avant la migration Auth / RLS.');
-  const player=plain(f.player),level_name=plain(f.level_name),progress=Number(f.progress),video_url=http(f.video_url);
+  const owner=(state.data.players||[]).find(p=>p.player_key===state.ownKey);
+  if(!state.session||!owner?.username)throw Error('Fiche joueur liée au compte obligatoire.');
+  const player=plain(owner.username),level_name=plain(f.level_name),progress=Number(f.progress),video_url=http(f.video_url);
   if(!level_name||!player||!video_url||!Number.isInteger(progress)||progress<1||progress>100)throw Error('Nom, joueur, preuve vidéo et progression valides requis.');
   const rows=state.data.level_submissions||[];
   if(rows.some(x=>x.status==='pending'&&SUBMISSIONS.norm(x.level_name)===SUBMISSIONS.norm(level_name)&&SUBMISSIONS.norm(x.player)===SUBMISSIONS.norm(player)))throw Error('Une soumission identique attend déjà validation.');

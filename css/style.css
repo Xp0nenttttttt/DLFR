@@ -583,3 +583,16 @@ html.unrated-mode .level-badge.unrated-badge{background:#54206e;color:#fff}
 .moderation-sections[data-active-admin="levels"] .admin-card[data-level-group]:not([hidden]){grid-column:1/-1}
 .moderation-sections[data-active-admin="levels"] .admin-card.level-studio{max-width:none}
 @media(max-width:700px){.level-tools-nav{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Modération — navigation épurée et formulaires lisibles */
+.level-tools-nav{display:block!important;padding:0!important;overflow:hidden;border-radius:18px!important;background:var(--card)!important;box-shadow:0 10px 30px rgba(35,32,70,.06)}
+.level-tools-heading{padding:22px 24px;background:linear-gradient(115deg,rgba(105,84,204,.12),rgba(96,177,235,.09));display:flex;align-items:center;justify-content:space-between;gap:14px}
+.level-tools-heading h2{margin:5px 0;font-size:21px}.level-tools-heading p{margin:0;color:var(--muted);font-size:13px}
+.level-tools-counter{font-size:12px;border:1px solid var(--line);padding:6px 12px;border-radius:100px;white-space:nowrap}
+.level-tools-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:11px;gap:8px}
+.level-tools-tabs button{min-height:46px!important;padding:10px!important;border-radius:10px!important;font-size:12px!important}
+.moderation-sections[data-active-admin="levels"] .admin-card:not([hidden]){border-radius:16px;box-shadow:0 8px 22px rgba(40,35,90,.04);padding:24px}
+.moderation-sections[data-active-admin="levels"] .admin-card h2,.moderation-sections[data-active-admin="levels"] .admin-card h3{margin-top:0}
+.dlfr-submit-clean .submission-identity{grid-column:1/-1;border:1px solid var(--line);border-radius:14px;padding:17px 20px;background:var(--panel);display:flex;flex-direction:column;gap:4px}
+.dlfr-submit-clean .submission-identity strong{font-size:20px}
+@media(max-width:760px){.level-tools-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.level-tools-heading{padding:16px}.level-tools-counter{display:none}}
