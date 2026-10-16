@@ -1,11 +1,16 @@
-# DLFR – fusion de joueurs (version prudente)
+# DLFR — Profils : Fusion / Vérificateurs
 
-1. Sauvegarder Supabase avant toute intervention.
-2. Exécuter `supabase/33_FUSION_JOUEURS.sql` dans SQL Editor.
-3. Remplacer `js/app.js`, puis Ctrl+F5.
-4. Modération > Profils > Fusionner deux fiches joueur.
-5. Sélectionner la cible et la source, cliquer Prévisualiser, vérifier les conflits, puis saisir `FUSIONNER`.
+Patch à installer sur la version du projet contenant la migration 33 (fusion de joueurs).
 
-**Important :** la fusion conserve la fiche source, la masque des stats, transfère les complétions non dupliquées, copie badges/titres et réaffecte palmarès/achievements. Les complétions doublonnées sont sauvegardées dans `dlfr_merge_duplicate_completions` avant retrait. Les liens Discord et comptes Auth ne sont jamais déplacés. Les autres relations (clans, AREDL, snapshots, etc.) restent sur la source et doivent être revues individuellement. Le pseudo source demeure une fiche d'archive. Fusionner uniquement de vrais doublons.
+1. Sauvegarder la base Supabase et `js/app.js`.
+2. Exécuter `supabase/34_RAPPROCHER_VERIFICATEURS.sql` dans Supabase SQL Editor.
+3. Remplacer `js/app.js` par ce fichier.
+4. Recharger la page (`Ctrl+F5`).
+5. Dans Modération > Profils > Identités des joueurs, cliquer « Vérificateurs », puis « Actualiser les vérificateurs ».
+6. Choisir un crédit exact, visualiser les niveaux associés, choisir une fiche existante ou en créer une, puis saisir RATTACHER et confirmer.
 
-Le script SQL n'a pas été testé sur votre instance Supabase. Test conseillé sur une copie de base. Ne remplacez aucun élément dans `assets/flags/` (non inclus).
+La fonction conserve le texte `demons.verifier` comme crédit historique et écrit seulement `demons.verifier_user_id`. Le rapprochement est exact, sans suppression de niveau, de record ni fusion des comptes. Les nouveaux profils n'ont pas de compte de connexion. Opération réservée aux rôles owner/editor/supermoderator.
+
+**Prérequis important :** `players.legacy_id` doit être un bigint modifiable et `demons.verifier_user_id` doit désigner ce même identifiant numérique. Vérifier ce point dans le schéma Supabase avant application. La migration n'a pas été exécutée sur votre base réelle.
+
+Aucun fichier `assets/flags/` n'est inclus.
