@@ -13,6 +13,7 @@ const UNRATED_STATS = window.DLFR_UNRATED_STATS;
 const SUBMISSIONS = window.DLFR_SUBMISSIONS;
 const DISCORD = window.DLFR_DISCORD;
 const BADGES = window.DLFR_BADGES;
+const COMMUNITY = window.DLFR_COMMUNITY;
 const PROD = window.DLFR_PRODUCTION;
 const HISTORY = window.DLFR_HISTORY || {levels:[],records:[],snapshot:null};
 const historicLevels = () => HISTORY.levels || [];
@@ -27,6 +28,7 @@ function avatarOf(playerKey,profile){
 }
 const v2Tables=['fr_achievements','clans','clan_members','nlw_staff','player_sanctions','aredl_levels','clan_invites','clan_requests','level_submissions'];
 const livePublicTables=['fr_achievements','clans','clan_members','aredl_levels','badge_awards'];
+const communityTables=['dlfr_profile_preferences','dlfr_profile_showcase','dlfr_profile_follows'];
 const livePrivateTables=['profile_claim_requests','level_submissions','clan_invites','clan_requests','player_profile_owners'];
 const liveStaffTables=['player_sanctions','community_audit_log','dlfr_level_archive_log'];
 const tables = ['site_settings','players','demons','completions','news_items','profile_titles','player_profile_titles','player_profiles','hall_of_fame','player_stat_snapshots','demon_position_history'];
@@ -139,6 +141,9 @@ async function refreshLiveData(){
  state.data.staff_directory_error=staffDirectory.error?.message||null;
  if(staffDirectory.error)console.warn('Annuaire équipe indisponible :',staffDirectory.error.message);
  for(const t of v2Tables)state.data[t]=[];
+ // Fonctions communautaires optionnelles tant que la migration 35 n'est pas installée.
+ state.communityReady=true;
+ for(const t of communityTables){try{state.data[t]=await readAll(t);}catch(err){state.data[t]=[];state.communityReady=false;console.warn('DLFR 2.0 — migration 35 non disponible :',t,err.message);}}
  for(const t of [...livePublicTables,...(state.session?livePrivateTables:[]),...(hasFullStaffPowers()?liveStaffTables:[])])state.data[t]=await readAll(t);
  state.scopedQueue=[];
  if(['nlw','moderator'].includes(state.staffRole)){
@@ -359,6 +364,22 @@ function discordPanel(actor, profile={}) {
   }
 
 }
+function communitySelfFields(actor){
+ if(!state.communityReady)return '<div class="notice warning">Les fonctionnalités DLFR 2.0 ne sont pas encore disponibles : installe la migration 35 dans Supabase avant de personnaliser ta vitrine.</div>';
+ const pref=(state.data.dlfr_profile_preferences||[]).find(x=>x.player_key===actor)||{};
+ const badges=COMMUNITY.ownedBadges(state.data,actor,BADGES),chosen=new Set(pref.featured_badges||[]);
+ const titles=COMMUNITY.ownedTitles(state.data,actor),items=COMMUNITY.showcase(state.data,actor);
+ const demons=(state.data.demons||[]).filter(x=>x.is_public!==false).sort((a,b)=>Number(a.position)-Number(b.position));
+ const opts=demons.map(d=>`<option value="${esc(d.id)}">${Number(d.position)>150?'NLW #'+esc(Number(d.position)-150):'#'+esc(d.position)} — ${esc(d.name)}</option>`).join('');
+ return `<fieldset class="dlfr20-fieldset"><legend>✦ Personnalisation & vitrines</legend>
+  <p class="small muted">Ces éléments apparaîtront sur ta fiche publique. Les titres et les badges doivent déjà avoir été obtenus.</p>
+  <label class="field">Couleur d'accent de mon profil<input type="color" name="accent_color" value="${esc(COMMUNITY.hex(pref.accent_color))}"></label>
+  <label class="field">Titre officiel mis en avant<select name="featured_title_id"><option value="">Aucun titre mis en avant</option>${titles.map(t=>`<option value="${esc(t.id)}" ${String(pref.featured_title_id)===String(t.id)?'selected':''}>${esc(t.label)}</option>`).join('')}</select></label>
+  <div class="field"><b>Mes badges favoris (3 maximum)</b>${badges.length?`<div class="dlfr20-badge-picker">${badges.map(x=>`<label><input type="checkbox" name="featured_badges" value="${esc(x.id)}" ${chosen.has(x.id)?'checked':''}> ${esc(x.def.symbol)} ${esc(x.def.label)}</label>`).join('')}</div>`:'<p class="muted small">Tu pourras sélectionner des badges dès que tu en possèderas.</p>'}</div>
+  <h3>Ma vitrine de niveaux</h3><p class="muted small">Choisis jusqu'à trois niveaux, ajoute une description et, si tu le souhaites, un lien vers ta vidéo.</p>
+  <div class="dlfr20-showcase-edit">${[1,2,3].map(slot=>{const x=items.find(z=>Number(z.slot)===slot)||{};return `<div class="dlfr20-showcase-slot"><b>Emplacement ${slot}</b><label class="field">Niveau<select name="showcase_demon_${slot}"><option value="">Aucun niveau</option>${opts.replaceAll(`value="${esc(x.demon_id)}"`,`value="${esc(x.demon_id)}" selected`)}</select></label><label class="field">Description (180 caractères)<input name="showcase_caption_${slot}" maxlength="180" value="${esc(x.caption||'')}" placeholder="Pourquoi ce niveau est spécial pour moi…"></label><label class="field">Ma vidéo (URL HTTPS)<input type="url" name="showcase_video_${slot}" maxlength="500" placeholder="https://youtu.be/…" value="${esc(x.video_url||'')}"></label></div>`;}).join('')}</div>
+ </fieldset>`;
+}
 function selfProfilePage(){
  if(LIVE&&!state.session){
   const emailLogin=`<form data-form="selfLogin" class="self-login"><label class="field">E-mail<input type="email" name="email" required autocomplete="email"></label><label class="field">Mot de passe<input type="password" name="password" required autocomplete="current-password"></label><button class="btn" type="submit">Se connecter avec e-mail</button></form>`;
@@ -382,6 +403,7 @@ function selfProfilePage(){
  ${suspended?'<div class="notice warning">Ce profil est suspendu dans la simulation. Les modifications sont temporairement désactivées.</div>':''}
  <form class="self-profile-form" data-form="selfProfile"><div class="self-form-grid"><label class="field self-field-wide">Biographie<textarea name="bio" maxlength="1200" rows="4">${value('bio')}</textarea></label>${!LIVE?`<label class="field">Source de l’avatar<select name="avatar_source"><option value="custom" ${(profile.avatar_source||'custom')==='custom'?'selected':''}>Avatar personnalisé</option><option value="discord" ${profile.avatar_source==='discord'?'selected':''} ${!(discordState().connected&&discordState().linked_player_key===actor)?'disabled':''}>Avatar Discord (liaison approuvée en démo)</option></select></label>`:''}${field('Avatar (URL ou chemin assets/)','avatar_url',500,'https://…')}${field('Bannière (URL ou chemin assets/)','banner_url',500,'https://…')}<label class="field">Année de début<input name="join_year" type="number" min="2013" max="2100" value="${value('join_year')}"></label>${field('Niveau favori','favorite_level',120)}${field('Objectif actuel','current_goal',180)}${field('Chaîne YouTube','youtube_url',500)}${field('Chaîne Twitch','twitch_url',500)}${field('Autre lien','social_url',500)}${field('Accomplissement à la une 1','highlight_1',150)}${field('Accomplissement à la une 2','highlight_2',150)}${field('Accomplissement à la une 3','highlight_3',150)}
  ${isFR?`<label class="field">Région française<div class="country-select-row"><span>${GEO.regionImage(profile.region_code)}</span><select name="region_code" id="selfRegion"><option value="">Non renseignée</option>${GEO.regions.map(r=>`<option value="${esc(r.code)}" ${r.code===profile.region_code?'selected':''}>${esc(r.name)}</option>`).join('')}</select></div></label>`:''}</div>
+ ${communitySelfFields(actor)}
  <div class="self-actions"><button class="btn" type="submit" ${suspended?'disabled':''}>Enregistrer mon profil</button><span class="muted small">${LIVE?'Enregistrement via Supabase, soumis aux règles RLS.':'Sauvegardé seulement dans ce navigateur ; pas sur Supabase.'}</span></div></form>
  </section>`;
 }
@@ -400,7 +422,28 @@ async function saveSelfProfile(form){
  if(!LIVE){const current=state.data.player_profiles.findIndex(p=>p.player_key===actor);if(current>=0)state.data.player_profiles[current]={...state.data.player_profiles[current],...data};else state.data.player_profiles.push(data);saveDemo();}
  else {if(!state.session||!state.ownKey||actor!==state.ownKey)throw Error('Ce compte n’est pas autorisé à modifier ce joueur.');
    const {error}=await db.from('player_profiles').upsert(data,{onConflict:'player_key'});if(error)throw Error('Supabase : '+error.message);
-   state.data.player_profiles=await readAll('player_profiles');}
+   state.data.player_profiles=await readAll('player_profiles');
+   if(state.communityReady){
+     const badgeIds=new FormData(form).getAll('featured_badges').map(String);
+     if(badgeIds.length>3)throw Error('Sélectionne au maximum trois badges favoris.');
+     const showcase=[];
+     for(let slot=1;slot<=3;slot++){
+       const id=Number(f[`showcase_demon_${slot}`]);
+       if(!id)continue;
+       const vid=plain(f[`showcase_video_${slot}`]);
+       if(vid&&!/^https:\/\/[^\s]+$/i.test(vid))throw Error('La vidéo de vitrine doit utiliser HTTPS.');
+       showcase.push({slot,demon_id:id,caption:plain(f[`showcase_caption_${slot}`]).slice(0,180),video_url:vid||null});
+     }
+     if(new Set(showcase.map(x=>x.demon_id)).size!==showcase.length)throw Error('Choisis trois niveaux différents pour la vitrine.');
+     const {error}=await db.rpc('dlfr_save_profile_extras',{
+       p_accent_color:COMMUNITY.hex(f.accent_color),
+       p_featured_title_id:f.featured_title_id?Number(f.featured_title_id):null,
+       p_featured_badges:badgeIds,p_showcase:showcase
+     });
+     if(error)throw Error('Personnalisation DLFR 2.0 : '+error.message);
+     for(const t of ['dlfr_profile_preferences','dlfr_profile_showcase'])state.data[t]=await readAll(t);
+   }
+ }
  toast('Profil enregistré sur Supabase !');render();
 }
 function comparison(p,other){if(!other)return '<p class="muted small">Choisis un joueur pour comparer leurs statistiques.</p>';
@@ -408,6 +451,26 @@ function comparison(p,other){if(!other)return '<p class="muted small">Choisis un
  return `<div class="record-table-wrap"><table class="record-table"><thead><tr><th>Indicateur</th><th>${esc(fullName(p))}</th><th>${esc(fullName(other))}</th></tr></thead><tbody>${rows.map(([n,a,b])=>`<tr><td>${esc(n)}</td><td>${esc(a)}</td><td>${esc(b)}</td></tr>`).join('')}</tbody></table></div>`;
 }
 
+function communityPublicPanel(playerKey){
+ if(!state.communityReady)return '';
+ const pref=(state.data.dlfr_profile_preferences||[]).find(x=>x.player_key===playerKey)||{};
+ const bowned=new Map(COMMUNITY.ownedBadges(state.data,playerKey,BADGES).map(x=>[x.id,x]));
+ const highlighted=(pref.featured_badges||[]).map(id=>bowned.get(String(id))).filter(Boolean).slice(0,3);
+ const title=COMMUNITY.ownedTitles(state.data,playerKey).find(x=>String(x.id)===String(pref.featured_title_id));
+ const followers=COMMUNITY.followers(state.data,playerKey),following=COMMUNITY.following(state.data,playerKey);
+ const amFollowing=!!state.ownKey&&followers.some(f=>f.follower_key===state.ownKey);
+ const canFollow=!!state.session&&!!state.ownKey&&state.ownKey!==playerKey;
+ const followButton=state.ownKey===playerKey?'':canFollow?`<button type="button" class="btn small ${amFollowing?'subtle':''}" data-community-follow="${esc(playerKey)}">${amFollowing?'✓ Abonné':'＋ Suivre'}</button>`:!state.session?`<a class="link small" data-nav href="${url('my-profile')}">Se connecter pour suivre</a>`:'';
+ const demonMap=new Map((state.data.demons||[]).map(d=>[Number(d.id),d]));
+ const showcase=COMMUNITY.showcase(state.data,playerKey).map(s=>({s,d:demonMap.get(Number(s.demon_id))})).filter(x=>x.d);
+ return `<section class="profile-section dlfr20-community" style="--dlfr20-accent:${esc(COMMUNITY.hex(pref.accent_color))}">
+ <div class="dlfr20-community-top"><div><h3>✦ Espace communautaire</h3><p class="muted small">${followers.length} abonné(s) · ${following.length} abonnement(s)</p></div>${followButton}</div>
+ ${title?`<div class="dlfr20-title">✧ ${esc(title.label)}</div>`:''}
+ ${highlighted.length?`<div class="dlfr20-featured-badges">${highlighted.map(x=>`<div class="dlfr-badge dlfr20-favorite" data-rarity="${esc(x.def.rarity.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,''))}"><span class="dlfr-badge-icon">${esc(x.def.symbol)}</span><b>${esc(x.def.label)}</b></div>`).join('')}</div>`:''}
+ ${showcase.length?`<h3 class="dlfr20-gallery-title">Ma vitrine de niveaux</h3><div class="dlfr20-gallery">${showcase.map(({s,d})=>{const thumb=imageLink(d.thumbnail_url);const video=http(s.video_url);return `<article class="dlfr20-level-card"><a data-nav href="${url('demon',{id:d.id})}" class="dlfr20-card-link">${thumb?`<img loading="lazy" src="${esc(thumb)}" alt="Miniature du niveau ${esc(d.name)}">`:'<span class="dlfr20-no-thumb">✦</span>'}<strong>${esc(d.name)}</strong></a>${s.caption?`<p>${esc(s.caption)}</p>`:''}${video?`<a href="${esc(video)}" target="_blank" rel="noopener noreferrer" class="link">Voir ma vidéo ↗</a>`:''}</article>`;}).join('')}</div>`:''}
+ ${state.ownKey===playerKey&&following.length?`<details class="dlfr20-follow-list"><summary>Mes abonnements (${following.length})</summary><div>${following.map(x=>`<a data-nav class="link" href="${url('stats',{player:x.followed_key})}">${esc(getPlayer(x.followed_key)?.display_name||getPlayer(x.followed_key)?.username||x.followed_key)}</a>`).join(' · ')}</div></details>`:''}
+ </section>`;
+}
 function statProfile(p){if(!p)return '<div class="stats-profile empty">Sélectionne un joueur.</div>';
  const profile=state.data.player_profiles.find(v=>v.player_key===p.player_key)||{};
  const snapshots=state.data.player_stat_snapshots.filter(s=>s.player_key===p.player_key).sort((a,b)=>String(a.snapshot_day??'').localeCompare(String(b.snapshot_day??'')));
@@ -421,13 +484,14 @@ function statProfile(p){if(!p)return '<div class="stats-profile empty">Sélectio
   .filter(([_,v])=>plain(v)).map(([l,v])=>`<div class="profile-fact"><strong>${esc(l)}</strong><span>${esc(v)}</span></div>`).join('');
  const socials=[['YouTube',profile.youtube_url],['Twitch',profile.twitch_url],['Lien personnel',profile.social_url]].filter(([_,v])=>http(v))
   .map(([n,v])=>`<a class="social-link" target="_blank" rel="noopener noreferrer" href="${esc(http(v))}">${n} ↗</a>`).join('');
- return `<div class="stats-profile"><div class="profile-hero">${banner?`<img class="profile-cover-img" src="${esc(banner)}" alt="" aria-hidden="true">`:''}
+ return `<div class="stats-profile dlfr20-profile" style="--dlfr20-accent:${esc(COMMUNITY.hex((state.data.dlfr_profile_preferences||[]).find(x=>x.player_key===p.player_key)?.accent_color))}"><div class="profile-hero">${banner?`<img class="profile-cover-img" src="${esc(banner)}" alt="" aria-hidden="true">`:''}
     <div class="profile-hero-inner">${avatar?`<img class="profile-avatar" src="${esc(avatar)}" alt="Avatar de ${esc(p.display_name||p.username)}">`:`<div class="profile-avatar profile-avatar-fallback" aria-hidden="true">${esc((p.display_name||p.username||'?').slice(0,1).toUpperCase())}</div>`}
       <div class="profile-hero-copy"><span class="profile-pretitle">Profil joueur · ${p.has_account?'Compte':'Sans compte'}</span><strong>${flag(p.country_code)} ${esc(p.display_name||p.username)}</strong>${regionIdentity(p)}<span>${p.hardest?'Hardest : '+esc(hardestLabel(p)):'Aucun hardest connu'}</span></div>
     </div></div>
  ${isSuspended?'<p class="notice warning"><b>Profil suspendu en démonstration</b> — cette sanction n’affecte pas l’authentification réelle.</p>':''}<h2 class="player-title">${flag(p.country_code)} ${esc(p.display_name||p.username)} ${!p.has_account?'<span class="tag">Sans compte</span>':''}</h2><div class="profile-region-line">${regionIdentity(p)}</div><div style="text-align:center;margin-bottom:8px">${p.clan?` <a class="tag clan-profile-link" href="${url('clans')}" data-nav>Clan : ${esc(state.data.clans.find(c=>Number(c.id)===Number(p.clan.clan_id))?.tag||'—')}</a>`:''}</div>
  <div class="statboxes">${box('Classement Demonlist',rankedStr)}${box('Points totaux',fmt(p.score))}${box('Hardest (complété ou vérifié)',hardestLabel(p))}</div>
  <div class="statboxes two">${box('Points NLW',fmt(p.nlwScore||0))}${box('Rang NLW',p.nlwRank?'#'+p.nlwRank:'—')}</div><div class="statboxes two">${box('UNRATED complétés',unratedData().players.find(x=>x.player_key===p.player_key)?.completions||0)}${box('Points UNRATED (estimation)',fmt(unratedData().players.find(x=>x.player_key===p.player_key)?.points||0))}</div><div class="statboxes two main-stats-highlight">${box('MAIN LIST · #1–75',new Set(p.main.map(d=>d.id)).size)}${box('EXTENDED LIST · #76–150',new Set(p.extended.map(d=>d.id)).size)}</div><div class="statboxes two">${box('Contributions',`${p.created.length} Créés, ${p.published.length} Publiés, ${p.verified.length} Vérifiés`)}${box('Autres complétions',`${p.legacy.length} Legacy, ${p.beyond.length} NLW`)}</div>
+ ${communityPublicPanel(p.player_key)}
  <div class="profile-section badge-gallery badge-gallery-v27"><h3>Collection de badges permanents</h3>${titleHTML(p)||'<span class="muted">Aucun badge attribué.</span>'}<p class="small muted">Chaque badge reste acquis et conserve sa date, même si les critères évoluent. Les anciens titres importés n'ont pas de date historique vérifiable.</p></div><div class="profile-section profile-tabs" role="tablist" aria-label="Sections du profil">${[['overview','Présentation'],['records','Records'],['charts','Graphiques'],['achievements','Distinctions']].map(([id,label])=>`<button type="button" role="tab" aria-selected="${state.profileTab===id}" data-profile-tab="${id}" class="${state.profileTab===id?'active':''}">${label}</button>`).join('')}</div>
  <div class="profile-pane ${state.profileTab==='overview'?'':'is-hidden'}" data-pane="overview">
  ${profile.bio?`<div class="profile-bio">${esc(profile.bio)}</div>`:''}
@@ -1083,6 +1147,23 @@ function bootEvents(){
    if(current){closeNavMenus();current.querySelector('summary')?.focus();}
  });
  document.addEventListener('click',async(ev)=>{const a=ev.target.closest('a[data-nav]');if(a){ev.preventDefault();const link=new URL(a.href);history.pushState({},'',link.search);state.keyword='';render();window.scrollTo(0,0);return;}
+ const follow=ev.target.closest('[data-community-follow]');
+ if(follow){
+   const target=follow.dataset.communityFollow;
+   if(!state.session||!state.ownKey){go('my-profile');toast('Connecte et associe ton compte DLFR pour suivre un joueur.');return;}
+   if(target===state.ownKey||!state.communityReady)return;
+   try{
+     follow.disabled=true;
+     const existing=COMMUNITY.followers(state.data,target).some(x=>x.follower_key===state.ownKey);
+     const query=db.from('dlfr_profile_follows');
+     const {error}=existing?await query.delete().eq('follower_key',state.ownKey).eq('followed_key',target):await query.insert({follower_key:state.ownKey,followed_key:target});
+     if(error)throw Error(error.message);
+     state.data.dlfr_profile_follows=await readAll('dlfr_profile_follows');
+     const panel=$('profileContent');if(panel)panel.innerHTML=statProfile(getPlayer(state.selectedPlayer));
+     toast(existing?'Abonnement retiré.':'Joueur suivi !');
+   }catch(error){toast('Abonnement : '+error.message);follow.disabled=false;}
+   return;
+ }
  const list=ev.target.closest('[data-list]');if(list){go('list',{tab:list.dataset.list});return;}
  const p=ev.target.closest('[data-player]');if(p){state.selectedPlayer=p.dataset.player;history.replaceState({},'',url('stats',{player:state.selectedPlayer}));const chosen=getPlayer(state.selectedPlayer);$('profileContent').innerHTML=statProfile(chosen);document.querySelectorAll('.rank-item').forEach(x=>x.classList.toggle('selected',x.dataset.player===state.selectedPlayer));return;}
  const route=ev.target.closest('[data-route]');if(route){go(route.dataset.route);return;}
