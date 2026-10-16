@@ -14,6 +14,7 @@ const SUBMISSIONS = window.DLFR_SUBMISSIONS;
 const DISCORD = window.DLFR_DISCORD;
 const BADGES = window.DLFR_BADGES;
 const COMMUNITY = window.DLFR_COMMUNITY;
+const ACTIVITY = window.DLFR_ACTIVITY;
 const PROD = window.DLFR_PRODUCTION;
 const HISTORY = window.DLFR_HISTORY || {levels:[],records:[],snapshot:null};
 const historicLevels = () => HISTORY.levels || [];
@@ -32,7 +33,7 @@ const communityTables=['dlfr_profile_preferences','dlfr_profile_showcase','dlfr_
 const livePrivateTables=['profile_claim_requests','level_submissions','clan_invites','clan_requests','player_profile_owners'];
 const liveStaffTables=['player_sanctions','community_audit_log','dlfr_level_archive_log'];
 const tables = ['site_settings','players','demons','completions','news_items','profile_titles','player_profile_titles','player_profiles','hall_of_fame','player_stat_snapshots','demon_position_history'];
-let db = null, state = { data:null, staff:false, staffRole:null, session:null, country:'MONDE', region:'ALL', selectedPlayer:'', list:'main', keyword:'', busy:false, statsTab:'players', statsYear:'all', comparePlayer:'', profileTab:'overview', newsFilter:'all', newsSearch:'', adminTab:'overview', editingNews:null, unrated:false, calcPlayer:'', calcDemons:[], calcNlw:false, unbeatSearch:'', unbeatLimit:120, communityExcel:{status:'loading',items:[],message:'',offline:false}, demoRole:'owner', demoActor:'spleen', selectedClan:1, clanSort:'points', clanSearch:'', clanDetailTab:'overview', ownKey:null, ownAccountMessage:'' };
+let db = null, state = { data:null, staff:false, staffRole:null, session:null, country:'MONDE', region:'ALL', selectedPlayer:'', list:'main', keyword:'', busy:false, statsTab:'players', statsYear:'all', comparePlayer:'', profileTab:'overview', activityTab:'following', newsFilter:'all', newsSearch:'', adminTab:'overview', editingNews:null, unrated:false, calcPlayer:'', calcDemons:[], calcNlw:false, unbeatSearch:'', unbeatLimit:120, communityExcel:{status:'loading',items:[],message:'',offline:false}, demoRole:'owner', demoActor:'spleen', selectedClan:1, clanSort:'points', clanSearch:'', clanDetailTab:'overview', ownKey:null, ownAccountMessage:'' };
 const el = document.getElementById('app');
 const $ = id => document.getElementById(id);
 const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -404,6 +405,7 @@ function selfProfilePage(){
  <form class="self-profile-form" data-form="selfProfile"><div class="self-form-grid"><label class="field self-field-wide">Biographie<textarea name="bio" maxlength="1200" rows="4">${value('bio')}</textarea></label>${!LIVE?`<label class="field">Source de l’avatar<select name="avatar_source"><option value="custom" ${(profile.avatar_source||'custom')==='custom'?'selected':''}>Avatar personnalisé</option><option value="discord" ${profile.avatar_source==='discord'?'selected':''} ${!(discordState().connected&&discordState().linked_player_key===actor)?'disabled':''}>Avatar Discord (liaison approuvée en démo)</option></select></label>`:''}${field('Avatar (URL ou chemin assets/)','avatar_url',500,'https://…')}${field('Bannière (URL ou chemin assets/)','banner_url',500,'https://…')}<label class="field">Année de début<input name="join_year" type="number" min="2013" max="2100" value="${value('join_year')}"></label>${field('Niveau favori','favorite_level',120)}${field('Objectif actuel','current_goal',180)}${field('Chaîne YouTube','youtube_url',500)}${field('Chaîne Twitch','twitch_url',500)}${field('Autre lien','social_url',500)}${field('Accomplissement à la une 1','highlight_1',150)}${field('Accomplissement à la une 2','highlight_2',150)}${field('Accomplissement à la une 3','highlight_3',150)}
  ${isFR?`<label class="field">Région française<div class="country-select-row"><span>${GEO.regionImage(profile.region_code)}</span><select name="region_code" id="selfRegion"><option value="">Non renseignée</option>${GEO.regions.map(r=>`<option value="${esc(r.code)}" ${r.code===profile.region_code?'selected':''}>${esc(r.name)}</option>`).join('')}</select></div></label>`:''}</div>
  ${communitySelfFields(actor)}
+ <p><a class="link" data-nav href="${url('activity')}">Consulter les activités de mes abonnements ↗</a></p>
  <div class="self-actions"><button class="btn" type="submit" ${suspended?'disabled':''}>Enregistrer mon profil</button><span class="muted small">${LIVE?'Enregistrement via Supabase, soumis aux règles RLS.':'Sauvegardé seulement dans ce navigateur ; pas sur Supabase.'}</span></div></form>
  </section>`;
 }
@@ -471,6 +473,61 @@ function communityPublicPanel(playerKey){
  ${state.ownKey===playerKey&&following.length?`<details class="dlfr20-follow-list"><summary>Mes abonnements (${following.length})</summary><div>${following.map(x=>`<a data-nav class="link" href="${url('stats',{player:x.followed_key})}">${esc(getPlayer(x.followed_key)?.display_name||getPlayer(x.followed_key)?.username||x.followed_key)}</a>`).join(' · ')}</div></details>`:''}
  </section>`;
 }
+// DLFR 2.1 — fil communautaire et recommandations, basé sur les données publiques déjà approuvées.
+function activityCards(entries,compact=false){
+ const profiles=new Map((state.data.player_profiles||[]).map(p=>[p.player_key,p]));
+ const players=new Map((state.data.players||[]).map(p=>[p.player_key,p]));
+ const levels=new Map((state.data.demons||[]).map(d=>[Number(d.id),d]));
+ return entries.map(e=>{
+  const p=players.get(e.playerKey),picture=avatarOf(e.playerKey,profiles.get(e.playerKey));
+  const display=sortPlayerName(p)||e.playerKey;
+  const playerUrl=url('stats',{player:e.playerKey});
+  const avatar=picture?`<img src="${esc(picture)}" alt="" loading="lazy">`:`<span aria-hidden="true">${esc(display.charAt(0).toUpperCase()||'?')}</span>`;
+  const stamp=new Date(e.at).toISOString();
+  const when=date(stamp);
+  const isCompletion=e.type==='completion';
+  const d=isCompletion?levels.get(Number(e.levelId)):null;
+  const media=isCompletion&&d?imageLink(d.thumbnail_url):'';
+  const action=isCompletion?`a un record à 100 % enregistré sur <a data-nav href="${url('demon',{id:e.levelId})}">${esc(e.levelName)}</a>`:`a obtenu le badge <strong>${esc(e.badgeName)}</strong>`;
+  const proof=isCompletion?http(e.videoUrl):'';
+  return `<article class="dlfr21-activity-card ${compact?'dlfr21-compact':''}">
+   <a class="dlfr21-feed-avatar" data-nav href="${playerUrl}" aria-label="Profil de ${esc(display)}">${avatar}</a>
+   <div class="dlfr21-feed-content"><div class="dlfr21-activity-meta"><a data-nav href="${playerUrl}">${esc(display)}</a><time datetime="${stamp}">${esc(when)}</time></div>
+   <p>${isCompletion?'✓ ':esc(e.badgeSymbol)+' '}${action}</p>
+   ${proof?`<a class="link small" target="_blank" rel="noopener noreferrer" href="${esc(proof)}">Voir la preuve vidéo ↗</a>`:''}</div>
+   ${media&&!compact?`<a data-nav href="${url('demon',{id:e.levelId})}" class="dlfr21-level-thumb"><img loading="lazy" src="${esc(media)}" alt="Miniature de ${esc(e.levelName)}"></a>`:''}
+  </article>`;
+ }).join('');
+}
+function activityPage(){
+ if(!ACTIVITY)return '<section class="paper">Module du fil communautaire manquant : ajoute js/activity-feed.js.</section>';
+ if(!state.communityReady)return `${templateNotice()}<section class="paper dlfr21-page"><h1>Vie communautaire</h1><p class="notice warning">Les abonnements ne sont pas disponibles pour le moment. Vérifie la migration 35 de la DLFR 2.0.</p></section>`;
+ const following=(state.ownKey?COMMUNITY.following(state.data,state.ownKey):[]).map(x=>x.followed_key);
+ const onlyFollowing=state.activityTab==='following'&&!!state.ownKey;
+ const personalTab=state.activityTab==='following';
+ const entries=ACTIVITY.events(state.data,{badges:BADGES,onlyKeys:onlyFollowing?following:personalTab?[]:null,limit:40,days:365});
+ const excluded=[...(following||[]),state.ownKey];
+ const registered=new Set((state.data.players||[]).map(p=>p.player_key));
+ const eligible=ranked().filter(p=>registered.has(p.player_key)&&statsPlayerVisible(p));
+ const discovered=ACTIVITY.discover(eligible,{exclude:excluded,limit:3});
+ const profileMap=new Map((state.data.player_profiles||[]).map(p=>[p.player_key,p]));
+ const suggestions=discovered.map(p=>{const name=sortPlayerName(p),avatar=avatarOf(p.player_key,profileMap.get(p.player_key));return `<a class="dlfr21-discover" data-nav href="${url('stats',{player:p.player_key})}"><span class="dlfr21-discover-avatar">${avatar?`<img loading="lazy" src="${esc(avatar)}" alt="">`:esc(name.charAt(0).toUpperCase()||'?')}</span><span><strong>${esc(name)}</strong><small>Voir le profil ↗</small></span></a>`;}).join('');
+ let empty='Aucune activité récente enregistrée dans cette période.';
+ if(personalTab&&!state.ownKey)empty='Connecte-toi et lie ton profil DLFR pour voir les activités des joueurs que tu suis.';
+ else if(personalTab&&!following.length)empty='Tu ne suis encore personne. Découvre des profils pour composer ton fil.';
+ else if(personalTab)empty='Pas encore de nouvelle complétion ou de badge daté parmi tes abonnements cette année.';
+ const actions=personalTab&&!state.ownKey?`<p><a class="btn small" href="${url('my-profile')}" data-nav>Se connecter</a></p>`:'';
+ return `${templateNotice()}<section class="paper dlfr21-page"><div class="dlfr21-head"><div><p class="small muted">DLFR 2.1 · Communauté</p><h1>Vie communautaire</h1><p class="muted">Les derniers records publics et badges des joueurs francophones, au même endroit.</p></div><span class="tag">✦ Activité</span></div>
+ <div class="dlfr21-layout"><div class="dlfr21-main"><div class="dlfr21-feed-tabs" role="group" aria-label="Choisir le fil"><button type="button" data-activity-tab="following" class="${personalTab?'active':''}" aria-pressed="${personalTab}">Mes abonnements</button><button type="button" data-activity-tab="all" class="${!personalTab?'active':''}" aria-pressed="${!personalTab}">Toute la communauté</button></div>
+ ${entries.length?activityCards(entries):`<div class="dlfr21-empty"><p>${esc(empty)}</p>${actions}</div>`}
+ <p class="small muted dlfr21-footnote">Les dates des records correspondent à leur enregistrement dans la DLFR, pas nécessairement à la date de réussite. Les badges sans date fiable et les soumissions non validées ne sont pas affichés.</p></div>
+ <aside class="dlfr21-side"><h2>Profils à découvrir</h2><p class="muted small">Une sélection renouvelée chaque semaine, sans classement supplémentaire.</p>${suggestions||'<p class="muted small">Aucun profil à proposer pour le moment.</p>'}<div class="dlfr21-tip"><h3>Ton espace</h3><p>Personnalise ta fiche, choisis tes badges favoris et suis d’autres joueurs.</p><a data-nav class="link" href="${url('my-profile')}">Mon profil ↗</a></div></aside></div></section>`;
+}
+function profileRecentActivity(playerKey){
+ if(!state.communityReady||!ACTIVITY)return '';
+ const events=ACTIVITY.events(state.data,{badges:BADGES,onlyKeys:[playerKey],limit:3,days:365});
+ return events.length?`<section class="profile-section dlfr21-profile-activity"><div class="row-between"><h3>Activité récente</h3><a class="link small" href="${url('activity')}" data-nav>Voir le fil communautaire ↗</a></div>${activityCards(events,true)}</section>`:'';
+}
 function statProfile(p){if(!p)return '<div class="stats-profile empty">Sélectionne un joueur.</div>';
  const profile=state.data.player_profiles.find(v=>v.player_key===p.player_key)||{};
  const snapshots=state.data.player_stat_snapshots.filter(s=>s.player_key===p.player_key).sort((a,b)=>String(a.snapshot_day??'').localeCompare(String(b.snapshot_day??'')));
@@ -492,6 +549,7 @@ function statProfile(p){if(!p)return '<div class="stats-profile empty">Sélectio
  <div class="statboxes">${box('Classement Demonlist',rankedStr)}${box('Points totaux',fmt(p.score))}${box('Hardest (complété ou vérifié)',hardestLabel(p))}</div>
  <div class="statboxes two">${box('Points NLW',fmt(p.nlwScore||0))}${box('Rang NLW',p.nlwRank?'#'+p.nlwRank:'—')}</div><div class="statboxes two">${box('UNRATED complétés',unratedData().players.find(x=>x.player_key===p.player_key)?.completions||0)}${box('Points UNRATED (estimation)',fmt(unratedData().players.find(x=>x.player_key===p.player_key)?.points||0))}</div><div class="statboxes two main-stats-highlight">${box('MAIN LIST · #1–75',new Set(p.main.map(d=>d.id)).size)}${box('EXTENDED LIST · #76–150',new Set(p.extended.map(d=>d.id)).size)}</div><div class="statboxes two">${box('Contributions',`${p.created.length} Créés, ${p.published.length} Publiés, ${p.verified.length} Vérifiés`)}${box('Autres complétions',`${p.legacy.length} Legacy, ${p.beyond.length} NLW`)}</div>
  ${communityPublicPanel(p.player_key)}
+ ${profileRecentActivity(p.player_key)}
  <div class="profile-section badge-gallery badge-gallery-v27"><h3>Collection de badges permanents</h3>${titleHTML(p)||'<span class="muted">Aucun badge attribué.</span>'}<p class="small muted">Chaque badge reste acquis et conserve sa date, même si les critères évoluent. Les anciens titres importés n'ont pas de date historique vérifiable.</p></div><div class="profile-section profile-tabs" role="tablist" aria-label="Sections du profil">${[['overview','Présentation'],['records','Records'],['charts','Graphiques'],['achievements','Distinctions']].map(([id,label])=>`<button type="button" role="tab" aria-selected="${state.profileTab===id}" data-profile-tab="${id}" class="${state.profileTab===id?'active':''}">${label}</button>`).join('')}</div>
  <div class="profile-pane ${state.profileTab==='overview'?'':'is-hidden'}" data-pane="overview">
  ${profile.bio?`<div class="profile-bio">${esc(profile.bio)}</div>`:''}
@@ -909,7 +967,7 @@ function showPageError(error){
 function render(){if(!state.data)return;try{
  if(!BADGES?.init || !UNRATED_STATS?.calculate || !V2?.decorate || !V2?.project || !UNVERIFIED?.classify || !CLANS?.apply || !CLAN_PLUS?.stats || !SUBMISSIONS?.approve)throw Error('Fichier JavaScript V2 manquant ou version incohérente : réinstalle les scripts du pack V2.0.3.');
  if(!LIVE){const first=state.data.badge_baseline_scanned!==true;const changed=BADGES.captureAutomatic(state.data,ranked(),new Date().toISOString().slice(0,10),first);if(first){state.data.badge_baseline_scanned=true;}if(changed||first)saveDemo();}
- const page=nav(),params=new URLSearchParams(location.search);if(page==='stats'&&params.has('player'))state.selectedPlayer=key(params.get('player'));if(page==='list'){const tab=new URLSearchParams(location.search).get('tab');state.list=tab==='archive'?'nlw':(tab||'main');}const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='my-profile'?selfProfilePage():page==='demon'?demonPage():page==='news'?newsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();if(page==='admin'&&state.adminTab==='levels'){arrangeLevelsPanel();syncLevelStudio();}document.title=({list:'Demonlist',stats:'Statistiques',news:'Actualités',hall:'Palmarès & exploits',honors:'Palmarès & exploits',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Palmarès & exploits',clans:'Clans',history:'Historique','my-profile':'Mon profil','submit-record':'Soumettre un record',demon:'Niveau',archive:'Archives historiques'})[page]+' · DemonlistFrancophone';
+ const page=nav(),params=new URLSearchParams(location.search);if(page==='stats'&&params.has('player'))state.selectedPlayer=key(params.get('player'));if(page==='list'){const tab=new URLSearchParams(location.search).get('tab');state.list=tab==='archive'?'nlw':(tab||'main');}const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='my-profile'?selfProfilePage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();if(page==='admin'&&state.adminTab==='levels'){arrangeLevelsPanel();syncLevelStudio();}document.title=({list:'Demonlist',stats:'Statistiques',news:'Actualités',activity:'Vie communautaire',hall:'Palmarès & exploits',honors:'Palmarès & exploits',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Palmarès & exploits',clans:'Clans',history:'Historique','my-profile':'Mon profil','submit-record':'Soumettre un record',demon:'Niveau',archive:'Archives historiques'})[page]+' · DemonlistFrancophone';
  }catch(error){showPageError(error);}
 }
 function auditV2(action,target){state.data.community_audit_log.push({action_key:action,target,created_at:new Date().toISOString()});saveDemo();}
@@ -1169,6 +1227,7 @@ function bootEvents(){
  const route=ev.target.closest('[data-route]');if(route){go(route.dataset.route);return;}
  const st=ev.target.closest('[data-stats-tab]');if(st){state.statsTab=st.dataset.statsTab;state.keyword='';render();return;}
  const pt=ev.target.closest('[data-profile-tab]');if(pt){state.profileTab=pt.dataset.profileTab;const chosen=getPlayer(state.selectedPlayer);if($('profileContent'))$('profileContent').innerHTML=statProfile(chosen);return;}
+ const at=ev.target.closest('[data-activity-tab]');if(at){state.activityTab=at.dataset.activityTab==='all'?'all':'following';render();return;}
  const nf=ev.target.closest('[data-news-filter]');if(nf){state.newsFilter=nf.dataset.newsFilter;render();return;}
  const thumb=ev.target.closest('[data-studio-thumbnail]');if(thumb){const form=thumb.closest('form');const v=studioYoutubeThumbnail(form.elements.video_url.value)||studioYoutubeThumbnail(form.elements.verifier_video_url.value);if(v){form.elements.thumbnail_url.value=v;updateStudioPreview(form);}else toast('Ajoute d’abord une vidéo YouTube valide.');return;}
  const levelGroupButton=ev.target.closest('[data-level-group]');if(levelGroupButton){activeLevelPanel=levelGroupButton.dataset.levelGroup;arrangeLevelsPanel();return;}
