@@ -15,6 +15,7 @@ const DISCORD = window.DLFR_DISCORD;
 const BADGES = window.DLFR_BADGES;
 const COMMUNITY = window.DLFR_COMMUNITY;
 const ACTIVITY = window.DLFR_ACTIVITY;
+const REGION_MAP = window.DLFR_REGIONS_MAP;
 const PROD = window.DLFR_PRODUCTION;
 const HISTORY = window.DLFR_HISTORY || {levels:[],records:[],snapshot:null};
 const historicLevels = () => HISTORY.levels || [];
@@ -33,7 +34,7 @@ const communityTables=['dlfr_profile_preferences','dlfr_profile_showcase','dlfr_
 const livePrivateTables=['profile_claim_requests','level_submissions','clan_invites','clan_requests','player_profile_owners'];
 const liveStaffTables=['player_sanctions','community_audit_log','dlfr_level_archive_log'];
 const tables = ['site_settings','players','demons','completions','news_items','profile_titles','player_profile_titles','player_profiles','hall_of_fame','player_stat_snapshots','demon_position_history'];
-let db = null, state = { data:null, staff:false, staffRole:null, session:null, country:'MONDE', region:'ALL', selectedPlayer:'', list:'main', keyword:'', busy:false, statsTab:'players', statsYear:'all', comparePlayer:'', profileTab:'overview', activityTab:'following', newsFilter:'all', newsSearch:'', adminTab:'overview', editingNews:null, unrated:false, calcPlayer:'', calcDemons:[], calcNlw:false, unbeatSearch:'', unbeatLimit:120, communityExcel:{status:'loading',items:[],message:'',offline:false}, demoRole:'owner', demoActor:'spleen', selectedClan:1, clanSort:'points', clanSearch:'', clanDetailTab:'overview', ownKey:null, ownAccountMessage:'' };
+let db = null, state = { data:null, staff:false, staffRole:null, session:null, country:'MONDE', region:'ALL', selectedPlayer:'', list:'main', keyword:'', busy:false, statsTab:'players', statsYear:'all', comparePlayer:'', profileTab:'overview', activityTab:'following', selectedRegion:'BRE', regionsSort:'points', regionsGeometryRequested:false, newsFilter:'all', newsSearch:'', adminTab:'overview', editingNews:null, unrated:false, calcPlayer:'', calcDemons:[], calcNlw:false, unbeatSearch:'', unbeatLimit:120, communityExcel:{status:'loading',items:[],message:'',offline:false}, demoRole:'owner', demoActor:'spleen', selectedClan:1, clanSort:'points', clanSearch:'', clanDetailTab:'overview', ownKey:null, ownAccountMessage:'' };
 const el = document.getElementById('app');
 const $ = id => document.getElementById(id);
 const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -569,6 +570,43 @@ function statProfile(p){if(!p)return '<div class="stats-profile empty">Sélectio
  ${state.data.hall_of_fame.filter(h=>h.player_key===p.player_key&&h.is_published).map(h=>`<div class="hof-item"><div class="hof-year">${esc(h.award_year)} · ${esc(h.category)}</div><h3>${esc(h.headline)}</h3><p>${esc(h.description)}</p></div>`).join('')||'<p class="muted small">Aucune distinction officielle pour le moment.</p>'}
  </div></div>`;
 }
+// DLFR 2.2 — Carte et classements régionaux : données publiques uniquement.
+function regionsPage(){
+ if(!REGION_MAP)return '<section class="paper"><h1>Régions</h1><p>Le module js/regions-map.js est manquant.</p></section>';
+ if(!state.regionsGeometryRequested){
+  state.regionsGeometryRequested=true;
+  REGION_MAP.ensureGeometry().then(()=>{if(nav()==='regions')render();});
+ }
+ const GEOREG=GEO.regions;
+ const allPlayers=ranked().filter(statsPlayerVisible);
+ const snapshot=REGION_MAP.summarize(allPlayers,state.data.player_profiles,GEOREG);
+ const region=GEO.regionInfo(state.selectedRegion)||GEO.regionInfo('BRE');
+ const code=region.code, item=snapshot[code];
+ const topList=Object.values(snapshot).sort((a,b)=>{
+  if(state.regionsSort==='players')return b.active-a.active||b.points-a.points;
+  if(state.regionsSort==='hardest')return Number(a.hardest?.level?.position||Infinity)-Number(b.hardest?.level?.position||Infinity)||b.points-a.points;
+  return b.points-a.points||b.active-a.active;
+ });
+ const withRegion=topList.filter(x=>x.players.length).length;
+ const withoutRegion=allPlayers.filter(p=>p.country_code==='FR'&&!GEO.regionInfo(regionFor(p))).length;
+ const profileLink=p=>url('stats',{player:p.player_key});
+ const playerRow=(p,i)=>`<a class="dlfr22-player-row" data-nav href="${profileLink(p)}"><span class="dlfr22-player-rank">#${i+1}</span><span class="dlfr22-player-name">${esc(fullName(p))}${p.has_account?'':' <small>· Profil non revendiqué</small>'}</span><strong>${fmt(p.score)} pts</strong><span aria-hidden="true">›</span></a>`;
+ const flagFor=reg=>GEO.regionImage(reg);
+ const allRegionRows=topList.map((x,i)=>`<button type="button" class="dlfr22-region-rank ${code===x.code?'selected':''}" data-region-code="${x.code}"><span class="dlfr22-region-place">${i+1}</span>${flagFor(x.code)}<span class="dlfr22-region-name">${esc(GEO.regionInfo(x.code)?.name||x.code)}<small>${x.active} joueur(s) avec activité publique</small></span><strong>${state.regionsSort==='players'?String(x.active):state.regionsSort==='hardest'?x.hardest?'#'+x.hardest.level.position:'—':fmt(x.points)+' pts'}</strong></button>`).join('');
+ const flagButtons=REGION_MAP.overseas.map(id=>`<button type="button" class="dlfr22-overseas ${code===id?'selected':''}" data-region-code="${id}">${flagFor(id)}<span>${esc(GEO.regionInfo(id)?.name||id)}</span><strong>${snapshot[id]?.active||0}</strong></button>`).join('');
+ const geographyLabel=id=>GEO.regionInfo(id)?.name||id;
+ return `${templateNotice()}<section class="paper dlfr22-page"><div class="dlfr22-header"><div><p class="kicker">COMMUNAUTÉ · DLFR 2.2</p><h1>La France sur la DLFR</h1><p class="muted">Explore les régions françaises, les joueurs qui les représentent et leurs performances publiques.</p></div><span class="tag">18 régions</span></div>
+ <div class="dlfr22-summary">${box('Régions représentées',withRegion+' / 18')}${box('Joueurs avec région',Object.values(snapshot).reduce((n,x)=>n+x.players.length,0))}${box('Points français géolocalisés',fmt(Object.values(snapshot).reduce((n,x)=>n+x.points,0)))}</div>
+ <div class="dlfr22-grid"><div class="dlfr22-map-pane"><div class="dlfr22-map-heading"><h2>Carte interactive</h2><span class="muted small">Sélectionne une région</span></div><div class="dlfr22-map" id="dlfrRegionMap">${REGION_MAP.draw(code,geographyLabel)}</div>${!REGION_MAP.hasGeometry?'<p class="dlfr22-map-foot small muted">Contours géographiques en cours de chargement. En cas d’échec réseau, une carte schématique cliquable reste disponible.</p>':''}
+ <h3 class="dlfr22-overseas-title">Outre-mer</h3><div class="dlfr22-overseas-list">${flagButtons}</div></div>
+ <aside class="dlfr22-region-pane"><div class="dlfr22-region-title">${flagFor(code)}<div><span class="small muted">Région sélectionnée</span><h2>${esc(region.name)}</h2></div></div>
+ <div class="dlfr22-region-stats">${box('Joueurs',item.players.length)}${box('Avec activité',item.active)}${box('Points DLFR',fmt(item.points))}${box('Points NLW',fmt(item.nlwPoints))}</div>
+ <div class="dlfr22-spotlight"><h3>Meilleur joueur régional</h3>${item.top?`<a class="link" data-nav href="${profileLink(item.top)}">${esc(fullName(item.top))}</a><strong>${fmt(item.top.score)} pts</strong>`:'<p class="muted small">Aucun joueur renseigné dans cette région.</p>'}</div>
+ <div class="dlfr22-spotlight"><h3>Hardest terminé dans la région</h3>${item.hardest?`<a class="link" data-nav href="${url('demon',{id:item.hardest.level.id})}">${esc(item.hardest.level.name)} <span class="muted">(#${esc(item.hardest.level.position)})</span></a><small class="muted">Par ${esc(fullName(item.hardest.player))}</small>`:'<p class="muted small">Aucune complétion publiée disponible.</p>'}</div>
+ <h3 class="dlfr22-regional-heading">Classement régional</h3><div class="dlfr22-players">${item.players.length?item.players.map(playerRow).join(''):'<p class="muted small">Les profils français doivent renseigner leur région pour apparaître ici.</p>'}</div></aside></div>
+ <div class="dlfr22-ranking"><div class="dlfr22-ranking-head"><div><h2>Classement interrégional</h2><p class="muted small">Somme des points de classement principaux des profils de chaque région.</p></div><label class="field">Trier par<select id="dlfrRegionSort"><option value="points" ${state.regionsSort==='points'?'selected':''}>Points DLFR</option><option value="players" ${state.regionsSort==='players'?'selected':''}>Joueurs actifs</option><option value="hardest" ${state.regionsSort==='hardest'?'selected':''}>Hardest terminé</option></select></label></div><div class="dlfr22-ranking-list">${allRegionRows}</div></div>
+ <p class="dlfr22-method muted small">Données publiques de la DLFR, mises à jour au chargement. « Avec activité » signifie au moins une complétion, une vérification ou des points publics — pas une connexion récente. Les points principaux et NLW sont affichés séparément. ${withoutRegion?`${withoutRegion} profil(s) français sans région ne sont pas comptés.`:'Les profils sans région ne sont pas comptés.'} Pour choisir ta région : Mon espace → Mon profil.</p></section>`;
+}
 function lineGraph(data){if(data.length<2)return '<p class="empty small">Aucun historique disponible pour le moment.</p>';const max=Math.max(...data.map(x=>+x.points),1),min=Math.min(...data.map(x=>+x.points)),den=Math.max(1,max-min);const coords=data.map((x,i)=>[24+i*480/Math.max(1,data.length-1),135-(+x.points-min)/den*110]);return `<div class="chart-box"><svg viewBox="0 0 540 160" role="img" aria-label="Évolution des points"><path d="M20 135H515" stroke="#bbc7d3"/><path d="${coords.map(([x,y],i)=>`${i?'L':'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join(' ')}" fill="none" stroke="#167fbe" stroke-width="3"/>${coords.map(([x,y])=>`<circle cx="${x}" cy="${y}" r="3.2" fill="#167fbe"/>`).join('')}<text x="20" y="14" font-size="11" fill="currentColor">${fmt(max)} pts</text><text x="22" y="155" font-size="10" fill="currentColor">${esc(data[0].snapshot_day)}</text><text x="420" y="155" font-size="10" fill="currentColor">${esc(data.at(-1).snapshot_day)}</text></svg></div>`;}
 function barGraph(monthly){const keys=Object.keys(monthly).sort().slice(-12);if(!keys.length)return '<p class="empty small">Pas de dates de records renseignées.</p>';const mx=Math.max(...keys.map(k=>monthly[k]));return `<div class="chart-box"><div style="display:flex;align-items:flex-end;gap:6px;min-height:115px">${keys.map(k=>`<div style="flex:1;text-align:center"><div style="background:#1783c1;height:${Math.max(4,85*monthly[k]/mx)}px" title="${esc(k)} : ${monthly[k]} complétion(s)"></div><span style="font-size:9px">${esc(k.slice(5))}</span></div>`).join('')}</div></div>`;}
 function statsPage(){const users=ranked().filter(statsPlayerVisible);const countries=['MONDE',...new Set(users.map(p=>p.country_code).filter(Boolean))].sort((a,b)=>a==='MONDE'?-1:b==='MONDE'?1:a.localeCompare(b));
@@ -967,7 +1005,7 @@ function showPageError(error){
 function render(){if(!state.data)return;try{
  if(!BADGES?.init || !UNRATED_STATS?.calculate || !V2?.decorate || !V2?.project || !UNVERIFIED?.classify || !CLANS?.apply || !CLAN_PLUS?.stats || !SUBMISSIONS?.approve)throw Error('Fichier JavaScript V2 manquant ou version incohérente : réinstalle les scripts du pack V2.0.3.');
  if(!LIVE){const first=state.data.badge_baseline_scanned!==true;const changed=BADGES.captureAutomatic(state.data,ranked(),new Date().toISOString().slice(0,10),first);if(first){state.data.badge_baseline_scanned=true;}if(changed||first)saveDemo();}
- const page=nav(),params=new URLSearchParams(location.search);if(page==='stats'&&params.has('player'))state.selectedPlayer=key(params.get('player'));if(page==='list'){const tab=new URLSearchParams(location.search).get('tab');state.list=tab==='archive'?'nlw':(tab||'main');}const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='my-profile'?selfProfilePage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();if(page==='admin'&&state.adminTab==='levels'){arrangeLevelsPanel();syncLevelStudio();}document.title=({list:'Demonlist',stats:'Statistiques',news:'Actualités',activity:'Vie communautaire',hall:'Palmarès & exploits',honors:'Palmarès & exploits',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Palmarès & exploits',clans:'Clans',history:'Historique','my-profile':'Mon profil','submit-record':'Soumettre un record',demon:'Niveau',archive:'Archives historiques'})[page]+' · DemonlistFrancophone';
+ const page=nav(),params=new URLSearchParams(location.search);if(page==='stats'&&params.has('player'))state.selectedPlayer=key(params.get('player'));if(page==='list'){const tab=new URLSearchParams(location.search).get('tab');state.list=tab==='archive'?'nlw':(tab||'main');}const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='my-profile'?selfProfilePage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():page==='regions'?regionsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();if(page==='admin'&&state.adminTab==='levels'){arrangeLevelsPanel();syncLevelStudio();}document.title=({list:'Demonlist',stats:'Statistiques',news:'Actualités',activity:'Vie communautaire',regions:'Carte des régions',hall:'Palmarès & exploits',honors:'Palmarès & exploits',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Palmarès & exploits',clans:'Clans',history:'Historique','my-profile':'Mon profil','submit-record':'Soumettre un record',demon:'Niveau',archive:'Archives historiques'})[page]+' · DemonlistFrancophone';
  }catch(error){showPageError(error);}
 }
 function auditV2(action,target){state.data.community_audit_log.push({action_key:action,target,created_at:new Date().toISOString()});saveDemo();}
@@ -1200,6 +1238,8 @@ function bootEvents(){
    document.querySelectorAll('.nav-menu[open]').forEach(menu=>{if(menu!==current)menu.open=false;});
  });
  document.addEventListener('keydown',ev=>{
+   const regionKey=ev.target?.closest?.('[data-region-code][role=button]');
+   if(regionKey&&(ev.key==='Enter'||ev.key===' ')){ev.preventDefault();const reg=GEO.regionInfo(regionKey.dataset.regionCode);if(reg){state.selectedRegion=reg.code;render();}return;}
    if(ev.key!=='Escape')return;
    const current=document.querySelector('.nav-menu[open]');
    if(current){closeNavMenus();current.querySelector('summary')?.focus();}
@@ -1222,6 +1262,7 @@ function bootEvents(){
    }catch(error){toast('Abonnement : '+error.message);follow.disabled=false;}
    return;
  }
+ const selectRegion=ev.target.closest('[data-region-code]');if(selectRegion){const reg=GEO.regionInfo(selectRegion.dataset.regionCode);if(reg){state.selectedRegion=reg.code;render();}return;}
  const list=ev.target.closest('[data-list]');if(list){go('list',{tab:list.dataset.list});return;}
  const p=ev.target.closest('[data-player]');if(p){state.selectedPlayer=p.dataset.player;history.replaceState({},'',url('stats',{player:state.selectedPlayer}));const chosen=getPlayer(state.selectedPlayer);$('profileContent').innerHTML=statProfile(chosen);document.querySelectorAll('.rank-item').forEach(x=>x.classList.toggle('selected',x.dataset.player===state.selectedPlayer));return;}
  const route=ev.target.closest('[data-route]');if(route){go(route.dataset.route);return;}
@@ -1274,6 +1315,8 @@ function bootEvents(){
  if(ev.target.id==='playerSearch'){state.keyword=ev.target.value;const ppl=ranked().filter(x=>statsPlayerVisible(x)&&(state.country==='MONDE'||x.country_code===state.country)&&(state.country!=='FR'||state.region==='ALL'||regionFor(x)===state.region)&&key(x.display_name||x.username).includes(key(state.keyword)));$('rankList').innerHTML=rankRows(ppl,getPlayer(state.selectedPlayer));}
  });
  document.addEventListener('change',ev=>{
+  if(ev.target.id==='dlfrRegionSort'){state.regionsSort=['points','players','hardest'].includes(ev.target.value)?ev.target.value:'points';render();return;}
+
  if(ev.target.id==='countryFilter'){state.country=ev.target.value;state.region='ALL';state.keyword='';render();}
  if(ev.target.id==='regionFilter'){state.region=ev.target.value;state.keyword='';render();}
  if(ev.target.id==='recordsYear'){state.statsYear=ev.target.value;$('profileContent').innerHTML=statProfile(getPlayer(state.selectedPlayer));}

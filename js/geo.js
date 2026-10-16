@@ -19,8 +19,13 @@
  const regionAliases = Object.freeze({RE:['reu']});
  function regionPngCandidates(code){
    const r=regionInfo(code); if(!r)return [];
-   return [...new Set([regionPngNames[r.code], ...(regionAliases[r.code]||[]), r.code.toLowerCase()].filter(Boolean))]
-     .map(name=>`assets/flags/regions/fr/${name}.png`);
+   const names=[...new Set([regionPngNames[r.code], ...(regionAliases[r.code]||[]), r.code.toLowerCase()].filter(Boolean))];
+   // Les images personnelles auv.jpg et gra.jpg existent déjà dans le projet.
+   // Ne jamais les remplacer : adapter uniquement les chemins essayés.
+   return names.flatMap(name=>{
+     const stem=`assets/flags/regions/fr/${name}`;
+     return (name==='auv'||name==='gra')?[`${stem}.jpg`,`${stem}.png`]:[`${stem}.png`,`${stem}.jpg`];
+   });
  }
  function regionImage(code){
    const r=regionInfo(code); if(!r)return '';
