@@ -1,18 +1,11 @@
-# DLFR — Panneau simplifié et nettoyage des archives
+# DLFR – fusion de joueurs (version prudente)
 
-## Installation
-1. Faire une sauvegarde de Supabase et du dossier du site.
-2. Si pas déjà fait, exécuter `supabase/29_CORRECTIF_NLW_RAPPROCHEMENT.sql`, puis `supabase/30_EDITEUR_COMPLET_NIVEAUX.sql`. Aucun nouveau SQL n'est nécessaire pour la présentation et les archives.
-3. Remplacer `js/app.js`, `js/history-archive.js`, `css/style.css`.
-4. Vider le cache du navigateur / actualiser avec Ctrl+F5.
+1. Sauvegarder Supabase avant toute intervention.
+2. Exécuter `supabase/33_FUSION_JOUEURS.sql` dans SQL Editor.
+3. Remplacer `js/app.js`, puis Ctrl+F5.
+4. Modération > Profils > Fusionner deux fiches joueur.
+5. Sélectionner la cible et la source, cliquer Prévisualiser, vérifier les conflits, puis saisir `FUSIONNER`.
 
-## Ce qui change
-- Onglet Niveaux réorganisé en 4 sections : Modifier une fiche, Ajouter, Archives et NLW, Retirer / restaurer. Les formulaires d'origine restent disponibles.
-- Archive publique : suppression de **5 anciennes fiches** ayant un rang historique >= 157 dans le fichier statique `js/history-archive.js`.
-- Les anciennes fiches #1 à #156 restent présentes dans ce fichier ; le classement NLW public et les données en table `demons` ne changent pas.
-- Les records de l'ancien export sont conservés dans le snapshot par sécurité ; aucune suppression des complétions Supabase.
-- Les niveaux déjà présents en base Supabase ne sont PAS supprimés : utiliser le panneau Retirer / restaurer pour les dépublier en conservant leurs records.
-- Aucun asset de `assets/flags/` modifié ou fourni.
+**Important :** la fusion conserve la fiche source, la masque des stats, transfère les complétions non dupliquées, copie badges/titres et réaffecte palmarès/achievements. Les complétions doublonnées sont sauvegardées dans `dlfr_merge_duplicate_completions` avant retrait. Les liens Discord et comptes Auth ne sont jamais déplacés. Les autres relations (clans, AREDL, snapshots, etc.) restent sur la source et doivent être revues individuellement. Le pseudo source demeure une fiche d'archive. Fusionner uniquement de vrais doublons.
 
-## Important
-Si tu voulais aussi supprimer physiquement des enregistrements Supabase, c'est une opération différente et risquée : ne pas exécuter de DELETE en masse sur des complétions associées. Le présent patch nettoie les fiches historiques affichées, sans toucher à la base.
+Le script SQL n'a pas été testé sur votre instance Supabase. Test conseillé sur une copie de base. Ne remplacez aucun élément dans `assets/flags/` (non inclus).
