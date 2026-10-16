@@ -621,10 +621,19 @@ function statsPage(){const users=ranked().filter(statsPlayerVisible);const count
  return top+`<div class="stats-grid"><div class="ranking-panel"><div class="kicker">International</div><div class="country-select-row"><span id="countryFilterPreview">${flag(state.country)}</span><select id="countryFilter" aria-label="Filtrer par pays">${countries.map(c=>`<option value="${esc(c)}" ${c===state.country?'selected':''}>${c==='MONDE'?'MONDE - International':GEO.countryName(c)+' ('+esc(c)+')'}</option>`).join('')}</select></div>${state.country==='FR'?`<div class="country-select-row"><span>${GEO.regionImage(state.region)}</span><select id="regionFilter" aria-label="Filtrer par région française"><option value="ALL">Toutes les régions</option>${GEO.regions.map(r=>`<option value="${r.code}" ${state.region===r.code?'selected':''}>${esc(r.name)}</option>`).join('')}</select></div>`:''}<label class="filterbox" style="margin-top:9px"><span>⌕</span><input type="search" id="playerSearch" placeholder="Rechercher un joueur…" value="${esc(state.keyword)}"></label><div class="rank-list" id="rankList">${rankRows(filtered,chosen)}</div><p class="muted small">Les profils sans compte apparaissent en gris.</p></div><div id="profileContent">${statProfile(chosen)}</div></div></section>`;
 }
 function rankRows(users,chosen){return users.length?users.map(p=>`<button type="button" class="rank-item ${p.player_key===chosen?.player_key?'selected':''} ${p.has_account?'':'unclaimed'}" data-player="${esc(p.player_key)}"><span class="rank-num">#${p.rank||'-'}</span><span class="rank-name">${flag(p.country_code)} ${regionFlag(p)} ${esc(p.display_name||p.username)}</span><span class="rank-score">${fmt(p.score)}</span></button>`).join(''):'<div class="empty">Aucun joueur trouvé.</div>';}
-function demonPage(){const id=+(new URLSearchParams(location.search)).get('id'),d=catalog().find(x=>+x.id===id);if(!d)return '<div class="center-panel">Niveau introuvable.</div>';
- const recs=state.data.completions.filter(c=>+c.demon_id===id).sort((a,b)=>+b.progress - +a.progress);
- const thumb=http(d.thumbnail_url)|| (plain(d.thumbnail_url).startsWith('assets/')?d.thumbnail_url:'');
- return `${templateNotice()}<div class="paper"><p><a href="${url('list')}" data-nav class="link">← Retour à la liste</a></p><h1>#${d.position} - ${esc(d.name)}</h1><div class="level-detail">${thumb?`<img class="demon-thumb" style="width:100%;height:auto" src="${esc(thumb)}" alt="Miniature">`:'<div class="demon-thumb faux-thumb" style="width:100%">'+esc(d.name)+'</div>'}<div><p>Publié par <b>${esc(d.publisher)}</b><br>Vérifié par <b>${esc(d.verifier||'-')}</b><br>Créé par <b>${esc(d.creator||'-')}</b></p><p><b>Rang :</b> #${d.position} · <b>Minimum :</b> ${d.requirement}%</p><p class="small">${V2.nlwRank(d)>0?'NLW : '+fmt(nlwPoints(d))+' points NLW':+d.position>cfg().extended_limit?'Hors classement · 0 point':fmt(score(d,100))+' points (100%)'}</p><div class="level-status">${V2.nlwRank(d)>0?'<span class="level-badge outside">NLW #'+V2.nlwRank(d)+'</span>':''}${d.unrated?'<span class="level-badge unrated-badge">UNRATED</span>':''}${d.legacy?'<span class="level-badge legacy">Legacy · ancien Top 150</span>':''}</div>${http(d.video_url)?`<a class="btn" target="_blank" rel="noopener noreferrer" href="${esc(http(d.video_url))}">Regarder la vidéo ↗</a>`:''}</div></div><hr class="divider">${productionProofMedia(d)}<p>${esc(d.description||'')}</p><h2>Records (${recs.length})</h2>${recs.length?recs.map(r=>`<div class="record-row"><div><a class="link" data-nav href="${url('stats',{player:key(r.player)})}">${esc(r.player)}</a> — ${esc(r.progress)}%</div>${http(r.video_url)?`<a target="_blank" rel="noopener noreferrer" class="link" href="${esc(http(r.video_url))}">Vidéo ↗</a>`:''}</div>`).join(''):'<p class="empty">Aucun record enregistré.</p>'}</div>`;
+function demonPage(){
+ const id=Number(new URLSearchParams(location.search).get('id'));
+ const d=catalog().find(x=>Number(x.id)===id);
+ if(!d)return '<div class="center-panel">Niveau introuvable.</div>';
+ const recs=state.data.completions.filter(c=>Number(c.demon_id)===id);
+ const r=V2.nlwRank(d),isNlw=r>0;
+ const status=isNlw?'NLW #'+r:d.legacy?'Legacy · ancien Top 150':Number(d.position)<=cfg().main_limit?'Main List #'+d.position:Number(d.position)<=cfg().extended_limit?'Extended List #'+d.position:'Hors classement';
+ const points=isNlw?fmt(nlwPoints(d))+' points NLW':Number(d.position)>cfg().extended_limit?'0 point officiel':fmt(score(d,100))+' points à 100 %';
+ return templateNotice()+window.DLFR_LEVEL_CINEMA.render(d,{
+  records:recs,players:ranked().filter(statsPlayerVisible),history:state.data.demon_position_history||[],
+  escape:esc,link:url,format:fmt,formatDate:date,status,points,
+  listTab:isNlw?'nlw':d.legacy?'legacy':'main',proofHtml:productionProofMedia(d)
+ });
 }
 function newsPage(){const all=[...state.data.news_items].filter(x=>x.is_published||hasFullStaffPowers()).sort((a,b)=>(+(!!b.is_pinned)-+(!!a.is_pinned))||new Date(b.created_at)-new Date(a.created_at));
  const items=all.filter(n=>(state.newsFilter==='all'||getNewsCategory(n)===state.newsFilter)&&`${key(n.headline)} ${key(n.body)} ${key(n.player_name)}`.includes(key(state.newsSearch)));
@@ -1237,6 +1246,17 @@ function bootEvents(){
    const current=ev.target.closest('.nav-menu');
    document.querySelectorAll('.nav-menu[open]').forEach(menu=>{if(menu!==current)menu.open=false;});
  });
+ document.addEventListener('error',ev=>{
+  const img=ev.target;
+  if(!img?.matches?.('.dlfr23-artwork'))return;
+  const fallback=img.dataset.dlfr23Fallback||'';
+  if(fallback&&img.src!==fallback){img.src=fallback;return;}
+  img.hidden=true;
+  if(img.classList.contains('dlfr23-media-thumb')){
+   const alt=document.createElement('div');alt.className='dlfr23-media-placeholder';
+   alt.textContent=img.alt||'Miniature indisponible';img.parentNode?.insertBefore(alt,img);
+  }
+ },true);
  document.addEventListener('keydown',ev=>{
    const regionKey=ev.target?.closest?.('[data-region-code][role=button]');
    if(regionKey&&(ev.key==='Enter'||ev.key===' ')){ev.preventDefault();const reg=GEO.regionInfo(regionKey.dataset.regionCode);if(reg){state.selectedRegion=reg.code;render();}return;}
@@ -1245,6 +1265,13 @@ function bootEvents(){
    if(current){closeNavMenus();current.querySelector('summary')?.focus();}
  });
  document.addEventListener('click',async(ev)=>{const a=ev.target.closest('a[data-nav]');if(a){ev.preventDefault();const link=new URL(a.href);history.pushState({},'',link.search);state.keyword='';render();window.scrollTo(0,0);return;}
+ const cinemaPlay=ev.target.closest('[data-dlfr23-play]');
+ if(cinemaPlay){
+  const holder=document.getElementById('dlfr23Player');
+  const embed=window.DLFR_LEVEL_CINEMA.embedHtml(cinemaPlay.dataset.dlfr23Play,esc);
+  if(holder&&embed){holder.innerHTML=embed;holder.classList.add('dlfr23-is-playing');}
+  return;
+ }
  const follow=ev.target.closest('[data-community-follow]');
  if(follow){
    const target=follow.dataset.communityFollow;
