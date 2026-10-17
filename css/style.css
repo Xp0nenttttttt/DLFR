@@ -790,3 +790,32 @@ html.unrated-mode .level-badge.unrated-badge{background:#54206e;color:#fff}
 .dlfr24-player-info strong{overflow-wrap:anywhere}.dlfr24-player-info small{color:var(--muted)}
 @media(max-width:680px){.dlfr24-player-grid{grid-template-columns:1fr}.dlfr24-profile-head{align-items:flex-start}.dlfr24-stats-ranking .rank-item{padding:9px 6px;grid-template-columns:40px minmax(0,1fr) auto}}
 @media(prefers-reduced-motion:reduce){.dlfr24-player-card{transition:none}.dlfr24-player-card:hover{transform:none}}
+
+/* DLFR 2.5.1 — aperçu du profil dans Statistiques : même design que la DLFR. */
+.dlfr251-stats-layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(290px,.8fr);align-items:start;gap:16px}
+.dlfr251-stats-layout .ranking-panel{width:100%;min-width:0;max-width:none;margin:0}
+.dlfr251-stats-layout .rank-list{max-height:710px}
+.dlfr251-stats-layout .rank-item{width:100%;font:inherit;cursor:pointer}
+.dlfr251-stats-layout .rank-item:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
+.dlfr251-preview-column{min-width:0;position:sticky;top:85px}
+.dlfr251-preview{border:1px solid var(--line);background:var(--card);overflow:hidden;box-shadow:var(--shadow)}
+.dlfr251-preview-banner{height:95px;position:relative;overflow:hidden;background:linear-gradient(115deg,#577fa7,#35354f)}
+.dlfr251-preview-banner img{height:100%;width:100%;object-fit:cover;display:block}
+.dlfr251-preview-banner:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent,#15263d55)}
+.dlfr251-preview-content{padding:12px 14px 16px;border-top:3px solid var(--dlfr251-accent,var(--blue))}
+.dlfr251-preview-identity{display:flex;align-items:center;gap:11px;min-width:0;margin-top:-29px;position:relative}
+.dlfr251-preview-avatar{width:63px;height:63px;flex:0 0 63px;border:3px solid var(--card);background:var(--panel);display:grid;place-items:center;font-size:25px;font-weight:700;color:var(--ink);overflow:hidden;box-shadow:0 2px 7px #0002}
+.dlfr251-preview-avatar img{width:100%;height:100%;object-fit:cover}
+.dlfr251-preview-name{min-width:0;padding-top:22px;overflow-wrap:anywhere}
+.dlfr251-preview-name h3{font-size:17px;margin:0;line-height:1.25}
+.dlfr251-preview-name p{margin:3px 0 0}
+.dlfr251-preview-title{margin:12px 0 0;color:var(--dlfr251-accent,var(--blue));font-size:12px;font-weight:700}
+.dlfr251-preview-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:15px}
+.dlfr251-preview-stats .statbox{min-width:0;min-height:58px;padding:8px 5px}
+.dlfr251-preview-stats .stat-value{font-size:12px}
+.dlfr251-preview-bio{font-size:12px;line-height:1.5;color:var(--muted);border-left:2px solid var(--dlfr251-accent,var(--blue));padding-left:10px;margin:13px 0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;overflow:hidden;overflow-wrap:anywhere}
+.dlfr251-preview-open{width:100%;margin-top:15px}
+.dlfr251-preview-empty{padding:24px 14px;border:1px solid var(--line);background:var(--panel);text-align:center}
+.dlfr251-preview-empty h3{margin:0 0 7px}
+@media(max-width:760px){.dlfr251-stats-layout{grid-template-columns:1fr}.dlfr251-preview-column{position:static}.dlfr251-stats-layout .rank-list{max-height:410px}}
+@media(prefers-reduced-motion:reduce){.dlfr251-preview *{scroll-behavior:auto}}
