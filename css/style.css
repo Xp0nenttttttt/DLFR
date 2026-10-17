@@ -765,3 +765,28 @@ html.unrated-mode .level-badge.unrated-badge{background:#54206e;color:#fff}
 @media(max-width:820px){.dlfr23-sections,.dlfr23-lower{grid-template-columns:1fr}.dlfr23-hero{min-height:280px}.dlfr23-facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.dlfr23-hero{min-height:245px}.dlfr23-hero-content{padding:20px 16px 25px}.dlfr23-back{margin-bottom:22px}.dlfr23-facts{gap:6px}.dlfr23-facts>div{padding:9px}.dlfr23-event{grid-template-columns:80px minmax(0,1fr);gap:8px}}
 @media(prefers-reduced-motion:reduce){.dlfr23-hero-content{animation:none}.dlfr23-player{transition:none}.dlfr23-player:hover{transform:none}}
+
+/* DLFR 2.4 — Fiches joueurs autonomes. Reprend les variables et composants existants. */
+.dlfr24-public,.dlfr24-directory{max-width:1000px;margin-inline:auto}
+.dlfr24-breadcrumb{display:flex;gap:9px;align-items:center;margin:0 0 16px;color:var(--muted);font-size:12px}
+.dlfr24-profile-head,.dlfr24-directory-head{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:15px;margin-bottom:20px}
+.dlfr24-profile-head h1,.dlfr24-directory-head h1{font-size:clamp(24px,3.6vw,34px);margin:3px 0}
+.dlfr24-profile-head p,.dlfr24-directory-head p{margin:4px 0}
+.dlfr24-profile-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dlfr24-public .stats-profile{padding:clamp(10px,2.5vw,22px);max-width:none}
+.dlfr24-public .profile-hero{min-height:215px}
+.dlfr24-public .profile-section{padding-top:17px;padding-bottom:10px}
+.dlfr24-stats-ranking .ranking-panel{max-width:740px;margin:0 auto}
+.dlfr24-stats-ranking .rank-list{max-height:780px}
+.dlfr24-stats-ranking .rank-item{color:var(--ink);text-decoration:none;grid-template-columns:65px minmax(0,1fr) auto;padding:9px 12px;min-height:49px}
+.dlfr24-player-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-top:18px}
+.dlfr24-player-card{min-width:0;display:flex;align-items:center;gap:12px;padding:13px;border:1px solid var(--line);background:var(--panel);text-decoration:none;color:var(--ink);transition:border-color .15s ease,transform .15s ease}
+.dlfr24-player-card:hover{border-color:var(--blue);transform:translateY(-2px)}
+.dlfr24-player-card[hidden],#selfRegionRow[hidden]{display:none!important}
+.dlfr24-player-card.unclaimed{opacity:.72}
+.dlfr24-player-avatar{display:grid;place-items:center;flex:0 0 52px;height:52px;border-radius:50%;background:var(--card);border:1px solid var(--line);overflow:hidden;font-weight:700}
+.dlfr24-player-avatar img{width:100%;height:100%;object-fit:cover}
+.dlfr24-player-info{min-width:0;display:flex;flex:1;flex-direction:column;gap:3px}
+.dlfr24-player-info strong{overflow-wrap:anywhere}.dlfr24-player-info small{color:var(--muted)}
+@media(max-width:680px){.dlfr24-player-grid{grid-template-columns:1fr}.dlfr24-profile-head{align-items:flex-start}.dlfr24-stats-ranking .rank-item{padding:9px 6px;grid-template-columns:40px minmax(0,1fr) auto}}
+@media(prefers-reduced-motion:reduce){.dlfr24-player-card{transition:none}.dlfr24-player-card:hover{transform:none}}

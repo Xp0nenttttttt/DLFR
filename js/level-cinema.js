@@ -86,10 +86,10 @@ function render(level,context={}){
  const history=timeline(level,context.history||[],records);
  const winners=bestFrench(records,players);
  const getPlayer=name=>players.find(p=>!p.hidden_from_stats&&[p.player_key,p.username,p.display_name].some(v=>normalized(v)===normalized(name)));
- const recordLink=name=>{const p=getPlayer(name);return p?`<a class="link" data-nav href="${e(link('stats',{player:p.player_key}))}">${e(name)}</a>`:e(name);};
+ const recordLink=name=>{const p=getPlayer(name);return p?`<a class="link" data-nav href="${e(link('player',{player:p.player_key}))}">${e(name)}</a>`:e(name);};
  const sorted=[...records].sort((a,b)=>Number(b.progress)-Number(a.progress)||Date.parse(a.created_at||0)-Date.parse(b.created_at||0));
  const dateTag=r=>dated(r.created_at)?`<span class="dlfr23-record-date">Enregistré le ${e(calendar(r.created_at))}</span>`:'';
- const winnerCards=winners.map((p,i)=>`<a class="dlfr23-player" data-nav href="${e(link('stats',{player:p.player_key}))}"><span class="dlfr23-player-spot">${i+1}</span><span class="dlfr23-player-name">${e(p.display_name||p.username||p.player_key)}</span><span class="dlfr23-player-points">${e(money(p.score||0))} pts DLFR</span></a>`).join('');
+ const winnerCards=winners.map((p,i)=>`<a class="dlfr23-player" data-nav href="${e(link('player',{player:p.player_key}))}"><span class="dlfr23-player-spot">${i+1}</span><span class="dlfr23-player-name">${e(p.display_name||p.username||p.player_key)}</span><span class="dlfr23-player-points">${e(money(p.score||0))} pts DLFR</span></a>`).join('');
  const events=history.map(ev=>`<li class="dlfr23-event ${ev.type==='first'?'dlfr23-event-first':''}"><time datetime="${e(ev.iso)}">${e(calendar(ev.iso))}</time><div><strong>${e(ev.label)}</strong><span>${e(ev.description)}</span></div></li>`).join('');
  const list=sorted.map(r=>`<div class="dlfr23-record"><div><strong>${recordLink(r.player||'Inconnu')}</strong><span class="dlfr23-record-percent">${e(r.progress)} %</span>${dateTag(r)}</div>${safeUrl(r.video_url)?`<a class="link" href="${e(safeUrl(r.video_url))}" target="_blank" rel="noopener noreferrer">Preuve ↗</a>`:''}</div>`).join('');
  const art=main?`<img class="dlfr23-hero-image dlfr23-artwork" data-dlfr23-fallback="${e(fallback)}" src="${e(main)}" alt="" loading="eager">`:'';
