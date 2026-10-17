@@ -1,11 +1,25 @@
-DLFR - TRI DES NIVEAUX IMPORTES
+# DLFR 2.7.1 — Correctif création de Level Packs
 
-1. Sauvegarder le fichier js/app.js actuel.
-2. Remplacer js/app.js par celui du patch.
-3. Publier le site et recharger avec Ctrl+F5.
+## Symptôme
+Dans Modération > Level Packs, le bouton « Enregistrer le pack » affiche :
+`column reference "id" is ambiguous`.
 
-Le select "Reutiliser une fiche importee et masquee" est classe par aredl_rank croissant (les rangs inconnus passent en fin de liste), et affiche le rang AREDL plutot que la position technique en base.
+## Cause
+La fonction `public.dlfr_save_level_pack` contenait une jointure avec
+`unnest(p_level_ids) AS id` et `public.demons d` puis la condition
+`d.id=id`. Deux colonnes `id` étaient visibles, donc PostgreSQL ne
+pouvait pas résoudre la référence.
 
-Aucun SQL, aucune modification de classement ou de complétion, aucun fichier assets/flags inclus.
+## Installation
+1. Fais une sauvegarde de la base Supabase.
+2. Ouvre Supabase > SQL Editor.
+3. Exécute `supabase/41_CORRECTIF_CREATION_LEVEL_PACKS.sql`.
+4. Retourne au panneau Level Packs, recharge, puis réessaie d'enregistrer.
 
-Ce fichier est base sur le dernier patch DLFR_correctif_verificateur_seul.zip. Si des changements ont ete faits ensuite dans js/app.js, reporter seulement le changement du menu pour ne pas les ecraser.
+Aucun fichier HTML/CSS/JS à remplacer. Il n'est pas nécessaire de réexécuter
+la migration 40. Cette migration ne crée ni ne supprime de données.
+
+## Vérification
+Après exécution, la fonction est remplacée, les autres tables et données restent
+inchangées. Si une autre erreur survient, copie son message complet pour
+identifier le problème suivant ; elle ne peut être confirmée qu'avec la base réelle.

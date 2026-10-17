@@ -876,3 +876,9 @@ html.unrated-mode .level-badge.unrated-badge{background:#54206e;color:#fff}
 .admin-content .moderation-sections[data-active-admin="packs"] [data-admin-section="packs"]{display:block;animation:panel-in .2s ease}
 @media(max-width:640px){.dlfr27-packs-grid{grid-template-columns:1fr}.dlfr27-pack-level-picker{grid-template-columns:1fr}.dlfr27-frame{padding:3px}}
 @media(prefers-reduced-motion:reduce){.dlfr27-pack-track i{transition:none}}
+
+/* DLFR 2.8 — Connexion pseudo / mot de passe */
+.dlfr29-auth-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:18px 0 24px}
+.dlfr29-auth-card{display:flex;flex-direction:column;gap:12px;border:1px solid var(--border,#404768);border-radius:12px;padding:20px;background:var(--panel,#1a203a)}
+.dlfr29-auth-card h3{margin:0 0 6px}.dlfr29-auth-card .btn{align-self:flex-start;margin-top:auto}
+@media(max-width:760px){.dlfr29-auth-grid{grid-template-columns:1fr}}

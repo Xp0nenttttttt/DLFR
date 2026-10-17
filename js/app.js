@@ -12,6 +12,7 @@ const GEO = window.DLFR_GEO;
 const UNRATED_STATS = window.DLFR_UNRATED_STATS;
 const SUBMISSIONS = window.DLFR_SUBMISSIONS;
 const DISCORD = window.DLFR_DISCORD;
+const USERNAME_AUTH = window.DLFR_USERNAME_AUTH;
 const BADGES = window.DLFR_BADGES;
 const COMMUNITY = window.DLFR_COMMUNITY;
 const ACTIVITY = window.DLFR_ACTIVITY;
@@ -166,6 +167,27 @@ async function refreshLiveData(){
  state.data.badge_catalog_version=28;
  BADGES.init(state.data);
 }
+async function processDiscordAvatarReturn(){
+ const params=new URLSearchParams(location.search);
+ if(params.get('dlfr_discord_avatar_refresh')!=='1')return;
+ params.delete('dlfr_discord_avatar_refresh');
+ history.replaceState({},'',location.pathname+(params.toString()?'?'+params.toString():'')+location.hash);
+ let expected='';
+ try{expected=sessionStorage.getItem('dlfr_avatar_refresh_uid')||'';sessionStorage.removeItem('dlfr_avatar_refresh_uid');}catch{}
+ if(!expected||!state.session||state.session.user.id!==expected||!state.ownKey){toast('Actualisation Discord annulée : compte ou profil différent.');return;}
+ const {data,error}=await db.auth.getUser();
+ if(error||!data?.user){toast('Impossible de vérifier la nouvelle identité Discord.');return;}
+ const currentUser=data.user;
+ if(currentUser.id!==expected){toast('Identité différente : avatar inchangé.');return;}
+ const discordUser=DISCORD.sessionDiscordIdentity({user:currentUser});
+ const picture=discordUser?.avatar_url;
+ if(!picture){toast('Discord n’a pas fourni de nouvel avatar.');return;}
+ const {error:saveError}=await db.from('player_profiles').upsert({player_key:state.ownKey,avatar_url:picture},{onConflict:'player_key'});
+ if(saveError){toast('Mise à jour avatar : '+saveError.message);return;}
+ state.session={...state.session,user:currentUser};
+ state.data.player_profiles=await readAll('player_profiles');
+ toast('Photo de profil mise à jour depuis Discord.');
+}
 async function load(){
  if(!HAS_SUPABASE){showPageError(Error('Supabase non configuré : vérifie js/config.js.'));return;}
  if(!window.supabase){el.innerHTML='<div class="center-panel"><h2>Supabase indisponible</h2><p>Client Supabase non chargé.</p></div>';return;}
@@ -176,6 +198,7 @@ async function load(){
   await checkStaff();
   await refreshLiveData();
   await checkSelfOwner();
+  await processDiscordAvatarReturn();
   $('sourceLabel').textContent=`Supabase · ${state.data.demons.length} niveau(x)`;
   render();
  }catch(err){el.innerHTML=`<div class="center-panel"><h2>Connexion Supabase impossible</h2><p>${esc(err.message)}</p><p class="small">Applique d'abord 01_schema.sql puis 11_production.sql. Vérifie ensuite ta clé publique et les policies RLS.</p></div>`;}
@@ -197,7 +220,7 @@ async function checkSelfOwner(){
  if(!LIVE||!state.session)return;
  const {data,error}=await db.from('player_profile_owners').select('player_key').eq('auth_user_id',state.session.user.id).maybeSingle();
  if(error){state.ownAccountMessage='La liaison des comptes joueurs n’est pas encore installée. Consulte le guide V2.4.';return;}
- if(!data){state.ownAccountMessage='Ton compte Discord est connecté. Tu peux créer une fiche joueur vierge ou demander la liaison avec une fiche existante.';return;}
+ if(!data){state.ownAccountMessage='Ton compte est connecté. Tu peux créer une fiche joueur vierge ou demander la liaison avec une fiche existante.';return;}
  state.ownKey=data.player_key;
 }
 function closeNavMenus(){document.querySelectorAll('.nav-menu[open]').forEach(menu=>menu.open=false);}
@@ -365,7 +388,7 @@ function discordPanel(actor, profile={}) {
   if (LIVE) {
     if (!C.enableDiscordOAuth) return `<section class="discord-panel"><div class="discord-panel-head"><span class="discord-glyph">◈</span><div><h2>Discord</h2><p>Connexion non activée dans la configuration actuellement chargée par le navigateur.</p></div><span class="tag">À CONFIGURER</span></div><p class="small muted">Vérifie que js/config.js sur GitHub Pages définit enableDiscordOAuth: true, puis recharge la page. Cela ne dépend pas du mot de passe du tableau de bord Supabase.</p></section>`;
     return `<section class="discord-panel"><div class="discord-panel-head"><span class="discord-glyph">◈</span><div><h2>${connected?'Discord connecté':'Connecter Discord'}</h2><p>${connected?esc(identity.username):'Utilise ton compte Discord pour te connecter ou associer cette identité.'}</p></div>${avatar?`<img class="discord-avatar" src="${esc(avatar)}" alt="Avatar Discord">`:''}</div>
-     ${!state.session?'<button type="button" class="btn discord-button" data-action="discordOAuthLogin">Se connecter avec Discord</button>':connected?`<p class="small muted">Ton avatar Discord peut être copié dans ton profil sans remplacer automatiquement ton avatar personnalisé.</p>${state.ownKey&&avatar?'<button type="button" class="btn subtle small" data-action="discordUseAvatar">Copier mon avatar Discord dans le formulaire</button>':''}`:C.enableDiscordIdentityLinking?'<button type="button" class="btn discord-button" data-action="discordIdentityLink">Associer Discord à ce compte</button>':'<p class="small muted">L’association à un compte connecté sera activée séparément dans Supabase.</p>'}
+     ${!state.session?'<button type="button" class="btn discord-button" data-action="discordOAuthLogin">Se connecter avec Discord</button>':connected?`<p class="small muted">Ton avatar Discord peut être copié dans ton profil sans remplacer automatiquement ton avatar personnalisé.</p>${state.ownKey?'<button type="button" class="btn subtle small" data-action="discordRefreshAvatar">Actualiser ma photo depuis Discord</button>':''}${state.ownKey&&avatar?'<button type="button" class="btn subtle small" data-action="discordUseAvatar">Copier la photo actuellement connue</button>':''}`:C.enableDiscordIdentityLinking?'<button type="button" class="btn discord-button" data-action="discordIdentityLink">Associer Discord à ce compte</button>':'<p class="small muted">L’association à un compte connecté sera activée séparément dans Supabase.</p>'}
      <p class="discord-disclaimer">L'identité Discord ne prouve pas, à elle seule, la propriété d'un profil Geometry Dash. La liaison au joueur doit être approuvée et protégée par RLS.</p></section>`;
   }
 
@@ -390,7 +413,8 @@ function selfProfilePage(){
  if(LIVE&&!state.session){
   const emailLogin=`<form data-form="selfLogin" class="self-login"><label class="field">E-mail<input type="email" name="email" required autocomplete="email"></label><label class="field">Mot de passe<input type="password" name="password" required autocomplete="current-password"></label><button class="btn" type="submit">Se connecter avec e-mail</button></form>`;
   const discordReady=C.enableDiscordOAuth===true;
-  return `${templateNotice()}<section class="paper self-page"><h1>Mon profil</h1>${discordReady?`<p>Connecte-toi avec Discord pour accéder à ton compte DLFR.</p>${discordPanel(null)}<details class="alternate-login"><summary>Autre méthode : e-mail et mot de passe</summary>${emailLogin}</details>`:`<p>Connexion Discord non activée dans la configuration actuellement chargée. Une connexion e-mail reste possible si tu possèdes un compte Supabase Auth.</p>${discordPanel(null)}${emailLogin}`}<p class="small muted">La connexion Discord ne suffit pas à revendiquer automatiquement une fiche Geometry Dash : un modérateur doit valider la demande de liaison.</p></section>`;
+  const usernameForms=C.enableUsernameLogin===true?`<div class="dlfr29-auth-grid"><form data-form="usernameLogin" class="dlfr29-auth-card"><h3>Connexion avec pseudo</h3><label class="field">Pseudo<input name="username" autocomplete="username" minlength="3" maxlength="24" pattern="[A-Za-z0-9_-]{3,24}" required></label><label class="field">Mot de passe<input name="password" type="password" minlength="12" autocomplete="current-password" required></label><button class="btn" type="submit">Se connecter</button></form><form data-form="usernameRegister" class="dlfr29-auth-card"><h3>Créer un compte</h3><label class="field">Pseudo<input name="username" autocomplete="username" minlength="3" maxlength="24" pattern="[A-Za-z0-9_-]{3,24}" required></label><label class="field">Mot de passe<input name="password" type="password" minlength="12" maxlength="128" autocomplete="new-password" required></label><label class="field">Confirmer le mot de passe<input name="password_confirm" type="password" minlength="12" maxlength="128" autocomplete="new-password" required></label><p class="small muted">Pas d’e-mail demandé. Attention : sans e-mail de récupération, un mot de passe oublié ne peut pas être réinitialisé automatiquement.</p><button class="btn" type="submit">Créer mon compte DLFR</button></form></div>`:'';
+  return `${templateNotice()}<section class="paper self-page"><h1>Mon profil</h1>${usernameForms}${discordReady?`<details class="alternate-login"><summary>Continuer avec Discord</summary>${discordPanel(null)}</details>`:''}<details class="alternate-login"><summary>Connexion e-mail (comptes existants)</summary>${emailLogin}</details><p class="small muted">Un compte DLFR ne donne pas automatiquement accès à une ancienne fiche Geometry Dash : toute revendication doit être validée par la modération.</p></section>`;
  }
  if(LIVE&&!state.ownKey)return `<section class="paper self-page"><h1>Mon profil</h1><div class="notice warning">${esc(state.ownAccountMessage||'Ton compte n’est pas relié à un profil joueur.')}</div>${discordPanel(null)}${PROD.claimSection(state)}<button class="btn subtle" type="button" data-action="selfLogout">Se déconnecter</button></section>`;
  const actor=LIVE?state.ownKey:state.demoActor;
@@ -1284,6 +1308,16 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   toast('Opération enregistrée dans Supabase.');render();return;
  }
 
+ if(type==='usernameRegister'||type==='usernameLogin'){
+  if(!LIVE||C.enableUsernameLogin!==true||!USERNAME_AUTH)throw Error('Connexion par pseudo non configurée.');
+  const action=type==='usernameRegister'?'register':'login';
+  if(action==='register'&&f.password!==f.password_confirm)throw Error('Les deux mots de passe sont différents.');
+  const session=await USERNAME_AUTH.signIn(db,C,action,f.username,f.password);
+  state.session=session;
+  await checkStaff();await refreshLiveData();await checkSelfOwner();
+  toast(action==='register'?'Compte créé. Tu peux maintenant créer ou revendiquer ta fiche Geometry Dash.':'Connexion réussie.');
+  render();return;
+ }
  if(type==='selfLogin'){
   if(!LIVE)throw Error('Connexion réservée au site réel.');
   const {data,error}=await db.auth.signInWithPassword({email:f.email,password:f.password});if(error)throw Error(error.message);
@@ -1572,6 +1606,20 @@ function bootEvents(){
   }
   if(act.dataset.action==='discordOAuthLogin'&&LIVE){if(!C.enableDiscordOAuth){toast('Discord n’est pas configuré.');return;}try{await DISCORD.signIn(db,new URL('?page=my-profile',location.href).href);}catch(e){toast('Connexion Discord : '+e.message);}return;}
  if(act.dataset.action==='discordIdentityLink'&&LIVE){if(!state.session||!C.enableDiscordIdentityLinking)return;try{await DISCORD.linkIdentity(db,new URL('?page=my-profile',location.href).href);}catch(e){toast('Liaison Discord : '+e.message);}return;}
+ if(act.dataset.action==='discordRefreshAvatar'&&LIVE){
+   if(!state.session||!state.ownKey||!discordIdentity()){
+    toast('Associe d’abord Discord à ton compte et à une fiche joueur.');return;
+   }
+   if(!confirm('Remplacer ta photo de profil actuelle par celle de Discord ?'))return;
+   if(!C.enableDiscordOAuth){toast('Discord OAuth est désactivé.');return;}
+   try{
+    sessionStorage.setItem('dlfr_avatar_refresh_uid',state.session.user.id);
+    const redirect=new URL(location.pathname,location.origin);
+    redirect.searchParams.set('page','my-profile');redirect.searchParams.set('dlfr_discord_avatar_refresh','1');
+    await DISCORD.signIn(db,redirect.href);
+   }catch(e){sessionStorage.removeItem('dlfr_avatar_refresh_uid');toast('Actualisation Discord : '+e.message);}
+   return;
+  }
  if(act.dataset.action==='discordUseAvatar'&&LIVE){const picture=DISCORD.sessionDiscordIdentity(state.session)?.avatar_url;const field=document.querySelector('[data-form="selfProfile"] input[name="avatar_url"]');if(picture&&field){field.value=picture;field.focus();toast('Avatar Discord copié dans le champ. Enregistre le profil pour confirmer.');}return;}
  if(act.dataset.action==='moreUnbeaten'){state.unbeatLimit+=120;const results=$('unbeatenResults');if(results)results.innerHTML=unbeatenEntriesHTML();return;}
  if(act.dataset.action==='toggleUnratedStats'){state.unrated=!state.unrated;refreshUnrated();render();return;}
