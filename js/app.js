@@ -865,7 +865,7 @@ function levelCreditsEditor(){
  <label class="field">Mode de complétion<select name="completion_mode"><option value="standard">Standard</option><option value="solo">Solo</option><option value="two_player">2-Player</option></select></label>
  </div><div><h3>Classement et publication</h3>
  <label class="field">Position globale<input name="position" type="number" min="1" max="99999998" required></label>
- <p class="small muted">Top 150 = positions 1 à 150 · NLW #1 = 151, NLW #5 = 155. Pour promouvoir un niveau NLW au Top 150, saisis directement le rang cible (ex. 50).</p>
+ <p class="small muted">Top 150 : #1–150 · NLW #1 : 151 · NLW #5 : 155. Pour sortir un niveau du Top 150, saisis une position au-delà de 150 et coche « Legacy » uniquement si le niveau doit rejoindre les archives historiques.</p>
  <div class="notice small" id="levelStudioMoveNotice" role="status" aria-live="polite">Sélectionne un niveau et un rang pour prévisualiser le déplacement.</div>
  <label class="field"><input name="is_public" type="checkbox"> Fiche publiée</label>
  <label class="field"><input name="legacy" type="checkbox"> Niveau historique (Legacy)</label>
@@ -879,7 +879,7 @@ function levelCreditsEditor(){
  </div></div>
  <p class="dlfr29-inline-step">Étape 3 sur 3 — Vérifier et confirmer</p><div class="notice warning small">Attention : le rang principal et le rang NLW partagent la colonne « position ». Les changements de position modifient les points calculés. Les complétions ne seront pas supprimées.</div>
  <label class="field"><input name="confirm_move" type="checkbox"> Je confirme un éventuel changement de classement et le décalage des niveaux concernés.</label>
- <label class="field" id="levelStudioTransferConfirm" style="display:none">Confirmation de promotion NLW → Top 150 : saisis <b>TRANSFERER</b><input name="confirm_transfer" maxlength="10" autocomplete="off" placeholder="TRANSFERER"></label>
+ <label class="field" id="levelStudioTransferConfirm" style="display:none"><span id="levelStudioTransferCaption">Confirmation de transfert : saisis <b>TRANSFERER</b></span><input name="confirm_transfer" maxlength="10" autocomplete="off" placeholder="TRANSFERER"></label>
  <button class="btn" type="submit">Enregistrer la fiche du niveau</button></form></div>`;
 }
 function syncLevelStudio(){
@@ -896,6 +896,19 @@ function syncLevelStudio(){
  updateStudioPreview(form);
 }
 // Rang NLW = position SQL - 150. Les positions techniques des imports cachés ne sont pas des rangs NLW.
+function suggestedLegacyPosition(excludingDemonId=null){
+ const last=Math.max(150,...(state.data.demons||[]).filter(d=>d.is_public===true&&!d.legacy&&!d.unrated&&Number(d.position)>150&&Number(d.position)<100000000&&(excludingDemonId===null||Number(d.id)!==Number(excludingDemonId))).map(d=>Number(d.position)));
+ // Pendant un déplacement, la dernière place NLW est libérée par décalage.
+ // Pour une nouvelle création, il faut en revanche une place après la NLW.
+ return Math.max(151,last+(excludingDemonId===null?1:0));
+}
+function suggestLegacyAfterList(form){
+ if(!form?.elements?.legacy?.checked||form.elements.unrated?.checked)return;
+ const field=form.elements.position; if(!field)return;
+ const excluded=form.dataset.form==='levelStudio'?Number(form.elements.demon_id.value):null;
+ const suggested=suggestedLegacyPosition(excluded);
+ if(!Number.isSafeInteger(Number(field.value))||Number(field.value)<suggested)field.value=String(suggested);
+}
 function updateStudioMovementPreview(form){
  const selected=form.elements.demon_id?.value;
  const level=(state.data.demons||[]).find(x=>String(x.id)===String(selected));
@@ -903,20 +916,47 @@ function updateStudioMovementPreview(form){
  if(!preview||!confirm||!level)return;
  const from=Number(level.position),to=Number(form.elements.position.value);
  const valid=Number.isSafeInteger(to)&&to>=1&&to<99999999;
- const publishedNlw=from>150&&from<100000000&&level.is_public===true&&!level.legacy&&!level.unrated;
- const promotion=valid&&publishedNlw&&to<=150;
- confirm.style.display=promotion?'block':'none';
- if(!promotion)form.elements.confirm_transfer.value='';
+ const legacy=form.elements.legacy.checked,unrated=!!level.unrated;
+ const cross=valid&&((from<=150&&to>150)||(from>150&&from<100000000&&to<=150));
+ confirm.style.display=cross?'block':'none';
+ const caption=document.getElementById('levelStudioTransferCaption');
+ if(caption&&cross)caption.innerHTML=from<=150
+    ?'Confirmation de sortie du Top 150 : saisis <b>TRANSFERER</b>'
+    :'Confirmation d’entrée dans le Top 150 : saisis <b>TRANSFERER</b>';
+ if(!cross)form.elements.confirm_transfer.value='';
  if(!valid){preview.textContent='Saisis une position globale valide (1 à 99 999 998).';return;}
- if(from===to){preview.textContent='Position inchangée : seules les informations de la fiche seront enregistrées.';return;}
+ if(unrated){preview.textContent='Les niveaux UNRATED possèdent un classement distinct. Utilise leur outil dédié.';return;}
+ if(legacy&&to<=150){preview.textContent='Un niveau Legacy doit être placé hors du Top 150 (position 151 ou plus).';return;}
+ if(legacy&&!level.legacy&&to<suggestedLegacyPosition(level.id)){preview.textContent=`Pour garder la NLW sans trou, place le niveau Legacy après les niveaux NLW publiés : position ${suggestedLegacyPosition(level.id)} ou plus.`;return;}
+ if(from===to){preview.textContent=legacy&&!level.legacy
+     ?'Le niveau quittera la NLW pour apparaître dans Legacy, sans points NLW. Son numéro global reste réservé.'
+     :!legacy&&level.legacy?'Le niveau quittera Legacy pour rejoindre la NLW à sa position actuelle.':'Position inchangée : seules les informations de la fiche seront enregistrées.';return;}
  if(from>150&&to<=150){
-   preview.textContent=publishedNlw
-     ?`Promotion NLW #${from-150} → Top 150 #${to}. Les rangs intermédiaires seront décalés d’une position (+1). Si le rang #150 est occupé, son niveau entrera dans la NLW au rang #1. Les complétions et les points des joueurs seront recalculés selon les nouveaux rangs.`
-     :'Impossible de promouvoir directement un import masqué, un Legacy ou un niveau UNRATED : il doit d’abord être publié dans la NLW officielle.';
+   const allowed=level.is_public===true&&!unrated&&from<100000000&&form.elements.is_public.checked&&!legacy;
+   preview.textContent=allowed
+     ?`${level.legacy?'Retour Legacy':'Promotion NLW #'+(from-150)} → Top 150 #${to}. Les niveaux entre les deux positions sont décalés (+1). Si le #150 est occupé, il passe en NLW #1. Les records sont conservés.`
+     :'Le niveau doit être public, Rated et non Legacy à l’arrivée. Un import caché ne peut pas être transféré directement.';
    return;
  }
- if(from<=150&&to>150){preview.textContent='Le transfert Top 150 → NLW n’est pas pris en charge par ce correctif.';return;}
- preview.textContent=`Déplacement #${from} → #${to} : les positions intermédiaires seront décalées, sans supprimer les records.`;
+ if(from<=150&&to>150){
+   preview.textContent=`Sortie du Top 150 #${from} → ${legacy?'Legacy':'NLW #'+(to-150)} (position ${to}). Les positions intermédiaires sont remontées d’un rang (−1) : le niveau au #151 peut devenir #150. ${legacy?'Le niveau ne rapporte ni points principaux ni points NLW.':'Ses records restent associés au niveau et compteront au barème NLW.'} Confirmation requise.`;
+   return;
+ }
+ preview.textContent=`Déplacement #${from} → #${to} : les positions intermédiaires seront décalées, sans supprimer les records.${legacy?' Le niveau sera marqué Legacy et ne rapportera pas de points NLW.':''}`;
+}
+function updateNewLevelRankPreview(form){
+ const preview=document.getElementById('newLevelRankPreview');if(!preview||!form)return;
+ const pos=Number(form.elements.position?.value),raw=form.elements.position?.value;
+ const legacy=!!form.elements.legacy?.checked,unrated=!!form.elements.unrated?.checked;
+ if(!raw){preview.textContent='Choisis la position globale : 151 correspond à NLW #1.';return;}
+ if(!Number.isSafeInteger(pos)||pos<1||pos>=99999999){preview.textContent='Position invalide.';return;}
+ if(legacy&&unrated){preview.textContent='Choisis Legacy ou UNRATED, pas les deux.';return;}
+ if(legacy&&pos<=150){preview.textContent='Legacy doit être hors du Top 150 : utilise une position à partir de 151.';return;}
+ if(legacy&&pos<suggestedLegacyPosition()){preview.textContent=`Place les nouveaux niveaux Legacy après la NLW, à partir de la position ${suggestedLegacyPosition()}.`;return;}
+ preview.textContent=unrated?`Publication UNRATED, rang estimé #${pos}.`:
+   legacy?`Publication Legacy à la position ${pos}, sans points principaux ni NLW.`:
+   pos<=150?`Publication dans le Top 150 au rang #${pos}. Les positions occupées sont décalées.`:
+   `Publication NLW #${pos-150} (position globale ${pos}). Les positions occupées sont décalées.`;
 }
 function studioYoutubeThumbnail(link){try{const u=new URL(link),h=u.hostname.replace(/^www\./,'').toLowerCase();let id='';if(h==='youtu.be')id=u.pathname.split('/')[1];else if(['youtube.com','m.youtube.com'].includes(h))id=u.pathname==='/watch'?u.searchParams.get('v'):u.pathname.split('/')[2];return /^[\w-]{11}$/.test(id||'')?'https://i.ytimg.com/vi/'+id+'/hqdefault.jpg':'';}catch{return '';}}
 function updateStudioPreview(form){const container=document.getElementById('levelStudioPreview');if(!container)return;const media=imageLink(form.elements.thumbnail_url.value)||studioYoutubeThumbnail(form.elements.video_url.value)||studioYoutubeThumbnail(form.elements.verifier_video_url.value);container.innerHTML=media?`<img src="${esc(media)}" alt="Aperçu miniature" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.hidden=false"><p hidden>Miniature indisponible — vérifie son URL.</p>`:'<p class="muted small">Aucune miniature renseignée</p>';}
@@ -1034,7 +1074,7 @@ function adminPage(){if(LIVE&&!state.staff){
  }
  const players=playerOptions();return `${templateNotice()}<div class="paper"><div class="admin-mode">Espace privé · équipe de modération</div><div class="row-between"><h1>Modération</h1><div><button class="btn subtle small" data-action="logout">Déconnexion</button></div></div><p class="muted">Choisis une action ci-dessous. Les modifications sont enregistrées et contrôlées automatiquement.</p></div><div class="admin-workspace" data-role="${state.demoRole}"><div class="admin-nav" role="tablist" aria-label="Sections de modération">${[['overview','Accueil'],['requests','Demandes'],['levels','Niveaux'],['packs','Level Packs'],['news','Actualités'],['profiles','Profils'],['awards','Badges & Palmarès'],['achievements','Achievements FR'],['clans','Clans'],['safety','Sanctions'],['nlw','Modos NLW'],['audit','Journal']].map(([id,label])=>`<button type="button" role="tab" aria-selected="${state.adminTab===id}" class="${state.adminTab===id?'active':''}" data-admin-tab="${id}">${label}</button>`).join('')}</div><div class="admin-content">${adminGuideHtml()}<div class="dlfr29-requests" ${state.adminTab==='requests'?'':'hidden'}>${LIVE?PROD.moderation(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state):''}</div><div class="admin-intro ${state.adminTab==='overview'?'':'is-hidden'}"><h2>Tableau de bord</h2>${statsOverview()}<p class="muted">Choisis une action dans les raccourcis ou une rubrique dans le menu. Chaque modification est contrôlée avant son enregistrement.</p></div><div class="moderation-sections" data-active-admin="${state.adminTab}">
  ${levelCreditsEditor()}${historicNlwPublisher()}${packModerationEditor()}
- <div class="admin-card" data-admin-section="levels"><h3>Ajouter directement un niveau</h3><p class="small muted">Pour accepter une soumission, utilise le panneau ci-dessous. La liste est maintenant entièrement gérée par les modérateurs. Indique un rang : les niveaux Rated suivants seront décalés si nécessaire. Les UNRATED sont gérés séparément.</p><form data-form="demon"><label class="field">Réutiliser une fiche importée et masquée (facultatif)<select name="existing_demon_id"><option value="">Nouveau niveau</option>${(state.unpublishedAredlDemons||[]).filter(d=>!(state.data.dlfr_level_archive_log||[]).some(a=>!a.restored_at&&String(a.demon_id)===String(d.id))).slice().sort((a,b)=>{const ra=Number(a.aredl_rank),rb=Number(b.aredl_rank);const va=Number.isFinite(ra)&&ra>0?ra:Number.POSITIVE_INFINITY;const vb=Number.isFinite(rb)&&rb>0?rb:Number.POSITIVE_INFINITY;return va-vb||String(a.name||"").localeCompare(String(b.name||""),"fr");}).map(d=>`<option value="${esc(d.id)}">${Number(d.aredl_rank)>0?`AREDL #${esc(d.aredl_rank)}`:"AREDL ?"} — ${esc(d.name)} (GD ${esc(d.level_id||"?")})</option>`).join("")}</select></label><p class="small muted" data-import-prefill-note>Sélectionne une fiche pour charger ses informations. Les crédits manquants restent à vérifier.</p><label class="field">Position dans la liste globale (151 = NLW #1)<input name="position" type="number" min="1" required></label><label class="field">Nom<input name="name" required maxlength="120"></label><label class="field">ID Geometry Dash<input name="level_id" inputmode="numeric" maxlength="30"></label><label class="field">Publié par / éditeur (texte libre)<input name="publisher" placeholder="Nom de l’éditeur" required maxlength="200"></label><label class="field">Vérifié par — joueur DLFR<select name="verifier_player_key"><option value="">Conserver / saisir le crédit ci-dessous</option>${(state.data.players||[]).slice().sort((a,b)=>String(a.display_name||a.username).localeCompare(String(b.display_name||b.username))).map(p=>`<option value="${esc(p.player_key)}">${esc(p.display_name||p.username)}</option>`).join('')}<option value="__new__">＋ Créer un nouveau joueur</option></select></label><label class="field">Nouveau joueur vérificateur (uniquement si « Créer »)<input name="new_verifier_name" maxlength="80" placeholder="Pseudo du nouveau joueur"></label><label class="field">Crédit vérificateur (si aucun joueur choisi)<input name="verifier" placeholder="À renseigner"></label><label class="field">Créateur<input name="creator"></label><label class="field">Mode de complétion<select name="completion_mode"><option value="">Conserver le mode existant / Standard</option><option value="solo">Solo</option><option value="two_player">2-Player</option></select></label><label class="field">Vidéo de vérification (facultatif)<input name="verifier_video_url" type="url" placeholder="https://youtu.be/…"></label><label class="field">Miniature YouTube ou image (facultatif)<input name="thumbnail_url" type="url" placeholder="https://i.ytimg.com/vi/…/hqdefault.jpg"></label><label class="field">Progression minimum (%)<input name="requirement" type="number" min="1" max="100" value="100" required></label><label class="field"><input name="legacy" type="checkbox" style="width:auto"> A déjà appartenu au Top 150 (Legacy)</label><label class="field">Date de sortie de liste (si connue)<input name="legacy_since" type="date"></label><label class="field"><input type="checkbox" name="unrated"> Niveau UNRATED (position estimée en mode alternatif)</label><button class="btn">Ajouter le niveau</button><p class="small muted">Après le #150, le niveau rejoint la NLW avec ses points NLW séparés des points Main/Extended.</p></form></div>
+ <div class="admin-card" data-admin-section="levels"><h3>Ajouter directement un niveau</h3><p class="small muted">Pour accepter une soumission, utilise le panneau ci-dessous. La liste est maintenant entièrement gérée par les modérateurs. Indique un rang : les niveaux Rated suivants seront décalés si nécessaire. Les UNRATED sont gérés séparément.</p><form data-form="demon"><label class="field">Réutiliser une fiche importée et masquée (facultatif)<select name="existing_demon_id"><option value="">Nouveau niveau</option>${(state.unpublishedAredlDemons||[]).filter(d=>!(state.data.dlfr_level_archive_log||[]).some(a=>!a.restored_at&&String(a.demon_id)===String(d.id))).slice().sort((a,b)=>{const ra=Number(a.aredl_rank),rb=Number(b.aredl_rank);const va=Number.isFinite(ra)&&ra>0?ra:Number.POSITIVE_INFINITY;const vb=Number.isFinite(rb)&&rb>0?rb:Number.POSITIVE_INFINITY;return va-vb||String(a.name||"").localeCompare(String(b.name||""),"fr");}).map(d=>`<option value="${esc(d.id)}">${Number(d.aredl_rank)>0?`AREDL #${esc(d.aredl_rank)}`:"AREDL ?"} — ${esc(d.name)} (GD ${esc(d.level_id||"?")})</option>`).join("")}</select></label><p class="small muted" data-import-prefill-note>Sélectionne une fiche pour charger ses informations. Les crédits manquants restent à vérifier.</p><label class="field">Position dans la liste globale (151 = NLW #1)<input name="position" type="number" min="1" required></label><label class="field">Nom<input name="name" required maxlength="120"></label><label class="field">ID Geometry Dash<input name="level_id" inputmode="numeric" maxlength="30"></label><label class="field">Publié par / éditeur (texte libre)<input name="publisher" placeholder="Nom de l’éditeur" required maxlength="200"></label><label class="field">Vérifié par — joueur DLFR<select name="verifier_player_key"><option value="">Conserver / saisir le crédit ci-dessous</option>${(state.data.players||[]).slice().sort((a,b)=>String(a.display_name||a.username).localeCompare(String(b.display_name||b.username))).map(p=>`<option value="${esc(p.player_key)}">${esc(p.display_name||p.username)}</option>`).join('')}<option value="__new__">＋ Créer un nouveau joueur</option></select></label><label class="field">Nouveau joueur vérificateur (uniquement si « Créer »)<input name="new_verifier_name" maxlength="80" placeholder="Pseudo du nouveau joueur"></label><label class="field">Crédit vérificateur (si aucun joueur choisi)<input name="verifier" placeholder="À renseigner"></label><label class="field">Créateur<input name="creator"></label><label class="field">Mode de complétion<select name="completion_mode"><option value="">Conserver le mode existant / Standard</option><option value="solo">Solo</option><option value="two_player">2-Player</option></select></label><label class="field">Vidéo de vérification (facultatif)<input name="verifier_video_url" type="url" placeholder="https://youtu.be/…"></label><label class="field">Miniature YouTube ou image (facultatif)<input name="thumbnail_url" type="url" placeholder="https://i.ytimg.com/vi/…/hqdefault.jpg"></label><label class="field">Progression minimum (%)<input name="requirement" type="number" min="1" max="100" value="100" required></label><label class="field"><input name="legacy" type="checkbox" style="width:auto"> A déjà appartenu au Top 150 (Legacy)</label><label class="field">Date de sortie de liste (si connue)<input name="legacy_since" type="date"></label><label class="field"><input type="checkbox" name="unrated"> Niveau UNRATED (position estimée en mode alternatif)</label><div class="notice small" id="newLevelRankPreview" role="status" aria-live="polite">Choisis une position globale pour savoir où sera publié le niveau.</div><button class="btn">Ajouter le niveau</button><p class="small muted">Position 151 = NLW #1 ; position 157 = NLW #7. Coche « Legacy » uniquement pour publier le niveau dans les archives historiques (sans points NLW).</p></form></div>
  <div class="admin-card" data-admin-section="levels"><h3>Retirer ou restaurer un niveau</h3>
 <p class="small muted">Le retrait est réversible : la fiche disparaît du site, les records et les preuves restent enregistrés. Les rangs Rated suivants se referment. Pour éviter toute erreur, saisis le nom exact du niveau avant de confirmer.</p>
 <form data-form="prodArchiveLevel"><label class="field">Niveau public à retirer<select name="demon_id" required><option value="">Choisir un niveau</option>${(state.data.demons||[]).slice().sort((a,b)=>+a.position-+b.position).map(d=>`<option value="${esc(d.id)}">#${esc(d.position)} — ${esc(d.name)}${d.unrated?' (UNRATED)':''}</option>`).join('')}</select></label>
@@ -1393,12 +1433,17 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   if(!current)throw Error('Fiche introuvable.');
   if(!Number.isSafeInteger(pos)||pos<1||pos>=99999999)throw Error('Position invalide.');
   if(pos!==Number(current.position)&&f.confirm_move!=='on')throw Error('Coche la confirmation pour modifier le classement.');
-  if(Number(current.position)>150&&pos<=150){
-    if(current.is_public!==true||current.legacy||current.unrated||Number(current.position)>=100000000)throw Error('Seul un niveau NLW publié et non Legacy peut rejoindre le Top 150.');
-    if(f.confirm_transfer!=='TRANSFERER')throw Error('Pour promouvoir ce niveau au Top 150, écris TRANSFERER dans le champ de confirmation.');
-    if(f.is_public!=='on'||f.legacy==='on')throw Error('Le niveau doit rester public et non Legacy pour rejoindre le Top 150.');
+  const from=Number(current.position);
+  const crossing=(from<=150&&pos>150)||(from>150&&from<100000000&&pos<=150);
+  if(crossing&&f.confirm_transfer!=='TRANSFERER')throw Error('Pour changer de classement, écris TRANSFERER dans le champ de confirmation.');
+  if(current.unrated)throw Error('Utilise l’éditeur UNRATED pour déplacer ce niveau.');
+  if(f.legacy==='on'&&pos<=150)throw Error('Un niveau Legacy doit avoir une position supérieure à 150.');
+  if(f.legacy==='on'&&!current.legacy&&pos<suggestedLegacyPosition(current.id))throw Error('Place le niveau Legacy après les niveaux NLW publiés, à partir de la position '+suggestedLegacyPosition(current.id)+'.');
+  if(crossing&&(f.is_public!=='on'))throw Error('Le niveau doit rester public pour changer de classement.');
+  if(from>150&&pos<=150){
+    if(current.is_public!==true||from>=100000000||f.legacy==='on')throw Error('Pour entrer dans le Top 150, le niveau doit être public, Rated et non Legacy.');
   }
-  if(Number(current.position)<=150&&pos>150)throw Error('Le transfert Top 150 vers NLW n’est pas disponible avec ce correctif.');
+  if(from<=150&&pos>150&&current.is_public!==true)throw Error('Impossible de transférer un niveau masqué.');
   const {error}=await db.rpc('dlfr_update_demon_full',{
     p_demon_id:id,p_name:plain(f.name),p_position:pos,p_level_id:plain(f.level_id),
     p_creator:plain(f.creator),p_creator_more:plain(f.creator_more),p_publisher:plain(f.publisher),p_verifier:plain(f.verifier),
@@ -1433,7 +1478,10 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
  if(type==='demon'){
   const pos=+f.position;if(!LIVE&&state.demoRole==='nlw_editor'&&pos<=150)throw Error('Un modérateur NLW ne peut gérer que les positions 151 et au-delà.');
   if(LIVE){
-    const {error}=await db.rpc('dlfr_manual_save_demon_with_players',{
+    if(!Number.isSafeInteger(pos)||pos<1||pos>=99999999)throw Error('Position invalide.');
+    if(f.legacy==='on'&&(pos<=150||f.unrated==='on'))throw Error('Un niveau Legacy doit être Rated et placé après le Top 150.');
+    if(f.legacy==='on'&&pos<suggestedLegacyPosition())throw Error('Place le niveau Legacy après la NLW, à partir de la position '+suggestedLegacyPosition()+'.');
+    const {error}=await db.rpc('dlfr_manual_publish_level_v3',{
       p_publisher_player_key:null,
       p_verifier_player_key:f.verifier_player_key||null,
       p_new_publisher_name:null,
@@ -1445,7 +1493,8 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
       p_existing_demon_id:f.existing_demon_id?Number(f.existing_demon_id):null,
       p_verifier_video_url:plain(f.verifier_video_url)||null,
       p_thumbnail_url:plain(f.thumbnail_url)||null,
-      p_completion_mode:plain(f.completion_mode)||null
+      p_completion_mode:plain(f.completion_mode)||null,
+      p_legacy:f.legacy==='on',p_legacy_since:f.legacy_since||null
     });
     if(error)throw Error(error.message);
   }else{
@@ -1666,6 +1715,14 @@ function bootEvents(){
  }
  if(ev.target.id==='levelStudioSearch'){const select=document.getElementById('levelStudioSelect');if(select){const q=key(ev.target.value);for(const opt of select.options)opt.hidden=!key(opt.textContent+' '+opt.dataset.search).includes(q);const first=[...select.options].find(x=>!x.hidden);if(first&&select.selectedOptions[0]?.hidden){select.value=first.value;syncLevelStudio();}}}
  if(ev.target.closest('[data-form="levelStudio"]')){updateStudioPreview(ev.target.closest('form'));updateStudioMovementPreview(ev.target.closest('form'));}
+ if(ev.target.closest('[data-form="levelStudio"]')&&ev.target.name==='legacy'){
+    const form=ev.target.closest('form');if(ev.target.checked)suggestLegacyAfterList(form);
+    updateStudioMovementPreview(form);
+ }
+ if(ev.target.closest('[data-form="demon"]')&&['position','legacy','unrated'].includes(ev.target.name)){
+   const form=ev.target.closest('form');if(ev.target.name==='legacy'&&ev.target.checked)suggestLegacyAfterList(form);
+   updateNewLevelRankPreview(form);
+ }
  if(ev.target.id==='clanSearch'){state.clanSearch=ev.target.value;document.querySelectorAll('[data-clan-searchable]').forEach(r=>r.hidden=!r.dataset.clanSearchable.includes(key(state.clanSearch)));}
  if(ev.target.id==='unbeatenSearch'){state.unbeatSearch=ev.target.value;state.unbeatLimit=120;const results=$('unbeatenResults');if(results)results.innerHTML=unbeatenEntriesHTML();}
  if(ev.target.id==='newsSearch'){state.newsSearch=ev.target.value;const items=state.data.news_items.filter(n=>(n.is_published||state.staff)&&(state.newsFilter==='all'||getNewsCategory(n)===state.newsFilter)&&`${key(n.headline)} ${key(n.body)} ${key(n.player_name)}`.includes(key(state.newsSearch)));$('newsItems').innerHTML=newsItemsHTML(items.sort((a,b)=>+(!!b.is_pinned)-+(!!a.is_pinned)||new Date(b.created_at)-new Date(a.created_at)));}
@@ -1698,6 +1755,7 @@ function bootEvents(){
  if(ev.target.id==='hiddenDeleteSelect'){const form=ev.target.closest('form');if(form){form.dataset.deletePreviewId='';const del=form.querySelector('[name="delete_action"][value="delete"]');if(del)del.disabled=true;const preview=document.getElementById('hiddenDeletePreview');if(preview)preview.hidden=true;}}
  if(ev.target.matches('[data-form="linkVerifier"] select[name="verifier_name"]')){const item=window.__dlfrVerifierUnlinked?.[Number(ev.target.value)];const preview=document.getElementById('verifierLinkPreview');if(preview)preview.textContent=item?`${item.count} niveau(x) non liés : ${(item.levels||[]).map(n=>n.name+' (#'+n.id+')').join(', ')}`:'Sélectionne un vérificateur.';}
  if(ev.target.matches('[data-form="demon"] select[name="existing_demon_id"]'))fillImportedDemonForm(ev.target);
+ if(ev.target.closest('[data-form="demon"]')&&['position','legacy','unrated'].includes(ev.target.name))updateNewLevelRankPreview(ev.target.closest('form'));
  if(ev.target.id==='historicNlwSelect'){const opt=ev.target.selectedOptions[0];const pos=document.getElementById('historicNlwPosition');if(opt&&pos)pos.value=opt.dataset.oldPosition||'151';}
  if(ev.target.id==='profileEditorCountry'||ev.target.id==='profileEditorRegion')syncRegionEditor();
  if(ev.target.id==='calcPlayer'){state.calcPlayer=ev.target.value;state.calcDemons=[];render();}
