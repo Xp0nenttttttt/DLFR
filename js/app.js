@@ -34,7 +34,7 @@ const communityTables=['dlfr_profile_preferences','dlfr_profile_showcase','dlfr_
 const livePrivateTables=['profile_claim_requests','level_submissions','clan_invites','clan_requests','player_profile_owners'];
 const liveStaffTables=['player_sanctions','community_audit_log','dlfr_level_archive_log'];
 const tables = ['site_settings','players','demons','completions','news_items','profile_titles','player_profile_titles','player_profiles','hall_of_fame','player_stat_snapshots','demon_position_history'];
-let db = null, state = { data:null, staff:false, staffRole:null, session:null, country:'MONDE', region:'ALL', selectedPlayer:'', list:'main', keyword:'', busy:false, statsTab:'players', statsYear:'all', comparePlayer:'', profileTab:'overview', activityTab:'following', selectedRegion:'BRE', regionsSort:'points', regionsGeometryRequested:false, newsFilter:'all', newsSearch:'', adminTab:'overview', editingNews:null, unrated:false, calcPlayer:'', calcDemons:[], calcNlw:false, unbeatSearch:'', unbeatLimit:120, communityExcel:{status:'loading',items:[],message:'',offline:false}, demoRole:'owner', demoActor:'spleen', selectedClan:1, clanSort:'points', clanSearch:'', clanDetailTab:'overview', ownKey:null, ownAccountMessage:'' };
+let db = null, state = { data:null, staff:false, staffRole:null, session:null, country:'MONDE', region:'ALL', selectedPlayer:'', list:'main', keyword:'', busy:false, statsTab:'players', statsYear:'all', comparePlayer:'', profileTab:'overview', activityTab:'following', selectedRegion:'BRE', regionsSort:'points', regionsGeometryRequested:false, newsFilter:'all', newsSearch:'', adminTab:'overview', editingNews:null, unrated:false, calcPlayer:'', calcDemons:[], calcNlw:false, unbeatSearch:'', unbeatLimit:120, communityExcel:{status:'loading',items:[],message:'',offline:false}, demoRole:'owner', demoActor:'spleen', selectedClan:1, clanSort:'points', clanSearch:'', clanDetailTab:'overview', ownKey:null, ownAccountMessage:'', ownerPreview:'owner', ownerPreviewQueue:[], ownerPreviewError:'' };
 const el = document.getElementById('app');
 const $ = id => document.getElementById(id);
 const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -44,6 +44,7 @@ const sortPlayerName = p => plain(p?.display_name) || plain(p?.username) || plai
 // "X and more" est un crédit de megacollab, pas un vrai pseudo de joueur.
 const isCreatorGroupCredit = name => /\band\s+more\b/i.test(plain(name).replace(/[\u2066-\u2069]/g,''));
 const hasFullStaffPowers = () => ['owner','editor','supermoderator'].includes(state.staffRole);
+const ownerPreviewActive=()=>state.staffRole==='owner'&&state.ownerPreview!=='owner';
 const key = s=>plain(s).toLocaleLowerCase('fr');
 const fmt = n => Number(n||0).toLocaleString('fr-FR',{maximumFractionDigits:2,minimumFractionDigits:2});
 const num = n => Number(n||0);
@@ -180,6 +181,7 @@ async function load(){
 async function checkStaff(){
  if(!LIVE)return;
  state.staff=false;state.staffRole=null;
+ state.ownerPreview='owner';
  if(!state.session)return;
  const {data,error}=await db.from('staff_roles').select('role').eq('auth_user_id',state.session.user.id).maybeSingle();
  if(!error && data){state.staffRole=data.role;state.staff=['editor','owner','supermoderator','moderator'].includes(data.role);}
@@ -882,10 +884,12 @@ function adminPage(){if(LIVE&&!state.staff){
   return `<div class="paper"><h1>Modération</h1><p>Connecte-toi avec Discord, puis utilise un compte autorisé par Supabase.</p>${discordPanel(null)}<details class="alternate-login"><summary>Autre méthode : e-mail et mot de passe</summary>${emailLogin}</details></div>`;
  }
  if(!LIVE&&!state.staff)return `<div class="paper"><h1>Laboratoire de modération</h1><p>Cette démonstration sauvegarde tes essais <b>uniquement dans le navigateur</b> et n’a aucun effet sur le site original.</p><button class="btn" data-action="demoStaff">Activer la simulation modérateur</button></div>`;
- if(LIVE&&['nlw','moderator'].includes(state.staffRole)){
-   return `${templateNotice()}<div class="paper"><div class="admin-mode">Modération · ${state.staffRole==='nlw'?'NLW':'Top 150 + NLW'}</div><div class="row-between"><h1>Validation des complétions</h1><button class="btn subtle small" data-action="logout">Déconnexion</button></div><p class="muted">Les validations sont vérifiées côté serveur. Les nouveaux niveaux, rangs et contenus communautaires sont réservés à la supermodération.</p></div>${PROD.scopedReview(state)}`;
+ if(LIVE&&(['nlw','moderator'].includes(state.staffRole)||ownerPreviewActive()&&['nlw','moderator'].includes(state.ownerPreview))){
+   const role=ownerPreviewActive()?state.ownerPreview:state.staffRole;
+   const view=ownerPreviewActive()?{...state,staffRole:role,scopedQueue:state.ownerPreviewQueue.filter(x=>role==='moderator'||Number(x.position)>150),scopedQueueError:state.ownerPreviewError}:state;
+   return `${templateNotice()}<div class="paper"><div class="admin-mode">Modération · ${role==='nlw'?'NLW':'Top 150 + NLW'}</div><div class="row-between"><h1>Validation des complétions</h1><button class="btn subtle small" data-action="logout">Déconnexion</button></div><p class="muted">Les validations sont vérifiées côté serveur. Les nouveaux niveaux, rangs et contenus communautaires sont réservés à la supermodération.</p></div>${PROD.scopedReview(view)}`;
  }
- const players=playerOptions();return `${templateNotice()}<div class="paper"><div class="admin-mode">Modération connectée · changements sur Supabase</div><div class="row-between"><h1>Modération</h1><div><button class="btn subtle small" data-action="logout">Déconnexion</button></div></div><p class="muted">Le contrôle d’accès réel est assuré par les policies Supabase. Le journal des changements est automatique.</p></div>${LIVE?PROD.moderation(state):''}<div class="admin-workspace" data-role="${state.demoRole}"><div class="admin-nav" role="tablist" aria-label="Sections de modération">${[['overview','Vue d’ensemble'],['levels','Niveaux'],['news','Actualités'],['profiles','Profils'],['awards','Badges & Palmarès'],['achievements','Achievements FR'],['clans','Clans'],['safety','Sanctions'],['nlw','Modos NLW'],['audit','Journal']].map(([id,label])=>`<button type="button" role="tab" aria-selected="${state.adminTab===id}" class="${state.adminTab===id?'active':''}" data-admin-tab="${id}">${label}</button>`).join('')}</div><div class="admin-content"><div class="admin-intro ${state.adminTab==='overview'?'':'is-hidden'}"><h2>Tableau de bord</h2>${statsOverview()}<p class="muted">Choisis une rubrique pour ajouter ou modifier les informations de la Demonlist. Les changements réels demandent les permissions Supabase.</p></div><div class="moderation-sections" data-active-admin="${state.adminTab}">
+ const players=playerOptions();return `${templateNotice()}<div class="paper"><div class="admin-mode">Modération connectée · changements sur Supabase</div><div class="row-between"><h1>Modération</h1><div><button class="btn subtle small" data-action="logout">Déconnexion</button></div></div><p class="muted">Le contrôle d’accès réel est assuré par les policies Supabase. Le journal des changements est automatique.</p></div>${LIVE?PROD.moderation(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state):''}<div class="admin-workspace" data-role="${state.demoRole}"><div class="admin-nav" role="tablist" aria-label="Sections de modération">${[['overview','Vue d’ensemble'],['levels','Niveaux'],['news','Actualités'],['profiles','Profils'],['awards','Badges & Palmarès'],['achievements','Achievements FR'],['clans','Clans'],['safety','Sanctions'],['nlw','Modos NLW'],['audit','Journal']].map(([id,label])=>`<button type="button" role="tab" aria-selected="${state.adminTab===id}" class="${state.adminTab===id?'active':''}" data-admin-tab="${id}">${label}</button>`).join('')}</div><div class="admin-content"><div class="admin-intro ${state.adminTab==='overview'?'':'is-hidden'}"><h2>Tableau de bord</h2>${statsOverview()}<p class="muted">Choisis une rubrique pour ajouter ou modifier les informations de la Demonlist. Les changements réels demandent les permissions Supabase.</p></div><div class="moderation-sections" data-active-admin="${state.adminTab}">
  ${levelCreditsEditor()}${historicNlwPublisher()}
  <div class="admin-card" data-admin-section="levels"><h3>Ajouter directement un niveau</h3><p class="small muted">Pour accepter une soumission, utilise le panneau ci-dessous. La liste est maintenant entièrement gérée par les modérateurs. Indique un rang : les niveaux Rated suivants seront décalés si nécessaire. Les UNRATED sont gérés séparément.</p><form data-form="demon"><label class="field">Réutiliser une fiche importée et masquée (facultatif)<select name="existing_demon_id"><option value="">Nouveau niveau</option>${(state.unpublishedAredlDemons||[]).filter(d=>!(state.data.dlfr_level_archive_log||[]).some(a=>!a.restored_at&&String(a.demon_id)===String(d.id))).slice().sort((a,b)=>{const ra=Number(a.aredl_rank),rb=Number(b.aredl_rank);const va=Number.isFinite(ra)&&ra>0?ra:Number.POSITIVE_INFINITY;const vb=Number.isFinite(rb)&&rb>0?rb:Number.POSITIVE_INFINITY;return va-vb||String(a.name||"").localeCompare(String(b.name||""),"fr");}).map(d=>`<option value="${esc(d.id)}">${Number(d.aredl_rank)>0?`AREDL #${esc(d.aredl_rank)}`:"AREDL ?"} — ${esc(d.name)} (GD ${esc(d.level_id||"?")})</option>`).join("")}</select></label><p class="small muted" data-import-prefill-note>Sélectionne une fiche pour charger ses informations. Les crédits manquants restent à vérifier.</p><label class="field">Position dans la liste globale (151 = NLW #1)<input name="position" type="number" min="1" required></label><label class="field">Nom<input name="name" required maxlength="120"></label><label class="field">ID Geometry Dash<input name="level_id" inputmode="numeric" maxlength="30"></label><label class="field">Publié par / éditeur (texte libre)<input name="publisher" placeholder="Nom de l’éditeur" required maxlength="200"></label><label class="field">Vérifié par — joueur DLFR<select name="verifier_player_key"><option value="">Conserver / saisir le crédit ci-dessous</option>${(state.data.players||[]).slice().sort((a,b)=>String(a.display_name||a.username).localeCompare(String(b.display_name||b.username))).map(p=>`<option value="${esc(p.player_key)}">${esc(p.display_name||p.username)}</option>`).join('')}<option value="__new__">＋ Créer un nouveau joueur</option></select></label><label class="field">Nouveau joueur vérificateur (uniquement si « Créer »)<input name="new_verifier_name" maxlength="80" placeholder="Pseudo du nouveau joueur"></label><label class="field">Crédit vérificateur (si aucun joueur choisi)<input name="verifier" placeholder="À renseigner"></label><label class="field">Créateur<input name="creator"></label><label class="field">Mode de complétion<select name="completion_mode"><option value="">Conserver le mode existant / Standard</option><option value="solo">Solo</option><option value="two_player">2-Player</option></select></label><label class="field">Vidéo de vérification (facultatif)<input name="verifier_video_url" type="url" placeholder="https://youtu.be/…"></label><label class="field">Miniature YouTube ou image (facultatif)<input name="thumbnail_url" type="url" placeholder="https://i.ytimg.com/vi/…/hqdefault.jpg"></label><label class="field">Progression minimum (%)<input name="requirement" type="number" min="1" max="100" value="100" required></label><label class="field"><input name="legacy" type="checkbox" style="width:auto"> A déjà appartenu au Top 150 (Legacy)</label><label class="field">Date de sortie de liste (si connue)<input name="legacy_since" type="date"></label><label class="field"><input type="checkbox" name="unrated"> Niveau UNRATED (position estimée en mode alternatif)</label><button class="btn">Ajouter le niveau</button><p class="small muted">Après le #150, le niveau rejoint la NLW avec ses points NLW séparés des points Main/Extended.</p></form></div>
  <div class="admin-card" data-admin-section="levels"><h3>Retirer ou restaurer un niveau</h3>
@@ -894,6 +898,7 @@ function adminPage(){if(LIVE&&!state.staff){
 <label class="field">Écris exactement le nom du niveau<input name="confirm_name" required autocomplete="off" placeholder="Confirmation obligatoire"></label>
 <label class="field">Motif (facultatif)<input name="reason" maxlength="350" placeholder="Doublon, classement corrigé…"></label>
 <button class="btn danger" type="submit">Retirer ce niveau de la liste</button></form>
+${state.staffRole==='owner'&&!ownerPreviewActive()?`<div class="dlfr-hidden-cleanup"><h4>Supprimer définitivement une fiche masquée</h4><p class="small muted">Uniquement pour le propriétaire. Les records, vitrines et autres références non techniques bloquent la suppression ; aucune autre position n'est modifiée.</p><form data-form="deleteHiddenLevel"><label class="field">Rechercher un niveau masqué<input id="hiddenDeleteSearch" type="search" placeholder="Nom, ID, AREDL…"></label><label class="field">Fiche à supprimer<select name="demon_id" id="hiddenDeleteSelect" required><option value="">Choisir une fiche masquée</option>${(state.unpublishedAredlDemons||[]).slice().sort((a,b)=>String(a.name).localeCompare(String(b.name),'fr')).map(d=>`<option value="${esc(d.id)}">${esc(d.name)} · #${esc(d.position)} · ${esc(d.data_source||'import')}</option>`).join('')}</select></label><div class="form-actions"><button class="btn subtle" type="submit" name="delete_action" value="preview">Examiner les dépendances</button></div><div id="hiddenDeletePreview" class="notice" hidden></div><label class="field">Recopier le nom exact<input name="confirm_name" autocomplete="off" placeholder="Nom du niveau"></label><label class="field">Confirmation : SUPPRIMER<input name="confirmation" autocomplete="off" placeholder="SUPPRIMER"></label><button class="btn danger" type="submit" name="delete_action" value="delete" disabled>Supprimer définitivement</button></form></div>`:''}
 <h4>Restaurer un niveau retiré</h4>
 ${(()=>{const archives=(state.data.dlfr_level_archive_log||[]).filter(x=>!x.restored_at);const hidden=new Map((state.unpublishedAredlDemons||[]).map(d=>[String(d.id),d]));const available=archives.filter(a=>hidden.has(String(a.demon_id)));return available.length?`<form data-form="prodRestoreLevel"><label class="field">Niveau à restaurer<select name="demon_id" required>${available.map(a=>`<option value="${esc(a.demon_id)}">${esc(hidden.get(String(a.demon_id)).name)} · ancien rang #${esc(a.original_unrated?a.original_position-100000000:a.original_position)}</option>`).join('')}</select></label><label class="field">Nouveau rang (facultatif, sinon ancien rang)<input type="number" name="position" min="1" max="99999998" placeholder="Ancienne position par défaut"></label><button class="btn subtle" type="submit">Restaurer ce niveau</button></form>`:'<p class="small muted">Aucun niveau archivé à restaurer.</p>';})()}
 </div>
@@ -1102,7 +1107,21 @@ function showPageError(error){
 function render(){if(!state.data)return;try{
  if(!BADGES?.init || !UNRATED_STATS?.calculate || !V2?.decorate || !V2?.project || !UNVERIFIED?.classify || !CLANS?.apply || !CLAN_PLUS?.stats || !SUBMISSIONS?.approve)throw Error('Fichier JavaScript V2 manquant ou version incohérente : réinstalle les scripts du pack V2.0.3.');
  if(!LIVE){const first=state.data.badge_baseline_scanned!==true;const changed=BADGES.captureAutomatic(state.data,ranked(),new Date().toISOString().slice(0,10),first);if(first){state.data.badge_baseline_scanned=true;}if(changed||first)saveDemo();}
- const page=nav(),params=new URLSearchParams(location.search);if(page==='stats'&&params.has('player')){history.replaceState({},'',url('player',{player:params.get('player')}));return render();}if(page==='player')state.selectedPlayer=key(params.get('player'));if(page==='list'){const tab=new URLSearchParams(location.search).get('tab');state.list=tab==='archive'?'nlw':(tab||'main');}const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='player'?playerPage():page==='players'?playersPage():page==='my-profile'?selfProfilePage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():page==='regions'?regionsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();if(page==='admin'&&state.adminTab==='levels'){arrangeLevelsPanel();syncLevelStudio();}document.title=({list:'Demonlist',stats:'Statistiques',player:'Profil joueur',players:'Profils des joueurs',news:'Actualités',activity:'Vie communautaire',regions:'Carte des régions',hall:'Palmarès & exploits',honors:'Palmarès & exploits',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Palmarès & exploits',clans:'Clans',history:'Historique','my-profile':'Mon profil','submit-record':'Soumettre un record',demon:'Niveau',archive:'Archives historiques'})[page]+' · DemonlistFrancophone';
+ const page=nav(),params=new URLSearchParams(location.search);if(page==='stats'&&params.has('player')){history.replaceState({},'',url('player',{player:params.get('player')}));return render();}if(page==='player')state.selectedPlayer=key(params.get('player'));if(page==='list'){const tab=new URLSearchParams(location.search).get('tab');state.list=tab==='archive'?'nlw':(tab||'main');}const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='player'?playerPage():page==='players'?playersPage():page==='my-profile'?selfProfilePage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():page==='regions'?regionsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;
+ if(page==='admin'&&state.staffRole==='owner'){
+   const switcher=document.createElement('section');switcher.className='paper owner-role-switcher';
+   switcher.innerHTML='<h2>Aperçu des rôles de modération</h2><p class="small muted">Vue de l’interface seulement : ton compte reste propriétaire. Aucun enregistrement n’est autorisé en aperçu.</p><div class="owner-role-actions">'+
+   [['owner','Propriétaire'],['nlw','Modo NLW'],['moderator','Modo'],['supermoderator','Supermodo']].map(([role,label])=>`<button type="button" class="btn ${state.ownerPreview===role?'':'subtle'}" data-owner-preview-role="${role}" aria-pressed="${state.ownerPreview===role}">${label}</button>`).join('')+'</div>'+
+   (ownerPreviewActive()?'<div class="notice warning"><b>APERÇU — LECTURE SEULE</b> · Aucune permission ni rôle réel n’a été modifié.</div>':'');
+   el.prepend(switcher);
+   if(ownerPreviewActive()){
+     el.querySelectorAll('form input,form select,form textarea,form button').forEach(x=>{x.disabled=true;});
+     el.querySelectorAll('button').forEach(x=>{
+       if(!x.hasAttribute('data-owner-preview-role')&&!x.hasAttribute('data-admin-tab')&&!x.hasAttribute('data-level-group')&&!x.hasAttribute('data-identity-tab'))x.disabled=true;
+     });
+   }
+ }
+ if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();if(page==='admin'&&state.adminTab==='levels'){arrangeLevelsPanel();syncLevelStudio();}document.title=({list:'Demonlist',stats:'Statistiques',player:'Profil joueur',players:'Profils des joueurs',news:'Actualités',activity:'Vie communautaire',regions:'Carte des régions',hall:'Palmarès & exploits',honors:'Palmarès & exploits',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Palmarès & exploits',clans:'Clans',history:'Historique','my-profile':'Mon profil','submit-record':'Soumettre un record',demon:'Niveau',archive:'Archives historiques'})[page]+' · DemonlistFrancophone';
  }catch(error){showPageError(error);}
 }
 function auditV2(action,target){state.data.community_audit_log.push({action_key:action,target,created_at:new Date().toISOString()});saveDemo();}
@@ -1114,9 +1133,34 @@ async function save(table,item,{upsert=false,on=null}={}){
  const q=upsert?db.from(table).upsert(item,{onConflict:(on||['id']).join(',')}):db.from(table).insert(item);
  const {error}=await q;if(error)throw Error(error.message);
 }
-async function handleForm(form,submitter=null){if(state.busy)return;state.busy=true;const submit=form.querySelector('[type="submit"],button:not([type])');if(submit)submit.disabled=true;
+async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLSearchParams(location.search).get('page')==='admin')throw Error('Aperçu du rôle en lecture seule.');if(state.busy)return;state.busy=true;const submit=form.querySelector('[type="submit"],button:not([type])');if(submit)submit.disabled=true;
  try{
  const type=form.dataset.form, f=Object.fromEntries(new FormData(form).entries());
+ if(type==='deleteHiddenLevel'){
+  if(!LIVE||state.staffRole!=='owner')throw Error('Seul le propriétaire peut supprimer une fiche masquée.');
+  const id=Number(f.demon_id),action=submitter?.value;
+  if(!Number.isSafeInteger(id)||id<=0)throw Error('Choisis un niveau masqué.');
+  if(action==='preview'){
+    const {data,error}=await db.rpc('dlfr_preview_hidden_demon_delete',{p_demon_id:id});
+    if(error)throw Error(error.message);
+    const target=document.getElementById('hiddenDeletePreview');
+    if(target){target.hidden=false;target.textContent=`${data.name} · #${data.position}\n`+
+      (data.references||[]).map(r=>`${r.table}: ${r.count} référence(s)${r.technique?' (historique technique)':' — bloque la suppression'}`).join('\n')+
+      (data.can_delete?'\nSuppression autorisée après confirmation.':'\nSuppression refusée : des données liées doivent être conservées.');
+      target.style.whiteSpace='pre-wrap';}
+    form.dataset.deletePreviewId=data.can_delete?String(id):'';
+    const del=form.querySelector('[name="delete_action"][value="delete"]');if(del)del.disabled=!data.can_delete;
+    toast('Aperçu des dépendances chargé.');return;
+  }
+  if(action!=='delete'||form.dataset.deletePreviewId!==String(id))throw Error('Examine d’abord cette fiche avant de confirmer.');
+  if(f.confirmation!=='SUPPRIMER')throw Error('Écris exactement SUPPRIMER.');
+  const target=(state.unpublishedAredlDemons||[]).find(d=>Number(d.id)===id);
+  if(!target||f.confirm_name!==target.name)throw Error('Recopie exactement le nom du niveau.');
+  if(!confirm(`Supprimer définitivement ${target.name} ? Cette opération ne pourra pas être annulée.`))return;
+  const {error}=await db.rpc('dlfr_delete_hidden_demon',{p_demon_id:id,p_confirm_name:f.confirm_name,p_confirmation:f.confirmation});
+  if(error)throw Error(error.message);
+  await refreshLiveData();toast('Niveau masqué supprimé définitivement.');render();return;
+ }
  if(type==='linkVerifier'){
   if(!LIVE||!state.staff||['nlw','moderator'].includes(state.staffRole))throw Error('Supermodérateur requis.');
   if(f.confirmation!=='RATTACHER')throw Error('Écris RATTACHER pour confirmer.');
@@ -1358,6 +1402,13 @@ function bootEvents(){
    const current=document.querySelector('.nav-menu[open]');
    if(current){closeNavMenus();current.querySelector('summary')?.focus();}
  });
+ document.addEventListener('click',ev=>{
+   if(!ownerPreviewActive()||new URLSearchParams(location.search).get('page')!=='admin')return;
+   const button=ev.target.closest('button');
+   if(!button)return;
+   if(button.matches('[data-owner-preview-role],[data-admin-tab],[data-level-group],[data-identity-tab]'))return;
+   ev.preventDefault();ev.stopImmediatePropagation();toast('Aperçu en lecture seule.');
+ },true);
  document.addEventListener('click',async(ev)=>{const a=ev.target.closest('a[data-nav]');if(a){ev.preventDefault();const link=new URL(a.href);history.pushState({},'',link.search);state.keyword='';render();window.scrollTo(0,0);return;}
  const cinemaPlay=ev.target.closest('[data-dlfr23-play]');
  if(cinemaPlay){
@@ -1392,6 +1443,19 @@ function bootEvents(){
  const at=ev.target.closest('[data-activity-tab]');if(at){state.activityTab=at.dataset.activityTab==='all'?'all':'following';render();return;}
  const nf=ev.target.closest('[data-news-filter]');if(nf){state.newsFilter=nf.dataset.newsFilter;render();return;}
  const thumb=ev.target.closest('[data-studio-thumbnail]');if(thumb){const form=thumb.closest('form');const v=studioYoutubeThumbnail(form.elements.video_url.value)||studioYoutubeThumbnail(form.elements.verifier_video_url.value);if(v){form.elements.thumbnail_url.value=v;updateStudioPreview(form);}else toast('Ajoute d’abord une vidéo YouTube valide.');return;}
+ const roleChoice=ev.target.closest('[data-owner-preview-role]');
+ if(roleChoice){
+   if(state.staffRole!=='owner')return;
+   const role=roleChoice.dataset.ownerPreviewRole;
+   if(!['owner','nlw','moderator','supermoderator'].includes(role))return;
+   state.ownerPreview=role;
+   state.ownerPreviewQueue=[];state.ownerPreviewError='';
+   if(['nlw','moderator'].includes(role)){
+     try{const {data,error}=await db.rpc('dlfr_pending_review_queue');if(error)throw error;state.ownerPreviewQueue=data||[];}
+     catch(error){state.ownerPreviewError=error.message||String(error);}
+   }
+   state.adminTab='overview';render();return;
+ }
  const levelGroupButton=ev.target.closest('[data-level-group]');if(levelGroupButton){activeLevelPanel=levelGroupButton.dataset.levelGroup;arrangeLevelsPanel();return;}
  const it=ev.target.closest('[data-identity-tab]');if(it){document.querySelectorAll('[data-identity-section]').forEach(e=>e.hidden=e.dataset.identitySection!==it.dataset.identityTab);return;}
  const loadV=ev.target.closest('[data-load-verifiers]');if(loadV){try{loadV.disabled=true;const {data,error}=await db.rpc('dlfr_unlinked_verifiers');if(error)throw Error(error.message);const names=Array.isArray(data)?data:[];window.__dlfrVerifierUnlinked=names;const sel=document.querySelector('[data-form="linkVerifier"] [name="verifier_name"]');if(sel){sel.innerHTML='<option value="">Sélectionner…</option>'+names.map((n,i)=>'<option value="'+i+'">'+esc(n.verifier_name)+' ('+n.count+' niveaux)</option>').join('');}const prev=document.getElementById('verifierLinkPreview');if(prev)prev.textContent=names.length+' crédits non liés. Sélectionne une entrée pour voir les niveaux.';}catch(e){toast(e.message||String(e));}finally{loadV.disabled=false;}return;}
@@ -1425,6 +1489,11 @@ function bootEvents(){
  if(act.dataset.action==='logout'&&LIVE){await db.auth.signOut();state.session=null;state.staff=false;render();}
  });
  document.addEventListener('input',ev=>{
+ if(ev.target.id==='hiddenDeleteSearch'){
+   const select=document.getElementById('hiddenDeleteSelect'),query=key(ev.target.value);
+   if(select)for(const opt of select.options)opt.hidden=!!opt.value&&!key(opt.textContent).includes(query);
+   return;
+ }
  if(ev.target.id==='levelStudioSearch'){const select=document.getElementById('levelStudioSelect');if(select){const q=key(ev.target.value);for(const opt of select.options)opt.hidden=!key(opt.textContent+' '+opt.dataset.search).includes(q);const first=[...select.options].find(x=>!x.hidden);if(first&&select.selectedOptions[0]?.hidden){select.value=first.value;syncLevelStudio();}}}
  if(ev.target.closest('[data-form="levelStudio"]')){updateStudioPreview(ev.target.closest('form'));updateStudioMovementPreview(ev.target.closest('form'));}
  if(ev.target.id==='clanSearch'){state.clanSearch=ev.target.value;document.querySelectorAll('[data-clan-searchable]').forEach(r=>r.hidden=!r.dataset.clanSearchable.includes(key(state.clanSearch)));}
@@ -1455,6 +1524,7 @@ function bootEvents(){
  if(ev.target.id==='compareB'){state.comparePlayer=ev.target.value;render();}
  if(ev.target.id==='profileEditorPlayer')fillProfileEditor();
  if(ev.target.id==='levelStudioSelect')syncLevelStudio();
+ if(ev.target.id==='hiddenDeleteSelect'){const form=ev.target.closest('form');if(form){form.dataset.deletePreviewId='';const del=form.querySelector('[name="delete_action"][value="delete"]');if(del)del.disabled=true;const preview=document.getElementById('hiddenDeletePreview');if(preview)preview.hidden=true;}}
  if(ev.target.matches('[data-form="linkVerifier"] select[name="verifier_name"]')){const item=window.__dlfrVerifierUnlinked?.[Number(ev.target.value)];const preview=document.getElementById('verifierLinkPreview');if(preview)preview.textContent=item?`${item.count} niveau(x) non liés : ${(item.levels||[]).map(n=>n.name+' (#'+n.id+')').join(', ')}`:'Sélectionne un vérificateur.';}
  if(ev.target.matches('[data-form="demon"] select[name="existing_demon_id"]'))fillImportedDemonForm(ev.target);
  if(ev.target.id==='historicNlwSelect'){const opt=ev.target.selectedOptions[0];const pos=document.getElementById('historicNlwPosition');if(opt&&pos)pos.value=opt.dataset.oldPosition||'151';}
@@ -1464,6 +1534,7 @@ function bootEvents(){
  if(ev.target.id==='importDemo')importDemo(ev.target.files?.[0]);
  if(ev.target.closest('[data-form="news"]'))updateNewsPreview(ev.target.closest('form'));
 });
+ document.addEventListener('submit',ev=>{if(ownerPreviewActive()&&new URLSearchParams(location.search).get('page')==='admin'){ev.preventDefault();ev.stopImmediatePropagation();toast('Aperçu en lecture seule.');}},true);
  document.addEventListener('submit',ev=>{if(ev.target.matches('[data-form="clanCreate"], [data-form="clanInvite"], [data-form="clanRequest"], [data-form="clanEdit"]')){ev.preventDefault();handleClanForm(ev.target);return;}if(ev.target.matches('[data-form]')){ev.preventDefault();handleForm(ev.target,ev.submitter||null);}});
  document.querySelectorAll('.nav-links a,.brand').forEach(a=>a.addEventListener('click',ev=>{ev.preventDefault();go(a.dataset.link||'list');}));
  $('themeSelect').addEventListener('change',e=>setTheme(e.target.value));

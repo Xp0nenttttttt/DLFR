@@ -819,3 +819,14 @@ html.unrated-mode .level-badge.unrated-badge{background:#54206e;color:#fff}
 .dlfr251-preview-empty h3{margin:0 0 7px}
 @media(max-width:760px){.dlfr251-stats-layout{grid-template-columns:1fr}.dlfr251-preview-column{position:static}.dlfr251-stats-layout .rank-list{max-height:410px}}
 @media(prefers-reduced-motion:reduce){.dlfr251-preview *{scroll-behavior:auto}}
+
+/* DLFR 2.6 — outil propriétaire de prévisualisation et nettoyage des imports. */
+.owner-role-switcher{border:1px solid var(--border,#cbd5e1);margin-bottom:1rem}
+.owner-role-switcher h2{margin:0 0 .35rem;font-size:1.15rem}
+.owner-role-actions{display:flex;flex-wrap:wrap;gap:.5rem;margin:.9rem 0 .2rem}
+.owner-role-switcher [aria-pressed="true"]{box-shadow:0 0 0 2px rgba(112,119,221,.25)}
+.dlfr-hidden-cleanup{border-top:1px solid var(--border,#cbd5e1);margin-top:1.5rem;padding-top:1.1rem}
+.dlfr-hidden-cleanup h4{margin:0 0 .5rem}
+.dlfr-hidden-cleanup #hiddenDeletePreview{overflow-wrap:anywhere;max-height:20rem;overflow:auto}
+.dlfr-hidden-cleanup button:disabled{opacity:.55;cursor:not-allowed}
+@media(max-width:620px){.owner-role-actions .btn{flex:1 1 40%;text-align:center}}

@@ -7,7 +7,7 @@ const safeUrl=v=>/^https:\/\//i.test(trim(v))?esc(trim(v)):'#';
 const slug=v=>trim(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,70);
 const row=(label,value)=>`<label class="field">${label}${value}</label>`;
 const button=(text)=>`<button class="btn" type="submit">${text}</button>`;
-const handles=t=>['prodScopedReview','prodPlayer','prodCompletion','prodClaim','prodClaimReview','selfCreatePlayer','submitRecord','prodReviewSubmission','prodBadgeManual','prodManageStaff','prodPublishAccepted','prodArchiveLevel','prodRestoreLevel'].includes(t);
+const handles=t=>['prodScopedReview','prodPlayer','prodClaim','prodClaimReview','selfCreatePlayer','submitRecord','prodReviewSubmission','prodBadgeManual','prodManageStaff','prodPublishAccepted','prodArchiveLevel','prodRestoreLevel'].includes(t);
 const errorOf=r=>{if(r.error)throw Error(r.error.message);return r.data;};
 function claimSection(s){
  if(!s.session)return '';
@@ -91,7 +91,7 @@ function moderation(s){if(!s.staff)return '';
 
  return `<section class="prod-panel"><h2>Gestion des joueurs et des records réels</h2><p class="small muted">Les profils créés ici n'ont pas encore de propriétaire Discord. Ils peuvent ensuite être revendiqués après validation.</p>
  <div class="prod-grid"><form data-form="prodPlayer"><h3>Créer une fiche joueur</h3>${row('Pseudo Geometry Dash','<input name="username" required minlength="2" maxlength="70">')}${row('Nom affiché (facultatif)','<input name="display_name" maxlength="80">')}${row('Pays','<select name="country_code"><option value="">Inconnu</option><option value="FR">France</option><option value="BE">Belgique</option><option value="CH">Suisse</option><option value="CA">Canada</option></select>')}${button('Créer la fiche')}</form>
- <form data-form="prodCompletion"><h3>Attribuer une victoire</h3>${row('Joueur','<select name="player_key" required>'+selectPlayers+'</select>')}${row('Niveau','<select name="demon_id" required>'+selectDemons+'</select>')}${row('Preuve vidéo (facultative)','<input name="video_url" type="url" maxlength="1000" placeholder="https://…">')}${row('Date réelle (facultative)','<input name="achieved_at" type="date">')}<p class="small muted">Une seule victoire par joueur et niveau. Si elle existe déjà, ses preuves ne sont pas écrasées.</p>${button('Attribuer 100 %')}</form></div>
+</div>
  <h3>Demandes de liaison Discord / Geometry Dash (${claims.length})</h3>${claims.length?claims.map(x=>`<article class="prod-review"><strong>${esc(x.player_key)}</strong><p class="small">Utilisateur Auth : ${esc(x.auth_user_id)}</p><p class="small">${esc(x.note)}</p><a href="${safeUrl(x.proof_url)}" target="_blank" rel="noopener noreferrer">Examiner la preuve ↗</a><form data-form="prodClaimReview"><input type="hidden" name="request_id" value="${esc(x.id)}"><button class="btn" name="approve" value="yes">Approuver</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form></article>`).join(''):'<p class="muted">Aucune demande.</p>'}
  <h3>Soumissions à modérer (${subs.length})</h3>${subs.length?subs.map(x=>{const existing=demons.find(d=>x.level_id&&String(d.level_id)===String(x.level_id))||demons.find(d=>d.name.toLowerCase()===x.level_name.toLowerCase());return `<article class="prod-review"><strong>${esc(x.level_name)}</strong> · ${esc(x.player)} (${esc(x.progress)} %)<p><a href="${safeUrl(x.video_url)}" target="_blank" rel="noopener noreferrer">Preuve ↗</a>${existing?' · Fiche existante #'+esc(existing.id):' · Nouveau niveau'}</p><form data-form="prodReviewSubmission"><input type="hidden" name="request_id" value="${esc(x.id)}">${existing?'':row('Statut du niveau','<select name="rating"><option value="rated">Rated</option><option value="unrated">UNRATED</option></select>')}${existing?'':row('Position choisie (Rated : décalage des suivants) / position estimée (UNRATED)','<input name="position" type="number" min="1" required>')}<button class="btn" name="approve" value="yes">Valider</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form></article>`;}).join(''):'<p class="muted">Aucune soumission.</p>'}
  <h3>Validations acceptées mais non visibles (${hiddenApproved.length})</h3>
@@ -153,10 +153,6 @@ async function send(db,type,f,submitter){
   const name=trim(f.username),key=slug(name);if(!key||name.length<2)throw Error('Pseudo invalide');
   if(!['','FR','BE','CH','CA'].includes(f.country_code))throw Error('Pays invalide');
   return errorOf(await db.from('players').insert({player_key:key,username:name,display_name:trim(f.display_name)||name,country_code:f.country_code||null,has_account:true}));
- }
- if(type==='prodCompletion'){
-  if(f.video_url && !/^https:\/\//i.test(f.video_url))throw Error('Preuve HTTPS requise');
-  return r('dlfr_assign_completion',{p_player_key:f.player_key,p_demon_id:Number(f.demon_id),p_video_url:f.video_url||null,p_achieved_at:f.achieved_at?f.achieved_at+'T12:00:00Z':null});
  }
  if(type==='selfCreatePlayer'){
   const username=trim(f.username);
