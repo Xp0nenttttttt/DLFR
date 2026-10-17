@@ -9,7 +9,7 @@
   'use strict';
   const validUsername=v=>/^[A-Za-z0-9_-]{3,24}$/.test(String(v||''));
   async function request(config, action, username, password){
-    if(!config?.supabaseUrl||!config?.supabasePublishableKey)throw Error('Configuration Supabase manquante.');
+    if(!config?.supabaseUrl||!config?.supabasePublishableKey)throw Error('La connexion n’est pas encore disponible. Réessaie plus tard.');
     if(!validUsername(username))throw Error('Pseudo : 3 à 24 caractères (lettres, chiffres, _ ou -).');
     if(!password||password.length<12)throw Error('Le mot de passe doit contenir au moins 12 caractères.');
     const url=config.supabaseUrl.replace(/\/$/,'')+'/functions/v1/username-auth';
@@ -17,7 +17,7 @@
     try{response=await fetch(url,{
       method:'POST',headers:{'content-type':'application/json','apikey':config.supabasePublishableKey},
       body:JSON.stringify({action,username,password})
-    });}catch{throw Error('Service d’inscription indisponible. Vérifie la fonction Edge Supabase.');}
+    });}catch{throw Error('Le service de connexion est momentanément indisponible. Réessaie plus tard.');}
     const payload=await response.json().catch(()=>({}));
     if(!response.ok)throw Error(payload.error||'Authentification impossible.');
     if(!payload.session?.access_token||!payload.session?.refresh_token)throw Error('Réponse de connexion incomplète.');
