@@ -961,3 +961,11 @@ html.unrated-mode .level-badge.unrated-badge{background:#54206e;color:#fff}
 @media(max-width:680px){.dlfr-nlw-podium{gap:6px}.dlfr-nlw-podium-card{padding:14px 5px;gap:5px}.dlfr-nlw-avatar{width:48px;height:48px;font-size:18px}.dlfr-nlw-podium-card strong{font-size:11px}.dlfr-nlw-points{font-size:15px}.dlfr-nlw-rank-row{padding:10px 8px;gap:8px}.dlfr-nlw-row-score{min-width:86px}.dlfr-nlw-row-arrow{display:none}.dlfr-team-forms{grid-template-columns:1fr}.dlfr-nlw-board-head h2{font-size:20px}}
 /* Afficher la section Équipe, cachée par la règle générale de modération. */
 .admin-content .moderation-sections[data-active-admin="team"] [data-admin-section="team"]{display:block;animation:panel-in .2s ease}
+
+/* DLFR 2.12 — complément discret, sans modifier le thème du site */
+.dlfr212-inbox { border-inline-start: 3px solid var(--accent, #715ed0); }
+.dlfr212-inbox .row-between { gap: .75rem; flex-wrap: wrap; }
+.dlfr212-manual-badges { padding: 1rem; margin: .8rem 0 1.4rem; border: 1px solid var(--border, #dedbe5); border-radius: 12px; }
+.dlfr212-nlw-stats .rank-item .rank-score { font-variant-numeric: tabular-nums; }
+.dlfr212-nlw-stats .rank-list { max-height: 65vh; overflow-y: auto; }
+@media(max-width: 720px) { .dlfr212-nlw-stats .rank-list { max-height: none; } }
