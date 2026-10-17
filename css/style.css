@@ -830,3 +830,49 @@ html.unrated-mode .level-badge.unrated-badge{background:#54206e;color:#fff}
 .dlfr-hidden-cleanup #hiddenDeletePreview{overflow-wrap:anywhere;max-height:20rem;overflow:auto}
 .dlfr-hidden-cleanup button:disabled{opacity:.55;cursor:not-allowed}
 @media(max-width:620px){.owner-role-actions .btn{flex:1 1 40%;text-align:center}}
+
+/* DLFR 2.7 — Cadres de profils et Level Packs, respect du thème existant. */
+.dlfr27-frame{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;position:relative;padding:4px;border:2px solid transparent;border-radius:12px;background:transparent;vertical-align:middle}
+.dlfr27-frame .profile-avatar,.dlfr27-frame .dlfr251-preview-avatar,.dlfr27-frame .dlfr24-player-avatar{margin:0!important}
+.dlfr27-frame-beginner{border-color:#719eae;background:#b7c9d6}
+.dlfr27-frame-impressive{border-color:#51a3db;background:linear-gradient(140deg,#2973b3,#8ed6fa)}
+.dlfr27-frame-epic{border-color:#9d69df;background:linear-gradient(150deg,#6e4fc5,#d49bff)}
+.dlfr27-frame-legendary{border-color:#efa940;background:linear-gradient(135deg,#f9cf74,#a05a1b,#ffe29a)}
+.dlfr27-frame-mythic{border-color:#ec78b4;background:linear-gradient(125deg,#ea68ab,#685bd9,#ffb8ed)}
+.dlfr27-frame-ultra{border-color:#8beeff;background:linear-gradient(135deg,#59ecff,#b37aff,#f6b8ff);box-shadow:0 0 15px #8572ec77}
+.dlfr27-frame-pack{border-color:#42d8c1;background:linear-gradient(130deg,#2b8b9b,#77e5e6,#98acef);box-shadow:0 0 16px #36c0aa66}
+.dlfr27-frame-achievement{border-color:#aedff4;background:linear-gradient(150deg,#6b8bbb,#e1faff,#84b5da)}
+.dlfr27-frame-hall{border-color:#e4b351;background:linear-gradient(145deg,#e0ae4a,#fff3aa,#c38a4b);box-shadow:0 0 12px #d6aa6680}
+.dlfr27-frame-picker{padding:12px 16px;margin:12px 0;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.dlfr27-frame-picker h3{margin:0 0 5px}
+.dlfr27-frame-picker form{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+.dlfr27-frame-picker .field{flex:1 1 220px}
+.dlfr27-frame-picker button{margin-bottom:9px}
+.dlfr27-discord-link{white-space:nowrap;display:inline-flex;align-items:center;text-decoration:none;font-size:12px;font-weight:800;color:white;background:#5865f2;border-radius:7px;padding:9px 12px}
+.dlfr27-discord-link:hover{background:#4752c4}
+.dlfr27-earned-reward{display:inline-block;margin:5px;background:var(--panel);border:1px solid var(--line);padding:6px 9px;font-weight:700;border-radius:5px}
+.dlfr27-packs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:18px;margin:22px 0}
+.dlfr27-pack{border:1px solid var(--line);background:var(--card);border-radius:12px;overflow:hidden;box-shadow:0 4px 16px #00000010}
+.dlfr27-pack-banner{height:120px;position:relative;background:linear-gradient(110deg,#29396d,#7452bc,#a87cb7);display:grid;place-items:center;color:white;font-size:60px}
+.dlfr27-pack-banner img{position:absolute;inset:0;height:100%;width:100%;object-fit:cover;filter:brightness(.55)}
+.dlfr27-pack-banner span{position:relative;text-shadow:0 2px 12px #000}
+.dlfr27-pack-main{padding:15px}
+.dlfr27-pack-title{display:flex;flex-wrap:wrap;gap:5px;align-items:center;justify-content:space-between}
+.dlfr27-pack-title h2{font-size:19px;margin:0}
+.dlfr27-pack-title .tag{white-space:normal}
+.dlfr27-pack-progress{display:flex;align-items:center;gap:12px;margin:15px 0}
+.dlfr27-pack-track{height:8px;flex:1;background:var(--panel);border-radius:50px;overflow:hidden}
+.dlfr27-pack-track i{height:100%;display:block;background:linear-gradient(90deg,#348bbf,#9965df);transition:width .3s}
+.dlfr27-pack-levels{list-style:none;margin:12px 0;padding:0;display:grid;gap:5px}
+.dlfr27-pack-levels li{padding:7px 9px;border-radius:5px;background:var(--panel);display:flex;gap:10px;align-items:center}
+.dlfr27-pack-levels li.is-complete{border-left:3px solid #36b398}
+.dlfr27-pack-levels a{text-decoration:none;color:var(--ink);font-weight:650}
+.dlfr27-pack-earned{color:#258c7a;font-weight:800}
+.dlfr27-pack-level-picker{max-height:330px;overflow-y:auto;padding:6px;border:1px solid var(--line);display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:5px}
+.dlfr27-pack-level-picker label{background:var(--panel);padding:6px;border-radius:4px;display:flex;align-items:center;gap:9px;font-size:12px}
+.dlfr27-pack-level-picker label[hidden]{display:none}
+.dlfr27-pack-level-picker input{width:auto;flex-shrink:0}
+.dlfr27-pack-editor{grid-column:1/-1}
+.admin-content .moderation-sections[data-active-admin="packs"] [data-admin-section="packs"]{display:block;animation:panel-in .2s ease}
+@media(max-width:640px){.dlfr27-packs-grid{grid-template-columns:1fr}.dlfr27-pack-level-picker{grid-template-columns:1fr}.dlfr27-frame{padding:3px}}
+@media(prefers-reduced-motion:reduce){.dlfr27-pack-track i{transition:none}}

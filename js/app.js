@@ -31,6 +31,7 @@ function avatarOf(playerKey,profile){
 const v2Tables=['fr_achievements','clans','clan_members','nlw_staff','player_sanctions','aredl_levels','clan_invites','clan_requests','level_submissions'];
 const livePublicTables=['fr_achievements','clans','clan_members','aredl_levels','badge_awards'];
 const communityTables=['dlfr_profile_preferences','dlfr_profile_showcase','dlfr_profile_follows'];
+const packTables=['dlfr_level_packs','dlfr_level_pack_levels','dlfr_level_pack_claims'];
 const livePrivateTables=['profile_claim_requests','level_submissions','clan_invites','clan_requests','player_profile_owners'];
 const liveStaffTables=['player_sanctions','community_audit_log','dlfr_level_archive_log'];
 const tables = ['site_settings','players','demons','completions','news_items','profile_titles','player_profile_titles','player_profiles','hall_of_fame','player_stat_snapshots','demon_position_history'];
@@ -147,6 +148,7 @@ async function refreshLiveData(){
  // Fonctions communautaires optionnelles tant que la migration 35 n'est pas installée.
  state.communityReady=true;
  for(const t of communityTables){try{state.data[t]=await readAll(t);}catch(err){state.data[t]=[];state.communityReady=false;console.warn('DLFR 2.0 — migration 35 non disponible :',t,err.message);}}
+ state.packsReady=true;for(const t of packTables){try{state.data[t]=await readAll(t);}catch(err){state.data[t]=[];state.packsReady=false;console.warn('DLFR 2.7 — migration 40 non disponible :',t,err.message);}}
  for(const t of [...livePublicTables,...(state.session?livePrivateTables:[]),...(hasFullStaffPowers()?liveStaffTables:[])])state.data[t]=await readAll(t);
  state.scopedQueue=[];
  if(['nlw','moderator'].includes(state.staffRole)){
@@ -405,6 +407,7 @@ function selfProfilePage(){
  <details class="badge-catalog-section"><summary>🏅 Badges à découvrir — collection & raretés</summary><p class="small muted">Les badges non obtenus restent mystérieux : seules leur catégorie et leur rareté sont visibles. Les conditions ne sont jamais révélées.</p>${BADGES.catalog(state.data,actor,esc,date)}</details>
  <div class="self-mini-preview"><div class="self-mini-avatar">${avatarOf(actor,profile)?`<img src="${esc(avatarOf(actor,profile))}" alt="">`:esc(fullName(player)[0]||'?')}</div><div><b>${flag(player.country_code)} ${esc(fullName(player))}</b><p class="muted small">${esc(profile.bio||'Aucune biographie pour le moment.')}</p><a class="link" href="${url('player',{player:actor})}" data-nav>Voir ma fiche publique ↗</a></div></div>
  ${suspended?'<div class="notice warning">Ce profil est suspendu dans la simulation. Les modifications sont temporairement désactivées.</div>':''}
+ ${frameOptions(actor)}
  <form class="self-profile-form" data-form="selfProfile"><div class="self-form-grid"><label class="field self-field-wide">Biographie<textarea name="bio" maxlength="1200" rows="4">${value('bio')}</textarea></label>${!LIVE?`<label class="field">Source de l’avatar<select name="avatar_source"><option value="custom" ${(profile.avatar_source||'custom')==='custom'?'selected':''}>Avatar personnalisé</option><option value="discord" ${profile.avatar_source==='discord'?'selected':''} ${!(discordState().connected&&discordState().linked_player_key===actor)?'disabled':''}>Avatar Discord (liaison approuvée en démo)</option></select></label>`:''}${field('Avatar (URL ou chemin assets/)','avatar_url',500,'https://…')}${field('Bannière (URL ou chemin assets/)','banner_url',500,'https://…')}<label class="field">Année de début<input name="join_year" type="number" min="2013" max="2100" value="${value('join_year')}"></label>${field('Niveau favori','favorite_level',120)}${field('Objectif actuel','current_goal',180)}${field('Chaîne YouTube','youtube_url',500)}${field('Chaîne Twitch','twitch_url',500)}${field('Autre lien','social_url',500)}${field('Accomplissement à la une 1','highlight_1',150)}${field('Accomplissement à la une 2','highlight_2',150)}${field('Accomplissement à la une 3','highlight_3',150)}
  <label class="field">Pays <span class="country-select-row"><span id="selfCountryFlag">${flag(player.country_code)}</span><select name="country_code" id="selfCountry" required><option value="" ${!player.country_code?'selected':''} disabled>Choisir un pays</option>${GEO.countries.map(([code])=>`<option value="${code}" ${code===player.country_code?'selected':''}>${esc(GEO.countryName(code))} (${code})</option>`).join('')}</select></span></label><label class="field" id="selfRegionRow" ${!isFR?'hidden':''}>Région française <span class="country-select-row"><span id="selfRegionFlag">${isFR?GEO.regionImage(profile.region_code):''}</span><select name="region_code" id="selfRegion"><option value="">Non renseignée</option>${GEO.regions.map(r=>`<option value="${esc(r.code)}" ${r.code===profile.region_code?'selected':''}>${esc(r.name)}</option>`).join('')}</select></span></label></div><p class="small muted">Ton pays peut être modifié après la création du compte. Si tu quittes la France, ta région française sera effacée ; les classements géographiques seront actualisés.</p>
  ${communitySelfFields(actor)}
@@ -481,6 +484,7 @@ function communityPublicPanel(playerKey){
  <div class="dlfr20-community-top"><div><h3>✦ Espace communautaire</h3><p class="muted small">${followers.length} abonné(s) · ${following.length} abonnement(s)</p></div>${followButton}</div>
  ${title?`<div class="dlfr20-title">✧ ${esc(title.label)}</div>`:''}
  ${highlighted.length?`<div class="dlfr20-featured-badges">${highlighted.map(x=>`<div class="dlfr-badge dlfr20-favorite" data-rarity="${esc(x.def.rarity.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,''))}"><span class="dlfr-badge-icon">${esc(x.def.symbol)}</span><b>${esc(x.def.label)}</b></div>`).join('')}</div>`:''}
+ ${packEnabled()?(state.data.dlfr_level_pack_claims||[]).filter(c=>c.player_key===playerKey).map(c=>{const p=(state.data.dlfr_level_packs||[]).find(p=>Number(p.id)===Number(c.pack_id));return p?`<span class="dlfr27-earned-reward">✦ ${esc(p.reward_label)} · Level Pack</span>`:'';}).join(''):''}
  ${showcase.length?`<h3 class="dlfr20-gallery-title">Ma vitrine de niveaux</h3><div class="dlfr20-gallery">${showcase.map(({s,d})=>{const thumb=imageLink(d.thumbnail_url);const video=http(s.video_url);return `<article class="dlfr20-level-card"><a data-nav href="${url('demon',{id:d.id})}" class="dlfr20-card-link">${thumb?`<img loading="lazy" src="${esc(thumb)}" alt="Miniature du niveau ${esc(d.name)}">`:'<span class="dlfr20-no-thumb">✦</span>'}<strong>${esc(d.name)}</strong></a>${s.caption?`<p>${esc(s.caption)}</p>`:''}${video?`<a href="${esc(video)}" target="_blank" rel="noopener noreferrer" class="link">Voir ma vidéo ↗</a>`:''}</article>`;}).join('')}</div>`:''}
  ${state.ownKey===playerKey&&following.length?`<details class="dlfr20-follow-list"><summary>Mes abonnements (${following.length})</summary><div>${following.map(x=>`<a data-nav class="link" href="${url('player',{player:x.followed_key})}">${esc(getPlayer(x.followed_key)?.display_name||getPlayer(x.followed_key)?.username||x.followed_key)}</a>`).join(' · ')}</div></details>`:''}
  </section>`;
@@ -554,7 +558,7 @@ function statProfile(p){if(!p)return '<div class="stats-profile empty">Sélectio
  const socials=[['YouTube',profile.youtube_url],['Twitch',profile.twitch_url],['Lien personnel',profile.social_url]].filter(([_,v])=>http(v))
   .map(([n,v])=>`<a class="social-link" target="_blank" rel="noopener noreferrer" href="${esc(http(v))}">${n} ↗</a>`).join('');
  return `<div class="stats-profile dlfr20-profile" style="--dlfr20-accent:${esc(COMMUNITY.hex((state.data.dlfr_profile_preferences||[]).find(x=>x.player_key===p.player_key)?.accent_color))}"><div class="profile-hero">${banner?`<img class="profile-cover-img" src="${esc(banner)}" alt="" aria-hidden="true">`:''}
-    <div class="profile-hero-inner">${avatar?`<img class="profile-avatar" src="${esc(avatar)}" alt="Avatar de ${esc(p.display_name||p.username)}">`:`<div class="profile-avatar profile-avatar-fallback" aria-hidden="true">${esc((p.display_name||p.username||'?').slice(0,1).toUpperCase())}</div>`}
+    <div class="profile-hero-inner">${framedAvatar(p.player_key,avatar?`<img class="profile-avatar" src="${esc(avatar)}" alt="Avatar de ${esc(p.display_name||p.username)}">`:`<div class="profile-avatar profile-avatar-fallback" aria-hidden="true">${esc((p.display_name||p.username||'?').slice(0,1).toUpperCase())}</div>`)}
       <div class="profile-hero-copy"><span class="profile-pretitle">Profil joueur · ${p.has_account?'Compte':'Sans compte'}</span><strong>${flag(p.country_code)} ${esc(p.display_name||p.username)}</strong>${regionIdentity(p)}<span>${p.hardest?'Hardest : '+esc(hardestLabel(p)):'Aucun hardest connu'}</span></div>
     </div></div>
  ${isSuspended?'<p class="notice warning"><b>Profil suspendu en démonstration</b> — cette sanction n’affecte pas l’authentification réelle.</p>':''}<h2 class="player-title">${flag(p.country_code)} ${esc(p.display_name||p.username)} ${!p.has_account?'<span class="tag">Sans compte</span>':''}</h2><div class="profile-region-line">${regionIdentity(p)}</div><div style="text-align:center;margin-bottom:8px">${p.clan?` <a class="tag clan-profile-link" href="${url('clans')}" data-nav>Clan : ${esc(state.data.clans.find(c=>Number(c.id)===Number(p.clan.clan_id))?.tag||'—')}</a>`:''}</div>
@@ -621,6 +625,92 @@ function regionsPage(){
 function lineGraph(data){if(data.length<2)return '<p class="empty small">Aucun historique disponible pour le moment.</p>';const max=Math.max(...data.map(x=>+x.points),1),min=Math.min(...data.map(x=>+x.points)),den=Math.max(1,max-min);const coords=data.map((x,i)=>[24+i*480/Math.max(1,data.length-1),135-(+x.points-min)/den*110]);return `<div class="chart-box"><svg viewBox="0 0 540 160" role="img" aria-label="Évolution des points"><path d="M20 135H515" stroke="#bbc7d3"/><path d="${coords.map(([x,y],i)=>`${i?'L':'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join(' ')}" fill="none" stroke="#167fbe" stroke-width="3"/>${coords.map(([x,y])=>`<circle cx="${x}" cy="${y}" r="3.2" fill="#167fbe"/>`).join('')}<text x="20" y="14" font-size="11" fill="currentColor">${fmt(max)} pts</text><text x="22" y="155" font-size="10" fill="currentColor">${esc(data[0].snapshot_day)}</text><text x="420" y="155" font-size="10" fill="currentColor">${esc(data.at(-1).snapshot_day)}</text></svg></div>`;}
 function barGraph(monthly){const keys=Object.keys(monthly).sort().slice(-12);if(!keys.length)return '<p class="empty small">Pas de dates de records renseignées.</p>';const mx=Math.max(...keys.map(k=>monthly[k]));return `<div class="chart-box"><div style="display:flex;align-items:flex-end;gap:6px;min-height:115px">${keys.map(k=>`<div style="flex:1;text-align:center"><div style="background:#1783c1;height:${Math.max(4,85*monthly[k]/mx)}px" title="${esc(k)} : ${monthly[k]} complétion(s)"></div><span style="font-size:9px">${esc(k.slice(5))}</span></div>`).join('')}</div></div>`;}
 // DLFR 2.4 — fiches publiques indépendantes des classements.
+// DLFR 2.7 — Level Packs & cadres basés sur des récompenses obtenues.
+const packEnabled=()=>!!(window.DLFR_LEVEL_PACKS&&state.packsReady&&state.communityReady);
+function frameOptions(playerKey){
+ if(!packEnabled())return '';
+ const choices=window.DLFR_LEVEL_PACKS.frames(state.data,playerKey,BADGES);
+ const active=window.DLFR_LEVEL_PACKS.frame(state.data,playerKey,BADGES).id;
+ return `<section class="dlfr27-frame-picker"><h3>✦ Cadre de profil</h3><p class="small muted">Les cadres sont déblocables grâce aux badges obtenus et aux Level Packs réussis. Ils ne modifient pas tes statistiques.</p><form data-form="chooseFrame"><label class="field">Mon cadre<select name="frame_key">${choices.map(c=>`<option value="${esc(c.id)}" ${active===c.id?'selected':''}>${esc(c.label)}</option>`).join('')}</select></label><button type="submit" class="btn small">Utiliser ce cadre</button></form></section>`;
+}
+function framedAvatar(playerKey,html){
+ const selected=packEnabled()?window.DLFR_LEVEL_PACKS.frame(state.data,playerKey,BADGES):null;
+ const css=['beginner','impressive','epic','legendary','mythic','ultra','pack','achievement','hall'].includes(selected?.css)?' dlfr27-frame-'+selected.css:'';
+ return `<div class="dlfr27-frame${css}" title="${esc(selected?.id==='none'?'Aucun cadre sélectionné':'Cadre : '+selected?.label)}">${html}</div>`;
+}
+function packPage(){
+ if(!state.packsReady)return `${templateNotice()}<section class="paper"><h1>Level Packs</h1><div class="notice warning">Cette fonctionnalité requiert la migration Supabase 40.</div></section>`;
+ const packs=(state.data.dlfr_level_packs||[]).filter(p=>p.is_published||state.staff).sort((a,b)=>Number(b.is_published)-Number(a.is_published)||Number(a.id)-Number(b.id));
+ const levelById=new Map((state.data.demons||[]).map(d=>[Number(d.id),d]));
+ const me=state.ownKey||'';
+ const cards=packs.map(p=>{
+   const pr=window.DLFR_LEVEL_PACKS.progress(state.data,p,me);
+   const artwork=imageLink(p.banner_url);
+   const rewardType=p.reward_kind==='title'?'Tag / titre':'Badge + cadre';
+   const steps=pr.entries.map(item=>{
+      const d=levelById.get(Number(item.demon_id));
+      const done=(state.data.completions||[]).some(c=>me&&key(c.player)===key(me)&&Number(c.demon_id)===Number(item.demon_id)&&Number(c.progress)===100);
+      return `<li class="${done?'is-complete':''}"><span>${done?'✓':'○'}</span> ${d?`<a data-nav href="${url('demon',{id:d.id})}">${esc(d.name)}</a>`:`<span class="muted">Niveau indisponible (#${esc(item.demon_id)})</span>`}</li>`;
+   }).join('');
+   const canClaim=!!me&&!!state.session&&pr.done&&!pr.claimed&&p.is_published;
+   return `<article class="dlfr27-pack"><div class="dlfr27-pack-banner">${artwork?`<img src="${esc(artwork)}" loading="lazy" alt="">`:''}<span>${p.reward_kind==='title'?'♛':'✦'}</span></div><div class="dlfr27-pack-main"><div class="dlfr27-pack-title"><h2>${esc(p.title)}</h2><span class="tag">${esc(rewardType)} · ${esc(p.reward_label)}</span>${!p.is_published?'<span class="tag">Brouillon</span>':''}</div><p>${esc(p.description||'Un défi composé de plusieurs niveaux.')}</p><div class="dlfr27-pack-progress"><div class="dlfr27-pack-track"><i style="width:${pr.total?100*pr.earned/pr.total:0}%"></i></div><strong>${me?`${pr.earned}/${pr.total}`:`${pr.total} niveaux`}</strong></div><ol class="dlfr27-pack-levels">${steps}</ol>${pr.claimed?'<p class="dlfr27-pack-earned">✓ Récompense obtenue</p>':canClaim?`<button type="button" class="btn" data-claim-pack="${p.id}">Réclamer ma récompense</button>`:!me?'<p class="small muted">Connecte ton profil DLFR pour suivre ta progression.</p>':pr.done?'<p class="small muted">Connecte-toi pour réclamer cette récompense.</p>':''}</div></article>`;
+ }).join('');
+ return `${templateNotice()}<section class="paper dlfr27-packs-page"><div class="v2-intro"><span class="kicker">Communauté · défis</span><h1>Level Packs</h1><p>Des collections de niveaux créées par la modération. Termine chacun des niveaux avec une complétion validée à 100 % pour débloquer un tag ou un badge spécial.</p></div><div class="dlfr27-packs-grid">${cards||'<p class="empty">Aucun pack publié pour le moment.</p>'}</div><p class="small muted">Les récompenses doivent être réclamées après validation des records. Les pseudos historiques doivent être correctement rapprochés pour être comptabilisés.</p></section>`;
+}
+function packModerationEditor(){
+ if(!state.packsReady)return '<section class="admin-card" data-admin-section="packs"><p class="notice warning">Installe la migration 40 avant de gérer les Level Packs.</p></section>';
+ const levels=(state.data.demons||[]).filter(d=>d.is_public!==false&&!d.legacy&&!d.unrated&&(state.staffRole!=='nlw'||Number(d.position)>150&&Number(d.position)<100000000)).sort((a,b)=>Number(a.position)-Number(b.position));
+ const packs=(state.data.dlfr_level_packs||[]).slice().sort((a,b)=>Number(b.id)-Number(a.id));
+ return `<section class="admin-card dlfr27-pack-editor" data-admin-section="packs"><h2>Créer / modifier un Level Pack</h2><p class="small muted">Choisis de 2 à 30 niveaux publics. Les joueurs gagnent une récompense seulement après avoir validé tous les niveaux à 100 %. Les niveaux et la récompense sont verrouillés dès le premier gain.</p>
+ <label class="field">Pack à modifier<select id="dlfr27PackSelect"><option value="">＋ Nouveau Level Pack</option>${packs.map(p=>`<option value="${esc(p.id)}">${esc(p.title)}${p.is_published?'':' · brouillon'}</option>`).join('')}</select></label>
+ <form data-form="levelPackEditor"><input type="hidden" name="pack_id"><label class="field">Nom du pack<input name="title" required maxlength="110" placeholder="Ex. Les étoiles de la NLW"></label><label class="field">Description<textarea name="description" maxlength="1500" rows="3"></textarea></label><label class="field">Bannière (URL HTTPS, facultative)<input type="url" name="banner_url" maxlength="500"></label><div class="two-col"><label class="field">Type de récompense<select name="reward_kind"><option value="badge">Badge et cadre de profil</option><option value="title">Tag / titre officiel</option></select></label><label class="field">Nom de la récompense<input name="reward_label" required maxlength="80" placeholder="Explorateur de la NLW"></label></div>
+ <label class="field">Rechercher un niveau<input type="search" id="dlfr27PackLevelSearch" placeholder="Filtrer par nom ou rang"></label><div class="dlfr27-pack-level-picker">${levels.map(d=>`<label data-pack-level-row data-search="${esc(key(d.name+' '+d.position))}"><input type="checkbox" name="level_ids" value="${esc(d.id)}"><span>${Number(d.position)>150?'NLW #'+esc(Number(d.position)-150):'#'+esc(d.position)} · ${esc(d.name)}</span></label>`).join('')}</div><label class="field"><input type="checkbox" name="is_published"> Publier le pack</label><button class="btn" type="submit">Enregistrer le pack</button></form><p class="small muted">Un modérateur NLW ne peut créer des packs qu'avec les niveaux NLW. Les permissions sont vérifiées côté Supabase.</p></section>`;
+}
+function fillPackEditor(id){
+ const form=document.querySelector('[data-form="levelPackEditor"]');if(!form)return;
+ form.reset();form.elements.pack_id.value='';
+ const p=(state.data.dlfr_level_packs||[]).find(x=>Number(x.id)===Number(id));
+ if(!p)return;
+ form.elements.pack_id.value=p.id;
+ for(const field of ['title','description','banner_url','reward_kind','reward_label'])form.elements[field].value=p[field]||'';
+ form.elements.is_published.checked=!!p.is_published;
+ const selected=new Set((state.data.dlfr_level_pack_levels||[]).filter(x=>Number(x.pack_id)===Number(p.id)).map(x=>Number(x.demon_id)));
+ form.querySelectorAll('input[name="level_ids"]').forEach(x=>{x.checked=selected.has(Number(x.value));});
+}
+async function savePackForm(form){
+ if(!state.staff||ownerPreviewActive())throw Error('Action indisponible en mode aperçu.');
+ const f=new FormData(form);let selected=f.getAll('level_ids').map(Number);
+ const existing=(state.data.dlfr_level_pack_claims||[]).some(x=>Number(x.pack_id)===Number(f.get('pack_id')));
+ if(existing){const ordered=(state.data.dlfr_level_pack_levels||[]).filter(x=>Number(x.pack_id)===Number(f.get('pack_id'))).sort((a,b)=>Number(a.sort_order)-Number(b.sort_order)).map(x=>Number(x.demon_id));if(selected.length===ordered.length&&selected.every(x=>ordered.includes(x)))selected=ordered;}
+ if(selected.length<2||selected.length>30)throw Error('Sélectionne 2 à 30 niveaux.');
+ const {error}=await db.rpc('dlfr_save_level_pack',{
+   p_pack_id:Number(f.get('pack_id'))||null,p_title:String(f.get('title')||''),p_description:String(f.get('description')||''),
+   p_banner_url:String(f.get('banner_url')||''),p_reward_kind:String(f.get('reward_kind')||''),
+   p_reward_label:String(f.get('reward_label')||''),p_level_ids:selected,p_is_published:f.has('is_published')
+ });
+ if(error)throw Error(error.message);
+ await refreshLiveData();toast('Level Pack enregistré !');render();
+}
+async function claimPack(packId){
+ if(!state.session||!state.ownKey)throw Error('Connecte ton profil DLFR.');
+ const {error}=await db.rpc('dlfr_claim_level_pack',{p_pack_id:Number(packId)});
+ if(error)throw Error(error.message);
+ await refreshLiveData();toast('Récompense obtenue !');render();
+}
+async function saveFrame(form){
+ if(!state.session||!state.ownKey)throw Error('Compte joueur non connecté.');
+ const {error}=await db.rpc('dlfr_choose_profile_frame',{p_frame_key:form.elements.frame_key.value});
+ if(error)throw Error(error.message);
+ state.data.dlfr_profile_preferences=await readAll('dlfr_profile_preferences');toast('Cadre de profil enregistré !');render();
+}
+function setupDiscordServerLink(){
+ const nav=document.querySelector('.nav-tools');if(!nav)return;
+ const raw=plain(C.discordInviteUrl);
+ let dest='';try{const u=new URL(raw);if(u.protocol==='https:'&&(u.hostname==='discord.gg'||u.hostname==='discord.com'||u.hostname==='www.discord.com')&&(u.hostname==='discord.gg'||/^\/invite\//.test(u.pathname)))dest=u.href;}catch{}
+ if(!dest)return;
+ const a=document.createElement('a');a.className='dlfr27-discord-link';a.href=dest;a.target='_blank';a.rel='noopener noreferrer';a.textContent='◈ Rejoindre le Discord';nav.prepend(a);
+}
+
 function playerPage(){
  const requested=key(new URLSearchParams(location.search).get('player'));
  const player=ranked().find(p=>p.player_key===requested&&statsPlayerVisible(p));
@@ -636,7 +726,7 @@ function playersPage(){
    const profile=(state.data.player_profiles||[]).find(x=>x.player_key===p.player_key)||{};
    const avatar=avatarOf(p.player_key,profile);
    return `<a class="dlfr24-player-card ${p.has_account?'':'unclaimed'}" data-nav href="${url('player',{player:p.player_key})}" data-profile-search="${esc(key(fullName(p)))}">
-     <span class="dlfr24-player-avatar">${avatar?`<img loading="lazy" src="${esc(avatar)}" alt="">`:esc(fullName(p).slice(0,1).toUpperCase()||'?')}</span>
+     ${framedAvatar(p.player_key,`<span class="dlfr24-player-avatar">${avatar?`<img loading="lazy" src="${esc(avatar)}" alt="">`:esc(fullName(p).slice(0,1).toUpperCase()||'?')}</span>`)}
      <span class="dlfr24-player-info"><strong>${flag(p.country_code)} ${esc(fullName(p))}</strong><small>${p.rank?'#'+p.rank+' · ':''}${fmt(p.score)} pts · ${p.has_account?'Compte lié':'Sans compte'}</small></span><span aria-hidden="true">↗</span></a>`;
  }).join('');
  return `${templateNotice()}<section class="paper dlfr24-directory"><div class="dlfr24-directory-head"><div><span class="kicker">Communauté</span><h1>Profils des joueurs</h1><p class="muted">Retrouve la fiche publique d’un joueur sans passer par les statistiques.</p></div><a class="btn subtle small" data-nav href="${url('stats')}">Voir les classements</a></div><label class="filterbox"><span aria-hidden="true">⌕</span><input id="dlfr24ProfileSearch" type="search" placeholder="Chercher un joueur…" aria-label="Rechercher un profil"></label><div id="dlfr24PlayerList" class="dlfr24-player-grid">${items}</div><p class="muted small" id="dlfr24NoProfiles" hidden>Aucun joueur ne correspond à cette recherche.</p></section>`;
@@ -655,7 +745,7 @@ function statsProfilePreview(p){
  return `<article class="dlfr251-preview" style="--dlfr251-accent:${esc(accent)}" aria-label="Aperçu de ${esc(name)}">
    <div class="dlfr251-preview-banner">${banner?`<img loading="lazy" src="${esc(banner)}" alt="">`:''}</div>
    <div class="dlfr251-preview-content">
-    <div class="dlfr251-preview-identity"><span class="dlfr251-preview-avatar">${avatar?`<img loading="lazy" src="${esc(avatar)}" alt="Avatar de ${esc(name)}">`:`<span aria-hidden="true">${esc(initial)}</span>`}</span><div class="dlfr251-preview-name"><h3>${flag(p.country_code)} ${esc(name)}</h3><p class="muted small">${p.has_account?'Compte DLFR':'Profil non revendiqué'} ${p.country_code==='FR'?`· ${esc(GEO.regionInfo(regionFor(p))?.name||'France')}`:''}</p></div></div>
+    <div class="dlfr251-preview-identity">${framedAvatar(p.player_key,`<span class="dlfr251-preview-avatar">${avatar?`<img loading="lazy" src="${esc(avatar)}" alt="Avatar de ${esc(name)}">`:`<span aria-hidden="true">${esc(initial)}</span>`}</span>`)}<div class="dlfr251-preview-name"><h3>${flag(p.country_code)} ${esc(name)}</h3><p class="muted small">${p.has_account?'Compte DLFR':'Profil non revendiqué'} ${p.country_code==='FR'?`· ${esc(GEO.regionInfo(regionFor(p))?.name||'France')}`:''}</p></div></div>
     ${featured?`<p class="dlfr251-preview-title">✦ ${esc(featured.label)}</p>`:''}
     <div class="dlfr251-preview-stats">${box('Rang DLFR',p.rank?'#'+p.rank:'—')}${box('Points',fmt(p.score))}${box('Hardest',hardestLabel(p))}${box('Main List',mainCount)}${box('Extended',extendedCount)}${box('NLW',p.beyond.length)}</div>
     ${profile.bio?`<p class="dlfr251-preview-bio">${esc(profile.bio)}</p>`:''}
@@ -887,10 +977,10 @@ function adminPage(){if(LIVE&&!state.staff){
  if(LIVE&&(['nlw','moderator'].includes(state.staffRole)||ownerPreviewActive()&&['nlw','moderator'].includes(state.ownerPreview))){
    const role=ownerPreviewActive()?state.ownerPreview:state.staffRole;
    const view=ownerPreviewActive()?{...state,staffRole:role,scopedQueue:state.ownerPreviewQueue.filter(x=>role==='moderator'||Number(x.position)>150),scopedQueueError:state.ownerPreviewError}:state;
-   return `${templateNotice()}<div class="paper"><div class="admin-mode">Modération · ${role==='nlw'?'NLW':'Top 150 + NLW'}</div><div class="row-between"><h1>Validation des complétions</h1><button class="btn subtle small" data-action="logout">Déconnexion</button></div><p class="muted">Les validations sont vérifiées côté serveur. Les nouveaux niveaux, rangs et contenus communautaires sont réservés à la supermodération.</p></div>${PROD.scopedReview(view)}`;
+   return `${templateNotice()}<div class="paper"><div class="admin-mode">Modération · ${role==='nlw'?'NLW':'Top 150 + NLW'}</div><div class="row-between"><h1>Validation des complétions</h1><button class="btn subtle small" data-action="logout">Déconnexion</button></div><p class="muted">Les validations sont vérifiées côté serveur. Les nouveaux niveaux, rangs et contenus communautaires sont réservés à la supermodération.</p></div>${PROD.scopedReview(view)}<div class="paper dlfr27-scoped-packs">${packModerationEditor()}</div>`;
  }
- const players=playerOptions();return `${templateNotice()}<div class="paper"><div class="admin-mode">Modération connectée · changements sur Supabase</div><div class="row-between"><h1>Modération</h1><div><button class="btn subtle small" data-action="logout">Déconnexion</button></div></div><p class="muted">Le contrôle d’accès réel est assuré par les policies Supabase. Le journal des changements est automatique.</p></div>${LIVE?PROD.moderation(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state):''}<div class="admin-workspace" data-role="${state.demoRole}"><div class="admin-nav" role="tablist" aria-label="Sections de modération">${[['overview','Vue d’ensemble'],['levels','Niveaux'],['news','Actualités'],['profiles','Profils'],['awards','Badges & Palmarès'],['achievements','Achievements FR'],['clans','Clans'],['safety','Sanctions'],['nlw','Modos NLW'],['audit','Journal']].map(([id,label])=>`<button type="button" role="tab" aria-selected="${state.adminTab===id}" class="${state.adminTab===id?'active':''}" data-admin-tab="${id}">${label}</button>`).join('')}</div><div class="admin-content"><div class="admin-intro ${state.adminTab==='overview'?'':'is-hidden'}"><h2>Tableau de bord</h2>${statsOverview()}<p class="muted">Choisis une rubrique pour ajouter ou modifier les informations de la Demonlist. Les changements réels demandent les permissions Supabase.</p></div><div class="moderation-sections" data-active-admin="${state.adminTab}">
- ${levelCreditsEditor()}${historicNlwPublisher()}
+ const players=playerOptions();return `${templateNotice()}<div class="paper"><div class="admin-mode">Modération connectée · changements sur Supabase</div><div class="row-between"><h1>Modération</h1><div><button class="btn subtle small" data-action="logout">Déconnexion</button></div></div><p class="muted">Le contrôle d’accès réel est assuré par les policies Supabase. Le journal des changements est automatique.</p></div>${LIVE?PROD.moderation(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state):''}<div class="admin-workspace" data-role="${state.demoRole}"><div class="admin-nav" role="tablist" aria-label="Sections de modération">${[['overview','Vue d’ensemble'],['levels','Niveaux'],['packs','Level Packs'],['news','Actualités'],['profiles','Profils'],['awards','Badges & Palmarès'],['achievements','Achievements FR'],['clans','Clans'],['safety','Sanctions'],['nlw','Modos NLW'],['audit','Journal']].map(([id,label])=>`<button type="button" role="tab" aria-selected="${state.adminTab===id}" class="${state.adminTab===id?'active':''}" data-admin-tab="${id}">${label}</button>`).join('')}</div><div class="admin-content"><div class="admin-intro ${state.adminTab==='overview'?'':'is-hidden'}"><h2>Tableau de bord</h2>${statsOverview()}<p class="muted">Choisis une rubrique pour ajouter ou modifier les informations de la Demonlist. Les changements réels demandent les permissions Supabase.</p></div><div class="moderation-sections" data-active-admin="${state.adminTab}">
+ ${levelCreditsEditor()}${historicNlwPublisher()}${packModerationEditor()}
  <div class="admin-card" data-admin-section="levels"><h3>Ajouter directement un niveau</h3><p class="small muted">Pour accepter une soumission, utilise le panneau ci-dessous. La liste est maintenant entièrement gérée par les modérateurs. Indique un rang : les niveaux Rated suivants seront décalés si nécessaire. Les UNRATED sont gérés séparément.</p><form data-form="demon"><label class="field">Réutiliser une fiche importée et masquée (facultatif)<select name="existing_demon_id"><option value="">Nouveau niveau</option>${(state.unpublishedAredlDemons||[]).filter(d=>!(state.data.dlfr_level_archive_log||[]).some(a=>!a.restored_at&&String(a.demon_id)===String(d.id))).slice().sort((a,b)=>{const ra=Number(a.aredl_rank),rb=Number(b.aredl_rank);const va=Number.isFinite(ra)&&ra>0?ra:Number.POSITIVE_INFINITY;const vb=Number.isFinite(rb)&&rb>0?rb:Number.POSITIVE_INFINITY;return va-vb||String(a.name||"").localeCompare(String(b.name||""),"fr");}).map(d=>`<option value="${esc(d.id)}">${Number(d.aredl_rank)>0?`AREDL #${esc(d.aredl_rank)}`:"AREDL ?"} — ${esc(d.name)} (GD ${esc(d.level_id||"?")})</option>`).join("")}</select></label><p class="small muted" data-import-prefill-note>Sélectionne une fiche pour charger ses informations. Les crédits manquants restent à vérifier.</p><label class="field">Position dans la liste globale (151 = NLW #1)<input name="position" type="number" min="1" required></label><label class="field">Nom<input name="name" required maxlength="120"></label><label class="field">ID Geometry Dash<input name="level_id" inputmode="numeric" maxlength="30"></label><label class="field">Publié par / éditeur (texte libre)<input name="publisher" placeholder="Nom de l’éditeur" required maxlength="200"></label><label class="field">Vérifié par — joueur DLFR<select name="verifier_player_key"><option value="">Conserver / saisir le crédit ci-dessous</option>${(state.data.players||[]).slice().sort((a,b)=>String(a.display_name||a.username).localeCompare(String(b.display_name||b.username))).map(p=>`<option value="${esc(p.player_key)}">${esc(p.display_name||p.username)}</option>`).join('')}<option value="__new__">＋ Créer un nouveau joueur</option></select></label><label class="field">Nouveau joueur vérificateur (uniquement si « Créer »)<input name="new_verifier_name" maxlength="80" placeholder="Pseudo du nouveau joueur"></label><label class="field">Crédit vérificateur (si aucun joueur choisi)<input name="verifier" placeholder="À renseigner"></label><label class="field">Créateur<input name="creator"></label><label class="field">Mode de complétion<select name="completion_mode"><option value="">Conserver le mode existant / Standard</option><option value="solo">Solo</option><option value="two_player">2-Player</option></select></label><label class="field">Vidéo de vérification (facultatif)<input name="verifier_video_url" type="url" placeholder="https://youtu.be/…"></label><label class="field">Miniature YouTube ou image (facultatif)<input name="thumbnail_url" type="url" placeholder="https://i.ytimg.com/vi/…/hqdefault.jpg"></label><label class="field">Progression minimum (%)<input name="requirement" type="number" min="1" max="100" value="100" required></label><label class="field"><input name="legacy" type="checkbox" style="width:auto"> A déjà appartenu au Top 150 (Legacy)</label><label class="field">Date de sortie de liste (si connue)<input name="legacy_since" type="date"></label><label class="field"><input type="checkbox" name="unrated"> Niveau UNRATED (position estimée en mode alternatif)</label><button class="btn">Ajouter le niveau</button><p class="small muted">Après le #150, le niveau rejoint la NLW avec ses points NLW séparés des points Main/Extended.</p></form></div>
  <div class="admin-card" data-admin-section="levels"><h3>Retirer ou restaurer un niveau</h3>
 <p class="small muted">Le retrait est réversible : la fiche disparaît du site, les records et les preuves restent enregistrés. Les rangs Rated suivants se referment. Pour éviter toute erreur, saisis le nom exact du niveau avant de confirmer.</p>
@@ -1107,7 +1197,7 @@ function showPageError(error){
 function render(){if(!state.data)return;try{
  if(!BADGES?.init || !UNRATED_STATS?.calculate || !V2?.decorate || !V2?.project || !UNVERIFIED?.classify || !CLANS?.apply || !CLAN_PLUS?.stats || !SUBMISSIONS?.approve)throw Error('Fichier JavaScript V2 manquant ou version incohérente : réinstalle les scripts du pack V2.0.3.');
  if(!LIVE){const first=state.data.badge_baseline_scanned!==true;const changed=BADGES.captureAutomatic(state.data,ranked(),new Date().toISOString().slice(0,10),first);if(first){state.data.badge_baseline_scanned=true;}if(changed||first)saveDemo();}
- const page=nav(),params=new URLSearchParams(location.search);if(page==='stats'&&params.has('player')){history.replaceState({},'',url('player',{player:params.get('player')}));return render();}if(page==='player')state.selectedPlayer=key(params.get('player'));if(page==='list'){const tab=new URLSearchParams(location.search).get('tab');state.list=tab==='archive'?'nlw':(tab||'main');}const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='player'?playerPage():page==='players'?playersPage():page==='my-profile'?selfProfilePage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():page==='regions'?regionsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;
+ const page=nav(),params=new URLSearchParams(location.search);if(page==='stats'&&params.has('player')){history.replaceState({},'',url('player',{player:params.get('player')}));return render();}if(page==='player')state.selectedPlayer=key(params.get('player'));if(page==='list'){const tab=new URLSearchParams(location.search).get('tab');state.list=tab==='archive'?'nlw':(tab||'main');}const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='player'?playerPage():page==='players'?playersPage():page==='my-profile'?selfProfilePage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():page==='packs'?packPage():page==='regions'?regionsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;
  if(page==='admin'&&state.staffRole==='owner'){
    const switcher=document.createElement('section');switcher.className='paper owner-role-switcher';
    switcher.innerHTML='<h2>Aperçu des rôles de modération</h2><p class="small muted">Vue de l’interface seulement : ton compte reste propriétaire. Aucun enregistrement n’est autorisé en aperçu.</p><div class="owner-role-actions">'+
@@ -1121,7 +1211,7 @@ function render(){if(!state.data)return;try{
      });
    }
  }
- if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();if(page==='admin'&&state.adminTab==='levels'){arrangeLevelsPanel();syncLevelStudio();}document.title=({list:'Demonlist',stats:'Statistiques',player:'Profil joueur',players:'Profils des joueurs',news:'Actualités',activity:'Vie communautaire',regions:'Carte des régions',hall:'Palmarès & exploits',honors:'Palmarès & exploits',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Palmarès & exploits',clans:'Clans',history:'Historique','my-profile':'Mon profil','submit-record':'Soumettre un record',demon:'Niveau',archive:'Archives historiques'})[page]+' · DemonlistFrancophone';
+ if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();if(page==='admin'&&state.adminTab==='levels'){arrangeLevelsPanel();syncLevelStudio();}document.title=({list:'Demonlist',stats:'Statistiques',player:'Profil joueur',players:'Profils des joueurs',news:'Actualités',activity:'Vie communautaire',regions:'Carte des régions',packs:'Level Packs',hall:'Palmarès & exploits',honors:'Palmarès & exploits',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Palmarès & exploits',clans:'Clans',history:'Historique','my-profile':'Mon profil','submit-record':'Soumettre un record',demon:'Niveau',archive:'Archives historiques'})[page]+' · DemonlistFrancophone';
  }catch(error){showPageError(error);}
 }
 function auditV2(action,target){state.data.community_audit_log.push({action_key:action,target,created_at:new Date().toISOString()});saveDemo();}
@@ -1379,6 +1469,7 @@ function updateNewsPreview(form){if(!form)return;const holder=$('newsDraftPrevie
 function setTheme(theme){const t=['light','dark','midnight','autumn'].includes(theme)?theme:'light';document.documentElement.classList.remove('dark','midnight','autumn');if(t!=='light')document.documentElement.classList.add(t);$('themeSelect').value=t;try{localStorage.setItem('demonlist-theme',t);}catch{}}
 function refreshUnrated(){document.documentElement.classList.toggle('unrated-mode',state.unrated);const button=$('unratedToggle');button.textContent=state.unrated?'◈ UNRATED ON':'◈ UNRATED OFF';button.setAttribute('aria-pressed',String(state.unrated));}
 function bootEvents(){
+ setupDiscordServerLink();
  // Un seul menu déroulant ouvert ; Echap ferme le menu et rend le focus au bouton.
  document.addEventListener('click',ev=>{
    const current=ev.target.closest('.nav-menu');
@@ -1410,6 +1501,7 @@ function bootEvents(){
    ev.preventDefault();ev.stopImmediatePropagation();toast('Aperçu en lecture seule.');
  },true);
  document.addEventListener('click',async(ev)=>{const a=ev.target.closest('a[data-nav]');if(a){ev.preventDefault();const link=new URL(a.href);history.pushState({},'',link.search);state.keyword='';render();window.scrollTo(0,0);return;}
+ const claim=ev.target.closest('[data-claim-pack]');if(claim){try{claim.disabled=true;await claimPack(claim.dataset.claimPack);}catch(e){toast('Level Pack : '+e.message);claim.disabled=false;}return;}
  const cinemaPlay=ev.target.closest('[data-dlfr23-play]');
  if(cinemaPlay){
   const holder=document.getElementById('dlfr23Player');
@@ -1489,6 +1581,7 @@ function bootEvents(){
  if(act.dataset.action==='logout'&&LIVE){await db.auth.signOut();state.session=null;state.staff=false;render();}
  });
  document.addEventListener('input',ev=>{
+ if(ev.target.id==='dlfr27PackLevelSearch'){const q=key(ev.target.value);document.querySelectorAll('[data-pack-level-row]').forEach(row=>{row.hidden=!row.dataset.search.includes(q)});return;}
  if(ev.target.id==='hiddenDeleteSearch'){
    const select=document.getElementById('hiddenDeleteSelect'),query=key(ev.target.value);
    if(select)for(const opt of select.options)opt.hidden=!!opt.value&&!key(opt.textContent).includes(query);
@@ -1524,6 +1617,7 @@ function bootEvents(){
  if(ev.target.id==='compareB'){state.comparePlayer=ev.target.value;render();}
  if(ev.target.id==='profileEditorPlayer')fillProfileEditor();
  if(ev.target.id==='levelStudioSelect')syncLevelStudio();
+ if(ev.target.id==='dlfr27PackSelect')fillPackEditor(ev.target.value);
  if(ev.target.id==='hiddenDeleteSelect'){const form=ev.target.closest('form');if(form){form.dataset.deletePreviewId='';const del=form.querySelector('[name="delete_action"][value="delete"]');if(del)del.disabled=true;const preview=document.getElementById('hiddenDeletePreview');if(preview)preview.hidden=true;}}
  if(ev.target.matches('[data-form="linkVerifier"] select[name="verifier_name"]')){const item=window.__dlfrVerifierUnlinked?.[Number(ev.target.value)];const preview=document.getElementById('verifierLinkPreview');if(preview)preview.textContent=item?`${item.count} niveau(x) non liés : ${(item.levels||[]).map(n=>n.name+' (#'+n.id+')').join(', ')}`:'Sélectionne un vérificateur.';}
  if(ev.target.matches('[data-form="demon"] select[name="existing_demon_id"]'))fillImportedDemonForm(ev.target);
@@ -1534,6 +1628,7 @@ function bootEvents(){
  if(ev.target.id==='importDemo')importDemo(ev.target.files?.[0]);
  if(ev.target.closest('[data-form="news"]'))updateNewsPreview(ev.target.closest('form'));
 });
+ document.addEventListener('submit',ev=>{const form=ev.target;if(!form.matches('[data-form="levelPackEditor"],[data-form="chooseFrame"]'))return;ev.preventDefault();ev.stopImmediatePropagation();(async()=>{try{if(form.dataset.form==='levelPackEditor')await savePackForm(form);else await saveFrame(form);}catch(e){toast(e.message||String(e));}})();},true);
  document.addEventListener('submit',ev=>{if(ownerPreviewActive()&&new URLSearchParams(location.search).get('page')==='admin'){ev.preventDefault();ev.stopImmediatePropagation();toast('Aperçu en lecture seule.');}},true);
  document.addEventListener('submit',ev=>{if(ev.target.matches('[data-form="clanCreate"], [data-form="clanInvite"], [data-form="clanRequest"], [data-form="clanEdit"]')){ev.preventDefault();handleClanForm(ev.target);return;}if(ev.target.matches('[data-form]')){ev.preventDefault();handleForm(ev.target,ev.submitter||null);}});
  document.querySelectorAll('.nav-links a,.brand').forEach(a=>a.addEventListener('click',ev=>{ev.preventDefault();go(a.dataset.link||'list');}));
