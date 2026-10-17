@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict');
+const b=require('../js/aredl-bulk.js');
+assert.throws(()=>b.parse('{}'),/invalide/);
+const source={format:'dlfr-aredl-fr-bulk-v1',country:'FR',rows:[{}],scan_complete:false,scanned:1,total:3,problems:[]};
+assert.equal(b.parse(JSON.stringify(source)).rows.length,1);
+const html=b.renderReport({published:1,kept:0,conflicts:0,entries:[{action:'create',position:238,row:{name:'<script>evil</script>',aredl_rank:300,verifiers_fr:[],first_fr:{}}}]},source);
+assert.ok(!html.includes('<script>'));assert.ok(html.includes('Collecte partielle'));
+assert.ok(b.panel().includes('value="238"'));assert.ok(b.panel().includes('value="publish" disabled'));
+assert.ok(!b.proof({bulk_fr_evidence:{victor_fr:{player:{name:'P'},video_url:'javascript:evil()'}}}).includes('href='));
+console.log('Bulk UI validation, escaping, partial status and unsafe links: OK');
