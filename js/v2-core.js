@@ -48,6 +48,32 @@
   const verified=demons.filter(d=>clean(d.verifier)===clean(player.player_key)||clean(d.verifier)===clean(player.username)).length;
   return [badgeFor('Faucheur de liste',active,reaperSteps),badgeFor('Vérificateur',verified,reaperSteps),badgeFor('Amateur de difficulté',hardest,challengeSteps,'hardest')].filter(Boolean);
  }
+ function badgesBatch(players,demons,completions){
+  // Index each completion and verifier once, instead of scanning all records
+  // for every player. Exact key/username equivalence of badges() is preserved.
+  const byDemon=new Map(demons.map(d=>[Number(d.id),d]));
+  const finishedByName=new Map(), verifiedByName=new Map();
+  for(const r of completions){
+   if(Number(r.progress)<100)continue;
+   const d=byDemon.get(Number(r.demon_id));if(!d||!(Number(d.position)>0&&Number(d.position)<=LIMIT))continue;
+   const n=clean(r.player);if(!n)continue;
+   if(!finishedByName.has(n))finishedByName.set(n,new Map());
+   finishedByName.get(n).set(Number(d.id),Number(d.position));
+  }
+  for(const d of demons){const n=clean(d.verifier);if(n)verifiedByName.set(n,(verifiedByName.get(n)||0)+1);}
+  const output=new Map();
+  for(const p of players){
+   const keys=new Set([clean(p.player_key),clean(p.username)]);
+   const unique=new Map();let verified=0;
+   for(const k of keys){if(!k)continue;
+    for(const [id,pos] of finishedByName.get(k)||[])unique.set(id,pos);
+    verified+=verifiedByName.get(k)||0;
+   }
+   let hardest=Infinity;for(const pos of unique.values())hardest=Math.min(hardest,pos);
+   output.set(p.player_key,[badgeFor('Faucheur de liste',unique.size,reaperSteps),badgeFor('Vérificateur',verified,reaperSteps),badgeFor('Amateur de difficulté',hardest,challengeSteps,'hardest')].filter(Boolean));
+  }
+  return output;
+ }
  function primaryBase(p){return p>=56?1.039035131*((185.7*Math.exp(-.02715*p))+14.84):p>=36?1.0371139743*((212.61*Math.pow(1.036,1-p))+25.071):p>=21?((250-83.389)*Math.pow(1.0099685,2-p)-31.152)*1.0371139743:p>=4?((326.1*Math.exp(-.0871*p))+51.09)*1.037117142:p>=1?(-18.2899079915*p)+368.2899079915:0;}
  function actualPoints(d,progress=100,top1=350){const pos=Number(d.position),min=Math.max(1,Math.min(100,Number(d.requirement)||100));if(pos<1||pos>LIMIT||Number(progress)<min)return 0;
   const base=primaryBase(pos)*Number(top1)/primaryBase(1);return Number(progress)===100?base:base*Math.pow(5,(Number(progress)-min)/Math.max(1,100-min))/10;}
@@ -91,5 +117,5 @@
   else if(ch!=='\r'||quoted)buf+=ch;
  }line.push(buf);if(line.some(s=>s.trim()))rows.push(line);return rows;}
  function parseAredl(text){const rows=csvParse(text);if(!rows.length)return[];const header=rows[0].map(clean),ix=header.findIndex(x=>['name','level','level name','niveau','level_name'].includes(x));const start=ix>=0?1:0;return rows.slice(start).map((r,i)=>({name:(r[ix>=0?ix:0]||'').trim(),aredl_rank: ix>=0?(r[header.findIndex(x=>['rank','position'].includes(x))]||''):''})).filter(x=>x.name).slice(0,20000);}
- return {playerResolver,scoringRecords,LIMIT,NLW_SCORING_VERSION,decorate,nlwRank,nlwPoints,primaryPoints,mainCompleted,historicalLegacy,badges,actualPoints,project,csvParse,parseAredl,reaperSteps,challengeSteps};
+ return {playerResolver,scoringRecords,LIMIT,NLW_SCORING_VERSION,decorate,nlwRank,nlwPoints,primaryPoints,mainCompleted,historicalLegacy,badges,badgesBatch,actualPoints,project,csvParse,parseAredl,reaperSteps,challengeSteps};
 });
