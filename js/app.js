@@ -182,8 +182,8 @@ async function refreshLiveData(){
    else state.verificationClaims=claims.data||[];
  }
  state.scopedQueue=[];
- if(['nlw','moderator'].includes(state.staffRole)){
-   const queue=await db.rpc('dlfr_pending_review_queue');
+ if(state.staff){
+   const queue=await db.rpc('dlfr_review_queue_status');
    if(queue.error)state.scopedQueueError=queue.error.message;
    else state.scopedQueue=queue.data||[];
  }
@@ -1124,7 +1124,7 @@ function adminPage(){if(LIVE&&!state.staff){
    const view=ownerPreviewActive()?{...state,staffRole:role,scopedQueue:state.ownerPreviewQueue.filter(x=>role==='moderator'||Number(x.position)>150),scopedQueueError:state.ownerPreviewError}:state;
    return `${templateNotice()}<div class="paper"><div class="admin-mode">Modération · ${role==='nlw'?'NLW':'Top 150 + NLW'}</div><div class="row-between"><h1>Validation des complétions</h1><button class="btn subtle small" data-action="logout">Déconnexion</button></div><p class="muted">Vérifie le niveau et la preuve vidéo avant de prendre une décision. Les autres outils sont réservés aux personnes autorisées.</p><ol class="dlfr29-guide-steps"><li><span>1</span>Ouvre une soumission en attente.</li><li><span>2</span>Regarde la preuve vidéo et le niveau.</li><li><span>3</span>Accepte ou refuse la complétion.</li></ol></div>${PROD.scopedReview(view)}${window.DLFR_CLAIMS.moderation(state)}<div class="paper dlfr27-scoped-packs">${state.adminTab==='packs'?packModerationEditor():''}</div>`;
  }
- const players=['profiles','awards','achievements','safety','nlw'].includes(state.adminTab)?playerOptions():'';return `${templateNotice()}<div class="paper"><div class="admin-mode">Espace privé · équipe de modération</div><div class="row-between"><h1>Modération</h1><div><button class="btn subtle small" data-action="logout">Déconnexion</button></div></div><p class="muted">Choisis une action ci-dessous. Les modifications sont enregistrées et contrôlées automatiquement.</p></div><div class="admin-workspace" data-role="${state.demoRole}"><div class="admin-nav" role="tablist" aria-label="Sections de modération">${[['overview','Accueil'],['requests','Demandes'],['levels','Niveaux'],['packs','Level Packs'],['news','Actualités'],['profiles','Profils'],['awards','Badges & Palmarès'],['achievements','Achievements FR'],['clans','Clans'],['safety','Sanctions'],['nlw','Modos NLW'],['audit','Journal']].map(([id,label])=>`<button type="button" role="tab" aria-selected="${state.adminTab===id}" class="${state.adminTab===id?'active':''}" data-admin-tab="${id}">${label}</button>`).join('')}</div><div class="admin-content">${adminGuideHtml()}<div class="dlfr29-requests" ${state.adminTab==='requests'?'':'hidden'}>${state.adminTab==='requests'?(LIVE?PROD.moderation(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state):'')+window.DLFR_CLAIMS.moderation(state):''}</div><div class="admin-intro ${state.adminTab==='overview'?'':'is-hidden'}"><h2>Tableau de bord</h2>${state.adminTab==='overview'?statsOverview():''}<p class="muted">Choisis une action dans les raccourcis ou une rubrique dans le menu. Chaque modification est contrôlée avant son enregistrement.</p></div><div class="moderation-sections" data-active-admin="${state.adminTab}">
+ const players=['profiles','awards','achievements','safety','nlw'].includes(state.adminTab)?playerOptions():'';return `${templateNotice()}<div class="paper"><div class="admin-mode">Espace privé · équipe de modération</div><div class="row-between"><h1>Modération</h1><div><button class="btn subtle small" data-action="logout">Déconnexion</button></div></div><p class="muted">Choisis une action ci-dessous. Les modifications sont enregistrées et contrôlées automatiquement.</p></div><div class="admin-workspace" data-role="${state.demoRole}"><div class="admin-nav" role="tablist" aria-label="Sections de modération">${[['overview','Accueil'],['requests','Demandes'],['levels','Niveaux'],['packs','Level Packs'],['news','Actualités'],['profiles','Profils'],['awards','Badges & Palmarès'],['achievements','Achievements FR'],['clans','Clans'],['safety','Sanctions'],['nlw','Modos NLW'],['audit','Journal']].map(([id,label])=>`<button type="button" role="tab" aria-selected="${state.adminTab===id}" class="${state.adminTab===id?'active':''}" data-admin-tab="${id}">${label}</button>`).join('')}</div><div class="admin-content">${adminGuideHtml()}<div class="dlfr29-requests" ${state.adminTab==='requests'?'':'hidden'}>${state.adminTab==='requests'?(LIVE?PROD.scopedReview(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state)+PROD.moderation(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state):'')+window.DLFR_CLAIMS.moderation(state):''}</div><div class="admin-intro ${state.adminTab==='overview'?'':'is-hidden'}"><h2>Tableau de bord</h2>${state.adminTab==='overview'?statsOverview():''}<p class="muted">Choisis une action dans les raccourcis ou une rubrique dans le menu. Chaque modification est contrôlée avant son enregistrement.</p></div><div class="moderation-sections" data-active-admin="${state.adminTab}">
  ${state.adminTab==='levels'&&activeLevelPanel==='edit'?levelCreditsEditor():''}${state.adminTab==='levels'&&activeLevelPanel==='review'?historicNlwPublisher():''}${packModerationEditor()}
  ${state.adminTab==='levels'&&activeLevelPanel==='review'?window.DLFR_BULK.panel():''}${state.adminTab==='levels'&&activeLevelPanel==='review'?window.DLFR_CLAIMS.compactPanel():''}
  ${state.adminTab==='levels'&&activeLevelPanel==='create'?`<div class="admin-card" data-admin-section="levels"><h3>Ajouter directement un niveau</h3><p class="small muted">Pour accepter une soumission, utilise le panneau ci-dessous. La liste est maintenant entièrement gérée par les modérateurs. Indique un rang : les niveaux Rated suivants seront décalés si nécessaire. Les UNRATED sont gérés séparément.</p><form data-form="demon"><label class="field">Réutiliser une fiche importée et masquée (facultatif)<select name="existing_demon_id"><option value="">Nouveau niveau</option>${(state.unpublishedAredlDemons||[]).filter(d=>!(state.data.dlfr_level_archive_log||[]).some(a=>!a.restored_at&&String(a.demon_id)===String(d.id))).slice().sort((a,b)=>{const ra=Number(a.aredl_rank),rb=Number(b.aredl_rank);const va=Number.isFinite(ra)&&ra>0?ra:Number.POSITIVE_INFINITY;const vb=Number.isFinite(rb)&&rb>0?rb:Number.POSITIVE_INFINITY;return va-vb||String(a.name||"").localeCompare(String(b.name||""),"fr");}).map(d=>`<option value="${esc(d.id)}">${Number(d.aredl_rank)>0?`AREDL #${esc(d.aredl_rank)}`:"AREDL ?"} — ${esc(d.name)} (GD ${esc(d.level_id||"?")})</option>`).join("")}</select></label><p class="small muted" data-import-prefill-note>Sélectionne une fiche pour charger ses informations. Les crédits manquants restent à vérifier.</p><label class="field">Position dans la liste globale (151 = NLW #1)<input name="position" type="number" min="1" required></label><label class="field">Nom<input name="name" required maxlength="120"></label><label class="field">ID Geometry Dash<input name="level_id" inputmode="numeric" maxlength="30"></label><label class="field">Publié par / éditeur (texte libre)<input name="publisher" placeholder="Nom de l’éditeur" required maxlength="200"></label><label class="field">Vérifié par — joueur DLFR<select name="verifier_player_key"><option value="">Conserver / saisir le crédit ci-dessous</option>${(state.data.players||[]).slice().sort((a,b)=>String(a.display_name||a.username).localeCompare(String(b.display_name||b.username))).map(p=>`<option value="${esc(p.player_key)}">${esc(p.display_name||p.username)}</option>`).join('')}<option value="__new__">＋ Créer un nouveau joueur</option></select></label><label class="field">Nouveau joueur vérificateur (uniquement si « Créer »)<input name="new_verifier_name" maxlength="80" placeholder="Pseudo du nouveau joueur"></label><label class="field">Crédit vérificateur (si aucun joueur choisi)<input name="verifier" placeholder="À renseigner"></label><label class="field">Créateur<input name="creator"></label><label class="field">Mode de complétion<select name="completion_mode"><option value="">Conserver le mode existant / Standard</option><option value="solo">Solo</option><option value="two_player">2-Player</option></select></label><label class="field">Vidéo de vérification (facultatif)<input name="verifier_video_url" type="url" placeholder="https://youtu.be/…"></label><label class="field">Miniature YouTube ou image (facultatif)<input name="thumbnail_url" type="url" placeholder="https://i.ytimg.com/vi/…/hqdefault.jpg"></label><label class="field">Progression minimum (%)<input name="requirement" type="number" min="1" max="100" value="100" required></label><label class="field"><input name="legacy" type="checkbox" style="width:auto"> A déjà appartenu au Top 150 (Legacy)</label><label class="field">Date de sortie de liste (si connue)<input name="legacy_since" type="date"></label><label class="field"><input type="checkbox" name="unrated"> Niveau UNRATED (position estimée en mode alternatif)</label><div class="notice small" id="newLevelRankPreview" role="status" aria-live="polite">Choisis une position globale pour savoir où sera publié le niveau.</div><button class="btn">Ajouter le niveau</button><p class="small muted">Position 151 = NLW #1 ; position 157 = NLW #7. Coche « Legacy » uniquement pour publier le niveau dans les archives historiques (sans points NLW).</p></form></div>
@@ -1744,6 +1744,37 @@ function bootEvents(){
  const at=ev.target.closest('[data-activity-tab]');if(at){state.activityTab=at.dataset.activityTab==='all'?'all':'following';render();return;}
  const nf=ev.target.closest('[data-news-filter]');if(nf){state.newsFilter=nf.dataset.newsFilter;render();return;}
  const thumb=ev.target.closest('[data-studio-thumbnail]');if(thumb){const form=thumb.closest('form');const v=studioYoutubeThumbnail(form.elements.video_url.value)||studioYoutubeThumbnail(form.elements.verifier_video_url.value);if(v){form.elements.thumbnail_url.value=v;updateStudioPreview(form);}else toast('Ajoute d’abord une vidéo YouTube valide.');return;}
+ const claimButton=ev.target.closest('[data-review-claim]');
+ const manageButton=ev.target.closest('[data-review-manage]');
+ const refreshButton=ev.target.closest('[data-review-refresh]');
+ if(claimButton||manageButton||refreshButton){
+   if(ownerPreviewActive()){toast('Aperçu en lecture seule.');return;}
+   if(!state.staff||state.busy)return;
+   state.busy=true;
+   const button=claimButton||manageButton||refreshButton;
+   button.disabled=true;
+   try{
+     if(claimButton){
+       const id=claimButton.dataset.reviewClaim;
+       const {data,error}=await db.rpc('dlfr_claim_review',{p_submission_id:id==='random'?null:Number(id)});
+       if(error)throw Error(error.message);
+       toast(data?.already_claimed?'Tu as déjà une soumission en cours.':'Soumission réservée pour 20 minutes.');
+     }else if(manageButton){
+       const action=manageButton.dataset.reviewManage;
+       if(!['release','renew'].includes(action))throw Error('Action inconnue.');
+       const {error}=await db.rpc('dlfr_manage_review_claim',{p_submission_id:Number(manageButton.dataset.reviewId),p_action:action});
+       if(error)throw Error(error.message);
+       toast(action==='release'?'Soumission libérée.':'Réservation prolongée de 20 minutes.');
+     }
+     const {data,error}=await db.rpc('dlfr_review_queue_status');
+     if(error)throw Error(error.message);
+     state.scopedQueue=data||[];state.scopedQueueError='';
+     if(state.adminTab==='requests'&&state.data.level_submissions?.length)state.data.level_submissions=await readAll('level_submissions');
+     render();
+   }catch(error){toast('File de modération : '+error.message);button.disabled=false;}
+   finally{state.busy=false;}
+   return;
+ }
  const roleChoice=ev.target.closest('[data-owner-preview-role]');
  if(roleChoice){
    if(state.staffRole!=='owner')return;
@@ -1752,7 +1783,7 @@ function bootEvents(){
    state.ownerPreview=role;
    state.ownerPreviewQueue=[];state.ownerPreviewError='';
    if(['nlw','moderator'].includes(role)){
-     try{const {data,error}=await db.rpc('dlfr_pending_review_queue');if(error)throw error;state.ownerPreviewQueue=data||[];}
+     try{const {data,error}=await db.rpc('dlfr_review_queue_status');if(error)throw error;state.ownerPreviewQueue=data||[];}
      catch(error){state.ownerPreviewError=error.message||String(error);}
    }
    state.adminTab='overview';render();return;

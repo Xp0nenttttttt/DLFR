@@ -87,7 +87,8 @@ function moderation(s){if(!s.staff)return '';
  const selectPlayers=players.map(p=>`<option value="${esc(p.player_key)}">${esc(p.display_name||p.username)} (${esc(p.player_key)})</option>`).join('');
  const selectDemons=demons.map(d=>`<option value="${esc(d.id)}">#${esc(d.position)} ${esc(d.name)}${d.unrated?' (UNRATED)':''}</option>`).join('');
  const claims=(s.data.profile_claim_requests||[]).filter(x=>x.status==='pending');
- const subs=(s.data.level_submissions||[]).filter(x=>x.status==='pending');
+ const assignedQueue=new Set((s.scopedQueue||[]).map(x=>String(x.id)));
+ const subs=(s.data.level_submissions||[]).filter(x=>x.status==='pending'&&!assignedQueue.has(String(x.id)));
  const hiddenApproved=(s.data.level_submissions||[]).filter(x=>x.status==='approved'&&
    x.demon_id&&(s.unpublishedAredlDemons||[]).some(d=>String(d.id)===String(x.demon_id)));
 
@@ -95,7 +96,7 @@ function moderation(s){if(!s.staff)return '';
  <div class="prod-grid"><form data-form="prodPlayer"><h3>Créer une fiche joueur</h3>${row('Pseudo Geometry Dash','<input name="username" required minlength="2" maxlength="70">')}${row('Nom affiché (facultatif)','<input name="display_name" maxlength="80">')}${row('Pays','<select name="country_code"><option value="">Inconnu</option><option value="FR">France</option><option value="BE">Belgique</option><option value="CH">Suisse</option><option value="CA">Canada</option></select>')}${button('Créer la fiche')}</form>
  </div>
  <h3>Demandes de liaison Discord / Geometry Dash (${claims.length})</h3>${claims.length?claims.map(x=>`<article class="prod-review"><strong>${esc(x.player_key)}</strong><p class="small">Utilisateur Auth : ${esc(x.auth_user_id)}</p><p class="small">${esc(x.note)}</p><a href="${safeUrl(x.proof_url)}" target="_blank" rel="noopener noreferrer">Examiner la preuve ↗</a><form data-form="prodClaimReview"><input type="hidden" name="request_id" value="${esc(x.id)}"><button class="btn" name="approve" value="yes">Approuver</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form></article>`).join(''):'<p class="muted">Aucune demande.</p>'}
- <h3>Soumissions à modérer (${subs.length})</h3>${subs.length?subs.map(x=>{const existing=demons.find(d=>x.level_id&&String(d.level_id)===String(x.level_id))||demons.find(d=>d.name.toLowerCase()===x.level_name.toLowerCase());return `<article class="prod-review"><strong>${esc(x.level_name)}</strong> · ${esc(x.player)} (${esc(x.progress)} %)<p><a href="${safeUrl(x.video_url)}" target="_blank" rel="noopener noreferrer">Vidéo ↗</a>${x.raw_footage_url?` · <a href="${safeUrl(x.raw_footage_url)}" target="_blank" rel="noopener noreferrer">Raw footage ↗</a>`:''}${existing?' · Fiche existante #'+esc(existing.id):' · Nouveau niveau'}</p><form data-form="prodReviewSubmission"><input type="hidden" name="request_id" value="${esc(x.id)}">${existing?'':row('Statut du niveau','<select name="rating"><option value="rated">Rated</option><option value="unrated">UNRATED</option></select>')}${existing?'':row('Position choisie (Rated : décalage des suivants) / position estimée (UNRATED)','<input name="position" type="number" min="1" required>')}<button class="btn" name="approve" value="yes">Valider</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form></article>`;}).join(''):'<p class="muted">Aucune soumission.</p>'}
+ <h3>Autres demandes / cas particuliers (${subs.length})</h3><p class="small muted">Les niveaux déjà publiés passent par la file de réservation ci-dessus.</p>${subs.length?subs.map(x=>{const existing=demons.find(d=>x.level_id&&String(d.level_id)===String(x.level_id))||demons.find(d=>d.name.toLowerCase()===x.level_name.toLowerCase());return `<article class="prod-review"><strong>${esc(x.level_name)}</strong> · ${esc(x.player)} (${esc(x.progress)} %)<p><a href="${safeUrl(x.video_url)}" target="_blank" rel="noopener noreferrer">Vidéo ↗</a>${x.raw_footage_url?` · <a href="${safeUrl(x.raw_footage_url)}" target="_blank" rel="noopener noreferrer">Raw footage ↗</a>`:''}${existing?' · Fiche existante #'+esc(existing.id):' · Nouveau niveau'}</p><form data-form="prodReviewSubmission"><input type="hidden" name="request_id" value="${esc(x.id)}">${existing?'':row('Statut du niveau','<select name="rating"><option value="rated">Rated</option><option value="unrated">UNRATED</option></select>')}${existing?'':row('Position choisie (Rated : décalage des suivants) / position estimée (UNRATED)','<input name="position" type="number" min="1" required>')}<button class="btn" name="approve" value="yes">Valider</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form></article>`;}).join(''):'<p class="muted">Aucune soumission.</p>'}
  <h3>Validations acceptées mais non visibles (${hiddenApproved.length})</h3>
  <p class="small muted">Rattrapage des anciennes soumissions : aucun niveau n'est publié automatiquement. Choisis la position DLFR avant de confirmer.</p>
  ${hiddenApproved.length?hiddenApproved.map(x=>{
@@ -113,10 +114,24 @@ function moderation(s){if(!s.staff)return '';
 }
 function scopedReview(s){
  const rows=s.scopedQueue||[];
- const role=s.staffRole==='nlw'?'NLW (rang 151+)':'Top 150 et NLW';
- const cards=rows.map(x=>`<article class="prod-review"><strong>${esc(x.level_name)}</strong> · ${esc(x.player)} · #${esc(x.position)} · ${role}<p><a class="link" href="${safeUrl(x.video_url)}" rel="noopener noreferrer" target="_blank">Voir la preuve ↗</a></p><form data-form="prodScopedReview"><input type="hidden" name="request_id" value="${esc(x.id)}"><button class="btn" name="approve" value="yes">Accepter la complétion</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form></article>`).join('');
- return `<section class="prod-panel"><h2>Soumissions admissibles · ${esc(role)}</h2>${s.scopedQueueError?`<p class="notice warning">Impossible de charger les demandes pour le moment.</p>`:''}${cards||'<p class="muted">Aucune complétion éligible en attente. Les niveaux non publiés ou ambigus sont traités par les supermodérateurs.</p>'}</section>`;
+ const current=rows.filter(x=>x.claim_status==='mine');
+ const free=rows.filter(x=>x.claim_status==='free');
+ const busy=rows.filter(x=>x.claim_status==='other');
+ const role=s.staffRole==='nlw'?'NLW':'Top 150 + NLW';
+ const time=x=>x.claim_expires_at?new Date(x.claim_expires_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'';
+ const item=x=>`<article class="prod-review dlfr30-review-card"><div class="row-between"><strong>${esc(x.level_name)}</strong><span class="small muted">${Number(x.position)>150?'NLW #'+esc(Number(x.position)-150):'Top #'+esc(x.position)}</span></div><p class="small">${esc(x.player)} · ${esc(x.progress)} %</p>
+ <p><a href="${safeUrl(x.video_url)}" rel="noopener noreferrer" target="_blank">Vidéo ↗</a>${x.raw_footage_url?' · <a href="'+safeUrl(x.raw_footage_url)+'" rel="noopener noreferrer" target="_blank">Raw footage ↗</a>':''}</p>
+ ${x.claim_status==='mine'?`<span class="notice small">Réservée pour toi jusqu'à ${esc(time(x))}</span><form data-form="prodScopedReview"><input type="hidden" name="request_id" value="${esc(x.id)}"><button class="btn" name="approve" value="yes">Accepter</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form><div class="dlfr30-actions"><button class="btn subtle small" type="button" data-review-manage="renew" data-review-id="${esc(x.id)}">+20 min</button><button class="btn subtle small" type="button" data-review-manage="release" data-review-id="${esc(x.id)}">Libérer</button></div>`:
+ x.claim_status==='other'?'<p class="muted small">Déjà prise en charge par un autre modérateur.</p>':`<button class="btn subtle small" type="button" data-review-claim="${esc(x.id)}">Prendre en charge</button>`}</article>`;
+ return `<section class="prod-panel dlfr30-queue"><div class="row-between"><div><h2>File de modération · ${esc(role)}</h2><p class="small muted">Choisis une demande ou laisse le site t’en attribuer une au hasard. La réservation dure 20 minutes.</p></div><button class="btn" type="button" data-review-claim="random">🎲 Tirer au hasard</button></div>
+ ${s.scopedQueueError?`<p class="notice warning">File temporairement indisponible. Réessaie après installation du correctif serveur.</p>`:''}
+ <div class="dlfr30-totals"><span>Libres : <b>${free.length}</b></span><span>En cours : <b>${busy.length+current.length}</b></span><button class="btn subtle small" data-review-refresh type="button">↻ Actualiser</button></div>
+ ${current.length?`<h3>Ma soumission</h3>${current.map(item).join('')}`:''}
+ <details ${current.length?'':'open'}><summary>À traiter (${free.length})</summary><div class="dlfr30-review-grid">${free.length?free.map(item).join(''):'<p class="muted">Aucune soumission libre dans ton périmètre.</p>'}</div></details>
+ ${busy.length?`<details><summary>En cours chez les autres (${busy.length})</summary><div class="dlfr30-review-grid">${busy.map(item).join('')}</div></details>`:''}
+ </section>`;
 }
+
 async function send(db,type,f,submitter){
  const r=(method,args)=>db.rpc(method,args).then(errorOf);
  const yes=submitter?.value==='yes';

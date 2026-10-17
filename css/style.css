@@ -907,3 +907,17 @@ html.unrated-mode .level-badge.unrated-badge{background:#54206e;color:#fff}
 .dlfr-submit-clean .submission-simple select{padding:4px}
 .dlfr-submit-clean .submission-simple select option{padding:8px 10px;border-radius:6px}
 .dlfr-submit-clean .submission-simple [hidden]{display:none!important}
+
+/* DLFR 3.0 — File de moderation non conflictuelle */
+.dlfr30-queue {display:grid;gap:1rem;}
+.dlfr30-queue .row-between {gap:1rem;flex-wrap:wrap;}
+.dlfr30-queue .row-between h2 {margin-bottom:.3rem;}
+.dlfr30-totals {display:flex;gap:1rem;align-items:center;flex-wrap:wrap;padding:.65rem 1rem;border-radius:12px;background:rgba(125,112,185,.075);}
+.dlfr30-review-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:.8rem;margin-top:.8rem;}
+.dlfr30-review-card {min-width:0;}
+.dlfr30-review-card p {margin:.5rem 0;}
+.dlfr30-review-card .notice {display:block;margin:.5rem 0;}
+.dlfr30-review-card form {display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin-top:.6rem;}
+.dlfr30-actions {display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;}
+.dlfr30-queue details>summary {cursor:pointer;padding:.6rem 0;font-weight:600;}
+@media(max-width:650px){.dlfr30-queue .row-between>.btn {width:100%;}}
