@@ -921,3 +921,43 @@ html.unrated-mode .level-badge.unrated-badge{background:#54206e;color:#fff}
 .dlfr30-actions {display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;}
 .dlfr30-queue details>summary {cursor:pointer;padding:.6rem 0;font-weight:600;}
 @media(max-width:650px){.dlfr30-queue .row-between>.btn {width:100%;}}
+
+/* DLFR 2.11 — classement NLW et équipe, style DLFR existant */
+.dlfr-nlw-board{margin:18px 0 8px;text-align:left}
+.dlfr-nlw-board-head{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:17px;padding:0 2px}
+.dlfr-nlw-board-head h2{margin:5px 0;font-size:24px;letter-spacing:-.025em}
+.dlfr-nlw-board-head p{margin:0;color:var(--muted);font-size:13px}
+.dlfr-nlw-board-count{display:flex;flex-direction:column;align-items:flex-end;background:var(--panel);border:1px solid var(--line);padding:12px 18px;min-width:118px}
+.dlfr-nlw-board-count strong{font-size:25px;color:var(--blue)}
+.dlfr-nlw-board-count small{color:var(--muted);font-size:11px}
+.dlfr-nlw-podium{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 22px}
+.dlfr-nlw-podium-card{border:1px solid var(--line);background:var(--panel);min-width:0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:7px;padding:21px 10px 18px;text-decoration:none;color:var(--ink);position:relative;transition:transform .17s ease,border-color .17s ease}
+.dlfr-nlw-podium-card:hover{transform:translateY(-3px);border-color:var(--blue)}
+.dlfr-nlw-podium-card.is-first{border-top:3px solid #cca054;padding-top:19px;background:linear-gradient(180deg,rgba(213,172,84,.10),var(--panel) 65%)}
+.dlfr-nlw-place{font-size:12px;font-weight:800;color:var(--muted)}
+.dlfr-nlw-avatar{width:66px;height:66px;display:flex;align-items:center;justify-content:center;object-fit:cover;border-radius:50%;border:2px solid var(--line);background:var(--card);color:var(--blue);font-size:24px;font-weight:900}
+.dlfr-nlw-podium-card.is-first .dlfr-nlw-avatar{border-color:#d6ad60}
+.dlfr-nlw-podium-card strong{font-size:14px;max-width:100%;overflow-wrap:anywhere;color:var(--ink)}
+.dlfr-nlw-points{font-size:20px;font-weight:850;color:var(--blue)}
+.dlfr-nlw-points small{font-size:12px}.dlfr-nlw-completed{font-size:11px;color:var(--muted)}
+.dlfr-nlw-rank-list{border:1px solid var(--line);background:var(--card)}
+.dlfr-nlw-list-label{padding:12px 16px;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:800;background:var(--panel);border-bottom:1px solid var(--line)}
+.dlfr-nlw-rank-row{display:flex;gap:13px;align-items:center;padding:11px 15px;text-decoration:none;color:var(--ink);border-bottom:1px solid var(--line);transition:background-color .15s}
+.dlfr-nlw-rank-row:last-child{border-bottom:0}.dlfr-nlw-rank-row:hover{background:var(--panel)}
+.dlfr-nlw-row-rank{width:38px;flex:none;color:var(--muted);font-weight:850;font-size:15px}
+.dlfr-nlw-avatar-small{width:40px;height:40px;flex:none;font-size:16px}
+.dlfr-nlw-player{min-width:0;flex:1;display:flex;flex-direction:column;gap:4px}
+.dlfr-nlw-player b{font-size:13px;overflow-wrap:anywhere}.dlfr-nlw-player small,.dlfr-nlw-row-score small{font-size:11px;color:var(--muted)}
+.dlfr-nlw-row-score{text-align:right;min-width:125px;display:flex;flex-direction:column;gap:3px}
+.dlfr-nlw-row-score strong{font-size:14px;color:var(--blue)}
+.dlfr-nlw-bar{height:4px;background:linear-gradient(90deg,var(--blue) var(--nlw-progress),var(--line) var(--nlw-progress));width:100%;margin-top:3px}
+.dlfr-nlw-row-arrow{font-size:18px;color:var(--muted)}
+.dlfr-team-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.dlfr-team-heading h3{margin:4px 0}
+.dlfr-team-list{margin:20px 0}.dlfr-team-member{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:10px 12px;border:1px solid var(--line);border-bottom:0}.dlfr-team-member:last-child{border-bottom:1px solid var(--line)}
+.dlfr-team-member>span:first-child{display:flex;flex-direction:column;gap:3px;min-width:0;overflow-wrap:anywhere}.dlfr-team-member small{color:var(--muted)}
+.dlfr-team-owner{font-weight:800}
+.dlfr-team-forms{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.dlfr-team-form{padding:17px;background:var(--panel);border:1px solid var(--line);min-width:0}.dlfr-team-form h4{margin:0 0 14px}.dlfr-team-form-owner{border-top:3px solid var(--blue)}
+@media(max-width:680px){.dlfr-nlw-podium{gap:6px}.dlfr-nlw-podium-card{padding:14px 5px;gap:5px}.dlfr-nlw-avatar{width:48px;height:48px;font-size:18px}.dlfr-nlw-podium-card strong{font-size:11px}.dlfr-nlw-points{font-size:15px}.dlfr-nlw-rank-row{padding:10px 8px;gap:8px}.dlfr-nlw-row-score{min-width:86px}.dlfr-nlw-row-arrow{display:none}.dlfr-team-forms{grid-template-columns:1fr}.dlfr-nlw-board-head h2{font-size:20px}}
+/* Afficher la section Équipe, cachée par la règle générale de modération. */
+.admin-content .moderation-sections[data-active-admin="team"] [data-admin-section="team"]{display:block;animation:panel-in .2s ease}

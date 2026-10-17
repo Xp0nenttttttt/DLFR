@@ -17,7 +17,7 @@ REVOKE ALL ON public.dlfr_review_assignments FROM PUBLIC, anon, authenticated;
 -- d'action du modo. Les cas ambigus restent dans la file des supermodos.
 CREATE OR REPLACE FUNCTION public.dlfr_review_queue_status()
 RETURNS TABLE(id bigint,level_name text,player text,progress integer,
- video_url text,raw_footage_url text,position integer,demon_id bigint,
+ video_url text,raw_footage_url text,"position" integer,demon_id bigint,
  claim_status text,claim_expires_at timestamptz)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
  SELECT s.id,s.level_name,s.player,s.progress,s.video_url,s.raw_footage_url,
