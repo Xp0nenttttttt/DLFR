@@ -960,25 +960,41 @@ function submitRecordPage(){
  const myName=owner?.username||'';
  const ready=!!(state.session&&state.ownKey&&myName);
  const levels=submitLevelList();
- return `${templateNotice()}<section class="paper v2-page dlfr-submit-clean"><div class="v2-intro"><h1>Soumettre un record</h1><p>Choisis le niveau dans la liste, ajoute ta vidéo et envoie. Un modérateur vérifiera ta preuve.</p></div>
+ const hasExisting=levels.length>0;
+ return `${templateNotice()}<section class="paper v2-page dlfr-submit-clean"><div class="v2-intro"><h1>Soumettre un record</h1><p>Ton niveau est déjà dans la liste ? Sélectionne-le. Sinon, tu peux proposer un nouveau niveau avec ta preuve vidéo.</p></div>
  ${!ready?`<div class="notice warning">${!state.session?'Connecte-toi à ton compte DLFR.':'Associe ou crée ta fiche joueur dans Mon profil pour participer.'}</div><a href="${url('my-profile')}" data-nav class="btn">Accéder à mon profil</a>`:
  `<form data-form="submitRecord" class="submission-form submission-simple"><div class="submission-identity"><span class="small muted">Soumission par</span><strong>${esc(myName)}</strong></div>
- <div class="field submission-wide"><label for="submitLevelSearch">Niveau</label><input id="submitLevelSearch" type="search" placeholder="Rechercher un niveau…" autocomplete="off">
-  <select id="submitLevelSelect" name="demon_id" required size="8">${levels.map(d=>`<option value="${esc(d.id)}" data-pos="${esc(d.unrated?0:num(d.position))}" data-req="${esc(Math.max(1,Math.min(100,num(d.requirement||100))))}" data-search="${esc(key(d.name)+' '+plain(d.level_id))}">${esc(submitLevelLabel(d))} — ${esc(d.name)}</option>`).join('')}</select></div>
+ <fieldset class="dlfr-submit-mode"><legend>Quel type de niveau ?</legend>
+ <label><input type="radio" name="submission_mode" value="existing" ${hasExisting?'checked':''} ${hasExisting?'':'disabled'}> Niveau déjà dans la liste</label>
+ <label><input type="radio" name="submission_mode" value="new" ${hasExisting?'':'checked'}> Proposer un nouveau niveau</label></fieldset>
+ <div id="submitExistingFields" class="dlfr-submit-fields submission-wide" ${hasExisting?'':'hidden'}>
+ <div class="field"><label for="submitLevelSearch">Rechercher un niveau</label><input id="submitLevelSearch" type="search" placeholder="Nom ou ID Geometry Dash…" autocomplete="off">
+ <select id="submitLevelSelect" name="demon_id" ${hasExisting?'required':''} size="8">${levels.map(d=>`<option value="${esc(d.id)}" data-pos="${esc(d.unrated?0:num(d.position))}" data-req="${esc(Math.max(1,Math.min(100,num(d.requirement||100))))}" data-search="${esc(key(d.name)+' '+plain(d.level_id))}">${esc(submitLevelLabel(d))} — ${esc(d.name)}</option>`).join('')}</select></div></div>
+ <div id="submitNewFields" class="dlfr-submit-fields submission-wide" ${hasExisting?'hidden':''}>
+ <div class="notice small">Ce niveau n'est pas encore publié. La modération examinera sa fiche et décidera du classement avant toute publication.</div>
+ <label class="field">Nom du niveau<input name="level_name" maxlength="120" minlength="2" ${hasExisting?'':'required'} placeholder="Ex. Nouveau Extreme Demon"></label>
+ <label class="field">ID Geometry Dash<input name="level_id" inputmode="numeric" pattern="[0-9]+" maxlength="18" ${hasExisting?'':'required'} placeholder="ID du niveau en jeu"></label>
+ <p class="small muted">Tu n'as pas besoin de renseigner le créateur, l'éditeur ou le vérificateur : les modérateurs compléteront la fiche.</p></div>
  <p class="small muted submission-wide" id="submitLevelHint">Sélectionne un niveau pour voir ce qui est demandé.</p>
- <label class="field submission-wide">Vidéo YouTube<input name="video_url" type="url" required placeholder="https://youtu.be/…"></label>
- <label class="field submission-wide" id="submitRawField" hidden>Raw footage (obligatoire pour le Top 150)<input name="raw_footage_url" type="url" placeholder="Lien Drive, YouTube non répertorié…"></label>
+ <label class="field submission-wide">Vidéo YouTube de ta complétion<input name="video_url" type="url" required maxlength="1000" placeholder="https://youtu.be/…"></label>
+ <label class="field submission-wide" id="submitRawField" hidden>Raw footage <span id="submitRawOptional">(facultatif pour une nouvelle proposition, recommandé si Top 150)</span><input name="raw_footage_url" type="url" maxlength="1000" placeholder="Lien Drive, YouTube non répertorié…"></label>
  <label class="field" id="submitProgressField" hidden>Pourcentage de complétion (%)<input name="progress" type="number" min="1" max="100" value="100"></label>
  <button type="submit" class="btn">Envoyer en modération</button></form>`}</section>`;
 }
 function submitSyncForm(){
  const sel=document.getElementById('submitLevelSelect');if(!sel)return;
+ const form=sel.closest('form');const mode=form?.querySelector('input[name="submission_mode"]:checked')?.value||'existing';const isNew=mode==='new';
+ const existing=document.getElementById('submitExistingFields'),newFields=document.getElementById('submitNewFields');
+ if(existing)existing.hidden=isNew;
+ if(newFields)newFields.hidden=!isNew;
+ sel.required=!isNew;
+ for(const inp of newFields?.querySelectorAll('input')||[])inp.required=isNew;
  const opt=sel.selectedOptions[0],hint=document.getElementById('submitLevelHint'),raw=document.getElementById('submitRawField'),prog=document.getElementById('submitProgressField');
  const pos=opt?num(opt.dataset.pos):0,req=opt?num(opt.dataset.req):100;
- const top150=!!opt&&pos>=1&&pos<=num(cfg().extended_limit),top75=!!opt&&pos>=1&&pos<=num(cfg().main_limit);
- raw.hidden=!top150;raw.querySelector('input').required=top150;
- const pct=top75&&req<100;prog.hidden=!pct;const pi=prog.querySelector('input');pi.min=String(req);if(!pct)pi.value='100';else if(num(pi.value)<req)pi.value=String(req);
- hint.textContent=!opt?'Sélectionne un niveau pour voir ce qui est demandé.':top75?(req<100?`Top 75 : indique ton pourcentage (minimum ${req} %). Raw footage obligatoire.`:'Top 75 : complétion à 100 %. Raw footage obligatoire.'):top150?'Top 150 : complétion à 100 %. Raw footage obligatoire.':'Seule la vidéo YouTube est demandée (complétion à 100 %).';
+ const top150=!isNew&&!!opt&&pos>=1&&pos<=num(cfg().extended_limit),top75=!isNew&&!!opt&&pos>=1&&pos<=num(cfg().main_limit);
+ raw.hidden=!(isNew||top150);raw.querySelector('input').required=top150;
+ const pct=top75&&req<100;prog.hidden=!pct;const pi=prog.querySelector('input');pi.required=pct;pi.min=String(req);if(!pct)pi.value='100';else if(num(pi.value)<req)pi.value=String(req);
+ hint.textContent=isNew?'Nouvelle proposition : ajoute une preuve YouTube à 100 %. Le raw footage pourra être demandé si le niveau rejoint le Top 150.':!opt?'Sélectionne un niveau pour voir ce qui est demandé.':top75?(req<100?`Top 75 : indique ton pourcentage (minimum ${req} %). Raw footage obligatoire.`:'Top 75 : complétion à 100 %. Raw footage obligatoire.'):top150?'Top 150 : complétion à 100 %. Raw footage obligatoire.':'Seule la vidéo YouTube est demandée (complétion à 100 %).';
 }
 function levelCreditsEditor(){
  const levels=(state.data.demons||[]).slice().sort((a,b)=>num(a.position)-num(b.position));
@@ -1558,7 +1574,7 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
  if(LIVE&&PROD.handles(type)){
   if(type!=='prodClaim'&&type!=='selfCreatePlayer'&&type!=='submitRecord'&&!state.staff)throw Error('Modérateur requis.');
   if(['nlw','moderator'].includes(state.staffRole)&&type!=='prodScopedReview')throw Error('Action réservée aux supermodérateurs.');
-  if(type==='submitRecord'){f.__demon=(state.data.demons||[]).find(d=>String(d.id)===String(f.demon_id));f.__cfg=cfg();}
+  if(type==='submitRecord'){f.__demon=f.submission_mode==='new'?null:(state.data.demons||[]).find(d=>String(d.id)===String(f.demon_id));f.__cfg=cfg();}
   await PROD.send(db,type,f,submitter);
   await refreshLiveData();
   if(type==='prodManageStaff')await loadStaffCandidates();
@@ -1589,18 +1605,22 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   if(LIVE)throw Error('Soumissions réelles indisponibles avant la migration Auth / RLS.');
   const owner=(state.data.players||[]).find(p=>p.player_key===state.ownKey);
   if(!state.session||!owner?.username)throw Error('Fiche joueur liée au compte obligatoire.');
-  const demon=(state.data.demons||[]).find(d=>String(d.id)===String(f.demon_id));
-  if(!demon)throw Error('Choisis un niveau dans la liste.');
-  const player=plain(owner.username),level_name=plain(demon.name),video_url=http(f.video_url),raw_footage_url=http(f.raw_footage_url);
-  const pos=demon.unrated?0:num(demon.position),req=Math.max(1,Math.min(100,num(demon.requirement||100)));
-  const top150=pos>=1&&pos<=num(cfg().extended_limit),top75=pos>=1&&pos<=num(cfg().main_limit);
+  const isNew=f.submission_mode==='new';
+  const demon=isNew?null:(state.data.demons||[]).find(d=>String(d.id)===String(f.demon_id));
+  if(!isNew&&!demon)throw Error('Choisis un niveau dans la liste.');
+  const player=plain(owner.username),level_name=isNew?plain(f.level_name):plain(demon.name),video_url=http(f.video_url),raw_footage_url=http(f.raw_footage_url);
+  const level_id=isNew?plain(f.level_id):plain(demon.level_id);
+  if(isNew&&(!/^\d{1,18}$/.test(level_id)||level_name.length<2||level_name.length>120))throw Error('Nom ou ID Geometry Dash invalide.');
+  if(isNew&&(state.data.demons||[]).some(d=>d.is_public!==false&&String(d.level_id||'')===level_id))throw Error('Ce niveau existe déjà : sélectionne-le dans la liste.');
+  const pos=demon&&!demon.unrated?num(demon.position):0,req=demon?Math.max(1,Math.min(100,num(demon.requirement||100))):100;
+  const top150=!isNew&&pos>=1&&pos<=num(cfg().extended_limit),top75=!isNew&&pos>=1&&pos<=num(cfg().main_limit);
   const progress=top75?Number(f.progress||100):100;
   if(!submitIsYoutube(video_url))throw Error('Ajoute un lien YouTube valide (youtube.com ou youtu.be).');
   if(top150&&!raw_footage_url)throw Error('Le raw footage est obligatoire pour le Top 150.');
   if(!Number.isInteger(progress)||progress<req||progress>100)throw Error('Pourcentage invalide (minimum '+req+' %).');
   const rows=state.data.level_submissions||[];
-  if(rows.some(x=>x.status==='pending'&&SUBMISSIONS.norm(x.level_name)===SUBMISSIONS.norm(level_name)&&SUBMISSIONS.norm(x.player)===SUBMISSIONS.norm(player)))throw Error('Une soumission identique attend déjà validation.');
-  rows.push({id:Math.max(0,...rows.map(x=>Number(x.id)||0))+1,status:'pending',level_name,level_id:plain(demon.level_id),player,progress,video_url,raw_footage_url,publisher:plain(demon.publisher),creator:plain(demon.creator),verifier:plain(demon.verifier),suggested_position:null,submitted_at:new Date().toISOString()});
+  if(rows.some(x=>x.status==='pending'&&(level_id&&String(x.level_id)===level_id||SUBMISSIONS.norm(x.level_name)===SUBMISSIONS.norm(level_name))&&SUBMISSIONS.norm(x.player)===SUBMISSIONS.norm(player)))throw Error('Une soumission identique attend déjà validation.');
+  rows.push({id:Math.max(0,...rows.map(x=>Number(x.id)||0))+1,status:'pending',level_name,level_id,player,progress,video_url,raw_footage_url,publisher:isNew?'À renseigner':plain(demon.publisher),creator:isNew?'':plain(demon.creator),verifier:isNew?'':plain(demon.verifier),suggested_position:null,submitted_at:new Date().toISOString()});
   state.data.level_submissions=rows;saveDemo();toast('Soumission envoyée en modération (démo).');render();return;
  }
  if(type==='reviewSubmission'){
@@ -1995,7 +2015,7 @@ function bootEvents(){
 });
  document.addEventListener('submit',ev=>{const form=ev.target;if(!form.matches('[data-form="levelPackEditor"],[data-form="chooseFrame"]'))return;ev.preventDefault();ev.stopImmediatePropagation();(async()=>{try{if(form.dataset.form==='levelPackEditor')await savePackForm(form);else await saveFrame(form);}catch(e){toast(e.message||String(e));}})();},true);
  document.addEventListener('input',ev=>{if(ev.target.id!=='submitLevelSearch')return;const sel=document.getElementById('submitLevelSelect');if(!sel)return;const q=key(ev.target.value);for(const o of sel.options)o.hidden=!key(o.textContent+' '+o.dataset.search).includes(q);const first=[...sel.options].find(x=>!x.hidden);if(sel.selectedOptions[0]?.hidden){sel.value=first?first.value:'';}submitSyncForm();});
- document.addEventListener('change',ev=>{if(ev.target.id==='submitLevelSelect')submitSyncForm();});
+ document.addEventListener('change',ev=>{if(ev.target.id==='submitLevelSelect'||ev.target.name==='submission_mode')submitSyncForm();});
  document.addEventListener('submit',ev=>{if(ownerPreviewActive()&&new URLSearchParams(location.search).get('page')==='admin'){ev.preventDefault();ev.stopImmediatePropagation();toast('Aperçu en lecture seule.');}},true);
  document.addEventListener('submit',ev=>{if(ev.target.matches('[data-form="clanCreate"], [data-form="clanInvite"], [data-form="clanRequest"], [data-form="clanEdit"]')){ev.preventDefault();handleClanForm(ev.target);return;}if(ev.target.matches('[data-form]')){ev.preventDefault();handleForm(ev.target,ev.submitter||null);}});
  document.querySelectorAll('.nav-links a,.brand').forEach(a=>a.addEventListener('click',ev=>{ev.preventDefault();go(a.dataset.link||'list');}));

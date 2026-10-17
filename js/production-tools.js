@@ -197,25 +197,38 @@ async function send(db,type,f,submitter){
   return errorOf(await db.from('badge_awards').insert({player_key:f.player_key,badge_id:f.badge_id,obtained_at:date,origin:'moderator'}));
  }
  if(type==='submitRecord'){
-  const demon=f.__demon;
-  if(!demon)throw Error('Choisis un niveau dans la liste');
+  const isNew=f.submission_mode==='new';
+  const demon=isNew?null:f.__demon;
+  if(!isNew&&!demon)throw Error('Choisis un niveau dans la liste.');
   const yt=v=>{try{const u=new URL(v);return u.protocol==='https:'&&/^(www\.|m\.)?(youtube\.com|youtu\.be)$/i.test(u.hostname);}catch{return false;}};
-  if(!yt(trim(f.video_url)))throw Error('Lien YouTube (https) requis');
-  const pos=demon.unrated?0:Number(demon.position),req=Math.max(1,Math.min(100,Number(demon.requirement||100)));
+  if(!yt(trim(f.video_url)))throw Error('Lien YouTube (https) requis.');
   const lim=f.__cfg||{main_limit:75,extended_limit:150};
-  const top150=pos>=1&&pos<=Number(lim.extended_limit),top75=pos>=1&&pos<=Number(lim.main_limit);
+  const pos=demon&&!demon.unrated?Number(demon.position):0;
+  const req=demon?Math.max(1,Math.min(100,Number(demon.requirement||100))):100;
+  const top150=!isNew&&pos>=1&&pos<=Number(lim.extended_limit);
+  const top75=!isNew&&pos>=1&&pos<=Number(lim.main_limit);
   const raw=trim(f.raw_footage_url);
-  if(top150&&!/^https:\/\//i.test(raw))throw Error('Raw footage (lien https) obligatoire pour le Top 150');
-  if(raw&&!/^https:\/\//i.test(raw))throw Error('Le raw footage doit être un lien https');
+  if(top150&&!/^https:\/\//i.test(raw))throw Error('Raw footage (lien https) obligatoire pour le Top 150.');
+  if(raw&&!/^https:\/\//i.test(raw))throw Error('Le raw footage doit être un lien https.');
   const progress=top75?Number(f.progress||100):100;
-  if(!Number.isInteger(progress)||progress<req||progress>100)throw Error('Pourcentage invalide (minimum '+req+' %)');
-  const who=(await db.auth.getUser()).data.user;
-  if(!who)throw Error('Connexion Discord requise');
+  if(!Number.isInteger(progress)||progress<req||progress>100)throw Error('Pourcentage invalide (minimum '+req+' %).');
+  const level_name=isNew?trim(f.level_name):trim(demon.name);
+  const level_id=isNew?trim(f.level_id):trim(demon.level_id);
+  if(isNew){
+   if(level_name.length<2||level_name.length>120)throw Error('Indique le nom du niveau (2 à 120 caractères).');
+   if(!/^\d{1,18}$/.test(level_id))throw Error('Indique un ID Geometry Dash numérique valide.');
+   // Ne pas créer un doublon d'une fiche publique existante.
+   const {data:published,error:checkError}=await db.from('demons').select('id').eq('level_id',level_id).eq('is_public',true).limit(1);
+   if(checkError)throw Error('Impossible de vérifier le niveau. Réessaie.');
+   if(published?.length)throw Error('Ce niveau est déjà publié : sélectionne-le dans la liste.');
+  }
+  const {data:{user:who},error:whoError}=await db.auth.getUser();
+  if(whoError||!who)throw Error('Connecte-toi pour envoyer ta soumission.');
   const {data:ownership,error:ownerError}=await db.from('player_profile_owners').select('player_key,players(username)').eq('auth_user_id',who.id).maybeSingle();
   if(ownerError)throw Error(ownerError.message);
   const nickname=trim(ownership?.players?.username);
   if(!nickname)throw Error('Relie ou crée une fiche DLFR avant de soumettre.');
-  return errorOf(await db.from('level_submissions').insert({auth_user_id:who.id,level_name:trim(demon.name),level_id:trim(demon.level_id)||null,player:nickname,progress,video_url:trim(f.video_url),raw_footage_url:raw||null,publisher:trim(demon.publisher),creator:trim(demon.creator)||null,verifier:trim(demon.verifier)||null}));
+  return errorOf(await db.from('level_submissions').insert({auth_user_id:who.id,level_name,level_id:level_id||null,player:nickname,progress,video_url:trim(f.video_url),raw_footage_url:raw||null,publisher:isNew?'À renseigner':trim(demon.publisher),creator:isNew?null:trim(demon.creator)||null,verifier:isNew?null:trim(demon.verifier)||null}));
  }
  throw Error('Action inconnue');
 }
