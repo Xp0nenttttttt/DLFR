@@ -259,13 +259,14 @@ function score(demon,progress=100){
 function ranked(){
  const d=state.data,demons=catalog(),byId=Object.fromEntries(demons.map(v=>[v.id,v]));
  const completionScoreByPlayer = new Map();
+ const resolvePlayer=V2.playerResolver(d.players),scoredRecords=V2.scoringRecords(d.players,demons,d.completions);
  const people=new Map(d.players.map(p=>[p.player_key,{...p,total_records:0,total_completions:0,main:[],extended:[],beyond:[],legacy:[],progress:[],created:[],published:[],verified:[],pointsComputed:num(p.bonus_points),hardest:null,hardestKind:null,hardestHistorical:false}]));
- const ensure=(name)=>{const k=key(name);if(!k)return null;if(isCreatorGroupCredit(name)&&!people.has(k))return null;if(!people.has(k))people.set(k,{player_key:k,username:name,display_name:name,country_code:'',has_account:false,hidden_from_stats:false,points:0,bonus_points:0,pointsComputed:0,total_records:0,total_completions:0,main:[],extended:[],beyond:[],legacy:[],progress:[],created:[],published:[],verified:[],hardest:null,hardestKind:null,hardestHistorical:false});return people.get(k);};
+ const ensure=(name)=>{const resolved=resolvePlayer(name);const k=resolved?.player_key||key(name);if(!k)return null;if(isCreatorGroupCredit(name)&&!people.has(k))return null;if(!people.has(k))people.set(k,{player_key:k,username:name,display_name:name,country_code:'',has_account:false,hidden_from_stats:false,points:0,bonus_points:0,pointsComputed:0,total_records:0,total_completions:0,main:[],extended:[],beyond:[],legacy:[],progress:[],created:[],published:[],verified:[],hardest:null,hardestKind:null,hardestHistorical:false});return people.get(k);};
  for(const demon of demons){for(const [field,dest] of [['creator','created'],['publisher','published'],['verifier','verified']]){
    const names=field==='verifier'?[d.players.find(p=>num(p.legacy_id)>0&&num(p.legacy_id)===num(demon.verifier_user_id))?.player_key||demon.verifier]:field==='creator'?[demon.creator,...plain(demon.creator_more).split(',')]:[demon[field]];
    for(const name of names){const player=ensure(name);if(player&&!player[dest].some(x=>x.id===demon.id))player[dest].push(demon);}
  }}
- for(const r of d.completions){const player=ensure(r.player),demon=byId[r.demon_id];if(!player||!demon)continue;
+ for(const r of scoredRecords){const player=ensure(r.player),demon=byId[r.demon_id];if(!player||!demon)continue;
     player.total_records++;if(+r.progress>=100)player.total_completions++;
     const points=score(demon,r.progress),rankDemon=+demon.position<=+cfg().main_limit?'main':+demon.position<=+cfg().extended_limit?'extended':V2.nlwRank(demon)>0?'beyond':null;
     if(r.progress>=100){if(rankDemon)player[rankDemon].push(demon);}else player.progress.push({demon,progress:r.progress});
@@ -273,7 +274,7 @@ function ranked(){
     player.pointsComputed+=points;
     if(!completionScoreByPlayer.has(player.player_key))completionScoreByPlayer.set(player.player_key,new Map());
     completionScoreByPlayer.get(player.player_key).set(demon.id,points);
-    if(r.progress>=100 && +demon.position>0 && +demon.position<=cfg().extended_limit && (!player.hardest || +demon.position<+player.hardest.position)){player.hardest=demon;player.hardestKind='complété';player.hardestHistorical=false;}
+    if(r.progress>=100 && +demon.position>0 && (+demon.position<=cfg().extended_limit||V2.nlwRank(demon)>0) && (!player.hardest || +demon.position<+player.hardest.position)){player.hardest=demon;player.hardestKind=r.from_verification?'vérifié':'complété';player.hardestHistorical=false;}
  }
  // Comme dans le PHP original : vérification = points 100%, moins les points déjà obtenus sur ce niveau.
  for(const demon of demons){
@@ -798,7 +799,7 @@ function statsProfilePreview(p){
    <div class="dlfr251-preview-content">
     <div class="dlfr251-preview-identity">${framedAvatar(p.player_key,`<span class="dlfr251-preview-avatar">${avatar?`<img loading="lazy" src="${esc(avatar)}" alt="Avatar de ${esc(name)}">`:`<span aria-hidden="true">${esc(initial)}</span>`}</span>`)}<div class="dlfr251-preview-name"><h3>${flag(p.country_code)} ${esc(name)}</h3><p class="muted small">${p.has_account?'Compte DLFR':'Profil non revendiqué'} ${p.country_code==='FR'?`· ${esc(GEO.regionInfo(regionFor(p))?.name||'France')}`:''}</p></div></div>
     ${featured?`<p class="dlfr251-preview-title">✦ ${esc(featured.label)}</p>`:''}
-    <div class="dlfr251-preview-stats">${box('Rang DLFR',p.rank?'#'+p.rank:'—')}${box('Points',fmt(p.score))}${box('Hardest',hardestLabel(p))}${box('Main List',mainCount)}${box('Extended',extendedCount)}${box('NLW',p.beyond.length)}</div>
+    <div class="dlfr251-preview-stats">${box('Rang DLFR',p.rank?'#'+p.rank:'—')}${box('Points Top 150',fmt(p.score))}${box('Points NLW',fmt(p.nlwScore||0))}${box('Rang NLW',p.nlwRank?'#'+p.nlwRank:'—')}${box('Hardest',hardestLabel(p))}${box('Main List',mainCount)}${box('Extended',extendedCount)}${box('NLW',p.beyond.length)}</div>
     ${profile.bio?`<p class="dlfr251-preview-bio">${esc(profile.bio)}</p>`:''}
     <a data-nav class="btn dlfr251-preview-open" href="${url('player',{player:p.player_key})}">Voir le profil complet ↗</a>
    </div>

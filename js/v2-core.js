@@ -51,10 +51,25 @@
  function primaryBase(p){return p>=56?1.039035131*((185.7*Math.exp(-.02715*p))+14.84):p>=36?1.0371139743*((212.61*Math.pow(1.036,1-p))+25.071):p>=21?((250-83.389)*Math.pow(1.0099685,2-p)-31.152)*1.0371139743:p>=4?((326.1*Math.exp(-.0871*p))+51.09)*1.037117142:p>=1?(-18.2899079915*p)+368.2899079915:0;}
  function actualPoints(d,progress=100,top1=350){const pos=Number(d.position),min=Math.max(1,Math.min(100,Number(d.requirement)||100));if(pos<1||pos>LIMIT||Number(progress)<min)return 0;
   const base=primaryBase(pos)*Number(top1)/primaryBase(1);return Number(progress)===100?base:base*Math.pow(5,(Number(progress)-min)/Math.max(1,100-min))/10;}
+ function playerResolver(players){
+  const keys=new Map(players.map(p=>[clean(p.player_key),p])),names=new Map(),ids=new Map();
+  for(const p of players){const n=clean(p.username);if(n){const list=names.get(n)||[];list.push(p);names.set(n,list);}if(Number(p.legacy_id)>0)ids.set(String(p.legacy_id),p);}
+  return (name,id)=>{if(id!=null&&ids.has(String(id)))return ids.get(String(id));const k=clean(name);if(keys.has(k))return keys.get(k);const matches=names.get(k)||[];return matches.length===1?matches[0]:null;};
+ }
+ function scoringRecords(players,demons,completions){
+  const resolve=playerResolver(players),best=new Map();
+  const add=r=>{if(!Number.isFinite(Number(r.progress))||Number(r.progress)<0||Number(r.progress)>100)return;const p=resolve(r.player),record={...r,player:p?p.player_key:r.player};
+   const k=clean(record.player)+'|'+Number(record.demon_id),old=best.get(k);
+   if(!old||Number(record.progress)>Number(old.progress))best.set(k,record);
+  };
+  completions.forEach(add);
+  for(const d of demons){if(d.is_public===false||d.legacy)continue;const p=resolve(d.verifier,d.verifier_user_id);if(p)add({demon_id:d.id,player:p.player_key,progress:100,video_url:d.verifier_video_url||null,from_verification:true});}
+  return [...best.values()];
+ }
  function project(players,demons,completions,unrated=false){const catalog=decorate(demons,unrated),map=new Map(catalog.map(d=>[Number(d.id),d]));const rows=new Map(players.map(p=>[clean(p.player_key),{...p,main_score:0,nlw_score:0,main_count:0,nlw_count:0}]));
   // Always retain the best valid progress per player and level; the order
   // of imported records must never affect the computed standings.
-  const best=new Map();for(const r of completions){
+  const best=new Map();for(const r of scoringRecords(players,demons,completions)){
    const d=map.get(Number(r.demon_id)),player=rows.get(clean(r.player));if(!player||!d)continue;
    const progress=Number(r.progress);if(!Number.isFinite(progress)||progress<0||progress>100)continue;
    const unique=clean(player.player_key)+'|'+Number(d.id);
@@ -76,5 +91,5 @@
   else if(ch!=='\r'||quoted)buf+=ch;
  }line.push(buf);if(line.some(s=>s.trim()))rows.push(line);return rows;}
  function parseAredl(text){const rows=csvParse(text);if(!rows.length)return[];const header=rows[0].map(clean),ix=header.findIndex(x=>['name','level','level name','niveau','level_name'].includes(x));const start=ix>=0?1:0;return rows.slice(start).map((r,i)=>({name:(r[ix>=0?ix:0]||'').trim(),aredl_rank: ix>=0?(r[header.findIndex(x=>['rank','position'].includes(x))]||''):''})).filter(x=>x.name).slice(0,20000);}
- return {LIMIT,NLW_SCORING_VERSION,decorate,nlwRank,nlwPoints,primaryPoints,mainCompleted,historicalLegacy,badges,actualPoints,project,csvParse,parseAredl,reaperSteps,challengeSteps};
+ return {playerResolver,scoringRecords,LIMIT,NLW_SCORING_VERSION,decorate,nlwRank,nlwPoints,primaryPoints,mainCompleted,historicalLegacy,badges,actualPoints,project,csvParse,parseAredl,reaperSteps,challengeSteps};
 });

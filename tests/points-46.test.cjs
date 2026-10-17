@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict'),v=require('../js/v2-core.js');
+const players=[{player_key:'player_123',username:'MaleiK',legacy_id:8}];
+const level={id:1,position:164,is_public:true,verifier:'MaleiK',verifier_user_id:8};
+let r=v.project(players,[level],[])[0];assert.equal(r.nlw_score,v.nlwPoints(level));assert.equal(r.nlw_count,1);assert.equal(r.main_score,0);
+r=v.project(players,[level],[{demon_id:1,player:'MaleiK',progress:100},{demon_id:1,player:'player_123',progress:100}])[0];assert.equal(r.nlw_count,1);assert.equal(r.nlw_score,v.nlwPoints(level));
+assert.equal(v.project(players,[{...level,is_public:false}],[])[0].nlw_score,0);
+assert.equal(v.project(players,[{...level,legacy:true}],[])[0].nlw_score,0);
+assert.equal(v.project(players,[{...level,verifier:null,verifier_user_id:null}],[{demon_id:1,player:'MaleiK',progress:100}])[0].nlw_count,1);
+assert.ok(v.project(players,[{...level,position:10}],[])[0].main_score>0);
+assert.equal(v.project(players,[{...level,verifier:'other',verifier_user_id:8}],[])[0].nlw_count,1);
+console.log('PASS: linked verifier, alias, NLW score/count, Top150 score, duplicates, hidden and legacy exclusions');
