@@ -710,7 +710,8 @@ function levelCreditsEditor(){
  <label class="field">Mode de complétion<select name="completion_mode"><option value="standard">Standard</option><option value="solo">Solo</option><option value="two_player">2-Player</option></select></label>
  </div><div><h3>Classement et publication</h3>
  <label class="field">Position globale<input name="position" type="number" min="1" max="99999998" required></label>
- <p class="small muted">151 = NLW #1 · 155 = NLW #5. Les positions Rated existantes sont décalées si nécessaire.</p>
+ <p class="small muted">Top 150 = positions 1 à 150 · NLW #1 = 151, NLW #5 = 155. Pour promouvoir un niveau NLW au Top 150, saisis directement le rang cible (ex. 50).</p>
+ <div class="notice small" id="levelStudioMoveNotice" role="status" aria-live="polite">Sélectionne un niveau et un rang pour prévisualiser le déplacement.</div>
  <label class="field"><input name="is_public" type="checkbox"> Fiche publiée</label>
  <label class="field"><input name="legacy" type="checkbox"> Niveau historique (Legacy)</label>
  <label class="field">Date Legacy<input name="legacy_since" type="date"></label>
@@ -722,7 +723,8 @@ function levelCreditsEditor(){
  <div class="studio-preview" id="levelStudioPreview">Aperçu de la miniature</div>
  </div></div>
  <div class="notice warning small">Attention : le rang principal et le rang NLW partagent la colonne « position ». Les changements de position modifient les points calculés. Les complétions ne seront pas supprimées.</div>
- <label class="field"><input name="confirm_move" type="checkbox"> Je confirme un éventuel changement de classement</label>
+ <label class="field"><input name="confirm_move" type="checkbox"> Je confirme un éventuel changement de classement et le décalage des niveaux concernés.</label>
+ <label class="field" id="levelStudioTransferConfirm" style="display:none">Confirmation de promotion NLW → Top 150 : saisis <b>TRANSFERER</b><input name="confirm_transfer" maxlength="10" autocomplete="off" placeholder="TRANSFERER"></label>
  <button class="btn" type="submit">Enregistrer la fiche du niveau</button></form></div>`;
 }
 function syncLevelStudio(){
@@ -734,7 +736,32 @@ function syncLevelStudio(){
  }
  for(const field of ['is_public','legacy'])form.elements[field].checked=!!d[field];
  form.elements.confirm_move.checked=false;
+ form.elements.confirm_transfer.value='';
+ updateStudioMovementPreview(form);
  updateStudioPreview(form);
+}
+// Rang NLW = position SQL - 150. Les positions techniques des imports cachés ne sont pas des rangs NLW.
+function updateStudioMovementPreview(form){
+ const selected=form.elements.demon_id?.value;
+ const level=(state.data.demons||[]).find(x=>String(x.id)===String(selected));
+ const preview=document.getElementById('levelStudioMoveNotice'),confirm=document.getElementById('levelStudioTransferConfirm');
+ if(!preview||!confirm||!level)return;
+ const from=Number(level.position),to=Number(form.elements.position.value);
+ const valid=Number.isSafeInteger(to)&&to>=1&&to<99999999;
+ const publishedNlw=from>150&&from<100000000&&level.is_public===true&&!level.legacy&&!level.unrated;
+ const promotion=valid&&publishedNlw&&to<=150;
+ confirm.style.display=promotion?'block':'none';
+ if(!promotion)form.elements.confirm_transfer.value='';
+ if(!valid){preview.textContent='Saisis une position globale valide (1 à 99 999 998).';return;}
+ if(from===to){preview.textContent='Position inchangée : seules les informations de la fiche seront enregistrées.';return;}
+ if(from>150&&to<=150){
+   preview.textContent=publishedNlw
+     ?`Promotion NLW #${from-150} → Top 150 #${to}. Les rangs intermédiaires seront décalés d’une position (+1). Si le rang #150 est occupé, son niveau entrera dans la NLW au rang #1. Les complétions et les points des joueurs seront recalculés selon les nouveaux rangs.`
+     :'Impossible de promouvoir directement un import masqué, un Legacy ou un niveau UNRATED : il doit d’abord être publié dans la NLW officielle.';
+   return;
+ }
+ if(from<=150&&to>150){preview.textContent='Le transfert Top 150 → NLW n’est pas pris en charge par ce correctif.';return;}
+ preview.textContent=`Déplacement #${from} → #${to} : les positions intermédiaires seront décalées, sans supprimer les records.`;
 }
 function studioYoutubeThumbnail(link){try{const u=new URL(link),h=u.hostname.replace(/^www\./,'').toLowerCase();let id='';if(h==='youtu.be')id=u.pathname.split('/')[1];else if(['youtube.com','m.youtube.com'].includes(h))id=u.pathname==='/watch'?u.searchParams.get('v'):u.pathname.split('/')[2];return /^[\w-]{11}$/.test(id||'')?'https://i.ytimg.com/vi/'+id+'/hqdefault.jpg':'';}catch{return '';}}
 function updateStudioPreview(form){const container=document.getElementById('levelStudioPreview');if(!container)return;const media=imageLink(form.elements.thumbnail_url.value)||studioYoutubeThumbnail(form.elements.video_url.value)||studioYoutubeThumbnail(form.elements.verifier_video_url.value);container.innerHTML=media?`<img src="${esc(media)}" alt="Aperçu miniature" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.hidden=false"><p hidden>Miniature indisponible — vérifie son URL.</p>`:'<p class="muted small">Aucune miniature renseignée</p>';}
@@ -1138,6 +1165,12 @@ async function handleForm(form,submitter=null){if(state.busy)return;state.busy=t
   if(!current)throw Error('Fiche introuvable.');
   if(!Number.isSafeInteger(pos)||pos<1||pos>=99999999)throw Error('Position invalide.');
   if(pos!==Number(current.position)&&f.confirm_move!=='on')throw Error('Coche la confirmation pour modifier le classement.');
+  if(Number(current.position)>150&&pos<=150){
+    if(current.is_public!==true||current.legacy||current.unrated||Number(current.position)>=100000000)throw Error('Seul un niveau NLW publié et non Legacy peut rejoindre le Top 150.');
+    if(f.confirm_transfer!=='TRANSFERER')throw Error('Pour promouvoir ce niveau au Top 150, écris TRANSFERER dans le champ de confirmation.');
+    if(f.is_public!=='on'||f.legacy==='on')throw Error('Le niveau doit rester public et non Legacy pour rejoindre le Top 150.');
+  }
+  if(Number(current.position)<=150&&pos>150)throw Error('Le transfert Top 150 vers NLW n’est pas disponible avec ce correctif.');
   const {error}=await db.rpc('dlfr_update_demon_full',{
     p_demon_id:id,p_name:plain(f.name),p_position:pos,p_level_id:plain(f.level_id),
     p_creator:plain(f.creator),p_creator_more:plain(f.creator_more),p_publisher:plain(f.publisher),p_verifier:plain(f.verifier),
@@ -1361,7 +1394,7 @@ function bootEvents(){
  });
  document.addEventListener('input',ev=>{
  if(ev.target.id==='levelStudioSearch'){const select=document.getElementById('levelStudioSelect');if(select){const q=key(ev.target.value);for(const opt of select.options)opt.hidden=!key(opt.textContent+' '+opt.dataset.search).includes(q);const first=[...select.options].find(x=>!x.hidden);if(first&&select.selectedOptions[0]?.hidden){select.value=first.value;syncLevelStudio();}}}
- if(ev.target.closest('[data-form="levelStudio"]'))updateStudioPreview(ev.target.closest('form'));
+ if(ev.target.closest('[data-form="levelStudio"]')){updateStudioPreview(ev.target.closest('form'));updateStudioMovementPreview(ev.target.closest('form'));}
  if(ev.target.id==='clanSearch'){state.clanSearch=ev.target.value;document.querySelectorAll('[data-clan-searchable]').forEach(r=>r.hidden=!r.dataset.clanSearchable.includes(key(state.clanSearch)));}
  if(ev.target.id==='unbeatenSearch'){state.unbeatSearch=ev.target.value;state.unbeatLimit=120;const results=$('unbeatenResults');if(results)results.innerHTML=unbeatenEntriesHTML();}
  if(ev.target.id==='newsSearch'){state.newsSearch=ev.target.value;const items=state.data.news_items.filter(n=>(n.is_published||state.staff)&&(state.newsFilter==='all'||getNewsCategory(n)===state.newsFilter)&&`${key(n.headline)} ${key(n.body)} ${key(n.player_name)}`.includes(key(state.newsSearch)));$('newsItems').innerHTML=newsItemsHTML(items.sort((a,b)=>+(!!b.is_pinned)-+(!!a.is_pinned)||new Date(b.created_at)-new Date(a.created_at)));}
