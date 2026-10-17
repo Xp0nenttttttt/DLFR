@@ -341,12 +341,26 @@ function cardsHTML(demons){if(!demons.length)return '<div class="paper empty">Au
    const thumb=http(d.thumbnail_url)||((d.video_url||d.verifier_video_url)&&window.DLFR_NLW_MEDIA?.thumbnail(d.video_url||d.verifier_video_url))||'',image=thumb?`<img loading="lazy" class="demon-thumb" src="${esc(thumb)}" onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src=this.src.replace('/maxresdefault.jpg','/hqdefault.jpg')}else{this.style.display='none'}" alt="Miniature de ${esc(d.name)}">`:(String(d.thumbnail_url||'').startsWith('assets/')?`<img class="demon-thumb" src="${esc(d.thumbnail_url)}" alt="Miniature de ${esc(d.name)}">`:`<div class="demon-thumb faux-thumb">${esc(d.name)}</div>`);
    return `<article class="paper list-entry ${p<=75?'main-rank':''}"><a href="${url('demon',{id:d.id})}" data-nav>${image}</a><div><h2><a href="${url('demon',{id:d.id})}" data-nav style="text-decoration:none">${p<=150?'#'+p:V2.nlwRank(d)>0?'NLW #'+V2.nlwRank(d):'Hors liste'} - ${esc(d.name)}</a></h2><div class="entry-meta">publié par <b>${esc(d.publisher&&d.publisher!=='AREDL'?d.publisher:'À renseigner')}</b>, vérifié par <b>${esc(d.verifier||'À renseigner')}</b></div><div class="points ${isRank?'':'no-points'}">${isRank?`${fmt(score(d,req))} (${req}%) — ${fmt(score(d,100))} (100%) points`:V2.nlwRank(d)>0?`NLW : ${fmt(nlwPoints(d))} points NLW (0 point principal)`:'Hors classement · 0 point'}</div>${(p>cfg().extended_limit||d.legacy||d.unrated)?pills:''}</div></article>`;
  }).join('');}
+// Évite les doublons quand un niveau historique est publié en Main List OU en NLW.
+// L'ID GD est prioritaire ; le nom ne sert que si une des deux fiches n'a pas d'ID.
+function historicalArchiveWithoutPublishedLevels(archive, published){
+ const active=published.filter(d=>{
+  const p=Number(d.original_position ?? d.position);
+  return d.is_public!==false&&!d.unrated&&!d.legacy&&Number.isSafeInteger(p)&&p>=1&&p<100000000;
+ });
+ const ids=new Set(active.map(d=>plain(d.level_id)).filter(Boolean));
+ const allNames=new Set(active.map(d=>key(d.name)).filter(Boolean));
+ const namesWithoutId=new Set(active.filter(d=>!plain(d.level_id)).map(d=>key(d.name)).filter(Boolean));
+ return archive.filter(d=>{
+  const id=plain(d.level_id),name=key(d.name);
+  if(id)return !ids.has(id)&&!(name&&namesWithoutId.has(name));
+  return !(name&&allNames.has(name));
+ });
+}
 function nlwListCards(search=''){
- const official=catalog().filter(d=>V2.nlwRank(d)>0);
- const ids=new Set(official.map(d=>plain(d.level_id)).filter(Boolean));
- const names=new Set(official.map(d=>key(d.name)).filter(Boolean));
- // Ne pas afficher deux fois un même GD ID / nom s'il est désormais officiellement NLW.
- const historical=oldArchive().filter(d=>!(plain(d.level_id)&&ids.has(plain(d.level_id)))&&!names.has(key(d.name)));
+ const catalogLevels=catalog();
+ const official=catalogLevels.filter(d=>V2.nlwRank(d)>0);
+ const historical=historicalArchiveWithoutPublishedLevels(oldArchive(),catalogLevels);
  const q=key(search);
  const valid=d=>key(d.name).includes(q);
  const officialFiltered=official.filter(valid),historicalFiltered=historical.filter(valid);
