@@ -848,22 +848,33 @@ function newsPage(){const all=[...state.data.news_items].filter(x=>x.is_publishe
 function newsItemsHTML(items){return items.length?items.map(n=>`<article class="news-card ${n.is_pinned?'pinned':''}"><div class="news-meta"><span class="news-category">${esc(getNewsCategory(n))}</span>${n.is_pinned?'<span class="news-pin">★ À la une</span>':''}<time>${date(n.created_at)}${!n.is_published?' · Brouillon':''}</time></div><h3>${esc(n.headline)}</h3><p class="news-body">${esc(n.body)}</p>${newsMedia(n)}${n.player_name?`<a class="tag" href="${url('player',{player:key(n.player_name)})}" data-nav>${esc(n.player_name)}</a>`:''}${hasFullStaffPowers()?`<div class="news-editor-actions"><button class="btn subtle small" data-edit-news="${n.id}">Modifier</button><button class="btn subtle small" data-toggle-news="${n.id}">${n.is_published?'Mettre en brouillon':'Publier'}</button></div>`:''}</article>`).join(''):'<p class="empty">Aucune actualité trouvée.</p>';}
 // Un champ de modération ne doit proposer que de vrais joueurs enregistrés.
 const playerOptions=()=>state.data.players.slice().sort((a,b)=>sortPlayerName(a).localeCompare(sortPlayerName(b),'fr')).map(x=>`<option value="${esc(x.player_key)}">${esc(sortPlayerName(x))}</option>`).join('');
+const submitLevelList=()=>(state.data.demons||[]).filter(d=>d.is_public!==false&&!d.legacy).slice().sort((a,b)=>num(a.unrated?a.unrated_position+1e9:a.position)-num(b.unrated?b.unrated_position+1e9:b.position));
+const submitLevelLabel=d=>d.unrated?'UNRATED #'+num(d.unrated_position):num(d.position)>num(cfg().extended_limit)?'NLW #'+(num(d.position)-num(cfg().extended_limit)):'#'+num(d.position);
+const submitIsYoutube=v=>{try{const u=new URL(plain(v));return u.protocol==='https:'&&/^(www\.|m\.)?(youtube\.com|youtu\.be)$/i.test(u.hostname);}catch{return false;}};
 function submitRecordPage(){
  const owner=(state.data.players||[]).find(p=>p.player_key===state.ownKey);
  const myName=owner?.username||'';
  const ready=!!(state.session&&state.ownKey&&myName);
- return `${templateNotice()}<section class="paper v2-page dlfr-submit-clean"><div class="v2-intro"><h1>Soumettre un niveau ou un record</h1><p>Ta soumission sera envoyée sous le pseudo lié à ton compte. Il n’est pas modifiable ici.</p></div>
+ const levels=submitLevelList();
+ return `${templateNotice()}<section class="paper v2-page dlfr-submit-clean"><div class="v2-intro"><h1>Soumettre un record</h1><p>Choisis le niveau dans la liste, ajoute ta vidéo et envoie. Un modérateur vérifiera ta preuve.</p></div>
  ${!ready?`<div class="notice warning">${!state.session?'Connecte-toi à ton compte DLFR.':'Associe ou crée ta fiche joueur dans Mon profil pour participer.'}</div><a href="${url('my-profile')}" data-nav class="btn">Accéder à mon profil</a>`:
- `<form data-form="submitRecord" class="submission-form"><div class="submission-identity"><span class="small muted">Soumission par</span><strong>${esc(myName)}</strong><span class="small muted">Identité vérifiée avec ton compte</span></div>
- <label class="field">Niveau<input name="level_name" maxlength="120" required placeholder="Nom du niveau"></label>
- <label class="field">ID Geometry Dash (facultatif)<input name="level_id" inputmode="numeric" maxlength="30" placeholder="Ex. 123456"></label>
- <label class="field">Progression (%)<input name="progress" type="number" min="1" max="100" value="100" required></label>
- <label class="field">Vidéo de preuve<input name="video_url" type="url" required placeholder="https://youtu.be/…"></label>
- <label class="field">Créateur du niveau<input name="creator" maxlength="120" placeholder="Créateur"></label>
- <label class="field">Publieur du niveau<input name="publisher" maxlength="120" required placeholder="Publieur"></label>
- <label class="field">Vérificateur (si connu)<input name="verifier" maxlength="120"></label>
- <label class="field">Rang suggéré (facultatif)<input name="suggested_position" type="number" min="1" placeholder="Par exemple 80"></label>
- <p class="small muted">Un modérateur décidera du classement et vérifiera la preuve. Ton pseudo est associé automatiquement à la soumission.</p><button type="submit" class="btn">Envoyer en modération</button></form>`}</section>`;
+ `<form data-form="submitRecord" class="submission-form submission-simple"><div class="submission-identity"><span class="small muted">Soumission par</span><strong>${esc(myName)}</strong></div>
+ <div class="field submission-wide"><label for="submitLevelSearch">Niveau</label><input id="submitLevelSearch" type="search" placeholder="Rechercher un niveau…" autocomplete="off">
+  <select id="submitLevelSelect" name="demon_id" required size="8">${levels.map(d=>`<option value="${esc(d.id)}" data-pos="${esc(d.unrated?0:num(d.position))}" data-req="${esc(Math.max(1,Math.min(100,num(d.requirement||100))))}" data-search="${esc(key(d.name)+' '+plain(d.level_id))}">${esc(submitLevelLabel(d))} — ${esc(d.name)}</option>`).join('')}</select></div>
+ <p class="small muted submission-wide" id="submitLevelHint">Sélectionne un niveau pour voir ce qui est demandé.</p>
+ <label class="field submission-wide">Vidéo YouTube<input name="video_url" type="url" required placeholder="https://youtu.be/…"></label>
+ <label class="field submission-wide" id="submitRawField" hidden>Raw footage (obligatoire pour le Top 150)<input name="raw_footage_url" type="url" placeholder="Lien Drive, YouTube non répertorié…"></label>
+ <label class="field" id="submitProgressField" hidden>Pourcentage de complétion (%)<input name="progress" type="number" min="1" max="100" value="100"></label>
+ <button type="submit" class="btn">Envoyer en modération</button></form>`}</section>`;
+}
+function submitSyncForm(){
+ const sel=document.getElementById('submitLevelSelect');if(!sel)return;
+ const opt=sel.selectedOptions[0],hint=document.getElementById('submitLevelHint'),raw=document.getElementById('submitRawField'),prog=document.getElementById('submitProgressField');
+ const pos=opt?num(opt.dataset.pos):0,req=opt?num(opt.dataset.req):100;
+ const top150=!!opt&&pos>=1&&pos<=num(cfg().extended_limit),top75=!!opt&&pos>=1&&pos<=num(cfg().main_limit);
+ raw.hidden=!top150;raw.querySelector('input').required=top150;
+ const pct=top75&&req<100;prog.hidden=!pct;const pi=prog.querySelector('input');pi.min=String(req);if(!pct)pi.value='100';else if(num(pi.value)<req)pi.value=String(req);
+ hint.textContent=!opt?'Sélectionne un niveau pour voir ce qui est demandé.':top75?(req<100?`Top 75 : indique ton pourcentage (minimum ${req} %). Raw footage obligatoire.`:'Top 75 : complétion à 100 %. Raw footage obligatoire.'):top150?'Top 150 : complétion à 100 %. Raw footage obligatoire.':'Seule la vidéo YouTube est demandée (complétion à 100 %).';
 }
 function levelCreditsEditor(){
  const levels=(state.data.demons||[]).slice().sort((a,b)=>num(a.position)-num(b.position));
@@ -1411,6 +1422,7 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
  if(LIVE&&PROD.handles(type)){
   if(type!=='prodClaim'&&type!=='selfCreatePlayer'&&type!=='submitRecord'&&!state.staff)throw Error('Modérateur requis.');
   if(['nlw','moderator'].includes(state.staffRole)&&type!=='prodScopedReview')throw Error('Action réservée aux supermodérateurs.');
+  if(type==='submitRecord'){f.__demon=(state.data.demons||[]).find(d=>String(d.id)===String(f.demon_id));f.__cfg=cfg();}
   await PROD.send(db,type,f,submitter);
   await refreshLiveData();
   await checkSelfOwner();
@@ -1441,11 +1453,18 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   if(LIVE)throw Error('Soumissions réelles indisponibles avant la migration Auth / RLS.');
   const owner=(state.data.players||[]).find(p=>p.player_key===state.ownKey);
   if(!state.session||!owner?.username)throw Error('Fiche joueur liée au compte obligatoire.');
-  const player=plain(owner.username),level_name=plain(f.level_name),progress=Number(f.progress),video_url=http(f.video_url);
-  if(!level_name||!player||!video_url||!Number.isInteger(progress)||progress<1||progress>100)throw Error('Nom, joueur, preuve vidéo et progression valides requis.');
+  const demon=(state.data.demons||[]).find(d=>String(d.id)===String(f.demon_id));
+  if(!demon)throw Error('Choisis un niveau dans la liste.');
+  const player=plain(owner.username),level_name=plain(demon.name),video_url=http(f.video_url),raw_footage_url=http(f.raw_footage_url);
+  const pos=demon.unrated?0:num(demon.position),req=Math.max(1,Math.min(100,num(demon.requirement||100)));
+  const top150=pos>=1&&pos<=num(cfg().extended_limit),top75=pos>=1&&pos<=num(cfg().main_limit);
+  const progress=top75?Number(f.progress||100):100;
+  if(!submitIsYoutube(video_url))throw Error('Ajoute un lien YouTube valide (youtube.com ou youtu.be).');
+  if(top150&&!raw_footage_url)throw Error('Le raw footage est obligatoire pour le Top 150.');
+  if(!Number.isInteger(progress)||progress<req||progress>100)throw Error('Pourcentage invalide (minimum '+req+' %).');
   const rows=state.data.level_submissions||[];
   if(rows.some(x=>x.status==='pending'&&SUBMISSIONS.norm(x.level_name)===SUBMISSIONS.norm(level_name)&&SUBMISSIONS.norm(x.player)===SUBMISSIONS.norm(player)))throw Error('Une soumission identique attend déjà validation.');
-  rows.push({id:Math.max(0,...rows.map(x=>Number(x.id)||0))+1,status:'pending',level_name,level_id:plain(f.level_id),player,progress,video_url,publisher:plain(f.publisher),creator:plain(f.creator),verifier:plain(f.verifier),suggested_position:Number(f.suggested_position)||null,submitted_at:new Date().toISOString()});
+  rows.push({id:Math.max(0,...rows.map(x=>Number(x.id)||0))+1,status:'pending',level_name,level_id:plain(demon.level_id),player,progress,video_url,raw_footage_url,publisher:plain(demon.publisher),creator:plain(demon.creator),verifier:plain(demon.verifier),suggested_position:null,submitted_at:new Date().toISOString()});
   state.data.level_submissions=rows;saveDemo();toast('Soumission envoyée en modération (démo).');render();return;
  }
  if(type==='reviewSubmission'){
@@ -1804,6 +1823,8 @@ function bootEvents(){
  if(ev.target.closest('[data-form="news"]'))updateNewsPreview(ev.target.closest('form'));
 });
  document.addEventListener('submit',ev=>{const form=ev.target;if(!form.matches('[data-form="levelPackEditor"],[data-form="chooseFrame"]'))return;ev.preventDefault();ev.stopImmediatePropagation();(async()=>{try{if(form.dataset.form==='levelPackEditor')await savePackForm(form);else await saveFrame(form);}catch(e){toast(e.message||String(e));}})();},true);
+ document.addEventListener('input',ev=>{if(ev.target.id!=='submitLevelSearch')return;const sel=document.getElementById('submitLevelSelect');if(!sel)return;const q=key(ev.target.value);for(const o of sel.options)o.hidden=!key(o.textContent+' '+o.dataset.search).includes(q);const first=[...sel.options].find(x=>!x.hidden);if(sel.selectedOptions[0]?.hidden){sel.value=first?first.value:'';}submitSyncForm();});
+ document.addEventListener('change',ev=>{if(ev.target.id==='submitLevelSelect')submitSyncForm();});
  document.addEventListener('submit',ev=>{if(ownerPreviewActive()&&new URLSearchParams(location.search).get('page')==='admin'){ev.preventDefault();ev.stopImmediatePropagation();toast('Aperçu en lecture seule.');}},true);
  document.addEventListener('submit',ev=>{if(ev.target.matches('[data-form="clanCreate"], [data-form="clanInvite"], [data-form="clanRequest"], [data-form="clanEdit"]')){ev.preventDefault();handleClanForm(ev.target);return;}if(ev.target.matches('[data-form]')){ev.preventDefault();handleForm(ev.target,ev.submitter||null);}});
  document.querySelectorAll('.nav-links a,.brand').forEach(a=>a.addEventListener('click',ev=>{ev.preventDefault();go(a.dataset.link||'list');}));

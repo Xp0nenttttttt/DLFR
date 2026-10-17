@@ -900,3 +900,10 @@ html.unrated-mode .level-badge.unrated-badge{background:#54206e;color:#fff}
 .dlfr29-inline-step{font-size:12px;font-weight:800;color:#9b80ea;border-left:3px solid #8c6de7;padding:8px 12px;margin:20px 0 12px;background:var(--panel)}
 @media(max-width:820px){.dlfr29-guide-steps,.dlfr29-level-steps ol{grid-template-columns:1fr}.dlfr29-quick-grid{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.dlfr29-quick{transition:none}.dlfr29-quick:hover{transform:none}}
+
+.dlfr-submit-clean .submission-simple{max-width:640px;grid-template-columns:1fr}
+.dlfr-submit-clean .submission-simple .field{display:flex;flex-direction:column;gap:6px}
+.dlfr-submit-clean .submission-simple input,.dlfr-submit-clean .submission-simple select{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:inherit;font:inherit}
+.dlfr-submit-clean .submission-simple select{padding:4px}
+.dlfr-submit-clean .submission-simple select option{padding:8px 10px;border-radius:6px}
+.dlfr-submit-clean .submission-simple [hidden]{display:none!important}

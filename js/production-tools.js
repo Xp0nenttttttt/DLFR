@@ -95,7 +95,7 @@ function moderation(s){if(!s.staff)return '';
  <div class="prod-grid"><form data-form="prodPlayer"><h3>Créer une fiche joueur</h3>${row('Pseudo Geometry Dash','<input name="username" required minlength="2" maxlength="70">')}${row('Nom affiché (facultatif)','<input name="display_name" maxlength="80">')}${row('Pays','<select name="country_code"><option value="">Inconnu</option><option value="FR">France</option><option value="BE">Belgique</option><option value="CH">Suisse</option><option value="CA">Canada</option></select>')}${button('Créer la fiche')}</form>
  </div>
  <h3>Demandes de liaison Discord / Geometry Dash (${claims.length})</h3>${claims.length?claims.map(x=>`<article class="prod-review"><strong>${esc(x.player_key)}</strong><p class="small">Utilisateur Auth : ${esc(x.auth_user_id)}</p><p class="small">${esc(x.note)}</p><a href="${safeUrl(x.proof_url)}" target="_blank" rel="noopener noreferrer">Examiner la preuve ↗</a><form data-form="prodClaimReview"><input type="hidden" name="request_id" value="${esc(x.id)}"><button class="btn" name="approve" value="yes">Approuver</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form></article>`).join(''):'<p class="muted">Aucune demande.</p>'}
- <h3>Soumissions à modérer (${subs.length})</h3>${subs.length?subs.map(x=>{const existing=demons.find(d=>x.level_id&&String(d.level_id)===String(x.level_id))||demons.find(d=>d.name.toLowerCase()===x.level_name.toLowerCase());return `<article class="prod-review"><strong>${esc(x.level_name)}</strong> · ${esc(x.player)} (${esc(x.progress)} %)<p><a href="${safeUrl(x.video_url)}" target="_blank" rel="noopener noreferrer">Preuve ↗</a>${existing?' · Fiche existante #'+esc(existing.id):' · Nouveau niveau'}</p><form data-form="prodReviewSubmission"><input type="hidden" name="request_id" value="${esc(x.id)}">${existing?'':row('Statut du niveau','<select name="rating"><option value="rated">Rated</option><option value="unrated">UNRATED</option></select>')}${existing?'':row('Position choisie (Rated : décalage des suivants) / position estimée (UNRATED)','<input name="position" type="number" min="1" required>')}<button class="btn" name="approve" value="yes">Valider</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form></article>`;}).join(''):'<p class="muted">Aucune soumission.</p>'}
+ <h3>Soumissions à modérer (${subs.length})</h3>${subs.length?subs.map(x=>{const existing=demons.find(d=>x.level_id&&String(d.level_id)===String(x.level_id))||demons.find(d=>d.name.toLowerCase()===x.level_name.toLowerCase());return `<article class="prod-review"><strong>${esc(x.level_name)}</strong> · ${esc(x.player)} (${esc(x.progress)} %)<p><a href="${safeUrl(x.video_url)}" target="_blank" rel="noopener noreferrer">Vidéo ↗</a>${x.raw_footage_url?` · <a href="${safeUrl(x.raw_footage_url)}" target="_blank" rel="noopener noreferrer">Raw footage ↗</a>`:''}${existing?' · Fiche existante #'+esc(existing.id):' · Nouveau niveau'}</p><form data-form="prodReviewSubmission"><input type="hidden" name="request_id" value="${esc(x.id)}">${existing?'':row('Statut du niveau','<select name="rating"><option value="rated">Rated</option><option value="unrated">UNRATED</option></select>')}${existing?'':row('Position choisie (Rated : décalage des suivants) / position estimée (UNRATED)','<input name="position" type="number" min="1" required>')}<button class="btn" name="approve" value="yes">Valider</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form></article>`;}).join(''):'<p class="muted">Aucune soumission.</p>'}
  <h3>Validations acceptées mais non visibles (${hiddenApproved.length})</h3>
  <p class="small muted">Rattrapage des anciennes soumissions : aucun niveau n'est publié automatiquement. Choisis la position DLFR avant de confirmer.</p>
  ${hiddenApproved.length?hiddenApproved.map(x=>{
@@ -182,14 +182,25 @@ async function send(db,type,f,submitter){
   return errorOf(await db.from('badge_awards').insert({player_key:f.player_key,badge_id:f.badge_id,obtained_at:date,origin:'moderator'}));
  }
  if(type==='submitRecord'){
-  if(!/^https:\/\//i.test(f.video_url))throw Error('Preuve HTTPS requise');
+  const demon=f.__demon;
+  if(!demon)throw Error('Choisis un niveau dans la liste');
+  const yt=v=>{try{const u=new URL(v);return u.protocol==='https:'&&/^(www\.|m\.)?(youtube\.com|youtu\.be)$/i.test(u.hostname);}catch{return false;}};
+  if(!yt(trim(f.video_url)))throw Error('Lien YouTube (https) requis');
+  const pos=demon.unrated?0:Number(demon.position),req=Math.max(1,Math.min(100,Number(demon.requirement||100)));
+  const lim=f.__cfg||{main_limit:75,extended_limit:150};
+  const top150=pos>=1&&pos<=Number(lim.extended_limit),top75=pos>=1&&pos<=Number(lim.main_limit);
+  const raw=trim(f.raw_footage_url);
+  if(top150&&!/^https:\/\//i.test(raw))throw Error('Raw footage (lien https) obligatoire pour le Top 150');
+  if(raw&&!/^https:\/\//i.test(raw))throw Error('Le raw footage doit être un lien https');
+  const progress=top75?Number(f.progress||100):100;
+  if(!Number.isInteger(progress)||progress<req||progress>100)throw Error('Pourcentage invalide (minimum '+req+' %)');
   const who=(await db.auth.getUser()).data.user;
   if(!who)throw Error('Connexion Discord requise');
   const {data:ownership,error:ownerError}=await db.from('player_profile_owners').select('player_key,players(username)').eq('auth_user_id',who.id).maybeSingle();
   if(ownerError)throw Error(ownerError.message);
   const nickname=trim(ownership?.players?.username);
   if(!nickname)throw Error('Relie ou crée une fiche DLFR avant de soumettre.');
-  return errorOf(await db.from('level_submissions').insert({auth_user_id:who.id,level_name:trim(f.level_name),level_id:trim(f.level_id)||null,player:nickname,progress:Number(f.progress),video_url:f.video_url,publisher:trim(f.publisher),creator:trim(f.creator)||null,verifier:trim(f.verifier)||null,suggested_position:f.suggested_position?Number(f.suggested_position):null}));
+  return errorOf(await db.from('level_submissions').insert({auth_user_id:who.id,level_name:trim(demon.name),level_id:trim(demon.level_id)||null,player:nickname,progress,video_url:trim(f.video_url),raw_footage_url:raw||null,publisher:trim(demon.publisher),creator:trim(demon.creator)||null,verifier:trim(demon.verifier)||null}));
  }
  throw Error('Action inconnue');
 }
