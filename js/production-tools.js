@@ -46,15 +46,15 @@ function staffSection(s){
  if(s.staffRole!=='owner')return '';
  const everyone=(s.data.staff_roles||[]).map(x=>`<span class="tag">${esc(x.auth_user_id)} — ${esc(x.role)}</span>`).join(' ')||'Aucun modérateur';
  const nlw=(s.data.nlw_staff_roles||[]).map(x=>`<span class="tag">${esc(x.auth_user_id)} — NLW</span>`).join(' ')||'Aucun';
- return `<section class="prod-panel"><h2>Gestion des modérateurs</h2><p class="small muted">Propriétaire uniquement. Le joueur doit s'être connecté une fois à Supabase Auth avec Discord. Copie son User UID dans Authentication → Users. N'utilise pas son pseudo.</p>
+ return `<section class="prod-panel"><h2>Gestion des modérateurs</h2><p class="small muted">Propriétaire uniquement. Cette action est réservée au propriétaire. Sélectionne le compte concerné avec son identifiant unique et vérifie attentivement le rôle.</p>
  <form data-form="prodManageStaff" class="prod-staff-grid">
- ${row('UID Supabase Auth','<input name="auth_user_id" required placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" pattern="[a-fA-F0-9-]{36}">')}
+ ${row('Identifiant du compte','<input name="auth_user_id" required placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" pattern="[a-fA-F0-9-]{36}">')}
  ${row('Équipe','<select name="role"><option value="nlw">Modo NLW · complétions NLW seulement</option><option value="moderator">Modo · complétions Top 150 + NLW</option><option value="supermoderator">Supermodo · niveaux, actus et administration</option></select>')}
  ${row('Action','<select name="enabled"><option value="yes">Ajouter / attribuer</option><option value="no">Retirer ce rôle</option></select>')}
  ${button('Enregistrer les permissions')}
  </form>
  <p class="small"><b>Modération générale :</b> ${everyone}</p><p class="small"><b>Équipe NLW :</b> ${nlw}</p>
- <p class="small muted">Les droits de chaque rôle sont vérifiés par les fonctions SQL de Supabase. Les anciens comptes editor gardent leurs droits jusqu’à leur réattribution par le propriétaire.</p></section>`;
+ <p class="small muted">Les droits sont vérifiés automatiquement. Vérifie soigneusement le rôle choisi avant de valider.</p></section>`;
 }
 function stageSection(s){
  if(!s.staff)return '';
@@ -77,9 +77,9 @@ function stageSection(s){
   ${variantUnclear?row('Confirmer Solo ou 2P','<select name="variant_mode" required><option value="">Choisir</option><option value="solo">Solo</option><option value="two_player">2P</option></select>'):''}
   <button class="btn" type="submit">${existing?'Afficher après validation FR':'Créer le niveau après contrôle FR'}</button></form>`:'<p class="small muted">Catalogue seul : aucune preuve française complète. Non publiable.</p>'}</div>`;
  }).join('');
- return `<section class="prod-panel"><h2>Import AREDL · validation avant publication</h2><p class="small muted">Ce panneau utilise la table d’attente Supabase. Le rang AREDL sert de position initiale, mais les prochaines synchronisations ne changent jamais la position DLFR. Aucune victoire n'est créée depuis ce bouton. ${issues?'Conflits signalés : '+issues+'.':''}</p>
+ return `<section class="prod-panel"><h2>Import AREDL · validation avant publication</h2><p class="small muted">Cette liste regroupe les niveaux en attente de vérification. Le rang proposé ne remplace jamais le classement officiel sans validation. Aucune victoire n'est créée depuis ce bouton. ${issues?'Conflits signalés : '+issues+'.':''}</p>
  ${s.data.aredlStageError?`<p class="notice warning">Table d'attente inaccessible : ${esc(s.data.aredlStageError)}</p>`:''}
- <div class="prod-stage-table">${rendered||'<p class="muted">Aucune fiche AREDL en attente. Lance d’abord le SQL de pré-import.</p>'}</div></section>`;
+ <div class="prod-stage-table">${rendered||'<p class="muted">Aucune fiche AREDL en attente pour le moment.</p>'}</div></section>`;
 }
 function moderation(s){if(!s.staff)return ''; 
  const players=(s.data.players||[]).slice().sort((a,b)=>String(a.display_name||a.username).localeCompare(String(b.display_name||b.username)));
@@ -91,9 +91,9 @@ function moderation(s){if(!s.staff)return '';
  const hiddenApproved=(s.data.level_submissions||[]).filter(x=>x.status==='approved'&&
    x.demon_id&&(s.unpublishedAredlDemons||[]).some(d=>String(d.id)===String(x.demon_id)));
 
- return `<section class="prod-panel"><h2>Gestion des joueurs et des records réels</h2><p class="small muted">Les profils créés ici n'ont pas encore de propriétaire Discord. Ils peuvent ensuite être revendiqués après validation.</p>
+ return `<section class="prod-panel"><h2>Gestion des joueurs et des records réels</h2><p class="small muted">Les fiches créées ici peuvent ensuite être revendiquées par leurs propriétaires après validation.</p>
  <div class="prod-grid"><form data-form="prodPlayer"><h3>Créer une fiche joueur</h3>${row('Pseudo Geometry Dash','<input name="username" required minlength="2" maxlength="70">')}${row('Nom affiché (facultatif)','<input name="display_name" maxlength="80">')}${row('Pays','<select name="country_code"><option value="">Inconnu</option><option value="FR">France</option><option value="BE">Belgique</option><option value="CH">Suisse</option><option value="CA">Canada</option></select>')}${button('Créer la fiche')}</form>
- <form data-form="prodCompletion"><h3>Attribuer une victoire</h3>${row('Joueur','<select name="player_key" required>'+selectPlayers+'</select>')}${row('Niveau','<select name="demon_id" required>'+selectDemons+'</select>')}${row('Preuve vidéo (facultative)','<input name="video_url" type="url" maxlength="1000" placeholder="https://…">')}${row('Date réelle (facultative)','<input name="achieved_at" type="date">')}<p class="small muted">Une seule victoire par joueur et niveau. Si elle existe déjà, ses preuves ne sont pas écrasées.</p>${button('Attribuer 100 %')}</form></div>
+ </div>
  <h3>Demandes de liaison Discord / Geometry Dash (${claims.length})</h3>${claims.length?claims.map(x=>`<article class="prod-review"><strong>${esc(x.player_key)}</strong><p class="small">Utilisateur Auth : ${esc(x.auth_user_id)}</p><p class="small">${esc(x.note)}</p><a href="${safeUrl(x.proof_url)}" target="_blank" rel="noopener noreferrer">Examiner la preuve ↗</a><form data-form="prodClaimReview"><input type="hidden" name="request_id" value="${esc(x.id)}"><button class="btn" name="approve" value="yes">Approuver</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form></article>`).join(''):'<p class="muted">Aucune demande.</p>'}
  <h3>Soumissions à modérer (${subs.length})</h3>${subs.length?subs.map(x=>{const existing=demons.find(d=>x.level_id&&String(d.level_id)===String(x.level_id))||demons.find(d=>d.name.toLowerCase()===x.level_name.toLowerCase());return `<article class="prod-review"><strong>${esc(x.level_name)}</strong> · ${esc(x.player)} (${esc(x.progress)} %)<p><a href="${safeUrl(x.video_url)}" target="_blank" rel="noopener noreferrer">Preuve ↗</a>${existing?' · Fiche existante #'+esc(existing.id):' · Nouveau niveau'}</p><form data-form="prodReviewSubmission"><input type="hidden" name="request_id" value="${esc(x.id)}">${existing?'':row('Statut du niveau','<select name="rating"><option value="rated">Rated</option><option value="unrated">UNRATED</option></select>')}${existing?'':row('Position choisie (Rated : décalage des suivants) / position estimée (UNRATED)','<input name="position" type="number" min="1" required>')}<button class="btn" name="approve" value="yes">Valider</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form></article>`;}).join(''):'<p class="muted">Aucune soumission.</p>'}
  <h3>Validations acceptées mais non visibles (${hiddenApproved.length})</h3>
@@ -115,7 +115,7 @@ function scopedReview(s){
  const rows=s.scopedQueue||[];
  const role=s.staffRole==='nlw'?'NLW (rang 151+)':'Top 150 et NLW';
  const cards=rows.map(x=>`<article class="prod-review"><strong>${esc(x.level_name)}</strong> · ${esc(x.player)} · #${esc(x.position)} · ${role}<p><a class="link" href="${safeUrl(x.video_url)}" rel="noopener noreferrer" target="_blank">Voir la preuve ↗</a></p><form data-form="prodScopedReview"><input type="hidden" name="request_id" value="${esc(x.id)}"><button class="btn" name="approve" value="yes">Accepter la complétion</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form></article>`).join('');
- return `<section class="prod-panel"><h2>Soumissions admissibles · ${esc(role)}</h2>${s.scopedQueueError?`<p class="notice warning">Impossible de charger la file : ${esc(s.scopedQueueError)}. Vérifie la migration 26.</p>`:''}${cards||'<p class="muted">Aucune complétion éligible en attente. Les niveaux non publiés ou ambigus sont traités par les supermodérateurs.</p>'}</section>`;
+ return `<section class="prod-panel"><h2>Soumissions admissibles · ${esc(role)}</h2>${s.scopedQueueError?`<p class="notice warning">Impossible de charger les demandes pour le moment.</p>`:''}${cards||'<p class="muted">Aucune complétion éligible en attente. Les niveaux non publiés ou ambigus sont traités par les supermodérateurs.</p>'}</section>`;
 }
 async function send(db,type,f,submitter){
  const r=(method,args)=>db.rpc(method,args).then(errorOf);
@@ -136,7 +136,7 @@ async function send(db,type,f,submitter){
   return r('dlfr_restore_demon',{p_demon_id:Number(f.demon_id),p_position:p});
  }
  if(type==='prodManageStaff'){
-  if(!/^[a-f0-9]{8}-[a-f0-9-]{27}$/i.test(f.auth_user_id||''))throw Error('UID Supabase Auth invalide');
+  if(!/^[a-f0-9]{8}-[a-f0-9-]{27}$/i.test(f.auth_user_id||''))throw Error('Identifiant du compte invalide');
   return r('dlfr_set_moderator',{p_auth_user_id:f.auth_user_id,p_role:f.role,p_enabled:f.enabled==='yes'});
  }
  if(type==='prodApproveFR'){
