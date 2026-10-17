@@ -1,0 +1,14 @@
+const assert=require('node:assert/strict');
+const api=require('../js/verification-claims.js');
+assert.ok(api.compactPanel().includes('#90'));
+assert.ok(api.compactPanel().includes('value="apply" disabled'));
+const user={session:{},ownKey:'me',verificationClaims:[]};
+assert.ok(api.claimPanel({id:1},user).includes('data-form="claimVerification"'));
+assert.ok(!api.claimPanel({id:1},{...user,session:null}).includes('data-form="claimVerification"'));
+assert.ok(!api.claimPanel({id:1},{...user,verificationClaims:[{demon_id:1,player_key:'me',status:'pending'}]}).includes('data-form="claimVerification"'));
+const c={id:1,demon_id:1,player_key:'me',player_name:'<script>alert(1)</script>',level_name:'Kappa',status:'pending',can_review:true,snapshot:'hash',video_url:'javascript:evil',message:'<img onerror=evil>'};
+const html=api.moderation({verificationClaims:[c],data:{players:[]}});
+assert.ok(!html.includes('<script>'));assert.ok(!html.includes('<img'));assert.ok(!html.includes('href="javascript:'));
+assert.ok(html.includes('value="accept"'));assert.ok(html.includes('value="reject"'));
+assert.ok(!api.moderation({verificationClaims:[{...c,can_review:false}]}).includes('data-form="reviewVerification"'));
+console.log('PASS: UI connection, pending claims, review permissions, escaping, links and preview gate');

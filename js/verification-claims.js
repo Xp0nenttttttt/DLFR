@@ -1,0 +1,30 @@
+(function(root){
+'use strict';
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const link=(url,label)=>typeof url==='string'&&/^https:\/\//.test(url)?`<a class="link" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(label)} ↗</a>`:'';
+function compactPanel(){return `<div class="admin-card" data-admin-section="levels"><h3>Combler les trous de la NLW</h3><p>Rapproche tous les niveaux NLW publics dans leur ordre actuel : #1, #2, #3… Le Top 150 reste inchangé. Par exemple, le #90 placé juste après le #13 devient #14.</p><p class="small muted">Les points NLW sont recalculés avec les nouveaux rangs. Les fiches masquées et Legacy qui occupent une position nécessaire sont rangées à part, sans publication ni suppression.</p><form data-form="compactNlw"><div class="form-actions"><button class="btn subtle" type="submit" value="preview">Voir les nouveaux rangs</button><button class="btn" type="submit" value="apply" disabled>Appliquer tous les rangs</button></div><div data-compact-result role="status" aria-live="polite"></div></form></div>`;}
+function claimPanel(d,s){
+ const claims=(s.verificationClaims||[]).filter(c=>Number(c.demon_id)===Number(d.id)&&c.player_key===s.ownKey);
+ const pending=claims.some(c=>c.status==='pending');
+ const history=claims.length?`<ul>${claims.map(c=>`<li>${esc(({pending:'En attente',accepted:'Acceptée',rejected:'Refusée'})[c.status])}${c.review_note?' — '+esc(c.review_note):''}</li>`).join('')}</ul>`:'';
+ return `<section class="paper"><h2>Tu as vérifié ce niveau ?</h2><p>Demande à être reconnu comme vérificateur. L’équipe vérifiera ta preuve avant de modifier la fiche.</p>${s.verificationClaimsError?`<p class="notice warning">${esc(s.verificationClaimsError)}</p>`:''}${history}${!s.session||!s.ownKey?'<a class="btn subtle" href="?page=my-profile" data-nav>Se connecter et lier ma fiche joueur</a>':pending?'<p>Ta demande est en attente de modération.</p>':`<details><summary class="btn subtle">Revendiquer la vérification</summary><form data-form="claimVerification"><input type="hidden" name="demon_id" value="${esc(d.id)}"><label class="field">Vidéo de vérification<input type="url" name="video_url" required placeholder="https://youtu.be/…" maxlength="2048"></label><label class="field">Explications / preuves complémentaires<textarea name="message" maxlength="2000" placeholder="Précise pourquoi tu es le vérificateur du niveau."></textarea></label><p class="small muted">La demande utilise ta fiche joueur liée au compte. Une victoire normale se soumet depuis « Soumettre un record ».</p><button class="btn" type="submit">Envoyer ma demande</button></form></details>`}</section>`;
+}
+function moderation(s){
+ const claims=(s.verificationClaims||[]).filter(c=>c.status==='pending'&&c.can_review);
+ const players=(s.data?.players||[]).slice().sort((a,b)=>String(a.username).localeCompare(String(b.username),'fr'));
+ return `<section class="paper"><h2>Demandes de vérification (${claims.length})</h2>${s.verificationClaimsError?`<p class="notice warning">${esc(s.verificationClaimsError)}</p>`:''}${claims.map(c=>`<article class="notice"><h3>${esc(c.level_name)} — ${esc(c.player_name)}</h3><p>Vérificateur actuel : <b>${esc(c.current_verifier||'À renseigner')}</b>. ${link(c.current_video,'Ancienne vidéo')}</p><p>${link(c.video_url,'Preuve du demandeur')}</p><p style="white-space:pre-wrap">${esc(c.message)}</p><form data-form="reviewVerification"><input type="hidden" name="claim_id" value="${esc(c.id)}"><input type="hidden" name="snapshot" value="${esc(c.snapshot)}"><label class="field">Ancien vérificateur — fiche à utiliser si le crédit est ambigu<select name="previous_player_key"><option value="">Rapprochement automatique par identifiant / pseudo exact</option>${players.map(p=>`<option value="${esc(p.player_key)}">${esc(p.username)} (${esc(p.player_key)})</option>`).join('')}</select></label><p class="small muted">En acceptant, l’ancien vérificateur différent devient vainqueur à 100 % sans doublon. Sa vidéo est conservée. Si aucune fiche ne correspond, une fiche historique sans compte est créée ; un crédit « À renseigner » ne crée pas de joueur.</p><label class="field">Motif / réponse au joueur (obligatoire pour refuser)<textarea name="note" maxlength="2000"></textarea></label><div class="form-actions"><button class="btn" type="submit" value="accept">Accepter la vérification</button><button class="btn danger" type="submit" value="reject">Refuser</button></div></form></article>`).join('')||'<p class="muted">Aucune demande en attente dans ton périmètre.</p>'}</section>`;
+}
+async function compact(db,form,button){
+ const execute=button?.value==='apply',out=form.querySelector('[data-compact-result]'),apply=form.querySelector('[value="apply"]');
+ if(execute&&!form._compactHash)throw Error('Affiche d’abord les nouveaux rangs.');
+ apply.disabled=true;out.textContent=execute?'Regroupement en cours…':'Calcul des nouveaux rangs…';
+ try{
+ const {data,error}=await db.rpc('dlfr_compact_nlw',{p_execute:execute,p_preview_hash:execute?form._compactHash:null});if(error)throw Error(error.message);
+ const changes=data.entries.filter(e=>e.old_position!==e.new_position);
+ out.innerHTML=`<p><b>${execute?'Terminé':'Aperçu'} : ${changes.length} rangs modifiés</b> · ${data.entries.length} niveaux NLW · ${data.blockers.length} fiches techniques à ranger.</p><div style="max-height:400px;overflow:auto"><table><thead><tr><th>Niveau</th><th>Ancien rang NLW</th><th>Nouveau rang NLW</th></tr></thead><tbody>${changes.map(e=>`<tr><td>${esc(e.name)}</td><td>#${e.old_position-150}</td><td>#${e.new_position-150}</td></tr>`).join('')}</tbody></table></div>`;
+ form._compactHash=execute?null:data.preview_hash;apply.disabled=execute||!changes.length;return execute;
+ }catch(e){form._compactHash=null;out.textContent=e.message;throw e;}
+}
+const api={compactPanel,claimPanel,moderation,compact};
+if(typeof module==='object'&&module.exports)module.exports=api;else root.DLFR_CLAIMS=api;
+})(typeof window==='object'?window:globalThis);
