@@ -16,7 +16,8 @@ function response(status:number, data:Record<string,unknown>, origin:string){
  return new Response(JSON.stringify(data),{status,headers:{
   'content-type':'application/json; charset=utf-8','cache-control':'no-store',
   'access-control-allow-origin':origin,'vary':'Origin',
-  'access-control-allow-headers':'content-type,apikey,authorization',
+  'access-control-allow-headers':'authorization, apikey, content-type, x-client-info, x-supabase-api-version',
+  'access-control-max-age':'600',
   'access-control-allow-methods':'POST,OPTIONS',
  }});
 }
