@@ -37,7 +37,7 @@ const packTables=['dlfr_level_packs','dlfr_level_pack_levels','dlfr_level_pack_c
 const livePrivateTables=['profile_claim_requests','level_submissions','clan_invites','clan_requests','player_profile_owners'];
 const liveStaffTables=['player_sanctions','community_audit_log','dlfr_level_archive_log'];
 const tables = ['site_settings','players','demons','completions','news_items','profile_titles','player_profile_titles','player_profiles','hall_of_fame','player_stat_snapshots','demon_position_history'];
-let db = null, state = { data:null, staff:false, staffRole:null, session:null, country:'MONDE', region:'ALL', selectedPlayer:'', list:'main', keyword:'', busy:false, statsTab:'players', statsYear:'all', comparePlayer:'', profileTab:'overview', activityTab:'following', selectedRegion:'BRE', regionsSort:'points', regionsGeometryRequested:false, newsFilter:'all', newsSearch:'', adminTab:'overview', editingNews:null, unrated:false, calcPlayer:'', calcDemons:[], calcNlw:false, unbeatSearch:'', unbeatLimit:120, communityExcel:{status:'idle',items:[],message:'',offline:false}, demoRole:'owner', demoActor:'spleen', selectedClan:1, clanSort:'points', clanSearch:'', clanDetailTab:'overview', ownKey:null, ownAccountMessage:'', ownerPreview:'owner', ownerPreviewQueue:[], ownerPreviewError:'', teamCandidates:[], teamCandidatesReady:false, teamCandidatesError:'', clanInbox:[], clanCandidates:[], clanExtraError:'' };
+let db = null, state = { data:null, staff:false, staffRole:null, session:null, country:'MONDE', region:'ALL', selectedPlayer:'', list:'main', keyword:'', busy:false, statsTab:'players', statsYear:'all', comparePlayer:'', profileTab:'overview', activityTab:'following', selectedRegion:'BRE', regionsSort:'points', regionsGeometryRequested:false, newsFilter:'all', newsSearch:'', adminTab:'overview', editingNews:null, unrated:false, calcPlayer:'', calcDemons:[], calcNlw:false, unbeatSearch:'', unbeatLimit:120, communityExcel:{status:'idle',items:[],message:'',offline:false}, demoRole:'owner', demoActor:'spleen', selectedClan:1, clanSort:'points', clanSearch:'', clanDetailTab:'overview', ownKey:null, ownAccountMessage:'', ownerPreview:'owner', ownerPreviewQueue:[], ownerPreviewError:'', teamCandidates:[], teamCandidatesReady:false, teamCandidatesError:'', clanInbox:[], clanCandidates:[], clanExtraError:'', usernameAccount:null, usernameAccountError:'' };
 const PERF_DEBUG=new URLSearchParams(location.search).has('perf');
 const perfNow=()=>typeof performance!=='undefined'?performance.now():Date.now();
 const el = document.getElementById('app');
@@ -239,6 +239,12 @@ async function processDiscordAvatarReturn(){
  state.data.player_profiles=await readAll('player_profiles');
  toast('Photo de profil mise à jour depuis Discord.');
 }
+async function refreshUsernameAccount(){
+ state.usernameAccount=null;state.usernameAccountError='';
+ if(!LIVE||!state.session||C.enableUsernameLogin!==true||!USERNAME_AUTH?.status)return;
+ try{const info=await USERNAME_AUTH.status(db,C);state.usernameAccount=info.username||null;}
+ catch(error){state.usernameAccountError='Le statut de ton compte n’a pas pu être chargé.';console.warn('[DLFR auth] Statut du pseudo :',error);}
+}
 async function load(){
  if(!HAS_SUPABASE){showPageError(Error('Configuration des services absente.'));return;}
  if(!window.supabase){console.error('[DLFR] Bibliothèque de connexion non chargée.');el.innerHTML='<div class="center-panel"><h2>Connexion momentanément indisponible</h2><p>Réessaie dans quelques instants.</p></div>';return;}
@@ -249,6 +255,7 @@ async function load(){
   await checkStaff();
   await refreshLiveData();
   await checkSelfOwner();
+  await refreshUsernameAccount();
   await refreshClanTools();
   await processDiscordAvatarReturn();
   $('sourceLabel').textContent=`${state.data.demons.filter(x=>x.is_public!==false).length} niveaux répertoriés`;
@@ -484,9 +491,9 @@ function discordPanel(actor, profile={}) {
   const connected=identity?.connected;
   const avatar=connected?DISCORD.allowedDiscordImage(identity.avatar_url):'';
   if (LIVE) {
-    if (!C.enableDiscordOAuth) return `<section class="discord-panel"><div class="discord-panel-head"><span class="discord-glyph">◈</span><div><h2>Discord</h2><p>La connexion Discord n’est pas disponible pour le moment.</p></div><span class="tag">À CONFIGURER</span></div><p class="small muted">Vérifie que js/config.js sur GitHub Pages définit enableDiscordOAuth: true, puis recharge la page. Cela ne dépend pas du mot de passe du tableau de bord Supabase.</p></section>`;
+    if (!C.enableDiscordOAuth) return `<section class="discord-panel"><div class="discord-panel-head"><span class="discord-glyph">◈</span><div><h2>Discord</h2><p>La connexion Discord n’est pas disponible pour le moment.</p></div></div><p class="small muted">Réessaie un peu plus tard.</p></section>`;
     return `<section class="discord-panel"><div class="discord-panel-head"><span class="discord-glyph">◈</span><div><h2>${connected?'Discord connecté':'Connecter Discord'}</h2><p>${connected?esc(identity.username):'Utilise ton compte Discord pour te connecter ou associer cette identité.'}</p></div>${avatar?`<img class="discord-avatar" src="${esc(avatar)}" alt="Avatar Discord">`:''}</div>
-     ${!state.session?'<button type="button" class="btn discord-button" data-action="discordOAuthLogin">Se connecter avec Discord</button>':connected?`<p class="small muted">Ton avatar Discord peut être copié dans ton profil sans remplacer automatiquement ton avatar personnalisé.</p>${state.ownKey?'<button type="button" class="btn subtle small" data-action="discordRefreshAvatar">Actualiser ma photo depuis Discord</button>':''}${state.ownKey&&avatar?'<button type="button" class="btn subtle small" data-action="discordUseAvatar">Copier la photo actuellement connue</button>':''}`:C.enableDiscordIdentityLinking?'<button type="button" class="btn discord-button" data-action="discordIdentityLink">Associer Discord à ce compte</button>':'<p class="small muted">L’association à un compte connecté sera activée séparément dans Supabase.</p>'}
+     ${!state.session?'<button type="button" class="btn discord-button" data-action="discordOAuthLogin">Se connecter avec Discord</button>':connected?`<p class="small muted">Ton avatar Discord peut être copié dans ton profil sans remplacer automatiquement ton avatar personnalisé.</p>${state.ownKey?'<button type="button" class="btn subtle small" data-action="discordRefreshAvatar">Actualiser ma photo depuis Discord</button>':''}${state.ownKey&&avatar?'<button type="button" class="btn subtle small" data-action="discordUseAvatar">Copier la photo actuellement connue</button>':''}`:'<p class="small muted">Tu peux associer Discord dans « Mes méthodes de connexion » ci-dessus.</p>'}
      <p class="discord-disclaimer">L'identité Discord ne prouve pas, à elle seule, la propriété d'un profil Geometry Dash. La liaison au joueur doit être approuvée et protégée par RLS.</p></section>`;
   }
 
@@ -507,14 +514,27 @@ function communitySelfFields(actor){
   <div class="dlfr20-showcase-edit">${[1,2,3].map(slot=>{const x=items.find(z=>Number(z.slot)===slot)||{};return `<div class="dlfr20-showcase-slot"><b>Emplacement ${slot}</b><label class="field">Niveau<select name="showcase_demon_${slot}"><option value="">Aucun niveau</option>${opts.replaceAll(`value="${esc(x.demon_id)}"`,`value="${esc(x.demon_id)}" selected`)}</select></label><label class="field">Description (180 caractères)<input name="showcase_caption_${slot}" maxlength="180" value="${esc(x.caption||'')}" placeholder="Pourquoi ce niveau est spécial pour moi…"></label><label class="field">Ma vidéo (URL HTTPS)<input type="url" name="showcase_video_${slot}" maxlength="500" placeholder="https://youtu.be/…" value="${esc(x.video_url||'')}"></label></div>`;}).join('')}</div>
  </fieldset>`;
 }
+function usernameLoginForm(){
+ if(C.enableUsernameLogin!==true)return '<p class="notice warning">La connexion par pseudo n’est pas encore disponible.</p>';
+ return `<form data-form="usernameLogin" class="dlfr29-auth-card"><h3>Connexion DLFR</h3><label class="field">Pseudo<input name="username" autocomplete="username" minlength="3" maxlength="24" pattern="[A-Za-z0-9_-]{3,24}" required></label><label class="field">Mot de passe<input name="password" type="password" minlength="12" autocomplete="current-password" required></label><button class="btn" type="submit">Se connecter</button></form>`;
+}
+function linkedAccountsPanel(){
+ if(!LIVE||!state.session)return '';
+ const discord=discordIdentity(),username=state.usernameAccount;
+ const status=state.usernameAccountError?`<p class="notice warning">${esc(state.usernameAccountError)}</p>`:'';
+ const creator=C.enableUsernameLogin===true&&!username&&!!discord;
+ return `<section class="paper self-linked-accounts"><h2>🔗 Mes méthodes de connexion</h2><p class="small muted">Discord et le pseudo peuvent ouvrir le même compte, sans dupliquer tes records ou tes badges.</p><p><b>Pseudo :</b> ${username?esc(username):'Pas encore configuré'} · <b>Discord :</b> ${discord?'Connecté':'Non associé'}</p>${status}
+ ${creator?`<form data-form="attachUsername" class="dlfr29-auth-card"><h3>Ajouter un pseudo et un mot de passe à mon compte Discord</h3><label class="field">Pseudo de connexion<input name="username" autocomplete="username" pattern="[A-Za-z0-9_-]{3,24}" minlength="3" maxlength="24" required></label><label class="field">Mot de passe<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label><label class="field">Confirmer le mot de passe<input name="password_confirm" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label><p class="muted small">Le pseudo sert uniquement à te connecter et ne change pas le pseudo de ta fiche Geometry Dash. Pour la sécurité, reconnecte-toi à Discord juste avant cette opération.</p><button class="btn" type="submit">Activer la connexion par pseudo</button></form>`:''}
+ ${username&&!discord&&C.enableDiscordOAuth===true?'<button type="button" class="btn discord-button" data-action="discordIdentityLink">Associer mon Discord</button>':''}
+ ${username&&discord?'<p class="notice">Les deux connexions sont associées à ce compte DLFR.</p>':''}
+ ${username&&!discord?'<p class="muted small">Si Discord appartient déjà à un autre compte DLFR, la liaison sera refusée. Contacte l’équipe pour vérifier les deux comptes.</p>':''}</section>`;
+}
 function selfProfilePage(){
  if(LIVE&&!state.session){
-  const emailLogin=`<form data-form="selfLogin" class="self-login"><label class="field">E-mail<input type="email" name="email" required autocomplete="email"></label><label class="field">Mot de passe<input type="password" name="password" required autocomplete="current-password"></label><button class="btn" type="submit">Se connecter avec e-mail</button></form>`;
-  const discordReady=C.enableDiscordOAuth===true;
-  const usernameForms=C.enableUsernameLogin===true?`<div class="dlfr29-auth-grid"><form data-form="usernameLogin" class="dlfr29-auth-card"><h3>Connexion avec pseudo</h3><label class="field">Pseudo<input name="username" autocomplete="username" minlength="3" maxlength="24" pattern="[A-Za-z0-9_-]{3,24}" required></label><label class="field">Mot de passe<input name="password" type="password" minlength="12" autocomplete="current-password" required></label><button class="btn" type="submit">Se connecter</button></form><form data-form="usernameRegister" class="dlfr29-auth-card"><h3>Créer un compte</h3><label class="field">Pseudo<input name="username" autocomplete="username" minlength="3" maxlength="24" pattern="[A-Za-z0-9_-]{3,24}" required></label><label class="field">Mot de passe<input name="password" type="password" minlength="12" maxlength="128" autocomplete="new-password" required></label><label class="field">Confirmer le mot de passe<input name="password_confirm" type="password" minlength="12" maxlength="128" autocomplete="new-password" required></label><p class="small muted">Pas d’e-mail demandé. Attention : sans e-mail de récupération, un mot de passe oublié ne peut pas être réinitialisé automatiquement.</p><button class="btn" type="submit">Créer mon compte DLFR</button></form></div>`:'';
-  return `${templateNotice()}<section class="paper self-page"><h1>Mon profil</h1>${usernameForms}${discordReady?`<details class="alternate-login"><summary>Continuer avec Discord</summary>${discordPanel(null)}</details>`:''}<details class="alternate-login"><summary>Connexion e-mail (comptes existants)</summary>${emailLogin}</details><p class="small muted">Un compte DLFR ne donne pas automatiquement accès à une ancienne fiche Geometry Dash : toute revendication doit être validée par la modération.</p></section>`;
+  const usernameForms=C.enableUsernameLogin===true?`<div class="dlfr29-auth-grid">${usernameLoginForm()}<form data-form="usernameRegister" class="dlfr29-auth-card"><h3>Créer un compte DLFR</h3><label class="field">Pseudo<input name="username" autocomplete="username" minlength="3" maxlength="24" pattern="[A-Za-z0-9_-]{3,24}" required></label><label class="field">Mot de passe<input name="password" type="password" minlength="12" maxlength="128" autocomplete="new-password" required></label><label class="field">Confirmer le mot de passe<input name="password_confirm" type="password" minlength="12" maxlength="128" autocomplete="new-password" required></label><p class="small muted">Aucun e-mail demandé. Conserve ton mot de passe : la récupération automatique n’est pas encore disponible.</p><button class="btn" type="submit">Créer mon compte</button></form></div>`:usernameLoginForm();
+  return `${templateNotice()}<section class="paper self-page"><h1>Se connecter ou créer un compte</h1>${usernameForms}${C.enableDiscordOAuth===true?`<details class="alternate-login"><summary>Ou continuer avec Discord</summary>${discordPanel(null)}</details>`:''}<p class="small muted">La connexion ne revendique pas automatiquement une fiche joueur existante : toute demande est vérifiée par la modération.</p></section>`;
  }
- if(LIVE&&!state.ownKey)return `<section class="paper self-page"><h1>Mon profil</h1><div class="notice warning">${esc(state.ownAccountMessage||'Ton compte n’est pas relié à un profil joueur.')}</div>${discordPanel(null)}${PROD.claimSection(state)}<button class="btn subtle" type="button" data-action="selfLogout">Se déconnecter</button></section>`;
+ if(LIVE&&!state.ownKey)return `<section class="paper self-page"><h1>Mon profil</h1><div class="notice warning">${esc(state.ownAccountMessage||'Ton compte n’est pas relié à un profil joueur.')}</div>${linkedAccountsPanel()}${discordPanel(null)}${PROD.claimSection(state)}<button class="btn subtle" type="button" data-action="selfLogout">Se déconnecter</button></section>`;
  const actor=LIVE?state.ownKey:state.demoActor;
  const player=state.data.players.find(p=>p.player_key===actor);
  if(!player)return '<section class="paper"><h1>Mon profil</h1><p>Aucun joueur lié à ce compte.</p></section>';
@@ -525,6 +545,7 @@ function selfProfilePage(){
  const field=(label,name,max=255,placeholder='')=>`<label class="field">${label}<input type="text" name="${name}" maxlength="${max}" placeholder="${esc(placeholder)}" value="${value(name)}"></label>`;
  const currentProfile=getPlayer(actor);
  return `${templateNotice()}<section class="paper self-page"><div class="self-heading"><div><h1>Mon profil</h1><p class="muted">Modifie ta présentation publique. Les points, records, titres officiels et sanctions restent gérés par les modérateurs.</p></div>${!LIVE?'<span class="tag">SIMULATION LOCALE</span>':'<button type="button" class="btn subtle small" data-action="selfLogout">Se déconnecter</button>'}</div>${select}
+ ${linkedAccountsPanel()}
  ${discordPanel(actor,profile)}
  <details class="badge-catalog-section"><summary>🏅 Badges à découvrir — collection & raretés</summary><p class="small muted">Les badges non obtenus restent mystérieux : seules leur catégorie et leur rareté sont visibles. Les conditions ne sont jamais révélées.</p>${BADGES.catalog(state.data,actor,esc,date)}</details>
  <div class="self-mini-preview"><div class="self-mini-avatar">${avatarOf(actor,profile)?`<img src="${esc(avatarOf(actor,profile))}" alt="">`:esc(fullName(player)[0]||'?')}</div><div><b>${flag(player.country_code)} ${esc(fullName(player))}</b><p class="muted small">${esc(profile.bio||'Aucune biographie pour le moment.')}</p><a class="link" href="${url('player',{player:actor})}" data-nav>Voir ma fiche publique ↗</a></div></div>
@@ -1178,8 +1199,7 @@ function adminPage(){if(LIVE&&!state.staff){
     const name=identity?.username||state.session.user?.user_metadata?.full_name||'compte connecté';
     return `<div class="paper"><h1>Modération</h1><p>Compte connecté : <b>${esc(name)}</b>.</p><div class="notice warning"><b>Pas d’accès modérateur pour cette session.</b><p>Ce compte ne dispose pas des droits nécessaires. Contacte le propriétaire de la DLFR si tu penses qu'il s'agit d'une erreur.</p></div><div class="form-actions"><button type="button" class="btn" data-action="refreshStaffAccess">Actualiser mes droits</button><button type="button" class="btn subtle" data-action="logout">Déconnexion</button></div></div>`;
   }
-  const emailLogin=`<form data-form="login"><label class="field">Adresse e-mail<input name="email" type="email" required autocomplete="email"></label><label class="field">Mot de passe<input name="password" type="password" required autocomplete="current-password"></label><button class="btn" type="submit">Se connecter par e-mail</button></form>`;
-  return `<div class="paper"><h1>Modération</h1><p>Connecte-toi avec un compte autorisé pour accéder à la modération.</p>${discordPanel(null)}<details class="alternate-login"><summary>Autre méthode : e-mail et mot de passe</summary>${emailLogin}</details></div>`;
+  return `<div class="paper"><h1>Modération</h1><p>Connecte-toi avec un compte autorisé pour accéder à la modération.</p>${usernameLoginForm()}${C.enableDiscordOAuth===true?`<details class="alternate-login"><summary>Ou se connecter avec Discord</summary>${discordPanel(null)}</details>`:''}</div>`;
  }
  if(!LIVE&&!state.staff)return `<div class="paper"><h1>Laboratoire de modération</h1><p>Cet espace d’essai n’enregistre pas de modifications sur le site officiel.</p><button class="btn" data-action="demoStaff">Activer la simulation modérateur</button></div>`;
  if(LIVE&&(['nlw','moderator'].includes(state.staffRole)||ownerPreviewActive()&&['nlw','moderator'].includes(state.ownerPreview))){
@@ -1547,26 +1567,24 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   toast('Opération enregistrée.');render();return;
  }
 
+ if(type==='attachUsername'){
+  if(!LIVE||!state.session||!discordIdentity()||C.enableUsernameLogin!==true||!USERNAME_AUTH?.attach)throw Error('Connecte-toi avec Discord pour activer ton pseudo.');
+  if(f.password!==f.password_confirm)throw Error('Les mots de passe ne correspondent pas.');
+  await USERNAME_AUTH.attach(db,C,f.username,f.password);
+  await refreshUsernameAccount();
+  toast('Connexion par pseudo activée sur ton compte Discord !');render();return;
+ }
  if(type==='usernameRegister'||type==='usernameLogin'){
   if(!LIVE||C.enableUsernameLogin!==true||!USERNAME_AUTH)throw Error('Connexion par pseudo non configurée.');
   const action=type==='usernameRegister'?'register':'login';
   if(action==='register'&&f.password!==f.password_confirm)throw Error('Les deux mots de passe sont différents.');
   const session=await USERNAME_AUTH.signIn(db,C,action,f.username,f.password);
   state.session=session;
-  await checkStaff();await refreshLiveData();await checkSelfOwner();await refreshClanTools();
+  await checkStaff();await refreshLiveData();await checkSelfOwner();await refreshUsernameAccount();await refreshClanTools();
   toast(action==='register'?'Compte créé. Tu peux maintenant créer ou revendiquer ta fiche Geometry Dash.':'Connexion réussie.');
   render();return;
  }
- if(type==='selfLogin'){
-  if(!LIVE)throw Error('Connexion réservée au site réel.');
-  const {data,error}=await db.auth.signInWithPassword({email:f.email,password:f.password});if(error)throw Error(error.message);
-  state.session=data.session;await checkStaff();await refreshLiveData();await checkSelfOwner();await refreshClanTools();toast('Connexion réussie');render();return;
- }
  if(type==='selfProfile'){await saveSelfProfile(form);return;}
- if(type==='login'){
-  const {data,error}=await db.auth.signInWithPassword({email:f.email,password:f.password});if(error)throw Error(error.message);
-  state.session=data.session;await checkStaff();await refreshLiveData();await checkSelfOwner();await refreshClanTools();toast(state.staff?'Connecté en modérateur':'Connecté. Ce compte ne dispose pas de droits de modération.');render();return;
- }
  if(type==='submitRecord'){
   if(LIVE)throw Error('Soumissions réelles indisponibles avant la migration Auth / RLS.');
   const owner=(state.data.players||[]).find(p=>p.player_key===state.ownKey);
@@ -1894,7 +1912,7 @@ function bootEvents(){
    return;
   }
   if(act.dataset.action==='discordOAuthLogin'&&LIVE){if(!C.enableDiscordOAuth){toast('Discord n’est pas configuré.');return;}try{await DISCORD.signIn(db,new URL('?page=my-profile',location.href).href);}catch(e){toast('Connexion Discord : '+e.message);}return;}
- if(act.dataset.action==='discordIdentityLink'&&LIVE){if(!state.session||!C.enableDiscordIdentityLinking)return;try{await DISCORD.linkIdentity(db,new URL('?page=my-profile',location.href).href);}catch(e){toast('Liaison Discord : '+e.message);}return;}
+ if(act.dataset.action==='discordIdentityLink'&&LIVE){if(!state.session||!C.enableDiscordOAuth)return;try{await DISCORD.linkIdentity(db,new URL('?page=my-profile',location.href).href);}catch(e){toast('Association impossible : '+e.message+' Si Discord appartient déjà à un autre compte, contacte la modération.');}return;}
  if(act.dataset.action==='discordRefreshAvatar'&&LIVE){
    if(!state.session||!state.ownKey||!discordIdentity()){
     toast('Associe d’abord Discord à ton compte et à une fiche joueur.');return;
@@ -1912,10 +1930,10 @@ function bootEvents(){
  if(act.dataset.action==='discordUseAvatar'&&LIVE){const picture=DISCORD.sessionDiscordIdentity(state.session)?.avatar_url;const field=document.querySelector('[data-form="selfProfile"] input[name="avatar_url"]');if(picture&&field){field.value=picture;field.focus();toast('Avatar Discord copié dans le champ. Enregistre le profil pour confirmer.');}return;}
  if(act.dataset.action==='moreUnbeaten'){state.unbeatLimit+=120;const results=$('unbeatenResults');if(results)results.innerHTML=unbeatenEntriesHTML();return;}
  if(act.dataset.action==='toggleUnratedStats'){state.unrated=!state.unrated;refreshUnrated();render();return;}
- if(act.dataset.action==='selfLogout'&&LIVE){await db.auth.signOut();state.session=null;state.ownKey=null;state.staff=false;render();return;}
+ if(act.dataset.action==='selfLogout'&&LIVE){await db.auth.signOut();state.session=null;state.ownKey=null;state.usernameAccount=null;state.staff=false;render();return;}
  if(act.dataset.action==='clearCalc'){state.calcDemons=[];render();return;}
  if(act.dataset.action==='cancelNews'){state.editingNews=null;const form=document.querySelector('[data-form="news"]');if(form){form.reset();form.elements.news_id.value='';updateNewsPreview(form);}return;}
- if(act.dataset.action==='logout'&&LIVE){await db.auth.signOut();state.session=null;state.staff=false;render();}
+ if(act.dataset.action==='logout'&&LIVE){await db.auth.signOut();state.session=null;state.usernameAccount=null;state.staff=false;render();}
  });
  document.addEventListener('input',ev=>{
  if(ev.target.id==='dlfr27PackLevelSearch'){const q=key(ev.target.value);document.querySelectorAll('[data-pack-level-row]').forEach(row=>{row.hidden=!row.dataset.search.includes(q)});return;}

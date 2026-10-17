@@ -16,7 +16,7 @@ function response(status:number, data:Record<string,unknown>, origin:string){
  return new Response(JSON.stringify(data),{status,headers:{
   'content-type':'application/json; charset=utf-8','cache-control':'no-store',
   'access-control-allow-origin':origin,'vary':'Origin',
-  'access-control-allow-headers':'content-type,apikey',
+  'access-control-allow-headers':'content-type,apikey,authorization',
   'access-control-allow-methods':'POST,OPTIONS',
  }});
 }
@@ -42,10 +42,63 @@ Deno.serve(async req=>{
  try{
   const body=await req.json();
   const action=body?.action;
+  if(!['login','register','status','attach'].includes(action)){
+    return response(400,{error:'Action non reconnue.'},origin);
+  }
+  const authorization=req.headers.get('authorization')||'';
+  // Pour lire ou ajouter un pseudo à un compte Discord, on vérifie le JWT côté serveur.
+  // L'identifiant utilisateur est obtenu de Supabase Auth, jamais du corps de la requête.
+  if(action==='status'||action==='attach'){
+    const token=/^Bearer\s+(.+)$/i.exec(authorization)?.[1]||'';
+    if(!token)return response(401,{error:'Connecte-toi pour continuer.'},origin);
+    const {data:verified,error:verifyError}=await admin.auth.getUser(token);
+    if(verifyError||!verified?.user)return response(401,{error:'Session expirée. Reconnecte-toi.'},origin);
+    const user=verified.user;
+    if(action==='status'){
+      const {data:existing,error:existingErr}=await admin.from('dlfr_username_accounts')
+        .select('username_key').eq('auth_user_id',user.id).maybeSingle();
+      if(existingErr)throw existingErr;
+      return response(200,{username:existing?.username_key||null},origin);
+    }
+    const username=String(body?.username||'').trim();
+    const password=body?.password;
+    if(!allowedUsername.test(username)||typeof password!=='string'||password.length<12||password.length>128){
+      return response(400,{error:'Pseudo invalide ou mot de passe trop court (12 caractères minimum).'},origin);
+    }
+    const handle=username.toLowerCase();
+    if(denylist.has(handle))return response(400,{error:'Pseudo réservé.'},origin);
+    // Pas de conversion d'une session inconnue en compte propriétaire : il faut prouver
+    // la possession d'une vraie identité Discord vérifiée par Supabase Auth.
+    const hasDiscord=Array.isArray(user.identities)&&user.identities.some(i=>i.provider==='discord') ||
+      user.app_metadata?.provider==='discord'||(user.app_metadata?.providers||[]).includes('discord');
+    if(!hasDiscord)return response(403,{error:'Connecte-toi avec Discord avant de créer ce mode de connexion.'},origin);
+    if(!user.email)return response(400,{error:'Discord doit fournir une adresse de connexion interne valide. Contacte l’équipe.'},origin);
+    // Evite d’ajouter un mot de passe sensible via une session ancienne ou abandonnée.
+    const latestLogin=Date.parse(user.last_sign_in_at||'');
+    if(!Number.isFinite(latestLogin)||Date.now()-latestLogin>20*60*1000){
+      return response(403,{error:'Pour sécuriser cette modification, reconnecte-toi avec Discord puis réessaie dans les 20 minutes.'},origin);
+    }
+    if(!await rate('attach:'+user.id,5,3600))return response(429,{error:'Trop de tentatives. Réessaie plus tard.'},origin);
+    const {data:already,error:alreadyErr}=await admin.from('dlfr_username_accounts')
+      .select('username_key').eq('auth_user_id',user.id).maybeSingle();
+    if(alreadyErr)throw alreadyErr;
+    if(already)return response(409,{error:'Un pseudo est déjà lié à ton compte.'},origin);
+    const {error:insertErr}=await admin.from('dlfr_username_accounts')
+      .insert({username_key:handle,auth_user_id:user.id});
+    if(insertErr)return response(insertErr.code==='23505'?409:500,{error:insertErr.code==='23505'?'Pseudo déjà pris ou déjà lié.':'Impossible d’activer le pseudo.'},origin);
+    // Le mot de passe est géré exclusivement par Supabase Auth, jamais stocké en table.
+    const {error:passwordErr}=await admin.auth.admin.updateUserById(user.id,{password});
+    if(passwordErr){
+      await admin.from('dlfr_username_accounts').delete().eq('auth_user_id',user.id).eq('username_key',handle);
+      console.error('DLFR username attach:',passwordErr.message);
+      return response(503,{error:'Le mot de passe n’a pas pu être enregistré. Réessaie plus tard.'},origin);
+    }
+    return response(200,{username:handle},origin);
+  }
   const username=String(body?.username||'').trim();
   const password=body?.password;
-  if(!['login','register'].includes(action)||!allowedUsername.test(username)||typeof password!=='string'||password.length<12||password.length>128){
-   return response(400,{error:'Pseudo ou mot de passe invalide (12 caractères minimum).'},origin);
+  if(!allowedUsername.test(username)||typeof password!=='string'||password.length<12||password.length>128){
+    return response(400,{error:'Pseudo ou mot de passe invalide (12 caractères minimum).'},origin);
   }
   const handle=username.toLowerCase();
   if(denylist.has(handle))return response(400,{error:'Pseudo réservé.'},origin);

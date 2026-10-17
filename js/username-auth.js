@@ -30,5 +30,24 @@
     if(error||!data?.session)throw Error(error?.message||'Session impossible à enregistrer.');
     return data.session;
   }
-  return {validUsername,signIn};
+  async function authenticatedRequest(db,config,action,fields={}){
+    if(!config?.supabaseUrl||!config?.supabasePublishableKey)throw Error('Connexion momentanément indisponible.');
+    const {data,error}=await db.auth.getSession();
+    if(error||!data?.session?.access_token)throw Error('Connecte-toi pour continuer.');
+    const response=await fetch(config.supabaseUrl.replace(/\/$/,'')+'/functions/v1/username-auth',{
+      method:'POST',headers:{'content-type':'application/json','apikey':config.supabasePublishableKey,
+        'authorization':'Bearer '+data.session.access_token},
+      body:JSON.stringify({action,...fields})
+    });
+    const payload=await response.json().catch(()=>({}));
+    if(!response.ok)throw Error(payload.error||'Impossible de mettre à jour le compte.');
+    return payload;
+  }
+  async function status(db,config){return authenticatedRequest(db,config,'status');}
+  async function attach(db,config,username,password){
+    if(!validUsername(username))throw Error('Pseudo : 3 à 24 caractères (lettres, chiffres, _ ou -).');
+    if(typeof password!=='string'||password.length<12||password.length>128)throw Error('Mot de passe : 12 à 128 caractères.');
+    return authenticatedRequest(db,config,'attach',{username,password});
+  }
+  return {validUsername,signIn,status,attach};
 });
