@@ -969,3 +969,14 @@ html.unrated-mode .level-badge.unrated-badge{background:#54206e;color:#fff}
 .dlfr212-nlw-stats .rank-item .rank-score { font-variant-numeric: tabular-nums; }
 .dlfr212-nlw-stats .rank-list { max-height: 65vh; overflow-y: auto; }
 @media(max-width: 720px) { .dlfr212-nlw-stats .rank-list { max-height: none; } }
+
+/* Éditeur de niveaux : recherche stable, sans <select> géant */
+.dlfr-level-current{margin:8px 0 15px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);font-weight:700}
+.dlfr-level-choice-results{max-height:300px;overflow-y:auto;overscroll-behavior:contain;margin:6px 0 14px;border:1px solid var(--line);border-radius:10px;background:var(--card);box-shadow:0 6px 18px rgba(0,0,0,.06)}
+.dlfr-level-choice-results[hidden]{display:none!important}
+.dlfr-level-choice-info{padding:8px 12px;color:var(--muted);font-size:12px;border-bottom:1px solid var(--line)}
+.dlfr-level-choice{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;text-align:left;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;padding:9px 12px;font:inherit}
+.dlfr-level-choice:last-child{border-bottom:0}
+.dlfr-level-choice small{color:var(--muted);white-space:nowrap}
+.dlfr-level-choice:hover,.dlfr-level-choice:focus-visible{background:var(--panel)}
+@media(max-width:560px){.dlfr-level-choice{display:block}.dlfr-level-choice small{display:block;margin-top:4px}}

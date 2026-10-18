@@ -1002,8 +1002,9 @@ function levelCreditsEditor(){
  const d=levels[0];
  return `<div class="admin-card level-studio" data-admin-section="levels"><h2>Éditeur complet de niveaux</h2>
  <p class="small muted">Les complétions existantes sont conservées. Si tu modifies le classement, consulte l’aperçu avant de confirmer.</p><p class="dlfr29-inline-step">Étape 1 sur 3 — Choisir le niveau</p>
- <label class="field">Rechercher un niveau<input id="levelStudioSearch" type="search" placeholder="Nom ou ID Geometry Dash"></label>
- <form data-form="levelStudio"><label class="field">Fiche à éditer<select id="levelStudioSelect" name="demon_id" required>${levels.map(x=>`<option value="${esc(x.id)}" data-search="${esc(key(x.name)+' '+plain(x.level_id))}">${num(x.position)>150?'NLW #'+esc(num(x.position)-150):'#'+esc(x.position)} — ${esc(x.name)} (ID ${esc(x.id)})</option>`).join('')}</select></label>
+ <label class="field" for="levelStudioSearch">Rechercher un niveau<input id="levelStudioSearch" type="search" placeholder="Nom, rang ou ID Geometry Dash…" autocomplete="off" aria-controls="levelStudioChoices" aria-expanded="false"></label>
+ <div class="dlfr-level-choice-results" id="levelStudioChoices" role="group" aria-label="Niveaux à sélectionner" hidden></div>
+ <form data-form="levelStudio"><div class="dlfr-level-current" id="levelStudioCurrent" role="status" aria-live="polite">Fiche sélectionnée : ${esc(d.name)}</div><select id="levelStudioSelect" name="demon_id" required hidden aria-label="Identifiant de la fiche sélectionnée"><option value="${esc(d.id)}" selected>${esc(d.name)}</option></select>
  <p class="dlfr29-inline-step">Étape 2 sur 3 — Mettre à jour la fiche</p><div class="studio-layout"><div><h3>Identité et difficulté</h3>
  <label class="field">Nom<input name="name" required maxlength="120"></label>
  <label class="field">ID Geometry Dash<input name="level_id" inputmode="numeric" maxlength="30"></label>
@@ -1032,6 +1033,39 @@ function levelCreditsEditor(){
  <label class="field"><input name="confirm_move" type="checkbox"> Je confirme un éventuel changement de classement et le décalage des niveaux concernés.</label>
  <label class="field" id="levelStudioTransferConfirm" style="display:none"><span id="levelStudioTransferCaption">Confirmation de transfert : saisis <b>TRANSFERER</b></span><input name="confirm_transfer" maxlength="10" autocomplete="off" placeholder="TRANSFERER"></label>
  <button class="btn" type="submit">Enregistrer la fiche du niveau</button></form></div>`;
+}
+// La liste native contenait parfois plusieurs milliers d'options : sur certains
+// navigateurs, son ouverture pouvait perdre le focus. Recherche légère sans rerender.
+function levelStudioChoices(query='', open=true){
+ const holder=document.getElementById('levelStudioChoices');
+ const input=document.getElementById('levelStudioSearch');
+ if(!holder||!input)return;
+ if(!open){holder.hidden=true;input.setAttribute('aria-expanded','false');return;}
+ const q=key(query||'').trim();
+ const levels=(state.data?.demons||[]).slice().sort((a,b)=>num(a.position)-num(b.position));
+ const matches=levels.filter(d=>{
+  if(!q)return true;
+  const rank=num(d.position)>150?'nlw '+(num(d.position)-150):String(num(d.position));
+  return key([d.name,d.level_id,d.id,rank].map(plain).join(' ')).includes(q);
+ });
+ const visible=matches.slice(0,35);
+ holder.innerHTML=`<div class="dlfr-level-choice-info">${matches.length} résultat(s) · ${visible.length} affiché(s)${!q?' · tape un nom pour affiner':''}</div>`+
+ visible.map(d=>`<button type="button" class="dlfr-level-choice" data-studio-pick="${esc(d.id)}"><span>${num(d.position)>150?'NLW #'+esc(num(d.position)-150):'#'+esc(d.position)} — ${esc(d.name)}</span><small>GD ${esc(d.level_id||'—')}</small></button>`).join('')+
+ (!matches.length?'<p class="small muted">Aucun niveau trouvé. Vérifie le nom ou l’ID Geometry Dash.</p>':'');
+ holder.hidden=false;
+ input.setAttribute('aria-expanded','true');
+}
+function chooseLevelStudio(id){
+ const select=document.getElementById('levelStudioSelect');
+ const level=(state.data?.demons||[]).find(d=>String(d.id)===String(id));
+ if(!select||!level)return;
+ select.replaceChildren(new Option(String(level.name||''),String(level.id),true,true));
+ const current=document.getElementById('levelStudioCurrent');
+ if(current)current.textContent='Fiche sélectionnée : '+(num(level.position)>150?'NLW #'+(num(level.position)-150):'#'+num(level.position))+' — '+String(level.name||'');
+ const search=document.getElementById('levelStudioSearch');
+ if(search)search.value='';
+ levelStudioChoices('',false);
+ syncLevelStudio();
 }
 function syncLevelStudio(){
  const select=document.getElementById('levelStudioSelect'),form=select?.closest('form');if(!form)return;
@@ -1814,6 +1848,14 @@ function bootEvents(){
   }
  },true);
  document.addEventListener('keydown',ev=>{
+   if(ev.target?.id==='levelStudioSearch'){
+     if(ev.key==='Escape'){levelStudioChoices('',false);return;}
+     if(ev.key==='ArrowDown'){ev.preventDefault();levelStudioChoices(ev.target.value);document.querySelector('[data-studio-pick]')?.focus();return;}
+     if(ev.key==='Enter'){const first=document.querySelector('#levelStudioChoices:not([hidden]) [data-studio-pick]');if(first){ev.preventDefault();chooseLevelStudio(first.dataset.studioPick);}return;}
+   }
+   if(ev.target?.matches?.('[data-studio-pick]')&&ev.key==='Escape'){
+     levelStudioChoices('',false);document.getElementById('levelStudioSearch')?.focus();return;
+   }
    const regionKey=ev.target?.closest?.('[data-region-code][role=button]');
    if(regionKey&&(ev.key==='Enter'||ev.key===' ')){ev.preventDefault();const reg=GEO.regionInfo(regionKey.dataset.regionCode);if(reg){state.selectedRegion=reg.code;render();}return;}
    if(ev.key!=='Escape')return;
@@ -1827,7 +1869,11 @@ function bootEvents(){
    if(button.matches('[data-owner-preview-role],[data-admin-tab],[data-level-group],[data-identity-tab]'))return;
    ev.preventDefault();ev.stopImmediatePropagation();toast('Aperçu en lecture seule.');
  },true);
- document.addEventListener('click',async(ev)=>{const a=ev.target.closest('a[data-nav]');if(a){ev.preventDefault();const link=new URL(a.href);history.pushState({},'',link.search);state.keyword='';render();window.scrollTo(0,0);return;}
+ document.addEventListener('click',async(ev)=>{
+  const pick=ev.target.closest('[data-studio-pick]');
+  if(pick){ev.preventDefault();chooseLevelStudio(pick.dataset.studioPick);return;}
+  if(!ev.target.closest('#levelStudioSearch,#levelStudioChoices'))levelStudioChoices('',false);
+  const a=ev.target.closest('a[data-nav]');if(a){ev.preventDefault();const link=new URL(a.href);history.pushState({},'',link.search);state.keyword='';render();window.scrollTo(0,0);return;}
  const claim=ev.target.closest('[data-claim-pack]');if(claim){try{claim.disabled=true;await claimPack(claim.dataset.claimPack);}catch(e){toast('Level Pack : '+e.message);claim.disabled=false;}return;}
  const cinemaPlay=ev.target.closest('[data-dlfr23-play]');
  if(cinemaPlay){
@@ -1955,6 +2001,7 @@ function bootEvents(){
  if(act.dataset.action==='cancelNews'){state.editingNews=null;const form=document.querySelector('[data-form="news"]');if(form){form.reset();form.elements.news_id.value='';updateNewsPreview(form);}return;}
  if(act.dataset.action==='logout'&&LIVE){await db.auth.signOut();state.session=null;state.usernameAccount=null;state.staff=false;render();}
  });
+ document.addEventListener('focusin',ev=>{if(ev.target.id==='levelStudioSearch')levelStudioChoices(ev.target.value);});
  document.addEventListener('input',ev=>{
  if(ev.target.id==='dlfr27PackLevelSearch'){const q=key(ev.target.value);document.querySelectorAll('[data-pack-level-row]').forEach(row=>{row.hidden=!row.dataset.search.includes(q)});return;}
  if(ev.target.id==='hiddenDeleteSearch'){
@@ -1962,7 +2009,7 @@ function bootEvents(){
    if(select)for(const opt of select.options)opt.hidden=!!opt.value&&!key(opt.textContent).includes(query);
    return;
  }
- if(ev.target.id==='levelStudioSearch'){const select=document.getElementById('levelStudioSelect');if(select){const q=key(ev.target.value);for(const opt of select.options)opt.hidden=!key(opt.textContent+' '+opt.dataset.search).includes(q);const first=[...select.options].find(x=>!x.hidden);if(first&&select.selectedOptions[0]?.hidden){select.value=first.value;syncLevelStudio();}}}
+ if(ev.target.id==='levelStudioSearch'){levelStudioChoices(ev.target.value);return;}
  if(ev.target.closest('[data-form="levelStudio"]')){updateStudioPreview(ev.target.closest('form'));updateStudioMovementPreview(ev.target.closest('form'));}
  if(ev.target.closest('[data-form="levelStudio"]')&&ev.target.name==='legacy'){
     const form=ev.target.closest('form');if(ev.target.checked)suggestLegacyAfterList(form);
