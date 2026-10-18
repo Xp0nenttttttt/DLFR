@@ -37,7 +37,7 @@ const packTables=['dlfr_level_packs','dlfr_level_pack_levels','dlfr_level_pack_c
 const livePrivateTables=['profile_claim_requests','level_submissions','clan_invites','clan_requests','player_profile_owners'];
 const liveStaffTables=['player_sanctions','community_audit_log','dlfr_level_archive_log'];
 const tables = ['site_settings','players','demons','completions','news_items','profile_titles','player_profile_titles','player_profiles','hall_of_fame','player_stat_snapshots','demon_position_history'];
-let db = null, state = { data:null, staff:false, staffRole:null, session:null, country:'MONDE', region:'ALL', selectedPlayer:'', list:'main', keyword:'', busy:false, statsTab:'players', statsYear:'all', comparePlayer:'', profileTab:'overview', activityTab:'following', selectedRegion:'BRE', regionsSort:'points', regionsGeometryRequested:false, newsFilter:'all', newsSearch:'', adminTab:'overview', editingNews:null, unrated:false, calcPlayer:'', calcDemons:[], calcNlw:false, unbeatSearch:'', unbeatLimit:120, communityExcel:{status:'idle',items:[],message:'',offline:false}, demoRole:'owner', demoActor:'spleen', selectedClan:1, clanSort:'points', clanSearch:'', clanDetailTab:'overview', ownKey:null, ownAccountMessage:'', ownerPreview:'owner', ownerPreviewQueue:[], ownerPreviewError:'', teamCandidates:[], teamCandidatesReady:false, teamCandidatesError:'', mergedSourceKeys:[], mergedSourceError:'', mergeRequests:[], mergeRequestCandidates:[], mergeRequestsError:'', clanInbox:[], clanCandidates:[], clanExtraError:'', usernameAccount:null, usernameAccountError:'' };
+let db = null, state = { data:null, staff:false, staffRole:null, session:null, country:'MONDE', region:'ALL', selectedPlayer:'', list:'main', keyword:'', busy:false, statsTab:'players', statsYear:'all', comparePlayer:'', profileTab:'overview', activityTab:'following', selectedRegion:'BRE', regionsSort:'points', regionsGeometryRequested:false, newsFilter:'all', newsSearch:'', adminTab:'overview', editingNews:null, unrated:false, calcPlayer:'', calcDemons:[], calcNlw:false, unbeatSearch:'', unbeatLimit:120, communityExcel:{status:'idle',items:[],message:'',offline:false}, demoRole:'owner', demoActor:'spleen', selectedClan:1, clanSort:'points', clanSearch:'', clanDetailTab:'overview', ownKey:null, ownAccountMessage:'', mySubmissionFilter:'all', mySubmissionSearch:'', ownerPreview:'owner', ownerPreviewQueue:[], ownerPreviewError:'', teamCandidates:[], teamCandidatesReady:false, teamCandidatesError:'', mergedSourceKeys:[], mergedSourceError:'', mergeRequests:[], mergeRequestCandidates:[], mergeRequestsError:'', clanInbox:[], clanCandidates:[], clanExtraError:'', usernameAccount:null, usernameAccountError:'' };
 const PERF_DEBUG=new URLSearchParams(location.search).has('perf');
 const perfNow=()=>typeof performance!=='undefined'?performance.now():Date.now();
 const el = document.getElementById('app');
@@ -658,7 +658,7 @@ function selfProfilePage(){
   const usernameForms=C.enableUsernameLogin===true?`<div class="dlfr29-auth-grid">${usernameLoginForm()}<form data-form="usernameRegister" class="dlfr29-auth-card"><h3>Créer un compte DLFR</h3><label class="field">Pseudo<input name="username" autocomplete="username" minlength="3" maxlength="24" pattern="(?:[A-Za-z0-9_]|-){3,24}" required></label><label class="field">Mot de passe<input name="password" type="password" minlength="12" maxlength="128" autocomplete="new-password" required></label><label class="field">Confirmer le mot de passe<input name="password_confirm" type="password" minlength="12" maxlength="128" autocomplete="new-password" required></label><p class="small muted">Aucun e-mail demandé. Conserve ton mot de passe : la récupération automatique n’est pas encore disponible.</p><button class="btn" type="submit">Créer mon compte</button></form></div>`:usernameLoginForm();
   return `${templateNotice()}<section class="paper self-page"><h1>Se connecter ou créer un compte</h1>${usernameForms}${C.enableDiscordOAuth===true?`<details class="alternate-login"><summary>Ou continuer avec Discord</summary>${discordPanel(null)}</details>`:''}<p class="small muted">Un ancien compte validé peut récupérer sa fiche libre au premier accès si le pseudo correspond exactement et sans conflit. Les autres liaisons nécessitent une validation.</p></section>`;
  }
- if(LIVE&&!state.ownKey)return `<section class="paper self-page"><h1>Mon profil</h1><div class="notice warning">${esc(state.ownAccountMessage||'Ton compte n’est pas relié à un profil joueur.')}</div>${linkedAccountsPanel()}${discordPanel(null)}<section class="paper dlfr-merge-request" aria-labelledby="mergeRequestAccessTitle"><h2 id="mergeRequestAccessTitle">⇄ Demander une fusion de fiches</h2><p>Cette demande est <strong>ouverte à tous les joueurs connectés</strong>, sans permission de modérateur.</p><p>Pour que les records et badges soient transférés vers <strong>ta bonne fiche</strong>, associe d’abord une fiche joueur à ce compte dans le formulaire ci-dessous. Une fois la liaison effectuée, reviens dans « Mon profil » : le formulaire de demande apparaîtra ici.</p><p class="small muted">Si l’ancienne fiche est déjà associée à un autre compte, une intervention manuelle de la modération est nécessaire.</p></section><div id="selfPlayerClaim">${PROD.claimSection(state)}</div><button class="btn subtle" type="button" data-action="selfLogout">Se déconnecter</button></section>`;
+ if(LIVE&&!state.ownKey)return `<section class="paper self-page"><h1>Mon profil</h1><div class="notice warning">${esc(state.ownAccountMessage||'Ton compte n’est pas relié à un profil joueur.')}</div>${linkedAccountsPanel()}${discordPanel(null)}<section class="paper dlfr-merge-request" aria-labelledby="mergeRequestAccessTitle"><h2 id="mergeRequestAccessTitle">⇄ Demander une fusion de fiches</h2><p>Cette demande est <strong>ouverte à tous les joueurs connectés</strong>, sans permission de modérateur.</p><p>Pour que les records et badges soient transférés vers <strong>ta bonne fiche</strong>, associe d’abord une fiche joueur à ce compte dans le formulaire ci-dessous. Une fois la liaison effectuée, reviens dans « Mon profil » : le formulaire de demande apparaîtra ici.</p><p class="small muted">Si l’ancienne fiche est déjà associée à un autre compte, une intervention manuelle de la modération est nécessaire.</p></section><div id="selfPlayerClaim">${PROD.claimSection(state)}</div>${mySubmissionsTeaser()}<button class="btn subtle" type="button" data-action="selfLogout">Se déconnecter</button></section>`;
  const actor=LIVE?state.ownKey:state.demoActor;
  const player=state.data.players.find(p=>p.player_key===actor);
  if(!player)return '<section class="paper"><h1>Mon profil</h1><p>Aucun joueur lié à ce compte.</p></section>';
@@ -672,6 +672,7 @@ function selfProfilePage(){
  ${linkedAccountsPanel()}
  ${discordPanel(actor,profile)}
  ${playerMergeRequestPanel()}
+ ${mySubmissionsTeaser()}
  <details class="badge-catalog-section"><summary>🏅 Badges à découvrir — collection & raretés</summary><p class="small muted">Les badges non obtenus restent mystérieux : seules leur catégorie et leur rareté sont visibles. Les conditions ne sont jamais révélées.</p>${BADGES.catalog(state.data,actor,esc,date)}</details>
  <div class="self-mini-preview"><div class="self-mini-avatar">${avatarOf(actor,profile)?`<img src="${esc(avatarOf(actor,profile))}" alt="">`:esc(fullName(player)[0]||'?')}</div><div><b>${flag(player.country_code)} ${esc(fullName(player))}</b><p class="muted small">${esc(profile.bio||'Aucune biographie pour le moment.')}</p><a class="link" href="${url('player',{player:actor})}" data-nav>Voir ma fiche publique ↗</a></div></div>
  ${suspended?'<div class="notice warning">Ce profil est suspendu dans la simulation. Les modifications sont temporairement désactivées.</div>':''}
@@ -1098,6 +1099,62 @@ const mergePlayerOptions=()=>{
 const submitLevelList=()=>(state.data.demons||[]).filter(d=>d.is_public!==false&&!d.legacy).slice().sort((a,b)=>num(a.unrated?a.unrated_position+1e9:a.position)-num(b.unrated?b.unrated_position+1e9:b.position));
 const submitLevelLabel=d=>d.unrated?'UNRATED #'+num(d.unrated_position):num(d.position)>num(cfg().extended_limit)?'NLW #'+(num(d.position)-num(cfg().extended_limit)):'#'+num(d.position);
 const submitIsYoutube=v=>{try{const u=new URL(plain(v));return u.protocol==='https:'&&/^(www\.|m\.)?(youtube\.com|youtu\.be)$/i.test(u.hostname);}catch{return false;}};
+// V59 — historique personnel ; ne jamais sélectionner par pseudo seul.
+// L'identité Auth de la soumission reste la source de vérité (même si la fiche change).
+function mySubmissionRows(){
+ if(!state.session?.user?.id)return [];
+ const uid=state.session.user.id;
+ return (state.data?.level_submissions||[])
+   .filter(r=>r.auth_user_id===uid)
+   .slice().sort((a,b)=>(Date.parse(b.created_at||0)||0)-(Date.parse(a.created_at||0)||0)||Number(b.id||0)-Number(a.id||0));
+}
+function normalizedSubmissionStatus(value){
+ const v=key(value);
+ if(v==='approved'||v==='accepted')return 'approved';
+ if(v==='rejected'||v==='refused')return 'rejected';
+ return 'pending';
+}
+function submissionStatusMeta(status){
+ switch(normalizedSubmissionStatus(status)){
+  case 'approved':return {label:'Acceptée',cls:'approved',description:'Validée par la modération'};
+  case 'rejected':return {label:'Refusée',cls:'rejected',description:'Non retenue par la modération'};
+  default:return {label:'En attente',cls:'pending',description:'En cours de vérification'};
+ }
+}
+function mySubmissionsTeaser(){
+ if(!state.session)return '';
+ const rows=mySubmissionRows(),pending=rows.filter(x=>normalizedSubmissionStatus(x.status)==='pending').length;
+ return `<div class="v59-my-submissions-link"><div><strong>Mes soumissions</strong><p class="small muted">${rows.length} soumission(s) envoyée(s) · ${pending} en attente</p></div><a class="btn subtle small" data-nav href="${url('my-submissions')}">Suivre mes soumissions ↗</a></div>`;
+}
+function mySubmissionsPage(){
+ if(!state.session)return `${templateNotice()}<section class="paper v59-submission-dashboard"><h1>Mes soumissions</h1><p>Connecte-toi pour consulter l'historique de tes demandes.</p><a class="btn" data-nav href="${url('my-profile')}">Me connecter</a></section>`;
+ const rows=mySubmissionRows();
+ const counts={all:rows.length,pending:0,approved:0,rejected:0};
+ for(const r of rows)counts[normalizedSubmissionStatus(r.status)]++;
+ const f=state.mySubmissionFilter;
+ const needle=key(state.mySubmissionSearch);
+ const filtered=rows.filter(r=>(f==='all'||normalizedSubmissionStatus(r.status)===f)&&(!needle||key([r.level_name,r.level_id,r.id].join(' ')).includes(needle)));
+ const filterButton=(k,label)=>`<button type="button" class="v59-filter ${f===k?'active':''}" data-my-submission-filter="${k}" aria-pressed="${f===k}">${label} <span>${counts[k]}</span></button>`;
+ const cards=filtered.map(r=>{
+  const meta=submissionStatusMeta(r.status);
+  const d=(state.data?.demons||[]).find(x=>Number(x.id)===Number(r.demon_id));
+  const title=plain(r.level_name)||(d?.name||'Niveau non renseigné');
+  const statusDate=r.reviewed_at&&meta.cls!=='pending'?` · Examinée le ${esc(date(r.reviewed_at))}`:'';
+  const levelLink=meta.cls==='approved'&&d?`<a class="link" data-nav href="${url('demon',{id:d.id})}">Voir le niveau ↗</a>`:'';
+  return `<article class="v59-submission-card v59-${meta.cls}">
+   <div class="v59-submission-top"><div><h3>${esc(title)}</h3><p class="small muted">Soumission n°${esc(r.id)} · ${esc(date(r.created_at)||'Date inconnue')}${statusDate}</p></div><span class="v59-status v59-status-${meta.cls}">${esc(meta.label)}</span></div>
+   <p class="v59-submission-details"><span>${esc(r.progress||100)} %</span>${r.level_id?`<span>ID GD : ${esc(r.level_id)}</span>`:''}<span>${esc(meta.description)}</span></p>
+   <div class="v59-submission-links">${http(r.video_url)?`<a class="link" href="${esc(http(r.video_url))}" target="_blank" rel="noopener noreferrer">Vidéo de preuve ↗</a>`:''}${levelLink}</div>
+  </article>`;
+ }).join('');
+ return `${templateNotice()}<section class="paper v59-submission-dashboard"><div class="v59-submission-heading"><div><h1>Mes soumissions</h1><p>Retrouve tes records envoyés à la modération et leur état, comme sur l’AREDL.</p></div><button class="btn subtle small" type="button" data-action="refreshMySubmissions">↻ Actualiser</button></div>
+ <div class="v59-submission-counters"><div><b>${counts.pending}</b><span>En attente</span></div><div><b>${counts.approved}</b><span>Acceptées</span></div><div><b>${counts.rejected}</b><span>Refusées</span></div></div>
+ <div class="v59-submission-filters" role="group" aria-label="Filtrer mes soumissions">${filterButton('all','Toutes')}${filterButton('pending','En attente')}${filterButton('approved','Acceptées')}${filterButton('rejected','Refusées')}</div>
+ <label class="field v59-submission-search">Rechercher un niveau ou un ID<input id="mySubmissionSearch" type="search" placeholder="Nom du niveau, ID GD, numéro de soumission…" value="${esc(state.mySubmissionSearch)}" autocomplete="off"></label>
+ <div class="v59-submission-results" id="mySubmissionResults">${cards||`<div class="v59-submission-empty"><strong>${rows.length?'Aucune soumission dans cette sélection.':'Tu n’as encore envoyé aucune soumission.'}</strong><p class="muted small">${rows.length?'Change de filtre ou efface ta recherche.':'Tes futurs envois et décisions de modération apparaîtront ici.'}</p></div>`}</div>
+ <p class="small muted v59-submission-note">Une soumission acceptée n’est pas nécessairement déjà visible dans la liste publique si la publication du niveau attend encore une décision. Les commentaires de refus ne sont pas enregistrés dans le système actuel.</p>
+ <a class="btn" data-nav href="${url('submit-record')}">＋ Soumettre un record</a></section>`;
+}
 function submitRecordPage(){
  const owner=(state.data.players||[]).find(p=>p.player_key===state.ownKey);
  const myName=owner?.username||'';
@@ -1122,7 +1179,7 @@ function submitRecordPage(){
  <label class="field submission-wide">Vidéo YouTube de ta complétion<input name="video_url" type="url" required maxlength="1000" placeholder="https://youtu.be/…"></label>
  <label class="field submission-wide" id="submitRawField" hidden>Raw footage <span id="submitRawOptional">(facultatif pour une nouvelle proposition, recommandé si Top 150)</span><input name="raw_footage_url" type="url" maxlength="1000" placeholder="Lien Drive, YouTube non répertorié…"></label>
  <label class="field" id="submitProgressField" hidden>Pourcentage de complétion (%)<input name="progress" type="number" min="1" max="100" value="100"></label>
- <button type="submit" class="btn">Envoyer en modération</button></form>`}</section>`;
+ <button type="submit" class="btn">Envoyer en modération</button></form>`}${mySubmissionsTeaser()}</section>`;
 }
 function submitSyncForm(){
  const sel=document.getElementById('submitLevelSelect');if(!sel)return;
@@ -1670,7 +1727,7 @@ function render(){
  resetRenderCalculations();if(!state.data)return;try{
  if(!BADGES?.init || !UNRATED_STATS?.calculate || !V2?.decorate || !V2?.project || !UNVERIFIED?.classify || !CLANS?.apply || !CLAN_PLUS?.stats || !SUBMISSIONS?.approve)throw Error('Fichier JavaScript V2 manquant ou version incohérente : réinstalle les scripts du pack V2.0.3.');
  if(!LIVE){const first=state.data.badge_baseline_scanned!==true;const changed=BADGES.captureAutomatic(state.data,ranked(),new Date().toISOString().slice(0,10),first);if(first){state.data.badge_baseline_scanned=true;}if(changed||first)saveDemo();}
- const page=nav(),params=new URLSearchParams(location.search);if(page==='unbeaten'&&state.communityExcel.status==='idle')loadCommunityExcel().catch(showPageError);if(page==='stats'&&params.has('player')){history.replaceState({},'',url('player',{player:params.get('player')}));return render();}if(page==='player')state.selectedPlayer=key(params.get('player'));if(page==='list'){const tab=new URLSearchParams(location.search).get('tab');state.list=(tab==='nlw'||tab==='archive')?'nlw':'main';}const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='player'?playerPage():page==='players'?playersPage():page==='my-profile'?selfProfilePage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():page==='packs'?packPage():page==='regions'?regionsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;
+ const page=nav(),params=new URLSearchParams(location.search);if(page==='unbeaten'&&state.communityExcel.status==='idle')loadCommunityExcel().catch(showPageError);if(page==='stats'&&params.has('player')){history.replaceState({},'',url('player',{player:params.get('player')}));return render();}if(page==='player')state.selectedPlayer=key(params.get('player'));if(page==='list'){const tab=new URLSearchParams(location.search).get('tab');state.list=(tab==='nlw'||tab==='archive')?'nlw':'main';}const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='player'?playerPage():page==='players'?playersPage():page==='my-profile'?selfProfilePage():page==='my-submissions'?mySubmissionsPage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():page==='packs'?packPage():page==='regions'?regionsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;
  // Donner un accès clair à l'inscription et à la connexion, sans modifier la navigation existante.
  const accountNavLink=document.querySelector('a[data-link="my-profile"]');
  if(accountNavLink) accountNavLink.textContent=state.session?'Mon profil':'Se connecter / Créer un compte';
@@ -1687,7 +1744,7 @@ function render(){
      });
    }
  }
- if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();if(page==='admin'&&state.adminTab==='levels'){arrangeLevelsPanel();syncLevelStudio();}document.title=({list:'Demonlist',stats:'Statistiques',player:'Profil joueur',players:'Profils des joueurs',news:'Actualités',activity:'Vie communautaire',regions:'Carte des régions',packs:'Level Packs',hall:'Palmarès & exploits',honors:'Palmarès & exploits',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Palmarès & exploits',clans:'Clans',history:'Historique','my-profile':'Mon profil','submit-record':'Soumettre un record',demon:'Niveau',archive:'Archives historiques'})[page]+' · DemonlistFrancophone';
+ if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();if(page==='admin'&&state.adminTab==='levels'){arrangeLevelsPanel();syncLevelStudio();}document.title=({list:'Demonlist',stats:'Statistiques',player:'Profil joueur',players:'Profils des joueurs',news:'Actualités',activity:'Vie communautaire',regions:'Carte des régions',packs:'Level Packs',hall:'Palmarès & exploits',honors:'Palmarès & exploits',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Palmarès & exploits',clans:'Clans',history:'Historique','my-profile':'Mon profil','my-submissions':'Mes soumissions','submit-record':'Soumettre un record',demon:'Niveau',archive:'Archives historiques'})[page]+' · DemonlistFrancophone';
  if(PERF_DEBUG)console.info('[DLFR perf] Rendu',page,Math.round(perfNow()-start)+' ms');
  }catch(error){showPageError(error);}
 }
@@ -2127,6 +2184,7 @@ function bootEvents(){
  const pt=ev.target.closest('[data-profile-tab]');if(pt){state.profileTab=pt.dataset.profileTab;const chosen=getPlayer(state.selectedPlayer);if($('profileContent'))$('profileContent').innerHTML=statProfile(chosen);return;}
  const at=ev.target.closest('[data-activity-tab]');if(at){state.activityTab=at.dataset.activityTab==='all'?'all':'following';render();return;}
  const nf=ev.target.closest('[data-news-filter]');if(nf){state.newsFilter=nf.dataset.newsFilter;render();return;}
+ const myFilter=ev.target.closest('[data-my-submission-filter]');if(myFilter){state.mySubmissionFilter=myFilter.dataset.mySubmissionFilter;render();return;}
  const thumb=ev.target.closest('[data-studio-thumbnail]');if(thumb){const form=thumb.closest('form');const v=studioYoutubeThumbnail(form.elements.video_url.value)||studioYoutubeThumbnail(form.elements.verifier_video_url.value);if(v){form.elements.thumbnail_url.value=v;updateStudioPreview(form);}else toast('Ajoute d’abord une vidéo YouTube valide.');return;}
  const claimButton=ev.target.closest('[data-review-claim]');
  const manageButton=ev.target.closest('[data-review-manage]');
@@ -2185,6 +2243,19 @@ function bootEvents(){
  const clanAction=ev.target.closest('[data-clan-action]');if(clanAction){handleClanAction(clanAction);return;}
  const rej=ev.target.closest('[data-review-reject]');if(rej){if(LIVE||!state.staff)return;try{state.data=SUBMISSIONS.reject(state.data,rej.dataset.reviewReject);auditV2('REJECT','Soumission #'+rej.dataset.reviewReject);saveDemo();toast('Soumission refusée.');render();}catch(e){toast('Erreur : '+e.message);}return;}
  const act=ev.target.closest('[data-action]');if(!act)return;
+ if(act.dataset.action==='refreshMySubmissions'&&LIVE){
+   if(!state.session){toast('Connecte-toi pour voir tes soumissions.');return;}
+   act.disabled=true;
+   try{
+     // RLS serveur + filtre identité Auth explicite : jamais par pseudo affiché.
+     const {data,error}=await db.from('level_submissions').select('*').eq('auth_user_id',state.session.user.id).order('created_at',{ascending:false}).limit(2000);
+     if(error)throw Error(error.message);
+     const mine=(data||[]);
+     const others=(state.data.level_submissions||[]).filter(r=>r.auth_user_id!==state.session.user.id);
+     state.data.level_submissions=[...others,...mine];render();toast('Soumissions actualisées.');
+   }catch(error){toast('Impossible d’actualiser : '+error.message);act.disabled=false;}
+   return;
+ }
  if(act.dataset.action==='refreshStaffAccess'&&LIVE){
    try{
      const {data,error}=await db.auth.getSession();if(error)throw error;
@@ -2288,6 +2359,14 @@ function bootEvents(){
   const matches=players.filter(p=>key((p.username||'')+' '+p.player_key).includes(needle)).slice(0,35);
   select.replaceChildren(...matches.map(p=>new Option((p.username||'Joueur')+' · '+p.player_key,p.player_key)));
   select.selectedIndex=-1;
+ });
+ document.addEventListener('input',ev=>{
+  if(ev.target.id!=='mySubmissionSearch')return;
+  state.mySubmissionSearch=ev.target.value;
+  const root=document.getElementById('mySubmissionResults');
+  if(!root)return;
+  const doc=new DOMParser().parseFromString(mySubmissionsPage(),'text/html');
+  root.replaceChildren(...Array.from(doc.querySelectorAll('#mySubmissionResults > *')));
  });
  document.addEventListener('input',ev=>{if(ev.target.id!=='submitLevelSearch')return;const sel=document.getElementById('submitLevelSelect');if(!sel)return;const q=key(ev.target.value);for(const o of sel.options)o.hidden=!key(o.textContent+' '+o.dataset.search).includes(q);const first=[...sel.options].find(x=>!x.hidden);if(sel.selectedOptions[0]?.hidden){sel.value=first?first.value:'';}submitSyncForm();});
  document.addEventListener('change',ev=>{if(ev.target.id==='submitLevelSelect'||ev.target.name==='submission_mode')submitSyncForm();});

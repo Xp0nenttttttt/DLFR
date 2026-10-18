@@ -1,0 +1,44 @@
+/* DLFR V59 — suivi personnel des soumissions ; se fond dans les thèmes existants. */
+.v59-submission-dashboard{max-width:1050px;margin-inline:auto;padding:clamp(16px,3vw,32px)}
+.v59-submission-heading,.v59-submission-top,.v59-my-submissions-link{display:flex;gap:14px;align-items:flex-start;justify-content:space-between}
+.v59-submission-heading{margin-bottom:22px}
+.v59-submission-heading h1{margin:0 0 8px}
+.v59-submission-heading p{margin:0;color:var(--muted,#6b7280)}
+.v59-submission-heading button{white-space:nowrap}
+.v59-submission-counters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:20px 0}
+.v59-submission-counters>div{padding:16px;background:color-mix(in srgb,var(--card,#ffffff) 85%,var(--accent,#416cda) 15%);border:1px solid var(--border,#dde3ea);border-radius:14px;display:flex;flex-direction:column;gap:4px;text-align:center}
+.v59-submission-counters b{font-size:1.85rem;line-height:1.2;font-variant-numeric:tabular-nums}
+.v59-submission-counters span{font-size:.88rem;color:var(--muted,#64748b)}
+.v59-submission-filters{display:flex;gap:8px;flex-wrap:wrap;margin:15px 0}
+.v59-filter{background:transparent;color:inherit;border:1px solid var(--border,#cbd5e1);border-radius:999px;padding:9px 13px;cursor:pointer;font:inherit;font-weight:600;font-size:.87rem}
+.v59-filter.active{color:var(--accent,#2455aa);background:color-mix(in srgb,var(--accent,#3873d5) 12%,transparent);border-color:var(--accent,#3873d5)}
+.v59-filter span{opacity:.74;margin-left:4px}
+.v59-filter:focus-visible{outline:2px solid var(--accent,#3873d5);outline-offset:3px}
+.v59-submission-search{max-width:650px;margin-bottom:18px}
+.v59-submission-results{display:grid;gap:12px;margin:18px 0 24px}
+.v59-submission-card{border:1px solid var(--border,#dbe3ed);border-radius:15px;padding:17px 19px;background:var(--card,#fff);box-shadow:0 3px 14px rgba(9,35,76,.035)}
+.v59-submission-card h3{margin:0 0 5px;font-size:1.08rem}
+.v59-submission-card .small{margin:0;color:var(--muted,#64748b)}
+.v59-status{white-space:nowrap;padding:6px 10px;border-radius:999px;font-size:.79rem;font-weight:800;border:1px solid currentColor}
+.v59-status-pending{color:#9b6600;background:#fff3d1}
+.v59-status-approved{color:#176b42;background:#ddfae9}
+.v59-status-rejected{color:#a4333d;background:#ffe7e7}
+.v59-submission-details{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;font-size:.86rem}
+.v59-submission-details span{padding:4px 9px;border-radius:7px;background:color-mix(in srgb,var(--accent,#3369bd) 8%,transparent)}
+.v59-submission-links{display:flex;gap:18px;flex-wrap:wrap;font-size:.87rem}
+.v59-submission-empty{padding:30px 16px;text-align:center;border:1px dashed var(--border,#cdd6e4);border-radius:14px}
+.v59-submission-empty p{margin:7px 0 0}
+.v59-submission-note{margin:14px 0;color:var(--muted,#64748b)}
+.v59-my-submissions-link{border:1px solid var(--border,#dce2eb);background:color-mix(in srgb,var(--accent,#3873d5) 5%,transparent);border-radius:14px;padding:15px 17px;margin:18px 0}
+.v59-my-submissions-link p{margin:5px 0 0}
+.v59-my-submissions-link .btn{white-space:nowrap}
+@media(max-width:650px){
+ .v59-submission-heading,.v59-my-submissions-link{flex-direction:column;align-items:stretch}
+ .v59-submission-counters{gap:6px}
+ .v59-submission-counters>div{padding:12px 4px}
+ .v59-submission-counters b{font-size:1.45rem}
+ .v59-submission-counters span{font-size:.74rem}
+ .v59-submission-top{gap:10px}
+ .v59-submission-card{padding:13px}
+ .v59-submission-top h3{overflow-wrap:anywhere}
+}
