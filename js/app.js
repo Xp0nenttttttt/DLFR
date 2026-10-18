@@ -1722,7 +1722,8 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
 
  if(LIVE&&PROD.handles(type)){
   if(type!=='prodClaim'&&type!=='selfCreatePlayer'&&type!=='submitRecord'&&!state.staff)throw Error('Modérateur requis.');
-  if(['nlw','moderator'].includes(state.staffRole)&&type!=='prodScopedReview')throw Error('Action réservée aux supermodérateurs.');
+  // Les actions personnelles restent accessibles aux joueurs ayant aussi un rôle de modération.
+  if(['nlw','moderator'].includes(state.staffRole)&&!['prodScopedReview','prodClaim','selfCreatePlayer','submitRecord'].includes(type))throw Error('Action réservée aux supermodérateurs.');
   if(type==='submitRecord'){f.__demon=f.submission_mode==='new'?null:(state.data.demons||[]).find(d=>String(d.id)===String(f.demon_id));f.__cfg=cfg();}
   await PROD.send(db,type,f,submitter);
   await refreshLiveData();

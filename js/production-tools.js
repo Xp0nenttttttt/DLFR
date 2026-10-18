@@ -26,7 +26,7 @@ function claimSection(s){
  ${pending?'<div class="notice warning">Une revendication est en attente : attends sa réponse avant de créer une autre fiche.</div>':
  !canCreate?'<div class="notice warning">Connecte-toi pour créer ta fiche personnelle.</div>':
  `<form data-form="selfCreatePlayer" class="prod-create-player">
- ${row('Mon pseudo Geometry Dash','<input name="username" required minlength="2" maxlength="32" pattern="[A-Za-z0-9_-]{2,32}" title="2 à 32 caractères : lettres, chiffres, _ et -" autocomplete="nickname" placeholder="Ex. Spleen">')}
+ ${row('Mon pseudo Geometry Dash','<input name="username" required minlength="2" maxlength="32" pattern="(?:[A-Za-z0-9_]|-){2,32}" title="2 à 32 caractères : lettres, chiffres, _ et -" autocomplete="nickname" placeholder="Ex. Spleen">')}
  ${row('Pays',`<select name="country_code" required>${countryOptions}</select>`)}
  ${row('Région (uniquement pour la France)',`<select name="region_code"><option value="">Aucune région</option>${regionOptions}</select>`)}
  <p class="small muted">Le pays et la région sont déclaratifs. Les classements et les records sont vérifiés séparément.</p>

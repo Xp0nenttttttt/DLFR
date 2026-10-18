@@ -1,33 +1,37 @@
-# DLFR V52.1 - Accessibilité des demandes de fusion + diagnostic Fluxy
+# DLFR V52.2 — Autoriser les modérateurs à créer leur fiche personnelle
 
-## Diagnostic
-La migration SQL 52 **ne requiert pas d'être modérateur pour envoyer une demande**.
-La RPC `dlfr_request_player_merge` exige seulement une session authentifiée et une fiche joueur appartenant au compte demandeur. Les propriétaires/supermodérateurs sont les seuls à pouvoir **valider** via `dlfr_review_player_merge_request`.
+## Problème identifié
+Dans `js/app.js`, les formulaires publics sont reconnus pour les joueurs non-modérateurs,
+mais un second contrôle de rôle empêchait `selfCreatePlayer`, `prodClaim` et `submitRecord`
+pour les comptes avec rôle `moderator` ou `nlw`. Un membre du staff pouvait donc
+exister dans l’onglet Équipe sans fiche joueur et être empêché de créer sa propre fiche.
 
-Dans la V52, `Mon profil` n'affichait aucune mention de fusion aux comptes connectés sans fiche déjà reliée. Cela donnait l'impression que la fusion était une fonction d'administration.
+## Correction
+- Les actions personnelles `selfCreatePlayer`, `prodClaim` et `submitRecord` sont
+  accessibles aux comptes connectés ordinaires **et** à tous les rôles de modération.
+- Les opérations d’administration restent restreintes : aucun nouveau droit
+  de validation, de fusion ou de modération n’est accordé.
+- Validation HTML du champ pseudo GD corrigée pour les versions récentes des navigateurs.
+- Numéros de cache JavaScript actualisés dans `index.html`.
 
-## Installer
-- Garder la migration SQL 52 précédemment installée (NE PAS la réexécuter).
-- Remplacer **uniquement** `js/app.js` et `index.html` par ceux de ce ZIP.
-- Ne pas retirer `css/merge-requests.css` déjà installé en V52.
-- Publier GitHub Pages, puis `Ctrl+F5`.
-- Aucun fichier `assets/flags/` n'est inclus/modifié.
+## Installation
+1. Sauvegarder les fichiers actuels.
+2. Remplacer `js/app.js`, `js/production-tools.js` et `index.html`.
+3. Ne pas toucher à `assets/flags/`, aux autres CSS, aux fonctions d’authentification, ni aux données SQL.
+4. Publier sur GitHub Pages, puis `Ctrl+F5`.
 
-## Résultat
-- Tout compte **connecté sans fiche liée** voit désormais une section **Demander une fusion de fiches**, qui explique le lien préalable requis et indique comment associer une fiche.
-- Tout compte **connecté avec fiche liée**, modérateur ou non, a le formulaire d'envoi de demande dans Mon profil.
-- Seuls les supermodérateurs/propriétaires voient les commandes de validation.
-- Aucun changement des permissions côté SQL.
+## Fluxy : comment apparaître dans l’Équipe ET dans les stats
+Il se connecte à son compte habituel, puis ouvre **Mon espace → Mon profil**.
+- Si aucune fiche joueur n’est liée à son compte, le bloc **Je n’ai pas encore de fiche** apparaît.
+  Il peut entrer son pseudo GD et cliquer sur **Créer ma fiche DLFR**.
+- **S’il possède déjà une fiche historique**, il ne doit pas en créer une nouvelle : utiliser
+  **J’ai déjà une fiche joueur → Demander la liaison** (validation par la modération).
+- La fiche apparaîtra ensuite dans **Profils des joueurs** et en principe dans
+  **Statistiques → Joueurs**, à condition qu’elle ne soit pas masquée (`hidden_from_stats`).
+  Sans record validé, ses points restent à 0 et il n’apparaît pas dans les statistiques qui
+  comptent seulement les joueurs avec points.
 
-## Fluxy absent des statistiques
-Les rôles `staff_roles` et les fiches `players` sont indépendants. Un membre de modération n'est pas automatiquement ajouté aux stats : la fiche doit être enregistrée dans `players` et non masquée via `hidden_from_stats`.
-
-Pour déterminer l'état de Fluxy, lancer facultativement `supabase/DIAGNOSTIC_FLUXY_LECTURE_SEULE.sql` depuis Supabase SQL Editor. Il ne modifie rien.
-- Aucun résultat : fiche joueur « Fluxy » inexistante (ou autre pseudo).
-- `hidden_from_stats=true` : démasquer sa fiche via **Modération > Profils > Visibilité** si c'est souhaité.
-- `fiche_liee_a_un_compte=false` : lier sa fiche au bon compte pour associer identité et compte.
-- `role_du_compte_lie` absent alors qu'il a des permissions : contrôler quelle identité Auth possède le rôle, sans partager d'identifiants/jetons.
-- Si présent/visible mais toujours absent du classement, contrôler les filtres pays/région/recherche et la règle qui masque les créateurs ayant uniquement des crédits de création sans records/vérifications.
-
-## Limites
-La fusion nécessite encore une fiche **cible liée au demandeur**. Nous ne donnons pas au navigateur le droit de choisir arbitrairement la fiche cible : c'est une protection contre la prise de contrôle de fiches. La fusion elle-même reste à vérifier en production.
+## Vérifications locales
+Syntaxe `node --check` sur les deux JavaScript ; contrôles statiques de la modification ;
+les autorisations de la RPC Supabase doivent être vérifiées lors de l’essai sur le vrai site.
+Aucun changement de mot de passe, de compte, de permissions ou de table SQL.
