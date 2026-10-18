@@ -1319,7 +1319,7 @@ const ADMIN_GUIDES={
  levels:{name:'Gérer les niveaux',desc:'Modifie une fiche, crée un niveau, contrôle une ancienne importation ou retire une fiche.',steps:['Choisis une opération ci-dessous.','Vérifie les crédits et le rang.','Prévisualise puis confirme l’enregistrement.']},
  packs:{name:'Créer un Level Pack',desc:'Compose une sélection de niveaux et choisis une récompense communautaire.',steps:['Choisis le nom et le type de récompense.','Sélectionne entre 2 et 30 niveaux.','Vérifie la sélection avant publication.']},
  news:{name:'Publier une actualité',desc:'Rédige une annonce pour les joueurs et vérifie son contenu avant publication.',steps:['Rédige le titre et le texte.','Ajoute les médias si nécessaire.','Relis puis publie.']},
- profiles:{name:'Gérer les joueurs',desc:'Personnalise une fiche, fusionne des doublons ou rapproche des vérificateurs.',steps:['Sélectionne un joueur ou l’outil d’identités.','Contrôle les informations et les liens.','Enregistre la modification.']},
+ profiles:{name:'Gérer les joueurs',desc:'Crée une fiche joueur, attribue une victoire vérifiée, personnalise une fiche ou fusionne des doublons.',steps:['Choisis la création, la victoire ou l’outil d’identités.','Contrôle les informations et les liens.','Enregistre la modification.']},
  awards:{name:'Badges et distinctions',desc:'Gère les titres officiels, les badges et le Hall of Fame.',steps:['Choisis un joueur.','Choisis la récompense et sa justification.','Confirme l’attribution.']},
  achievements:{name:'Exploits français',desc:'Mets en avant une performance marquante de la communauté.',steps:['Choisis le joueur et le niveau.','Renseigne la performance et la preuve.','Relis avant d’enregistrer.']},
  clans:{name:'Gérer les clans',desc:'Consulte les groupes et les demandes de la communauté.',steps:['Sélectionne le clan.','Vérifie l’action demandée.','Confirme le changement.']},
@@ -1333,6 +1333,38 @@ function adminGuideHtml(){
  const quick=[['requests','📥','Traiter les demandes','Vérifications et profils en attente'],['levels','✎','Modifier un niveau','Rang, créateurs, vidéos, miniature'],['packs','◇','Créer un Level Pack','Niveaux et récompenses'],['profiles','♧','Gérer les joueurs','Profils, fusions et vérificateurs']];
  const isOverview=state.adminTab==='overview';
  return `<section class="dlfr29-guide" aria-label="Guide de modération"><div class="dlfr29-guide-heading"><span class="kicker">ASSISTANT DE MODÉRATION</span><h2>${g.name}</h2><p>${g.desc}</p></div>${isOverview?`<div class="dlfr29-quick-grid">${quick.map(([id,icon,title,desc])=>`<button type="button" data-admin-tab="${id}" class="dlfr29-quick"><span class="dlfr29-quick-icon" aria-hidden="true">${icon}</span><strong>${title}</strong><small>${desc}</small><span class="dlfr29-quick-arrow" aria-hidden="true">→</span></button>`).join('')}</div>`:`<ol class="dlfr29-guide-steps">${g.steps.map((step,i)=>`<li><span>${i+1}</span>${step}</li>`).join('')}</ol><button class="dlfr29-back" type="button" data-admin-tab="overview">← Retour aux raccourcis</button>`}</section>`;
+}
+
+function modVictoryOptions(search=''){
+ const q=key(search), available=(state.data.demons||[]).filter(d=>d.is_public===true&&!d.legacy&&Number(d.position)>0)
+  .filter(d=>!q||key(`${d.name} ${d.level_id||''} ${Number(d.position)>100000000?'UNRATED':Number(d.position)>150?'NLW':'TOP'} ${d.position}`).includes(q))
+  .sort((a,b)=>Number(a.position)-Number(b.position));
+ const found=available.slice(0,60);
+ return `<option value="">${available.length>60?'Affiner la recherche ('+available.length+' résultats)…':'Choisir un niveau ('+available.length+' résultat(s))'}</option>`+
+  found.map(d=>{const place=d.unrated?'UNRATED':Number(d.position)>150?'NLW #'+(Number(d.position)-150):'Top #'+d.position;
+   return `<option value="${esc(d.id)}">${esc(place)} · ${esc(d.name)}${d.level_id?' · GD '+esc(d.level_id):''}</option>`;}).join('');
+}
+function modPlayersAndVictoriesPanel(){
+ const eligible=(state.data.players||[]).filter(p=>!(state.mergedSourceKeys||[]).includes(p.player_key))
+  .slice().sort((a,b)=>sortPlayerName(a).localeCompare(sortPlayerName(b),'fr'));
+ return `<div class="admin-card" data-admin-section="profiles"><h3>＋ Créer une fiche joueur</h3>
+ <p class="small muted">Crée une fiche DLFR sans compte lié, pour un joueur absent du site. Si la personne a déjà une fiche, utilise la liaison ou la fusion, pas une nouvelle création.</p>
+ <form data-form="prodPlayer">
+ <label class="field">Pseudo Geometry Dash<input name="username" required minlength="2" maxlength="70" pattern="(?:[A-Za-z0-9_]|-){2,70}" placeholder="Pseudo du joueur" autocomplete="off"></label>
+ <label class="field">Nom affiché (facultatif)<input name="display_name" maxlength="80" placeholder="Laisser vide pour reprendre le pseudo"></label>
+ <label class="field">Pays<select name="country_code"><option value="">Non renseigné</option><option value="FR">France</option><option value="BE">Belgique</option><option value="CH">Suisse</option><option value="CA">Canada</option></select></label>
+ <p class="small muted">Aucun compte Discord/pseudo n'est créé ou revendiqué automatiquement.</p>
+ <button class="btn" type="submit">Créer la fiche</button></form></div>
+ <div class="admin-card" data-admin-section="profiles"><h3>✓ Attribuer une victoire à un joueur</h3>
+ <p class="small muted">Attribution manuelle d'une complétion à 100 % sur un niveau publié (Top 150, NLW ou UNRATED). Vérifie la preuve avant validation. Un record existant sera actualisé, jamais dupliqué.</p>
+ <form data-form="prodCompletion">
+ <label class="field">Joueur<select name="player_key" required><option value="">Sélectionner un joueur</option>${eligible.map(p=>`<option value="${esc(p.player_key)}">${esc(sortPlayerName(p))} · ${esc(p.player_key)}</option>`).join('')}</select></label>
+ <label class="field">Rechercher le niveau<input type="search" id="modVictorySearch" autocomplete="off" placeholder="Nom, rang ou ID Geometry Dash"></label>
+ <label class="field">Niveau<select id="modVictoryLevel" name="demon_id" required>${modVictoryOptions()}</select></label>
+ <label class="field">Vidéo de preuve (recommandée)<input name="video_url" type="url" maxlength="1000" placeholder="https://youtube.com/…"></label>
+ <label class="field">Date de la victoire (facultative)<input name="achieved_at" type="date"></label>
+ <label class="field"><input type="checkbox" name="confirm_verified" value="yes" required style="width:auto"> J'ai vérifié que la victoire à 100 % appartient bien à ce joueur</label>
+ <button type="submit" class="btn">Attribuer la victoire</button></form></div>`;
 }
 function adminPage(){if(LIVE&&!state.staff){
   // Être connecté via Discord et être autorisé à modérer sont deux contrôles séparés.
@@ -1371,6 +1403,7 @@ ${(()=>{const archives=(state.data.dlfr_level_archive_log||[]).filter(x=>!x.rest
  
  
  
+ ${state.adminTab==='profiles'?modPlayersAndVictoriesPanel():''}
  `:''}${state.adminTab==='profiles'?`<div class="admin-card" data-admin-section="profiles"><h3>Personnaliser un profil</h3><form data-form="profile"><label class="field">Joueur<select name="player_key" id="profileEditorPlayer" required>${players}</select></label><div class="profile-location-fields"><label class="field">Pays <span class="country-select-row"><span id="profileCountryPreview"></span><select name="country_code" id="profileEditorCountry"><option value="">Non renseigné</option>${GEO.countries.map(([code])=>`<option value="${code}">${esc(GEO.countryName(code))} (${code})</option>`).join('')}</select></span></label><label class="field" id="profileEditorRegionField" hidden>Région française <span class="country-select-row"><span id="profileRegionPreview"></span><select name="region_code" id="profileEditorRegion"><option value="">Non renseignée</option>${GEO.regions.map(r=>`<option value="${r.code}">${esc(r.name)}</option>`).join('')}</select></span></label></div><p class="small muted">Images locales des drapeaux : assets/flags. Les fichiers de drapeaux régionaux personnalisés sont conservés. En production, la région nécessite la migration SQL dédiée.</p><label class="field">Biographie<textarea name="bio" maxlength="1200"></textarea></label><label class="field">URL d'avatar<input name="avatar_url" type="url" placeholder="https://…"></label><label class="field">URL de bannière<input name="banner_url" type="url"></label><label class="field">Année de début<input name="join_year" type="number" min="2013" max="2100" placeholder="2021"></label><label class="field">Niveau favori<input name="favorite_level" maxlength="120"></label><label class="field">Objectif actuel<input name="current_goal" maxlength="180"></label><label class="field">Lien YouTube<input name="youtube_url" type="url"></label><label class="field">Lien Twitch<input name="twitch_url" type="url"></label><label class="field">Lien personnel<input name="social_url" type="url"></label><label class="field">Accomplissement 1<input name="highlight_1"></label><label class="field">Accomplissement 2<input name="highlight_2"></label><label class="field">Accomplissement 3<input name="highlight_3"></label><div class="profile-editor-tip">Sélectionne un joueur pour charger sa biographie et ses informations actuelles.</div><button class="btn">Enregistrer</button></form></div>
  `:''}${state.adminTab==='awards'?`<div class="admin-card" data-admin-section="awards"><h3>Badges manuels & Hall of Fame</h3>${hasFullStaffPowers()?`<section class="dlfr212-manual-badges"><h4>Attribuer un badge manuel</h4><p class="small muted">Uniquement les distinctions manuelles officielles. Les badges de progression sont automatiques.</p><form data-form="${LIVE?'prodBadgeManual':'badgeGrant'}"><label class="field">Joueur<select name="player_key" required><option value="">Choisir un joueur…</option>${players}</select></label><label class="field">Badge<select name="badge_id" required>${BADGES.definitions.filter(b=>b.manual).map(b=>`<option value="${esc(b.id)}">${esc(b.label)} · ${esc(b.rarity)}</option>`).join('')}</select></label><label class="field">Date<input name="obtained_at" type="date" required value="${new Date().toISOString().slice(0,10)}"></label><button class="btn" type="submit">Attribuer le badge</button></form></section>`:''}<h4>Hall of Fame</h4><form data-form="hall"><label class="field">Joueur<select name="player_key">${players}</select></label><label class="field">Distinction<input name="headline" required></label><label class="field">Année<input name="award_year" type="number" min="2010" max="2100"></label><label class="field">Catégorie<input name="category" value="Accomplissement" required></label><label class="field">Description<textarea name="description"></textarea></label><label class="field">Source (facultative)<input name="source_url" type="url"></label><button class="btn">Ajouter au Hall of Fame</button></form></div>
  `:''}${state.adminTab==='profiles'?`<div class="admin-card" data-admin-section="profiles"><h3>Identités des joueurs</h3><div class="form-actions"><button type="button" class="btn subtle" data-identity-tab="merge">Fusion</button><button type="button" class="btn subtle" data-identity-tab="verifiers">Vérificateurs</button></div><p class="small muted">Fusionner deux fiches ou rattacher les niveaux vérifiés à une fiche joueur existante, sans fusionner les comptes.</p></div>
@@ -1663,6 +1696,16 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   const {error}=await db.rpc('dlfr_delete_hidden_demon',{p_demon_id:id,p_confirm_name:f.confirm_name,p_confirmation:f.confirmation});
   if(error)throw Error(error.message);
   await refreshLiveData();toast('Niveau masqué supprimé définitivement.');render();return;
+ }
+ if(type==='prodCompletion'){
+  if(!hasFullStaffPowers()||!state.staff)throw Error('Supermodérateur requis.');
+  if(f.confirm_verified!=='yes')throw Error('Confirme avoir vérifié la victoire.');
+  const level=(state.data.demons||[]).find(d=>String(d.id)===String(f.demon_id));
+  const player=(state.data.players||[]).find(p=>p.player_key===f.player_key);
+  if(!player||!level||level.is_public!==true||level.legacy)throw Error('Joueur ou niveau publié introuvable.');
+  if((state.mergedSourceKeys||[]).includes(player.player_key))throw Error('Cette fiche a déjà été fusionnée.');
+  const previous=(state.data.completions||[]).find(r=>Number(r.demon_id)===Number(level.id)&&key(r.player)===player.player_key);
+  if(!confirm(`${previous?'Mettre à jour':'Attribuer'} la victoire 100 % de ${sortPlayerName(player)} sur ${level.name} ?${previous?' Un record existe déjà ('+previous.progress+' %).':''}`))return;
  }
  if(type==='addCoowner'){
   if(!LIVE||state.staffRole!=='owner')throw Error('Réservé au propriétaire.');
@@ -2134,6 +2177,7 @@ function bootEvents(){
    if(select)for(const opt of select.options)opt.hidden=!!opt.value&&!key(opt.textContent).includes(query);
    return;
  }
+ if(ev.target.id==='modVictorySearch'){const sel=$('modVictoryLevel');if(sel)sel.innerHTML=modVictoryOptions(ev.target.value);return;}
  if(ev.target.id==='levelStudioSearch'){levelStudioChoices(ev.target.value);return;}
  if(ev.target.closest('[data-form="levelStudio"]')){updateStudioPreview(ev.target.closest('form'));updateStudioMovementPreview(ev.target.closest('form'));}
  if(ev.target.closest('[data-form="levelStudio"]')&&ev.target.name==='legacy'){

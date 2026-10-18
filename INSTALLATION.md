@@ -1,23 +1,26 @@
-# DLFR V55 — liaison des fiches et sauvegarde du profil
+# DLFR V56 — Gestion manuelle des fiches et victoires
 
-## Symptomes
-- Un joueur cree une fiche ou demande une liaison approuvee, mais les stats disent « Profil non revendique ».
-- Enregistrer mon profil echoue avec « Aucun joueur autorise pour ce profil. ».
-
-## Origine
-Le statut public `players.has_account` est distinct de l'association reelle `player_profile_owners`. La fonction existante `dlfr_review_claim` ajoute la liaison sans changer `has_account`. Le code de sauvegarde exigeait par erreur `has_account` en plus de la liaison.
+Basé sur la V55. Patch ciblé : `index.html`, `js/app.js`, `js/production-tools.js` et une migration SQL additive. Aucun fichier dans `assets/flags/` et aucun thème CSS n'est remplacé.
 
 ## Installation
-1. Sauvegarder les fichiers avant modification. Exécuter `supabase/55_REPARER_LIAISON_ET_BADGE.sql` dans Supabase SQL Editor. Ce script synchronise seulement les fiches AVEC propriétaire deja enregistré et maintient le statut ensuite via triggers. Il ne relie jamais automatiquement une fiche à un nouvel utilisateur.
-2. Remplacer `js/app.js`, `js/production-tools.js` et `index.html` par les fichiers du patch si vous êtes sur la V52.3. `production-tools.js` est identique à celui de V52.2 : inclus pour les installations sans cette version.
-3. Publier et faire `Ctrl+F5`.
-4. Executer `supabase/55_DIAGNOSTIC_VINCELEO.sql` pour vérifier que `liaison_reelle=true` et `badge_public=true`.
 
-## IMPORTANT
-Si `liaison_reelle=false`, NE PAS modifier `has_account` en true : la fiche n'est pas associee a un compte ; une nouvelle approbation de liaison doit être vérifiée.
+1. Effectuer une sauvegarde du projet et de Supabase.
+2. Supabase → SQL Editor : exécuter `supabase/56_CREATION_JOUEURS_ET_VICTOIRES_MODERATION.sql` **après** les migrations 11 et 26. Le SQL ajoute deux RPC réservées aux supermodérateurs/propriétaires. Il ne modifie pas les fiches ou records existants lors de son installation.
+3. Sur GitHub, remplacer uniquement `index.html`, `js/app.js`, `js/production-tools.js`.
+4. Attendre GitHub Pages et recharger avec `Ctrl + F5`.
+5. Aller dans **Modération → Profils** : en haut, les sections « Créer une fiche joueur » et « Attribuer une victoire » apparaissent.
 
-## Sauvegarde de profil
-Les droits du formulaire sont désormais basés sur `state.ownKey` (liaison Auth vérifiée) ; les autorisations d'écriture restent contrôlées par les RLS Supabase. Les erreurs liées à d'autres champs (URL, RLS, etc.) doivent être diagnostiquées séparément.
+## Utilisation
 
-## Sécurité / compatibilité
-Ne change ni les UID propriétaires, ni leurs rôles, ni les records, ni les drapeaux. Ne jamais écraser le dossier `assets/flags/`.
+- **Fiche joueur** : renseigner le pseudo et éventuellement le nom affiché et le pays. La nouvelle fiche n'est PAS liée à un compte : le joueur peut ensuite effectuer une demande de liaison depuis son profil. Si elle existe déjà, privilégier la liaison ou fusion.
+- **Victoire** : sélectionner le joueur, filtrer le niveau par nom/rang/ID, ajouter une URL HTTPS et éventuellement une date, cocher la confirmation de vérification puis valider. La progression est passée à 100 %, et le record existant est mis à jour plutôt que dupliqué. Le SQL écrit une entrée de journal de modération.
+- Par sécurité, les deux fonctions sont réservées aux rôles **owner / supermoderator / editor historique**, et non aux modérateurs NLW ou modérateurs ordinaires. Ceux-ci continuent à traiter les soumissions dans leur périmètre.
+
+## Tests conseillés après installation
+
+1. Créer une fiche **de test non existante**, puis vérifier qu'elle apparaît dans `players` avec `has_account=false` et aucun propriétaire dans `player_profile_owners`.
+2. Attribuer une victoire sur un niveau public et vérifier le record à 100 % dans les stats.
+3. Répéter cette attribution : elle doit mettre à jour le record, pas ajouter un doublon.
+4. Vérifier que les joueurs non-modérateurs ne peuvent pas appeler les nouvelles RPC.
+
+Si tu as fait d'autres changements après la V55, fusionner ces modifications dans ton code actuel au lieu d'écraser les fichiers. Ne pas exécuter les migrations anciennes une deuxième fois sans vérification.

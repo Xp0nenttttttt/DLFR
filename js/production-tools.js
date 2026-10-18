@@ -167,13 +167,15 @@ async function send(db,type,f,submitter){
     p_position:f.position?Number(f.position):null,p_shift:false});
  }
  if(type==='prodPlayer'){
-  const name=trim(f.username),key=slug(name);if(!key||name.length<2)throw Error('Pseudo invalide');
-  if(!['','FR','BE','CH','CA'].includes(f.country_code))throw Error('Pays invalide');
-  return errorOf(await db.from('players').insert({player_key:key,username:name,display_name:trim(f.display_name)||name,country_code:f.country_code||null,has_account:true}));
+  const username=trim(f.username);
+  if(!/^[a-zA-Z0-9_-]{2,70}$/.test(username))throw Error('Pseudo : 2 à 70 lettres, chiffres, tirets ou underscores.');
+  if(!['','FR','BE','CH','CA'].includes(f.country_code||''))throw Error('Pays invalide.');
+  return r('dlfr_mod_create_player',{p_username:username,p_display_name:trim(f.display_name)||null,p_country_code:f.country_code||null});
  }
  if(type==='prodCompletion'){
-  if(f.video_url && !/^https:\/\//i.test(f.video_url))throw Error('Preuve HTTPS requise');
-  return r('dlfr_assign_completion',{p_player_key:f.player_key,p_demon_id:Number(f.demon_id),p_video_url:f.video_url||null,p_achieved_at:f.achieved_at?f.achieved_at+'T12:00:00Z':null});
+  if(!trim(f.player_key)||!Number.isSafeInteger(Number(f.demon_id))||Number(f.demon_id)<=0)throw Error('Choisis un joueur et un niveau.');
+  if(f.video_url&&!/^https:\/\//i.test(trim(f.video_url)))throw Error('Une URL HTTPS est requise pour la preuve.');
+  return r('dlfr_mod_assign_victory',{p_player_key:f.player_key,p_demon_id:Number(f.demon_id),p_video_url:trim(f.video_url)||null,p_achieved_at:f.achieved_at||null});
  }
  if(type==='selfCreatePlayer'){
   const username=trim(f.username);
