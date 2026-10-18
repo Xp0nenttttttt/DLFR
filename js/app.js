@@ -349,7 +349,7 @@ function nav(){
  });
  return page;
 }
-function go(page,fields={}){closeNavMenus();history.pushState({},'',url(page,fields));if(page==='list')state.list=fields.tab==='archive'?'nlw':(fields.tab||'main');state.keyword='';render();window.scrollTo({top:0,behavior:'instant'});}
+function go(page,fields={}){closeNavMenus();history.pushState({},'',url(page,fields));if(page==='list')state.list=(fields.tab==='nlw'||fields.tab==='archive')?'nlw':'main';state.keyword='';render();window.scrollTo({top:0,behavior:'instant'});}
 function box(label,value){return `<div class="statbox"><div class="stat-label">${esc(label)}</div><div class="stat-value">${esc(value)}</div></div>`;}
 function scoreBase(position){const p=+position;return p>=56?1.039035131*((185.7*Math.exp(-.02715*p))+14.84):p>=36?1.0371139743*((212.61*Math.pow(1.036,1-p))+25.071):p>=21?((250-83.389)*Math.pow(1.0099685,2-p)-31.152)*1.0371139743:p>=4?((326.1*Math.exp(-.0871*p))+51.09)*1.037117142:p>=1?(-18.2899079915*p)+368.2899079915:0;}
 function score(demon,progress=100){
@@ -479,15 +479,65 @@ function nlwListCards(search=''){
  if(!officialFiltered.length&&!historicalFiltered.length)return '<div class="paper empty">Aucun niveau NLW correspondant.</div>';
  return `${officialFiltered.length?cardsHTML(officialFiltered):''}${historicalFiltered.length?archiveCardsHTML(historicalFiltered):''}`;
 }
+// V58 : seule la navigation Legacy est masquée ; les niveaux, records et archives restent en base.
+// V58 — aperçu public des actualités sur la liste (brouillons exclus).
+function listNewsSidebar(){
+ const articles=(state.data.news_items||[]).filter(n=>n.is_published===true)
+  .sort((a,b)=>Number(!!b.is_pinned)-Number(!!a.is_pinned)||new Date(b.created_at||0)-new Date(a.created_at||0)).slice(0,4);
+ const cards=articles.map(n=>{
+  const description=plain(n.body||'').replace(/\s+/g,' ').trim();
+  const summary=description.length>135?description.slice(0,132).trimEnd()+'…':description;
+  return `<article class="v58-news-item"><div class="v58-news-meta"><span class="v58-news-tag">${esc(getNewsCategory(n))}</span>${n.is_pinned?'<span class="v58-news-pinned">★ À la une</span>':''}</div><h3>${esc(n.headline||'Actualité')}</h3><time datetime="${esc(plain(n.created_at||''))}">${esc(date(n.created_at)||'')}</time>${summary?`<p>${esc(summary)}</p>`:''}</article>`;
+ }).join('');
+ return `<section class="info-panel right-panel v58-side-news" aria-labelledby="v58-news-title"><h2 id="v58-news-title">Actualités</h2><p class="v58-side-lead">Les dernières nouvelles de la Demonlist francophone.</p><div class="v58-side-news-list">${cards||'<p class="v58-no-news">Aucune actualité publiée pour le moment.</p>'}</div><a class="btn v58-side-all" href="${url('news')}" data-nav>Voir toutes les actualités <span aria-hidden="true">↗</span></a></section>`;
+}
+// Directives de soumission fournies par l'équipe, reprises intégralement.
+function submissionGuidelinesSidebar(){
+ const sections=[
+  ['1. Compte et propriété',[
+   'Vous devez être connecté avec votre propre compte joueur lors de la soumission.',
+   'Ne soumettez pas de records au nom d’autres joueurs, sauf si un modérateur le demande explicitement.'
+  ]],
+  ['2. Exigences des preuves vidéo',[
+   'Votre preuve doit être claire, non éditée et continue depuis le début de l’essai jusqu’à la mort/la complétion.',
+   'La vidéo doit conserver l’audio original et ne doit pas masquer les informations critiques du gameplay.',
+   'Pas de coupures, d’éditions de vitesse ou de falsification visuelle.',
+   'Pas d’overlays qui cachent les transitions, les entrées ou le contexte de l’essai.',
+   'La qualité vidéo doit être suffisamment élevée pour vérifier la légitimité du gameplay.'
+  ]],
+  ['3. Règles de légitimité',[
+   'Tout run hacké, assisté par outils, boté, assisté par macros, noclip ou modifié est interdit.',
+   'Les runs utilisant des mods modifiant le gameplay, des outils de replay ou des automatisations externes seront refusés.'
+  ]],
+  ['4. Exactitude des données de soumission',[
+   'Choisissez le nom exact du démon et soumettez la progression réelle que vous avez atteinte.',
+   'Une progression inférieure à l’exigence du démon est automatiquement invalide pour les records de la liste.',
+   'Votre plateforme et votre taux de rafraîchissement doivent correspondre au run présenté dans la preuve.'
+  ]],
+  ['5. Vidéo brute et preuves supplémentaires',[
+   'La vidéo brute est fortement recommandée pour les records difficiles et peut être exigée par les modérateurs.',
+   'Si les preuves demandées ne sont pas fournies à temps, la soumission peut être rejetée.'
+  ]],
+  ['6. Résultats de l’examen',[
+   '<strong>Approuvé :</strong> le record est ajouté à la liste publique.',
+   '<strong>Rejeté :</strong> le record reste hors de la liste ; vous pouvez le resoumettre avec de meilleures preuves.',
+   '<strong>Signalé :</strong> les modérateurs peuvent demander des clips supplémentaires, des fichiers bruts ou des éclaircissements.'
+  ]],
+  ['7. Abus et sanctions',[
+   'Les soumissions frauduleuses, l’usurpation d’identité, le spam répété ou les preuves intentionnellement trompeuses peuvent entraîner des restrictions.'
+  ]]
+ ];
+ return `<section class="info-panel right-panel v58-side-guidelines" aria-labelledby="v58-guidelines-title"><h2 id="v58-guidelines-title">Directives de soumission</h2><p class="v58-side-lead">Ces règles sont basées sur le standard de modération commun de Pointercrate.</p><p class="v58-guidelines-important"><strong>Important :</strong> Chaque soumission est examinée manuellement. L’absence de preuve ou une vidéo suspecte sera rejetée.</p><div class="v58-guideline-sections">${sections.map(([title,paragraphs])=>`<details class="v58-guideline"><summary>${esc(title)}</summary><div>${paragraphs.map(p=>`<p>${p.startsWith('<strong>')?p:esc(p)}</p>`).join('')}</div></details>`).join('')}</div><p class="v58-guidelines-tip"><strong>Astuce :</strong> Gardez la vidéo publique/non répertoriée et incluez des notes utiles sur le run. Des preuves plus claires signifient une approbation plus rapide.</p></section>`;
+}
 function listPage(){
- const nav=['main','nlw','legacy'],labels=['Main List · Top 150','NLW · rang 151+','Legacy List'];
+ const nav=['main','nlw'],labels=['Main List · Top 150','NLW · rang 151+'];
  const sLabel=nav.includes(state.list)?state.list:'main';
  const levels=catalog().filter(x=>sLabel==='legacy'?x.legacy:sLabel==='nlw'?V2.nlwRank(x)>0:!x.unrated&&+x.position>0&&+x.position<=150);
  const top=`<div class="list-tabs">${nav.map((x,i)=>`<button type="button" class="${sLabel===x?'active':''}" data-list="${x}">${esc(labels[i])}</button>`).join('')}</div>${sLabel==='main'?'<div class="v2-legend"><span class="hist-main">Main List · #1–75</span><span>Extended List · #76–150</span></div>':''}`;
  const heading={main:'Geometry Dash Demonlist',nlw:'NLW · Non List Worthy',legacy:'Legacy List'}[sLabel];
  const description={main:'Les 150 niveaux classés de la DemonlistFrancophone.',nlw:'Les niveaux NLW publiés et les fiches historiques de l’ancien site se consultent ici. Seuls les niveaux NLW homologués donnent des points, des rangs et des badges NLW.',legacy:'Anciens niveaux de la Main List, après validation de leur statut Legacy.'}[sLabel];
  const html=sLabel==='nlw'?nlwListCards(state.keyword):cardsHTML(levels.filter(x=>key(x.name).includes(key(state.keyword))));
- return `${templateNotice()}${state.unrated?callout('<b>Mode UNRATED</b> — estimation alternative des positions et points, sans modifier le classement officiel.'):''}${top}<div class="page-columns"><section><div class="center-panel"><h1>${heading}</h1><p>${description}</p><label class="filterbox"><span>⌕</span><input id="demonSearch" type="search" placeholder="Filtrer les niveaux affichés..." value="${esc(state.keyword)}" autocomplete="off"></label></div><div id="demonItems">${html}</div></section><aside class="right-side"><div class="info-panel right-panel"><h2>Éditeurs de liste</h2><p>Contacter les éditeurs pour les changements de classement.</p>${staffNamesHTML("general")}<h2>Équipe NLW</h2><p>L’équipe chargée de la liste NLW.</p>${staffNamesHTML("nlw")}</div><div class="info-panel right-panel"><h2>Directives</h2><p>Les anciens niveaux restent consultables. Seuls les niveaux homologués figurent au classement officiel.</p><button class="btn" data-route="news">Actualités de la liste</button></div></aside></div>`;
+ return `${templateNotice()}${state.unrated?callout('<b>Mode UNRATED</b> — estimation alternative des positions et points, sans modifier le classement officiel.'):''}${top}<div class="page-columns"><section><div class="center-panel"><h1>${heading}</h1><p>${description}</p><label class="filterbox"><span>⌕</span><input id="demonSearch" type="search" placeholder="Filtrer les niveaux affichés..." value="${esc(state.keyword)}" autocomplete="off"></label></div><div id="demonItems">${html}</div></section><aside class="right-side"><div class="info-panel right-panel"><h2>Éditeurs de liste</h2><p>Contacter les éditeurs pour les changements de classement.</p>${staffNamesHTML("general")}<h2>Équipe NLW</h2><p>L’équipe chargée de la liste NLW.</p>${staffNamesHTML("nlw")}</div>${listNewsSidebar()}${submissionGuidelinesSidebar()}</aside></div>`;
 }
 function completionLinks(levels){return levels.length?levels.sort((a,b)=>a.position-b.position).map(d=>`<a class="link" href="${url('demon',{id:d.id})}" data-nav>#${esc(d.position)} ${esc(d.name)}</a>`).join(' - '):'<span class="muted">Aucun</span>';}
 function titleHTML(p){return BADGES.gallery(state.data,p.player_key,esc,date);}
@@ -1620,7 +1670,7 @@ function render(){
  resetRenderCalculations();if(!state.data)return;try{
  if(!BADGES?.init || !UNRATED_STATS?.calculate || !V2?.decorate || !V2?.project || !UNVERIFIED?.classify || !CLANS?.apply || !CLAN_PLUS?.stats || !SUBMISSIONS?.approve)throw Error('Fichier JavaScript V2 manquant ou version incohérente : réinstalle les scripts du pack V2.0.3.');
  if(!LIVE){const first=state.data.badge_baseline_scanned!==true;const changed=BADGES.captureAutomatic(state.data,ranked(),new Date().toISOString().slice(0,10),first);if(first){state.data.badge_baseline_scanned=true;}if(changed||first)saveDemo();}
- const page=nav(),params=new URLSearchParams(location.search);if(page==='unbeaten'&&state.communityExcel.status==='idle')loadCommunityExcel().catch(showPageError);if(page==='stats'&&params.has('player')){history.replaceState({},'',url('player',{player:params.get('player')}));return render();}if(page==='player')state.selectedPlayer=key(params.get('player'));if(page==='list'){const tab=new URLSearchParams(location.search).get('tab');state.list=tab==='archive'?'nlw':(tab||'main');}const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='player'?playerPage():page==='players'?playersPage():page==='my-profile'?selfProfilePage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():page==='packs'?packPage():page==='regions'?regionsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;
+ const page=nav(),params=new URLSearchParams(location.search);if(page==='unbeaten'&&state.communityExcel.status==='idle')loadCommunityExcel().catch(showPageError);if(page==='stats'&&params.has('player')){history.replaceState({},'',url('player',{player:params.get('player')}));return render();}if(page==='player')state.selectedPlayer=key(params.get('player'));if(page==='list'){const tab=new URLSearchParams(location.search).get('tab');state.list=(tab==='nlw'||tab==='archive')?'nlw':'main';}const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='player'?playerPage():page==='players'?playersPage():page==='my-profile'?selfProfilePage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():page==='packs'?packPage():page==='regions'?regionsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;
  // Donner un accès clair à l'inscription et à la connexion, sans modifier la navigation existante.
  const accountNavLink=document.querySelector('a[data-link="my-profile"]');
  if(accountNavLink) accountNavLink.textContent=state.session?'Mon profil':'Se connecter / Créer un compte';
