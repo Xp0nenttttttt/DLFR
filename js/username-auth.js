@@ -8,24 +8,24 @@
 })(typeof window==='object'?window:null,function(){
   'use strict';
   const validUsername=v=>/^[A-Za-z0-9_-]{3,24}$/.test(String(v||''));
-  async function request(config, action, username, password){
+  async function request(config, action, username, password, extras={}){
     if(!config?.supabaseUrl||!config?.supabasePublishableKey)throw Error('La connexion n’est pas encore disponible. Réessaie plus tard.');
     if(!validUsername(username))throw Error('Pseudo : 3 à 24 caractères (lettres, chiffres, _ ou -).');
-    if(!password||password.length<12)throw Error('Le mot de passe doit contenir au moins 12 caractères.');
+    if(typeof password!=='string'||!password.length||password.length>128||(action==='register'&&password.length<12))throw Error(action==='register'?'Le mot de passe doit contenir au moins 12 caractères.':'Mot de passe manquant ou trop long.');
     const url=config.supabaseUrl.replace(/\/$/,'')+'/functions/v1/username-auth';
     let response;
     try{response=await fetch(url,{
       method:'POST',headers:{'content-type':'application/json','apikey':config.supabasePublishableKey},
-      body:JSON.stringify({action,username,password})
+      body:JSON.stringify({action,username,password,...(action==='login'&&extras.newPassword?{new_password:extras.newPassword}:{})})
     });}catch{throw Error('Le service de connexion est momentanément indisponible. Réessaie plus tard.');}
     const payload=await response.json().catch(()=>({}));
     if(!response.ok)throw Error(payload.error||'Authentification impossible.');
     if(!payload.session?.access_token||!payload.session?.refresh_token)throw Error('Réponse de connexion incomplète.');
     return payload.session;
   }
-  async function signIn(db,config,action,username,password){
+  async function signIn(db,config,action,username,password,extras={}){
     if(!['register','login'].includes(action))throw Error('Action non autorisée.');
-    const session=await request(config,action,username,password);
+    const session=await request(config,action,username,password,extras);
     const {data,error}=await db.auth.setSession({access_token:session.access_token,refresh_token:session.refresh_token});
     if(error||!data?.session)throw Error(error?.message||'Session impossible à enregistrer.');
     return data.session;

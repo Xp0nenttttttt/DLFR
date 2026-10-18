@@ -1,6 +1,7 @@
 // Supabase Edge Function DLFR — pseudo/mot de passe, mot de passe uniquement chez Supabase Auth.
 // Deploy with --no-verify-jwt (registration/login unauthed), combined with origin + rate limiting.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.8';
+import bcrypt from 'npm:bcryptjs@2.4.3';
 
 const projectUrl=Deno.env.get('SUPABASE_URL')||'';
 const serviceSecret=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
@@ -98,8 +99,9 @@ Deno.serve(async req=>{
   }
   const username=String(body?.username||'').trim();
   const password=body?.password;
-  if(!allowedUsername.test(username)||typeof password!=='string'||password.length<12||password.length>128){
-    return response(400,{error:'Pseudo ou mot de passe invalide (12 caractères minimum).'},origin);
+  if(!allowedUsername.test(username)||typeof password!=='string'||!password.length||password.length>128||
+     (action==='register'&&password.length<12)){
+    return response(400,{error:action==='register'?'Mot de passe : 12 caractères minimum.':'Pseudo ou mot de passe invalide.'},origin);
   }
   const handle=username.toLowerCase();
   if(denylist.has(handle))return response(400,{error:'Pseudo réservé.'},origin);
@@ -113,6 +115,9 @@ Deno.serve(async req=>{
        .select('username_key').eq('username_key',handle).maybeSingle();
     if(lookErr)throw lookErr;
     if(existing)return response(409,{error:'Ce pseudo est déjà utilisé.'},origin);
+    const {data:reserved,error:reserveErr}=await admin.from('dlfr_legacy_credentials').select('username_key').eq('username_key',handle).maybeSingle();
+    if(reserveErr)throw reserveErr;
+    if(reserved)return response(409,{error:'Ce pseudo appartient à un ancien compte. Utilise la connexion avec tes anciens identifiants.'},origin);
     // Adresse technique non utilisable pour une récupération : aucune e-mail personnel demandé.
     const internalEmail=`dlfr-${crypto.randomUUID()}@users.invalid`;
     const {data:created,error:createErr}=await admin.auth.admin.createUser({
@@ -133,7 +138,58 @@ Deno.serve(async req=>{
   const {data:entry,error:lookupErr}=await admin.from('dlfr_username_accounts')
     .select('auth_user_id').eq('username_key',handle).maybeSingle();
   if(lookupErr)throw lookupErr;
-  if(!entry)return response(401,{error:'Pseudo ou mot de passe incorrect.'},origin);
+  if(!entry){
+    // Migration paresseuse : seuls les anciens utilisateurs prouvant leur mot de passe
+    // peuvent activer leur compte. Ne jamais livrer ni journaliser les hashs.
+    const generic={error:'Pseudo ou mot de passe incorrect.'};
+    const {data:legacy,error:legacyErr}=await admin.from('dlfr_legacy_credentials')
+      .select('password_hash,is_banned,migrated_auth_user_id').eq('username_key',handle).maybeSingle();
+    if(legacyErr)throw legacyErr;
+    if(!legacy?.password_hash||legacy.is_banned||legacy.migrated_auth_user_id)return response(401,generic,origin);
+    let matched=false;
+    try{matched=await bcrypt.compare(password,legacy.password_hash.replace(/^\$2y\$/,'$2a$'));}
+    catch{console.error('DLFR legacy bcrypt verification failed');return response(503,{error:'Service temporairement indisponible.'},origin);}
+    if(!matched)return response(401,generic,origin);
+    // Un ancien mot de passe court ne peut pas rester le nouveau secret Supabase.
+    const upgraded=body?.new_password;
+    const finalPassword=password.length>=12?password:upgraded;
+    if(typeof finalPassword!=='string'||finalPassword.length<12||finalPassword.length>128){
+      return response(409,{error:'Ancien mot de passe reconnu. Déplie « Ancien compte : changer le mot de passe » et choisis-en un nouveau (12 caractères minimum).'},origin);
+    }
+    const claim=crypto.randomUUID();
+    const {data:locked,error:lockErr}=await admin.rpc('dlfr_legacy_migration_begin',{p_handle:handle,p_claim:claim});
+    if(lockErr)throw lockErr;
+    if(!locked)return response(409,{error:'Migration déjà en cours pour ce compte. Réessaie dans quelques minutes ou contacte l’équipe.'},origin);
+    let createdId:string|null=null;
+    try{
+      // Aucune réutilisation des e-mails historiques ; rôles historiques NON migrés.
+      const internalEmail=`dlfr-legacy-${crypto.randomUUID()}@users.invalid`;
+      const {data:created,error:createErr}=await admin.auth.admin.createUser({
+        email:internalEmail,password:finalPassword,email_confirm:true,
+        user_metadata:{dlfr_auth_method:'username',dlfr_migrated_legacy:true,dlfr_username:username}
+      });
+      if(createErr||!created?.user)throw Error('Unable to create Auth user');
+      createdId=created.user.id;
+      const {error:finishErr}=await admin.rpc('dlfr_legacy_migration_finish',{
+        p_handle:handle,p_claim:claim,p_auth_user_id:createdId
+      });
+      if(finishErr)throw finishErr;
+      // En cas d’échec temporaire de connexion, le compte reste migré et utilisable au prochain essai.
+      const {data:logged,error:signErr}=await publicClient().auth.signInWithPassword({email:internalEmail,password:finalPassword});
+      if(signErr||!logged?.session)return response(503,{error:'Compte migré, mais connexion automatique indisponible. Reconnecte-toi avec le mot de passe actuel.'},origin);
+      return response(200,{session:logged.session,migrated:true},origin);
+    }catch(err){
+      // Si la finition a réussi, ne jamais supprimer le compte déjà migré.
+      const {data:completed}=await admin.from('dlfr_legacy_credentials')
+        .select('migrated_auth_user_id').eq('username_key',handle).maybeSingle();
+      if(!completed?.migrated_auth_user_id){
+        if(createdId)await admin.auth.admin.deleteUser(createdId);
+        await admin.rpc('dlfr_legacy_migration_abort',{p_handle:handle,p_claim:claim});
+      }
+      console.error('DLFR legacy migration error:',err instanceof Error?err.message:'unknown');
+      return response(503,{error:'Migration temporairement indisponible. Réessaie ou contacte la modération.'},origin);
+    }
+  }
   const {data:linked,error:linkedErr}=await admin.auth.admin.getUserById(entry.auth_user_id);
   if(linkedErr||!linked?.user?.email)return response(401,{error:'Pseudo ou mot de passe incorrect.'},origin);
   const {data:login,error:loginErr}=await publicClient().auth.signInWithPassword({email:linked.user.email,password});
