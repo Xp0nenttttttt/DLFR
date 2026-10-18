@@ -1954,7 +1954,8 @@ function bootEvents(){
    }
    state.adminTab='overview';render();return;
  }
- const levelGroupButton=ev.target.closest('[data-level-group]');if(levelGroupButton){activeLevelPanel=levelGroupButton.dataset.levelGroup;render();return;}
+ // Le data-level-group existe aussi sur les cartes de contenu : ne réagir qu'aux boutons de navigation.
+ const levelGroupButton=ev.target.closest('.level-tools-tabs button[data-level-group]');if(levelGroupButton){activeLevelPanel=levelGroupButton.dataset.levelGroup;render();return;}
  const it=ev.target.closest('[data-identity-tab]');if(it){document.querySelectorAll('[data-identity-section]').forEach(e=>e.hidden=e.dataset.identitySection!==it.dataset.identityTab);return;}
  const loadV=ev.target.closest('[data-load-verifiers]');if(loadV){try{loadV.disabled=true;const {data,error}=await db.rpc('dlfr_unlinked_verifiers');if(error)throw Error(error.message);const names=Array.isArray(data)?data:[];window.__dlfrVerifierUnlinked=names;const sel=document.querySelector('[data-form="linkVerifier"] [name="verifier_name"]');if(sel){sel.innerHTML='<option value="">Sélectionner…</option>'+names.map((n,i)=>'<option value="'+i+'">'+esc(n.verifier_name)+' ('+n.count+' niveaux)</option>').join('');}const prev=document.getElementById('verifierLinkPreview');if(prev)prev.textContent=names.length+' crédits non liés. Sélectionne une entrée pour voir les niveaux.';}catch(e){toast(e.message||String(e));}finally{loadV.disabled=false;}return;}
  const ad=ev.target.closest('[data-admin-tab]');if(ad){state.adminTab=ad.dataset.adminTab;render();if(state.adminTab==='team'&&state.staffRole==='owner'&&!ownerPreviewActive()){await loadStaffCandidates();render();}return;}

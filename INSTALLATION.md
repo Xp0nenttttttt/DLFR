@@ -1,27 +1,20 @@
-# DLFR — Correctif du sélecteur de niveaux dans la modération
+# DLFR — Correctif ciblé : clics dans l’éditeur de niveaux
 
-## Le problème
-Dans « Modération → Niveaux → Éditer les fiches », l'ancienne liste native contenait parfois des milliers d'options. Le menu peut se refermer ou perdre le focus pendant la sélection dans certains navigateurs.
-
-## Nouveau fonctionnement
-- Champ « Rechercher un niveau » par nom, rang, ID GD ou ID interne.
-- Liste de résultats cliquables (35 résultats maximum affichés par recherche), sans menu déroulant natif géant.
-- Un clic sur un niveau charge immédiatement ses informations dans l'éditeur, sans rendre toute la page à nouveau.
-- Entrée sélectionne le premier résultat ; flèche bas déplace le focus ; Échap ferme les résultats.
-- Le niveau choisi reste affiché au-dessus du formulaire.
+## Diagnostic
+Le gestionnaire de clics utilisait `closest('[data-level-group]')`.
+Or `arrangeLevelsPanel()` attribue `data-level-group="edit"` à **toute la carte** contenant le formulaire.
+Un clic dans le champ de recherche, le formulaire, ou la liste trouvait donc la carte
+comme s’il s’agissait d’un bouton de navigation. Il exécutait `render()`, reconstruisait
+le DOM et fermait le menu, parfois avant même la sélection. Ce n’est pas lié à Discord.
 
 ## Installation
-1. Sauvegarde les fichiers actuels du site.
-2. Remplace `js/app.js` et `css/style.css` par ceux de cette archive.
-3. Publie la mise à jour sur GitHub Pages.
-4. Rafraîchis le navigateur avec Ctrl + F5. Si tu as un ancien fichier JS en cache, change la version du script `js/app.js?v=...` dans `index.html` (par ex. `v=dlfr-select-1`).
-5. Ouvre Modération → Niveaux → Éditer les fiches. Recherche un niveau par nom puis clique sur son résultat.
+1. Sauvegarder `js/app.js` et `index.html` de la version en ligne.
+2. Remplacer **ces deux fichiers seulement** par ceux du patch.
+3. Publier sur GitHub Pages et recharger (Ctrl+F5).
+4. Aller dans Modération → Niveaux → Éditer les fiches.
+5. Cliquer sur la recherche, taper un nom, sélectionner le niveau, puis modifier un champ.
+   La page ne doit plus se réinitialiser à chaque clic.
+6. Vérifier que les onglets « Créer », « NLW et imports » et « Retirer » fonctionnent encore.
 
-Aucune migration SQL. Aucune modification des données, des rangs, des records ou des drapeaux personnalisés `assets/flags/`.
-
-**Compatibilité :** `js/app.js` est basé sur le dernier correctif disponible (DLFR 2.15.1, avec la soumission des nouveaux niveaux). `css/style.css` reprend les styles 2.12 complétés par ceux du nouveau sélecteur. Si tu as modifié ces fichiers après ces versions, adapte le correctif à ton code actuel plutôt que de les remplacer directement pour éviter de perdre des changements.
-
-## Vérifications
-- `node --check js/app.js` : OK.
-- Essai Chromium local : la recherche filtre les résultats ; la sélection de Shardscapes remplit le nom et la position 155.
-- Pas de test réel avec la base Supabase de production.
+**Aucun SQL.** Aucune modification des profils, des permissions, des records ni des drapeaux dans `assets/flags/`.
+L’URL du script est versionnée dans `index.html` pour contourner le cache navigateur.
