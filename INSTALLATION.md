@@ -1,33 +1,33 @@
-# DLFR — Demandes de fusion depuis Mon profil (patch 52)
+# DLFR V52.1 - Accessibilité des demandes de fusion + diagnostic Fluxy
 
-## Installation dans cet ordre
-1. **Sauvegarder la base** avant toute opération de fusion. La migration 52 crée uniquement une table et des fonctions ; elle ne fusionne ni ne supprime de fiche pendant l'installation.
-2. Dans **Supabase > SQL Editor**, exécuter `supabase/52_DEMANDES_FUSION_PROFILS.sql`. **Prérequis** : migration `33_FUSION_JOUEURS.sql` déjà en place, et `51_FILTRER_PROFILS_FUSIONNES.sql` du correctif précédent. Ne pas réexécuter les migrations anciennes si elles sont déjà installées.
-3. Sur GitHub, remplacer `js/app.js` et `index.html`, puis ajouter `css/merge-requests.css` aux fichiers du dépôt. Les modifications sont basées sur `DLFR_correctif_profils_deja_fusionnes.zip` (qui incluait le dernier ZIP `DLFRRR(2).zip` et la correction du clic sur les niveaux).
-4. Publier puis recharger la page avec Ctrl+F5.
+## Diagnostic
+La migration SQL 52 **ne requiert pas d'être modérateur pour envoyer une demande**.
+La RPC `dlfr_request_player_merge` exige seulement une session authentifiée et une fiche joueur appartenant au compte demandeur. Les propriétaires/supermodérateurs sont les seuls à pouvoir **valider** via `dlfr_review_player_merge_request`.
 
-## Côté joueur
-- Ouvrir **Mon profil**, avec un compte Discord ou pseudo **déjà lié à une fiche joueur**.
-- Dans **Demander une fusion de fiches**, rechercher l'ancienne fiche, la sélectionner puis fournir une justification (ou un lien HTTPS de preuve).
-- Cliquer sur **Envoyer ma demande**. La demande apparaît dans **Mes demandes**, avec le statut En attente, Acceptée ou Refusée et la note de modération éventuelle.
-- Il s'agit des **fiches joueurs DLFR** : les comptes d'authentification Discord/pseudo et leurs permissions ne sont PAS fusionnés.
+Dans la V52, `Mon profil` n'affichait aucune mention de fusion aux comptes connectés sans fiche déjà reliée. Cela donnait l'impression que la fusion était une fonction d'administration.
 
-## Côté modération
-- Pour les propriétaires et supermodérateurs seulement : **Modération > Demandes > Demandes de fusion de fiches**.
-- Consulter les pièces, prévisualiser la fusion puis écrire `FUSIONNER` et accepter, ou refuser avec une note.
-- L'acceptation invoque la fusion SQL **existante** dans une transaction atomique : si elle échoue, la demande reste En attente.
-- Le SQL bloque les sources déjà associées à un compte, revendiquées, ou déjà fusionnées. Le serveur déduit le profil cible **du compte connecté**, jamais d'un identifiant fourni par le navigateur.
+## Installer
+- Garder la migration SQL 52 précédemment installée (NE PAS la réexécuter).
+- Remplacer **uniquement** `js/app.js` et `index.html` par ceux de ce ZIP.
+- Ne pas retirer `css/merge-requests.css` déjà installé en V52.
+- Publier GitHub Pages, puis `Ctrl+F5`.
+- Aucun fichier `assets/flags/` n'est inclus/modifié.
 
-## Limites importantes
-- Les homonymes exacts (deux fiches portant le même pseudo) sont **bloqués par la procédure de fusion actuelle** pour éviter de déplacer des complétions ambiguës ; une vérification/manipulation manuelle par un administrateur est nécessaire.
-- Les badges, records, titres et quelques références sont gérés par la fusion existante. Certaines relations, notamment les clans, ne sont pas transférées automatiquement ; son aperçu SQL liste les limites.
-- Aucune migration n'efface de lignes `players`, comptes Auth, ou drapeaux.
-- La validation réelle en production Supabase n'a pas pu être exécutée ici : vérifier les nouvelles RPC après l'installation et faire un essai avec une fiche de test avant les comptes importants.
+## Résultat
+- Tout compte **connecté sans fiche liée** voit désormais une section **Demander une fusion de fiches**, qui explique le lien préalable requis et indique comment associer une fiche.
+- Tout compte **connecté avec fiche liée**, modérateur ou non, a le formulaire d'envoi de demande dans Mon profil.
+- Seuls les supermodérateurs/propriétaires voient les commandes de validation.
+- Aucun changement des permissions côté SQL.
 
-## Fichiers du correctif
-- `supabase/52_DEMANDES_FUSION_PROFILS.sql`
-- `js/app.js`
-- `css/merge-requests.css`
-- `index.html`
+## Fluxy absent des statistiques
+Les rôles `staff_roles` et les fiches `players` sont indépendants. Un membre de modération n'est pas automatiquement ajouté aux stats : la fiche doit être enregistrée dans `players` et non masquée via `hidden_from_stats`.
 
-**Le ZIP ne contient aucun fichier de `assets/flags/` et ne modifie pas les drapeaux personnalisés.**
+Pour déterminer l'état de Fluxy, lancer facultativement `supabase/DIAGNOSTIC_FLUXY_LECTURE_SEULE.sql` depuis Supabase SQL Editor. Il ne modifie rien.
+- Aucun résultat : fiche joueur « Fluxy » inexistante (ou autre pseudo).
+- `hidden_from_stats=true` : démasquer sa fiche via **Modération > Profils > Visibilité** si c'est souhaité.
+- `fiche_liee_a_un_compte=false` : lier sa fiche au bon compte pour associer identité et compte.
+- `role_du_compte_lie` absent alors qu'il a des permissions : contrôler quelle identité Auth possède le rôle, sans partager d'identifiants/jetons.
+- Si présent/visible mais toujours absent du classement, contrôler les filtres pays/région/recherche et la règle qui masque les créateurs ayant uniquement des crédits de création sans records/vérifications.
+
+## Limites
+La fusion nécessite encore une fiche **cible liée au demandeur**. Nous ne donnons pas au navigateur le droit de choisir arbitrairement la fiche cible : c'est une protection contre la prise de contrôle de fiches. La fusion elle-même reste à vérifier en production.
