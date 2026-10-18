@@ -1,20 +1,18 @@
-# DLFR — Correctif ciblé : clics dans l’éditeur de niveaux
+# DLFR — Corriger les profils déjà fusionnés dans les menus
 
-## Diagnostic
-Le gestionnaire de clics utilisait `closest('[data-level-group]')`.
-Or `arrangeLevelsPanel()` attribue `data-level-group="edit"` à **toute la carte** contenant le formulaire.
-Un clic dans le champ de recherche, le formulaire, ou la liste trouvait donc la carte
-comme s’il s’agissait d’un bouton de navigation. Il exécutait `render()`, reconstruisait
-le DOM et fermait le menu, parfois avant même la sélection. Ce n’est pas lié à Discord.
+## Pourquoi ?
+Une fusion ne supprime pas la fiche source : elle reste archivée dans `players` et son identifiant est ajouté à `dlfr_player_merges`. L'ancien formulaire présentait tous les joueurs sans consulter l'historique.
 
-## Installation
-1. Sauvegarder `js/app.js` et `index.html` de la version en ligne.
-2. Remplacer **ces deux fichiers seulement** par ceux du patch.
-3. Publier sur GitHub Pages et recharger (Ctrl+F5).
-4. Aller dans Modération → Niveaux → Éditer les fiches.
-5. Cliquer sur la recherche, taper un nom, sélectionner le niveau, puis modifier un champ.
-   La page ne doit plus se réinitialiser à chaque clic.
-6. Vérifier que les onglets « Créer », « NLW et imports » et « Retirer » fonctionnent encore.
+## Installation (dans cet ordre)
+1. Supabase > SQL Editor : exécuter **supabase/51_FILTRER_PROFILS_FUSIONNES.sql** une seule fois. Pré-requis : la migration 33 (fusion des joueurs) est déjà installée.
+2. Sur GitHub : remplacer **js/app.js** et **index.html** par ceux de ce ZIP, puis publier. Ils sont basés sur le dernier ZIP fourni (`DLFRRR(2).zip`) et intègrent le correctif du clic dans l'éditeur de niveaux.
+3. Actualiser le site (`Ctrl + F5`), puis aller dans **Modération > Profils > Fusion**.
 
-**Aucun SQL.** Aucune modification des profils, des permissions, des records ni des drapeaux dans `assets/flags/`.
-L’URL du script est versionnée dans `index.html` pour contourner le cache navigateur.
+## Résultat
+- Les fiches déjà absorbées ne sont proposées ni comme cible ni comme source d'une nouvelle fusion.
+- Le compte principal conservé continue de figurer dans les menus.
+- Les joueurs cachés des classements pour une raison autre qu'une fusion ne disparaissent pas.
+- Les homonymes affichent leur `player_key` pour qu'on puisse les distinguer.
+- Si la migration SQL manque, le formulaire indique une erreur et bloque les nouvelles fusions, sans bloquer le reste du site.
+
+Cette mise à jour ne modifie aucun joueur ni record et ne touche pas aux drapeaux (`assets/flags/`).
