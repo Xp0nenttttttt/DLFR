@@ -1,0 +1,14 @@
+/* DLFR — demandes de fusion des fiches joueurs */
+.dlfr-merge-request,.dlfr-merge-moderation{border-left:3px solid var(--blue);}
+.dlfr-merge-request h2,.dlfr-merge-moderation h2{margin-top:0;font-size:19px;}
+.dlfr-merge-request-form{max-width:720px;margin:12px 0 20px;}
+.dlfr-merge-request-form input[type="search"]{width:100%;padding:9px;border:1px solid var(--line);background:var(--card);color:var(--ink);}
+.dlfr-merge-request-form select[size]{width:100%;min-height:145px;background:var(--card);color:var(--ink);}
+.dlfr-merge-request-form textarea,.dlfr-merge-review-form textarea{width:100%;}
+.dlfr-merge-request-history{display:grid;gap:9px;}
+.dlfr-merge-request-item{border:1px solid var(--line);padding:10px;display:flex;align-items:center;flex-wrap:wrap;gap:10px;background:var(--panel);}
+.dlfr-merge-request-item p{flex-basis:100%;margin:0;}
+.dlfr-merge-moderation-card{padding:13px 15px;margin:12px 0;border:1px solid var(--line);background:var(--card);overflow-wrap:anywhere;}
+.dlfr-merge-moderation-card h3{font-size:16px;margin:0 0 7px;}
+.dlfr-merge-review-preview{margin:10px 0;max-height:360px;overflow:auto;}
+.dlfr-merge-review-form{margin-top:10px;}

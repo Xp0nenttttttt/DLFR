@@ -1,18 +1,33 @@
-# DLFR — Corriger les profils déjà fusionnés dans les menus
+# DLFR — Demandes de fusion depuis Mon profil (patch 52)
 
-## Pourquoi ?
-Une fusion ne supprime pas la fiche source : elle reste archivée dans `players` et son identifiant est ajouté à `dlfr_player_merges`. L'ancien formulaire présentait tous les joueurs sans consulter l'historique.
+## Installation dans cet ordre
+1. **Sauvegarder la base** avant toute opération de fusion. La migration 52 crée uniquement une table et des fonctions ; elle ne fusionne ni ne supprime de fiche pendant l'installation.
+2. Dans **Supabase > SQL Editor**, exécuter `supabase/52_DEMANDES_FUSION_PROFILS.sql`. **Prérequis** : migration `33_FUSION_JOUEURS.sql` déjà en place, et `51_FILTRER_PROFILS_FUSIONNES.sql` du correctif précédent. Ne pas réexécuter les migrations anciennes si elles sont déjà installées.
+3. Sur GitHub, remplacer `js/app.js` et `index.html`, puis ajouter `css/merge-requests.css` aux fichiers du dépôt. Les modifications sont basées sur `DLFR_correctif_profils_deja_fusionnes.zip` (qui incluait le dernier ZIP `DLFRRR(2).zip` et la correction du clic sur les niveaux).
+4. Publier puis recharger la page avec Ctrl+F5.
 
-## Installation (dans cet ordre)
-1. Supabase > SQL Editor : exécuter **supabase/51_FILTRER_PROFILS_FUSIONNES.sql** une seule fois. Pré-requis : la migration 33 (fusion des joueurs) est déjà installée.
-2. Sur GitHub : remplacer **js/app.js** et **index.html** par ceux de ce ZIP, puis publier. Ils sont basés sur le dernier ZIP fourni (`DLFRRR(2).zip`) et intègrent le correctif du clic dans l'éditeur de niveaux.
-3. Actualiser le site (`Ctrl + F5`), puis aller dans **Modération > Profils > Fusion**.
+## Côté joueur
+- Ouvrir **Mon profil**, avec un compte Discord ou pseudo **déjà lié à une fiche joueur**.
+- Dans **Demander une fusion de fiches**, rechercher l'ancienne fiche, la sélectionner puis fournir une justification (ou un lien HTTPS de preuve).
+- Cliquer sur **Envoyer ma demande**. La demande apparaît dans **Mes demandes**, avec le statut En attente, Acceptée ou Refusée et la note de modération éventuelle.
+- Il s'agit des **fiches joueurs DLFR** : les comptes d'authentification Discord/pseudo et leurs permissions ne sont PAS fusionnés.
 
-## Résultat
-- Les fiches déjà absorbées ne sont proposées ni comme cible ni comme source d'une nouvelle fusion.
-- Le compte principal conservé continue de figurer dans les menus.
-- Les joueurs cachés des classements pour une raison autre qu'une fusion ne disparaissent pas.
-- Les homonymes affichent leur `player_key` pour qu'on puisse les distinguer.
-- Si la migration SQL manque, le formulaire indique une erreur et bloque les nouvelles fusions, sans bloquer le reste du site.
+## Côté modération
+- Pour les propriétaires et supermodérateurs seulement : **Modération > Demandes > Demandes de fusion de fiches**.
+- Consulter les pièces, prévisualiser la fusion puis écrire `FUSIONNER` et accepter, ou refuser avec une note.
+- L'acceptation invoque la fusion SQL **existante** dans une transaction atomique : si elle échoue, la demande reste En attente.
+- Le SQL bloque les sources déjà associées à un compte, revendiquées, ou déjà fusionnées. Le serveur déduit le profil cible **du compte connecté**, jamais d'un identifiant fourni par le navigateur.
 
-Cette mise à jour ne modifie aucun joueur ni record et ne touche pas aux drapeaux (`assets/flags/`).
+## Limites importantes
+- Les homonymes exacts (deux fiches portant le même pseudo) sont **bloqués par la procédure de fusion actuelle** pour éviter de déplacer des complétions ambiguës ; une vérification/manipulation manuelle par un administrateur est nécessaire.
+- Les badges, records, titres et quelques références sont gérés par la fusion existante. Certaines relations, notamment les clans, ne sont pas transférées automatiquement ; son aperçu SQL liste les limites.
+- Aucune migration n'efface de lignes `players`, comptes Auth, ou drapeaux.
+- La validation réelle en production Supabase n'a pas pu être exécutée ici : vérifier les nouvelles RPC après l'installation et faire un essai avec une fiche de test avant les comptes importants.
+
+## Fichiers du correctif
+- `supabase/52_DEMANDES_FUSION_PROFILS.sql`
+- `js/app.js`
+- `css/merge-requests.css`
+- `index.html`
+
+**Le ZIP ne contient aucun fichier de `assets/flags/` et ne modifie pas les drapeaux personnalisés.**
