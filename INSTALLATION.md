@@ -1,37 +1,23 @@
-# DLFR V52.2 — Autoriser les modérateurs à créer leur fiche personnelle
+# DLFR V55 — liaison des fiches et sauvegarde du profil
 
-## Problème identifié
-Dans `js/app.js`, les formulaires publics sont reconnus pour les joueurs non-modérateurs,
-mais un second contrôle de rôle empêchait `selfCreatePlayer`, `prodClaim` et `submitRecord`
-pour les comptes avec rôle `moderator` ou `nlw`. Un membre du staff pouvait donc
-exister dans l’onglet Équipe sans fiche joueur et être empêché de créer sa propre fiche.
+## Symptomes
+- Un joueur cree une fiche ou demande une liaison approuvee, mais les stats disent « Profil non revendique ».
+- Enregistrer mon profil echoue avec « Aucun joueur autorise pour ce profil. ».
 
-## Correction
-- Les actions personnelles `selfCreatePlayer`, `prodClaim` et `submitRecord` sont
-  accessibles aux comptes connectés ordinaires **et** à tous les rôles de modération.
-- Les opérations d’administration restent restreintes : aucun nouveau droit
-  de validation, de fusion ou de modération n’est accordé.
-- Validation HTML du champ pseudo GD corrigée pour les versions récentes des navigateurs.
-- Numéros de cache JavaScript actualisés dans `index.html`.
+## Origine
+Le statut public `players.has_account` est distinct de l'association reelle `player_profile_owners`. La fonction existante `dlfr_review_claim` ajoute la liaison sans changer `has_account`. Le code de sauvegarde exigeait par erreur `has_account` en plus de la liaison.
 
 ## Installation
-1. Sauvegarder les fichiers actuels.
-2. Remplacer `js/app.js`, `js/production-tools.js` et `index.html`.
-3. Ne pas toucher à `assets/flags/`, aux autres CSS, aux fonctions d’authentification, ni aux données SQL.
-4. Publier sur GitHub Pages, puis `Ctrl+F5`.
+1. Sauvegarder les fichiers avant modification. Exécuter `supabase/55_REPARER_LIAISON_ET_BADGE.sql` dans Supabase SQL Editor. Ce script synchronise seulement les fiches AVEC propriétaire deja enregistré et maintient le statut ensuite via triggers. Il ne relie jamais automatiquement une fiche à un nouvel utilisateur.
+2. Remplacer `js/app.js`, `js/production-tools.js` et `index.html` par les fichiers du patch si vous êtes sur la V52.3. `production-tools.js` est identique à celui de V52.2 : inclus pour les installations sans cette version.
+3. Publier et faire `Ctrl+F5`.
+4. Executer `supabase/55_DIAGNOSTIC_VINCELEO.sql` pour vérifier que `liaison_reelle=true` et `badge_public=true`.
 
-## Fluxy : comment apparaître dans l’Équipe ET dans les stats
-Il se connecte à son compte habituel, puis ouvre **Mon espace → Mon profil**.
-- Si aucune fiche joueur n’est liée à son compte, le bloc **Je n’ai pas encore de fiche** apparaît.
-  Il peut entrer son pseudo GD et cliquer sur **Créer ma fiche DLFR**.
-- **S’il possède déjà une fiche historique**, il ne doit pas en créer une nouvelle : utiliser
-  **J’ai déjà une fiche joueur → Demander la liaison** (validation par la modération).
-- La fiche apparaîtra ensuite dans **Profils des joueurs** et en principe dans
-  **Statistiques → Joueurs**, à condition qu’elle ne soit pas masquée (`hidden_from_stats`).
-  Sans record validé, ses points restent à 0 et il n’apparaît pas dans les statistiques qui
-  comptent seulement les joueurs avec points.
+## IMPORTANT
+Si `liaison_reelle=false`, NE PAS modifier `has_account` en true : la fiche n'est pas associee a un compte ; une nouvelle approbation de liaison doit être vérifiée.
 
-## Vérifications locales
-Syntaxe `node --check` sur les deux JavaScript ; contrôles statiques de la modification ;
-les autorisations de la RPC Supabase doivent être vérifiées lors de l’essai sur le vrai site.
-Aucun changement de mot de passe, de compte, de permissions ou de table SQL.
+## Sauvegarde de profil
+Les droits du formulaire sont désormais basés sur `state.ownKey` (liaison Auth vérifiée) ; les autorisations d'écriture restent contrôlées par les RLS Supabase. Les erreurs liées à d'autres champs (URL, RLS, etc.) doivent être diagnostiquées séparément.
+
+## Sécurité / compatibilité
+Ne change ni les UID propriétaires, ni leurs rôles, ni les records, ni les drapeaux. Ne jamais écraser le dossier `assets/flags/`.

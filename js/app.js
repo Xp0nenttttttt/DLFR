@@ -306,6 +306,10 @@ async function checkSelfOwner(){
  if(error){state.ownAccountMessage='La liaison des comptes joueurs n’est pas encore installée. Consulte le guide V2.4.';return;}
  if(!data){state.ownAccountMessage='Ton compte est connecté. Tu peux créer une fiche joueur vierge ou demander la liaison avec une fiche existante.';return;}
  state.ownKey=data.player_key;
+ // La liaison Auth, lue via RLS pour ce compte, fait foi.
+ // players.has_account peut encore etre desynchronise sur de vieilles fiches.
+ const mine=(state.data.players||[]).find(p=>p.player_key===state.ownKey);
+ if(mine)mine.has_account=true;
 }
 // DLFR 2.12 — file d'invitations liée au compte authentifié, jamais à un pseudo saisi.
 // Le serveur contrôle les droits; on ne fait pas confiance aux options HTML.
@@ -489,7 +493,8 @@ function completionLinks(levels){return levels.length?levels.sort((a,b)=>a.posit
 function titleHTML(p){return BADGES.gallery(state.data,p.player_key,esc,date);}
 
 const fullName=p=>p?.display_name||p?.username||p?.player_key||'?';
-const getNewsCategory=n=>['Annonce','Record','Classement','Communauté'].includes(n.category)?n.category:(/record|termin|complet|victor/i.test(n.headline)?'Record':/top|classement|rang/i.test(n.headline)?'Classement':'Annonce');
+// La catégorie est une décision de l'éditeur, jamais une déduction à partir du titre.
+const getNewsCategory=n=>['Annonce','Record','Classement','Communauté'].find(c=>key(c)===key(n?.category))||'Annonce';
 const yearsFromRecords=()=>[...new Set((state.data.completions||[]).map(r=>plain(r.created_at).slice(0,4)).filter(y=>/^\d{4}$/.test(y)))].sort().reverse();
 function countCommunityRecords(start,end){const positions=new Map(catalog().map(d=>[Number(d.id),Number(d.position)]));const seen=new Set();for(const r of state.data.completions||[]){const pos=positions.get(Number(r.demon_id));if(+r.progress!==100||pos<start||pos>end)continue;seen.add(key(r.player)+'|'+r.demon_id);}return seen.size;}
 function statsOverview(){
@@ -630,8 +635,11 @@ function selfProfilePage(){
 }
 async function saveSelfProfile(form){
  const actor=LIVE?state.ownKey:state.demoActor;
- const player=state.data.players.find(x=>x.player_key===actor&&x.has_account);
- if(!player||!actor)throw Error('Aucun joueur autorisé pour ce profil.');
+ // Le droit de modifier vient de state.ownKey (liaison Auth verifiee),
+ // et des regles RLS Supabase, PAS du badge public has_account.
+ const player=state.data.players.find(x=>x.player_key===actor);
+ if(!player||!actor||(LIVE&&(!state.session||actor!==state.ownKey)))
+   throw Error('Aucune fiche joueur associee a ce compte. Recharge puis verifie la liaison dans Mon profil.');
  if(player.demo_suspended_until&&new Date(player.demo_suspended_until)>new Date())throw Error('Profil suspendu en démonstration.');
  const f=Object.fromEntries(new FormData(form).entries());
  const safeURL=(value,label)=>{const s=plain(value);if(!s)return '';if(!imageLink(s))throw Error(`${label} : URL ou chemin assets/ invalide.`);return s;};
@@ -1729,8 +1737,9 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   await refreshLiveData();
   if(type==='prodManageStaff')await loadStaffCandidates();
   await checkSelfOwner();
+  if(type==='selfCreatePlayer'&&!state.ownKey)throw Error('La fiche a ete creee, mais le lien avec ton compte n\'est pas visible. Recharge avant de recommencer : ne cree pas une deuxieme fiche.');
   if(['selfCreatePlayer','prodClaimReview'].includes(type))await refreshClanTools();
-  toast('Opération enregistrée.');render();return;
+  toast(type==='selfCreatePlayer'?'Fiche creee et associee a ton compte !':'Opération enregistrée.');render();return;
  }
 
  if(type==='attachUsername'){
@@ -1874,8 +1883,7 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   if(file)image_url=await uploadNewsImage(file);
   if(image_url&&!imageLink(image_url))throw Error('URL d’image invalide. Utilise un lien http(s).');
   if(f.video_url&&!http(f.video_url))throw Error('URL de vidéo invalide.');
-  const item={headline:plain(f.headline),body:plain(f.body),player_name:plain(f.player_name)||null,image_url:image_url||null,video_url:plain(f.video_url)||null,is_published:f.is_published==='on'};
-  if(!LIVE){item.category=f.category;item.is_pinned=f.is_pinned==='on';}
+  const item={headline:plain(f.headline),body:plain(f.body),player_name:plain(f.player_name)||null,image_url:image_url||null,video_url:plain(f.video_url)||null,is_published:f.is_published==='on',category:getNewsCategory({category:f.category}),is_pinned:f.is_pinned==='on'};
   if(old){item.id=old.id;await save('news_items',item,{upsert:true,on:['id']});}
   else await save('news_items',item);
   state.editingNews=null;
