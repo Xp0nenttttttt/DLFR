@@ -32,14 +32,37 @@
   }
   async function authenticatedRequest(db,config,action,fields={}){
     if(!config?.supabaseUrl||!config?.supabasePublishableKey)throw Error('Connexion momentanément indisponible.');
-    const {data,error}=await db.auth.getSession();
-    if(error||!data?.session?.access_token)throw Error('Connecte-toi pour continuer.');
-    const response=await fetch(config.supabaseUrl.replace(/\/$/,'')+'/functions/v1/username-auth',{
+    const api=config.supabaseUrl.replace(/\/$/,'')+'/functions/v1/username-auth';
+    const sessionOrFail=async()=>{
+      const {data,error}=await db.auth.getSession();
+      if(error||!data?.session?.access_token)throw Error('Ta session a expiré. Reconnecte-toi avec Discord.');
+      return data.session;
+    };
+    const send=async token=>fetch(api,{
       method:'POST',headers:{'content-type':'application/json','apikey':config.supabasePublishableKey,
-        'authorization':'Bearer '+data.session.access_token},
+        'authorization':'Bearer '+token},
       body:JSON.stringify({action,...fields})
     });
+    let session=await sessionOrFail();
+    let response;
+    try{response=await send(session.access_token);}catch{
+      throw Error('Connexion au service impossible. Vérifie ton réseau et réessaie.');
+    }
+    // Un JWT conservé par un ancien onglet peut avoir expiré : renouvellement unique.
+    // La validation reste entièrement côté Supabase : aucune permission n'est contournée.
+    if(response.status===401){
+      const {data:refreshed,error:refreshError}=await db.auth.refreshSession();
+      if(refreshError||!refreshed?.session?.access_token){
+        throw Error('Ta session a expiré. Déconnecte-toi puis reconnecte-toi avec Discord.');
+      }
+      try{response=await send(refreshed.session.access_token);}catch{
+        throw Error('Connexion au service impossible après renouvellement. Réessaie.');
+      }
+    }
     const payload=await response.json().catch(()=>({}));
+    if(response.status===401){
+      throw Error('Supabase refuse encore la session après renouvellement. Reconnecte-toi à Discord ; si cela persiste, vérifie les journaux de username-auth.');
+    }
     if(!response.ok)throw Error(payload.error||'Impossible de mettre à jour le compte.');
     return payload;
   }
