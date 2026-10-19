@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="css/v58-accueil.css?v=dlfr58">
   <link rel="stylesheet" href="css/v59-soumissions.css?v=dlfr59">
   <link rel="stylesheet" href="css/v60-moderation-niveaux.css?v=dlfr60">
+  <link rel="stylesheet" href="css/v62-header.css?v=dlfr62-auth" >
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
   <script src="js/config.js?v=dlfr22-1" defer></script>
   <script src="js/geo.js?v=dlfr22-1" defer></script>
@@ -24,7 +25,7 @@
   <script src="js/clan-plus.js?v=220" defer></script>
   <script src="js/submission-core.js?v=243" defer></script>
   <script src="js/discord-auth.js?v=250" defer></script>
-  <script src="js/username-auth.js?v=dlfr57-legacy-auth" defer></script>
+  <script src="js/username-auth.js?v=dlfr62-auth-repair" defer></script>
   <script src="js/badge-system.js?v=dlfr20-1" defer></script>
   <script src="js/profile-community.js?v=dlfr20-1" defer></script>
   <script src="js/activity-feed.js?v=dlfr21-1" defer></script>
@@ -34,12 +35,12 @@
   <script src="js/level-packs.js?v=dlfr27-1" defer></script>
   <script src="js/aredl-bulk.js?v=bulk-fr-1" defer></script>
   <script src="js/verification-claims.js?v=claims-1" defer></script>
-  <script src="js/app.js?v=dlfr61-lazy-load" defer></script>
+  <script src="js/app.js?v=dlfr62-auth-repair" defer></script>
 </head>
 <body>
   <header class="site-header">
     <nav class="navigation" aria-label="Navigation principale">
-      <a href="?page=list" class="brand" data-link="list">DemonlistFrancophone</a>
+      <a href="?page=list" class="brand" data-link="list"><span class="v62-brand-long">DemonlistFrancophone</span><span class="v62-brand-short">DLFR</span></a>
       <div class="nav-links" id="primaryNavigation">
         <a class="nav-primary" href="?page=list" data-link="list">Demonlist</a>
         <details class="nav-menu" data-nav-group="classements">
@@ -78,8 +79,8 @@
       </div>
       <div class="nav-tools">
         <div class="v58-social-links" aria-label="Liens communautaires">
-          <a class="v58-social-link v58-discord" href="https://discord.gg/FUTTZTwJFr" target="_blank" rel="noopener noreferrer" aria-label="Rejoindre le serveur Discord DLFR (nouvel onglet)"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="currentColor"><path d="M19.73 5.06a18.05 18.05 0 0 0-4.45-1.38l-.54 1.1a16.6 16.6 0 0 0-5.48 0l-.54-1.1a18.2 18.2 0 0 0-4.46 1.39C1.44 9.22.66 13.25 1.04 17.23a18.3 18.3 0 0 0 5.47 2.76l1.17-1.88c-.64-.24-1.24-.54-1.82-.9l.44-.34c3.5 1.64 7.9 1.64 11.37 0l.45.35c-.58.35-1.2.65-1.83.9l1.17 1.88a18.38 18.38 0 0 0 5.48-2.77c.45-4.6-.77-8.6-3.21-12.37ZM8.56 14.8c-1.05 0-1.9-.97-1.9-2.14s.83-2.14 1.9-2.14c1.07 0 1.92.97 1.9 2.14 0 1.17-.83 2.14-1.9 2.14Zm6.88 0c-1.06 0-1.9-.97-1.9-2.14s.83-2.14 1.9-2.14c1.07 0 1.91.97 1.9 2.14 0 1.17-.83 2.14-1.9 2.14Z"/></svg><span>Discord</span></a>
-          <a class="v58-social-link v58-youtube" href="https://www.youtube.com/@DemonlistFrancophone" target="_blank" rel="noopener noreferrer" aria-label="Voir la chaîne YouTube Demonlist Francophone (nouvel onglet)"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="currentColor"><path d="M21.58 7.19a2.75 2.75 0 0 0-1.94-1.94C17.92 4.8 12 4.8 12 4.8s-5.92 0-7.64.45a2.75 2.75 0 0 0-1.94 1.94C1.97 8.91 1.97 12 1.97 12s0 3.09.45 4.81a2.75 2.75 0 0 0 1.94 1.94c1.72.45 7.64.45 7.64.45s5.92 0 7.64-.45a2.75 2.75 0 0 0 1.94-1.94c.45-1.72.45-4.81.45-4.81s0-3.09-.45-4.81ZM9.96 15.08V8.92L15.3 12l-5.34 3.08Z"/></svg><span>YouTube</span></a>
+          <a class="v58-social-link v58-discord" href="https://discord.gg/FUTTZTwJFr" target="_blank" rel="noopener noreferrer" title="Discord DLFR" aria-label="Rejoindre le serveur Discord DLFR (nouvel onglet)"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="currentColor"><path d="M19.73 5.06a18.05 18.05 0 0 0-4.45-1.38l-.54 1.1a16.6 16.6 0 0 0-5.48 0l-.54-1.1a18.2 18.2 0 0 0-4.46 1.39C1.44 9.22.66 13.25 1.04 17.23a18.3 18.3 0 0 0 5.47 2.76l1.17-1.88c-.64-.24-1.24-.54-1.82-.9l.44-.34c3.5 1.64 7.9 1.64 11.37 0l.45.35c-.58.35-1.2.65-1.83.9l1.17 1.88a18.38 18.38 0 0 0 5.48-2.77c.45-4.6-.77-8.6-3.21-12.37ZM8.56 14.8c-1.05 0-1.9-.97-1.9-2.14s.83-2.14 1.9-2.14c1.07 0 1.92.97 1.9 2.14 0 1.17-.83 2.14-1.9 2.14Zm6.88 0c-1.06 0-1.9-.97-1.9-2.14s.83-2.14 1.9-2.14c1.07 0 1.91.97 1.9 2.14 0 1.17-.83 2.14-1.9 2.14Z"/></svg><span>Discord</span></a>
+          <a class="v58-social-link v58-youtube" href="https://www.youtube.com/@DemonlistFrancophone" target="_blank" rel="noopener noreferrer" title="YouTube DLFR" aria-label="Voir la chaîne YouTube Demonlist Francophone (nouvel onglet)"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="currentColor"><path d="M21.58 7.19a2.75 2.75 0 0 0-1.94-1.94C17.92 4.8 12 4.8 12 4.8s-5.92 0-7.64.45a2.75 2.75 0 0 0-1.94 1.94C1.97 8.91 1.97 12 1.97 12s0 3.09.45 4.81a2.75 2.75 0 0 0 1.94 1.94c1.72.45 7.64.45 7.64.45s5.92 0 7.64-.45a2.75 2.75 0 0 0 1.94-1.94c.45-1.72.45-4.81.45-4.81s0-3.09-.45-4.81ZM9.96 15.08V8.92L15.3 12l-5.34 3.08Z"/></svg><span>YouTube</span></a>
         </div>
         <label class="nav-theme">Thème <select id="themeSelect" aria-label="Thème"><option value="light">Clair</option><option value="dark">Sombre</option><option value="midnight">Midnight</option><option value="autumn">Automne</option></select></label>
         <button class="unrated-switch" id="unratedToggle" type="button" aria-pressed="false">◈ UNRATED OFF</button>

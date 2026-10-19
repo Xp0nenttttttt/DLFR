@@ -1,0 +1,30 @@
+/* DLFR V62 : navigation moins surchargee, sans supprimer Discord et YouTube. */
+.navigation .v62-brand-short{display:none}
+.navigation .v58-social-links{gap:5px}
+.navigation .v58-social-link{width:36px;min-width:36px;height:36px;min-height:36px;padding:0;flex:0 0 36px;border-radius:10px}
+.navigation .v58-social-link>span{position:absolute;white-space:nowrap;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%)}
+.navigation .v58-social-link svg{width:19px;height:19px}
+.navigation .nav-tools{gap:7px;flex-wrap:nowrap}
+/* Passer aux deux lignes quand les elements ne tiennent plus. */
+@media(max-width:1280px){
+ .navigation .nav-tools{flex-wrap:nowrap}
+ .navigation .nav-tools .v58-social-links{order:0}
+}
+@media(max-width:1120px){
+ .navigation .brand .v62-brand-long{display:none}
+ .navigation .brand .v62-brand-short{display:inline}
+ .navigation .nav-tools{order:1}
+ .navigation .nav-links{order:2;flex:0 0 100%}
+}
+@media(max-width:730px){
+ .navigation .nav-tools{width:auto;margin-left:auto;gap:5px;flex-wrap:nowrap;justify-content:flex-end}
+ .navigation .nav-tools .v58-social-links{width:auto;gap:4px}
+ .navigation .v58-social-link{flex:0 0 34px;max-width:none;min-width:34px;width:34px;height:34px;min-height:34px}
+ .navigation .nav-links{order:3;flex:0 0 100%;width:100%}
+}
+@media(max-width:450px){
+ .navigation .nav-tools{gap:5px}
+ .navigation .nav-theme{font-size:11px}
+ .navigation .nav-theme select{max-width:90px;font-size:11px}
+ .navigation .unrated-switch{font-size:10px;padding:7px 6px}
+}

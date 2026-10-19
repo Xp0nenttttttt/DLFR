@@ -108,8 +108,18 @@ Deno.serve(async req=>{
   // Adresses IP utilisées UNIQUEMENT dans un hash poivré, pas stockées en clair.
   const forwarded=req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()||'';
   const remote=req.headers.get('cf-connecting-ip')||req.headers.get('x-real-ip')||forwarded||'unknown';
-  if(!await rate('ip:'+remote,action==='register'?5:40,3600))return response(429,{error:'Trop de tentatives. Réessaie plus tard.'},origin);
-  if(!await rate('handle:'+handle,action==='register'?4:12,900))return response(429,{error:'Trop de tentatives pour ce pseudo.'},origin);
+  // V62 : quotas SEPARES entre inscription et connexion. Le quota commun de V57
+  // pouvait bloquer toutes les inscriptions après des essais de connexion.
+  // Ne jamais partager une seule clé « unknown » entre tous les visiteurs.
+  const ipLimit=action==='register'?60:100;
+  const handleLimit=action==='register'?5:16;
+  const operation=action==='register'?'signup':'signin';
+  if(remote!=='unknown' && !await rate('ip:'+operation+':'+remote,ipLimit,3600)){
+    return response(429,{error:action==='register'?'Trop d’inscriptions depuis ce réseau. Réessaie dans une heure ou contacte la modération.':'Trop de connexions depuis ce réseau. Réessaie plus tard.'},origin);
+  }
+  if(!await rate('handle:'+operation+':'+handle,handleLimit,900)){
+    return response(429,{error:action==='register'?'Trop de créations pour ce pseudo. Attends 15 minutes avant un nouvel essai.':'Trop de tentatives de connexion pour ce pseudo. Attends 15 minutes.'},origin);
+  }
   if(action==='register'){
     const {data:existing,error:lookErr}=await admin.from('dlfr_username_accounts')
        .select('username_key').eq('username_key',handle).maybeSingle();
@@ -150,12 +160,15 @@ Deno.serve(async req=>{
     try{matched=await bcrypt.compare(password,legacy.password_hash.replace(/^\$2y\$/,'$2a$'));}
     catch{console.error('DLFR legacy bcrypt verification failed');return response(503,{error:'Service temporairement indisponible.'},origin);}
     if(!matched)return response(401,generic,origin);
-    // Un ancien mot de passe court ne peut pas rester le nouveau secret Supabase.
+    // V62 : tenter DIRECTEMENT l’ancien mot de passe vérifié par bcrypt.
+    // Ne PAS imposer arbitrairement 12 caractères au mot de passe historique.
+    // Si la politique Supabase exige davantage, seul ce cas demande un changement.
     const upgraded=body?.new_password;
-    const finalPassword=password.length>=12?password:upgraded;
-    if(typeof finalPassword!=='string'||finalPassword.length<12||finalPassword.length>128){
-      return response(409,{error:'Ancien mot de passe reconnu. Déplie « Ancien compte : changer le mot de passe » et choisis-en un nouveau (12 caractères minimum).'},origin);
+    const wantsUpgrade=typeof upgraded==='string'&&upgraded.length>0;
+    if(wantsUpgrade&&(upgraded.length<8||upgraded.length>128)){
+      return response(400,{error:'Nouveau mot de passe : 8 caractères minimum (davantage si la politique Supabase l’exige).'},origin);
     }
+    const finalPassword=wantsUpgrade?upgraded:password;
     const claim=crypto.randomUUID();
     const {data:locked,error:lockErr}=await admin.rpc('dlfr_legacy_migration_begin',{p_handle:handle,p_claim:claim});
     if(lockErr)throw lockErr;
@@ -168,7 +181,12 @@ Deno.serve(async req=>{
         email:internalEmail,password:finalPassword,email_confirm:true,
         user_metadata:{dlfr_auth_method:'username',dlfr_migrated_legacy:true,dlfr_username:username}
       });
-      if(createErr||!created?.user)throw Error('Unable to create Auth user');
+      if(createErr||!created?.user){
+        if(createErr && /password|weak|length|short|character|complex|at least/i.test(createErr.message||'')){
+          throw Error('legacy_password_policy');
+        }
+        throw Error('legacy_account_creation_failed');
+      }
       createdId=created.user.id;
       const {error:finishErr}=await admin.rpc('dlfr_legacy_migration_finish',{
         p_handle:handle,p_claim:claim,p_auth_user_id:createdId
@@ -185,6 +203,9 @@ Deno.serve(async req=>{
       if(!completed?.migrated_auth_user_id){
         if(createdId)await admin.auth.admin.deleteUser(createdId);
         await admin.rpc('dlfr_legacy_migration_abort',{p_handle:handle,p_claim:claim});
+      }
+      if(err instanceof Error && err.message==='legacy_password_policy'){
+        return response(409,{error:'Ancien mot de passe reconnu ! Supabase refuse sa longueur ou sa complexité. Ouvre « Migration : choisir un nouveau mot de passe » et définis-en un nouveau (12 caractères conseillés), puis réessaie.'},origin);
       }
       console.error('DLFR legacy migration error:',err instanceof Error?err.message:'unknown');
       return response(503,{error:'Migration temporairement indisponible. Réessaie ou contacte la modération.'},origin);
