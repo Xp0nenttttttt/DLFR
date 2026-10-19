@@ -36,7 +36,58 @@ const communityTables=['dlfr_profile_preferences','dlfr_profile_showcase','dlfr_
 const packTables=['dlfr_level_packs','dlfr_level_pack_levels','dlfr_level_pack_claims'];
 const livePrivateTables=['profile_claim_requests','level_submissions','clan_invites','clan_requests','player_profile_owners'];
 const liveStaffTables=['player_sanctions','community_audit_log','dlfr_level_archive_log'];
-const tables = ['site_settings','players','demons','completions','news_items','profile_titles','player_profile_titles','player_profiles','hall_of_fame','player_stat_snapshots','demon_position_history'];
+// V61 : conserver les tables nécessaires à la Demonlist au premier chargement.
+// Les groupes volumineux de personnalisation / level packs / historique sont lus
+// uniquement quand une page en a réellement besoin (et jamais pour un visiteur de la liste).
+const tables = ['site_settings','players','demons','completions','news_items','profile_titles','player_profile_titles','player_profiles','hall_of_fame'];
+const optionalGroups = Object.freeze({
+ community: ['dlfr_profile_preferences','dlfr_profile_showcase','dlfr_profile_follows'],
+ packs: ['dlfr_level_packs','dlfr_level_pack_levels','dlfr_level_pack_claims'],
+ history: ['player_stat_snapshots','demon_position_history']
+});
+const optionalStatus={community:'idle',packs:'idle',history:'idle'};
+let dataGeneration=0;
+function requiredGroups(page){
+ const groups=[];
+ if(['stats','players','player','my-profile','activity','packs','admin'].includes(page))groups.push('community');
+ if(['stats','players','player','my-profile','packs','admin'].includes(page))groups.push('packs');
+ if(['player','demon'].includes(page))groups.push('history');
+ return groups;
+}
+// Limite les pics de requêtes PostgREST, sans changer le nombre de connexions
+// autorisées par Supabase ni les permissions RLS.
+const MAX_PARALLEL_READS=4;
+let activeReads=0;
+const readWaiters=[];
+async function withReadSlot(fn){
+ if(activeReads>=MAX_PARALLEL_READS)await new Promise(resolve=>readWaiters.push(resolve));
+ activeReads++;
+ try{return await fn();}
+ finally{activeReads--;const next=readWaiters.shift();if(next)next();}
+}
+function startOptionalGroup(name){
+ if(optionalStatus[name]!=='idle'||!state.data)return;
+ const generation=dataGeneration;
+ optionalStatus[name]='loading';
+ Promise.all(optionalGroups[name].map(async t=>{
+   try{return await readAll(t);}catch(error){console.warn('[DLFR V61] Groupe',name,t,error);throw error;}
+ })).then(results=>{
+   if(generation!==dataGeneration)return;
+   optionalGroups[name].forEach((t,i)=>{state.data[t]=results[i];});
+   optionalStatus[name]='ready';
+   if(name==='community')state.communityReady=true;
+   if(name==='packs')state.packsReady=true;
+   render();
+ }).catch(error=>{
+   if(generation!==dataGeneration)return;
+   optionalStatus[name]='error';
+   if(name==='community')state.communityReady=false;
+   if(name==='packs')state.packsReady=false;
+   console.warn('[DLFR V61] Chargement optionnel indisponible',name,error);
+   render();
+ });
+}
+
 let db = null, state = { data:null, staff:false, staffRole:null, session:null, country:'MONDE', region:'ALL', selectedPlayer:'', list:'main', keyword:'', busy:false, statsTab:'players', statsYear:'all', comparePlayer:'', profileTab:'overview', activityTab:'following', selectedRegion:'BRE', regionsSort:'points', regionsGeometryRequested:false, newsFilter:'all', newsSearch:'', adminTab:'overview', editingNews:null, unrated:false, calcPlayer:'', calcDemons:[], calcNlw:false, unbeatSearch:'', unbeatLimit:120, communityExcel:{status:'idle',items:[],message:'',offline:false}, demoRole:'owner', demoActor:'spleen', selectedClan:1, clanSort:'points', clanSearch:'', clanDetailTab:'overview', ownKey:null, ownAccountMessage:'', mySubmissionFilter:'all', mySubmissionSearch:'', ownerPreview:'owner', ownerPreviewQueue:[], ownerPreviewError:'', teamCandidates:[], teamCandidatesReady:false, teamCandidatesError:'', mergedSourceKeys:[], mergedSourceError:'', mergeRequests:[], mergeRequestCandidates:[], mergeRequestsError:'', clanInbox:[], clanCandidates:[], clanExtraError:'', usernameAccount:null, usernameAccountError:'' };
 const PERF_DEBUG=new URLSearchParams(location.search).has('perf');
 const perfNow=()=>typeof performance!=='undefined'?performance.now():Date.now();
@@ -170,12 +221,24 @@ const callout=x=>`<div class="notice">${x}</div>`;
 // Les sauvegardes fictives ont été supprimées.
 const saveDemo=()=>{}; // Compatibilité avec les anciennes branches inactives du moteur V2.
 function withTimeout(promise,ms,message){let timer;return Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error(message)),ms);})]).finally(()=>clearTimeout(timer));}
-async function readAll(name){const start=perfNow();let out=[],from=0;while(true){const query=db.from(name).select('*');
- // Les imports AREDL non publiés restent accessibles aux modérateurs,
- // mais ne doivent jamais ralentir le chargement du site public.
- if(name==='demons'&&!state.staff)query.or('is_public.eq.true,is_public.is.null');
- const {data,error}=await query.range(from,from+999);if(error)throw Error(`${name} : ${error.message}`);out.push(...data);if(data.length<1000)break;from+=1000;if(from>=60000)throw Error(`Limite de lecture atteinte pour ${name}; pagination serveur à prévoir`);}if(PERF_DEBUG)console.info('[DLFR perf] Lecture',name,out.length+' lignes',Math.round(perfNow()-start)+' ms');return out;}
+async function readAll(name){return withReadSlot(async()=>{
+ const start=perfNow();let out=[],from=0;
+ while(true){
+  const query=db.from(name).select('*');
+  // Conserver la RLS serveur et réduire les lignes inutiles pour les visiteurs.
+  if(name==='demons'&&!state.staff)query.or('is_public.eq.true,is_public.is.null');
+  if(name==='level_submissions'&&!state.staff&&state.session?.user?.id)query.eq('auth_user_id',state.session.user.id);
+  const {data,error}=await query.range(from,from+999);
+  if(error)throw Error(`${name} : ${error.message}`);
+  out.push(...data);if(data.length<1000)break;
+  from+=1000;
+  if(from>=60000)throw Error(`Limite de lecture atteinte pour ${name}; pagination serveur à prévoir`);
+ }
+ if(PERF_DEBUG)console.info('[DLFR perf] Lecture',name,out.length+' lignes',Math.round(perfNow()-start)+' ms');
+ return out;
+});}
 async function refreshLiveData(){
+ ++dataGeneration; // Invalider les chargements optionnels antérieurs à une modification.
  resetRenderCalculations();
  const base=await withTimeout(Promise.all(tables.map(readAll)),45000,'Supabase ne répond pas après 45 secondes.');
  state.data=Object.fromEntries(tables.map((t,i)=>[t,base[i]]));
@@ -191,12 +254,15 @@ async function refreshLiveData(){
  // Lectures indépendantes en parallèle : auparavant, chaque table optionnelle
  // attendait la précédente, même pour une page qui ne l'utilisait pas.
  const publicTables=[...new Set([...livePublicTables,...(state.session?livePrivateTables:[]),...(hasFullStaffPowers()?liveStaffTables:[])])];
- state.communityReady=true;state.packsReady=true;
- await Promise.all([
-  ...communityTables.map(async t=>{try{state.data[t]=await readAll(t);}catch(err){state.data[t]=[];state.communityReady=false;console.warn('DLFR : fonctionnalité communautaire indisponible',t,err.message);}}),
-  ...packTables.map(async t=>{try{state.data[t]=await readAll(t);}catch(err){state.data[t]=[];state.packsReady=false;console.warn('DLFR : Level Packs indisponibles',t,err.message);}}),
-  ...publicTables.map(async t=>{state.data[t]=await readAll(t);})
- ]);
+ // Les tables optionnelles ne sont pas nécessaires aux visiteurs de la liste.
+ // Sur une actualisation après modération, leur contenu sera relu à la prochaine
+ // ouverture de la page concernée, et non pendant le rafraîchissement global.
+ for(const [name,group] of Object.entries(optionalGroups)){
+  optionalStatus[name]='idle';
+  for(const table of group)state.data[table]=[];
+ }
+ state.communityReady=false;state.packsReady=false;
+ await Promise.all(publicTables.map(async t=>{state.data[t]=await readAll(t);}));
  state.verificationClaims=[];state.verificationClaimsError='';
  if(state.session){const claims=await db.rpc('dlfr_verification_claim_list');
    if(claims.error)state.verificationClaimsError='Demandes indisponibles : installe la migration 45 ou réessaie. '+claims.error.message;
@@ -1788,7 +1854,16 @@ function render(){
  resetRenderCalculations();if(!state.data)return;try{
  if(!BADGES?.init || !UNRATED_STATS?.calculate || !V2?.decorate || !V2?.project || !UNVERIFIED?.classify || !CLANS?.apply || !CLAN_PLUS?.stats || !SUBMISSIONS?.approve)throw Error('Fichier JavaScript V2 manquant ou version incohérente : réinstalle les scripts du pack V2.0.3.');
  if(!LIVE){const first=state.data.badge_baseline_scanned!==true;const changed=BADGES.captureAutomatic(state.data,ranked(),new Date().toISOString().slice(0,10),first);if(first){state.data.badge_baseline_scanned=true;}if(changed||first)saveDemo();}
- const page=nav(),params=new URLSearchParams(location.search);if(page==='unbeaten'&&state.communityExcel.status==='idle')loadCommunityExcel().catch(showPageError);if(page==='stats'&&params.has('player')){history.replaceState({},'',url('player',{player:params.get('player')}));return render();}if(page==='player')state.selectedPlayer=key(params.get('player'));if(page==='list'){const tab=new URLSearchParams(location.search).get('tab');state.list=(tab==='nlw'||tab==='archive')?'nlw':'main';}const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='player'?playerPage():page==='players'?playersPage():page==='my-profile'?selfProfilePage():page==='my-submissions'?mySubmissionsPage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():page==='packs'?packPage():page==='regions'?regionsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;
+ const page=nav(),params=new URLSearchParams(location.search);if(page==='unbeaten'&&state.communityExcel.status==='idle')loadCommunityExcel().catch(showPageError);if(page==='stats'&&params.has('player')){history.replaceState({},'',url('player',{player:params.get('player')}));return render();}if(page==='player')state.selectedPlayer=key(params.get('player'));if(page==='list'){const tab=new URLSearchParams(location.search).get('tab');state.list=(tab==='nlw'||tab==='archive')?'nlw':'main';}
+ const needed=requiredGroups(page);
+ // Éviter des sections vides pendant le chargement à la demande, tout en
+ // permettant un affichage dégradé lorsque le serveur renvoie une erreur.
+ for(const name of needed)startOptionalGroup(name);
+ if(needed.some(name=>optionalStatus[name]==='loading')){
+  el.innerHTML='<section class="center-panel loading" aria-live="polite"><h2>Chargement des données de cette page…</h2><p class="small muted">Les autres pages restent accessibles.</p></section>';
+  return;
+ }
+ const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='player'?playerPage():page==='players'?playersPage():page==='my-profile'?selfProfilePage():page==='my-submissions'?mySubmissionsPage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():page==='packs'?packPage():page==='regions'?regionsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;
  // Donner un accès clair à l'inscription et à la connexion, sans modifier la navigation existante.
  const accountNavLink=document.querySelector('a[data-link="my-profile"]');
  if(accountNavLink) accountNavLink.textContent=state.session?'Mon profil':'Se connecter / Créer un compte';
