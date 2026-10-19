@@ -1473,6 +1473,67 @@ function modPlayersAndVictoriesPanel(){
  <label class="field"><input type="checkbox" name="confirm_verified" value="yes" required style="width:auto"> J'ai vérifié que la victoire à 100 % appartient bien à ce joueur</label>
  <button type="submit" class="btn">Attribuer la victoire</button></form></div>`;
 }
+// V60 — Édition bornée des niveaux pour la modération standard et NLW.
+function scopedAllowedLevels(role=state.staffRole){
+ return (state.data?.demons||[]).filter(d=>d.is_public===true&&!d.legacy&&!d.unrated&&Number(d.position)>=1&&Number(d.position)<100000000&&(role!=='nlw'||Number(d.position)>150))
+  .sort((a,b)=>Number(a.position)-Number(b.position));
+}
+function scopedLevelSearch(q=''){
+ const list=document.getElementById('scopedLevelCandidates');if(!list)return;
+ const search=key(q.trim());
+ const candidates=scopedAllowedLevels().filter(d=>!search||key(`${d.name||''} ${d.level_id||''} ${d.position}`).includes(search)).slice(0,60);
+ list.replaceChildren(...candidates.map(d=>new Option(`#${d.position} — ${d.name}${d.level_id?' · GD '+d.level_id:''}`,String(d.id))));
+ list.selectedIndex=-1;
+}
+function scopedLevelPick(id){
+ const d=scopedAllowedLevels().find(d=>String(d.id)===String(id));
+ const form=document.querySelector('[data-form="scopedEditLevel"]');if(!form||!d)return;
+ const values={demon_id:d.id,name:d.name,position:d.position,level_id:d.level_id,creator:d.creator,publisher:d.publisher,verifier:d.verifier,requirement:d.requirement||100,completion_mode:d.completion_mode||'standard',video_url:d.video_url,verifier_video_url:d.verifier_video_url,thumbnail_url:d.thumbnail_url};
+ for(const [field,value] of Object.entries(values)){
+  if(form.elements[field])form.elements[field].value=value??'';
+ }
+ const title=document.getElementById('scopedLevelSelected');if(title)title.textContent=`Fiche sélectionnée : ${d.name} (#${d.position})`;
+ form.querySelectorAll('input,select,button').forEach(el=>el.disabled=false);
+}
+function scopedLevelsPanel(role){
+ const nlw=role==='nlw';
+ return `<section class="paper dlfr-v60-editor"><h2>Gérer les niveaux · ${nlw?'NLW uniquement':'Top 150 et NLW'}</h2>
+ <p class="small muted">Créer une nouvelle fiche ou modifier un niveau existant. ${nlw?'Les rangs 1 à 150 ne sont pas accessibles à ton rôle.':'Les transferts entre Top 150 et NLW restent réservés aux supermodérateurs.'} Les niveaux UNRATED, Legacy, masqués et les retraits restent réservés à la supermodération.</p>
+ <div class="admin-card"><h3>＋ Ajouter un niveau</h3>
+ <form data-form="scopedCreateLevel" class="dlfr-v60-form">
+ <label class="field">Nom du niveau<input name="name" maxlength="120" required></label>
+ <label class="field">Position globale<input name="position" type="number" min="${nlw?151:1}" max="99999998" required placeholder="${nlw?151:1}"></label>
+ <label class="field">ID Geometry Dash<input name="level_id" inputmode="numeric" pattern="[0-9]+" maxlength="30" placeholder="Facultatif"></label>
+ <label class="field">Publié par<input name="publisher" maxlength="200" required></label>
+ <label class="field">Créateur<input name="creator" maxlength="200"></label>
+ <label class="field">Vérificateur<input name="verifier" maxlength="200"></label>
+ <label class="field">Progression requise (%)<input type="number" name="requirement" min="1" max="100" value="100" required></label>
+ <label class="field">Mode<select name="completion_mode"><option value="standard">Standard</option><option value="solo">Solo</option><option value="two_player">2-Player</option></select></label>
+ <label class="field">Vidéo de vérification<input name="verifier_video_url" type="url" maxlength="1000" placeholder="https://…"></label>
+ <label class="field">Miniature<input name="thumbnail_url" type="url" maxlength="1000" placeholder="https://…"></label>
+ <p class="small muted">Si le rang est occupé, les suivants sont décalés. Les niveaux déjà présents (y compris importés et masqués) ne sont pas recréés : contacte un supermodo pour les publier.</p>
+ <button class="btn" type="submit">Créer le niveau</button></form></div>
+ <div class="admin-card"><h3>✎ Modifier une fiche existante</h3>
+ <label class="field">Rechercher un niveau<input id="scopedLevelSearch" type="search" placeholder="Nom, rang ou ID Geometry Dash…" autocomplete="off"></label>
+ <label class="field">Résultats<select id="scopedLevelCandidates" size="7" aria-label="Choisir un niveau à modifier"></select></label>
+ <form data-form="scopedEditLevel" class="dlfr-v60-form">
+ <p id="scopedLevelSelected" class="small muted">Sélectionne un niveau dans les résultats ci-dessus.</p>
+ <input type="hidden" name="demon_id" value="">
+ <label class="field">Nom<input name="name" maxlength="120" required disabled></label>
+ <label class="field">Position globale<input name="position" type="number" min="${nlw?151:1}" max="99999998" required disabled></label>
+ <label class="field">ID Geometry Dash<input name="level_id" inputmode="numeric" maxlength="30" disabled></label>
+ <label class="field">Publié par<input name="publisher" maxlength="200" required disabled></label>
+ <label class="field">Créateur<input name="creator" maxlength="200" disabled></label>
+ <label class="field">Vérificateur<input name="verifier" maxlength="200" disabled></label>
+ <label class="field">Progression requise (%)<input name="requirement" type="number" min="1" max="100" required disabled></label>
+ <label class="field">Mode<select name="completion_mode" disabled><option value="standard">Standard</option><option value="solo">Solo</option><option value="two_player">2-Player</option></select></label>
+ <label class="field">Vidéo du niveau<input name="video_url" type="url" maxlength="1000" disabled></label>
+ <label class="field">Vidéo de vérification<input name="verifier_video_url" type="url" maxlength="1000" disabled></label>
+ <label class="field">Miniature<input name="thumbnail_url" type="url" maxlength="1000" disabled></label>
+ <label class="field"><input type="checkbox" name="confirm_move" value="on"> Je confirme le changement de position, s'il y en a un.</label>
+ <button type="submit" class="btn" disabled>Enregistrer les modifications</button></form></div>
+ </section>`;
+}
 function adminPage(){if(LIVE&&!state.staff){
   // Être connecté via Discord et être autorisé à modérer sont deux contrôles séparés.
   // Ne pas demander un mot de passe à une personne déjà authentifiée.
@@ -1487,7 +1548,7 @@ function adminPage(){if(LIVE&&!state.staff){
  if(LIVE&&(['nlw','moderator'].includes(state.staffRole)||ownerPreviewActive()&&['nlw','moderator'].includes(state.ownerPreview))){
    const role=ownerPreviewActive()?state.ownerPreview:state.staffRole;
    const view=ownerPreviewActive()?{...state,staffRole:role,scopedQueue:state.ownerPreviewQueue.filter(x=>role==='moderator'||Number(x.position)>150),scopedQueueError:state.ownerPreviewError}:state;
-   return `${templateNotice()}<div class="paper"><div class="admin-mode">Modération · ${role==='nlw'?'NLW':'Top 150 + NLW'}</div><div class="row-between"><h1>Validation des complétions</h1><button class="btn subtle small" data-action="logout">Déconnexion</button></div><p class="muted">Vérifie le niveau et la preuve vidéo avant de prendre une décision. Les autres outils sont réservés aux personnes autorisées.</p><ol class="dlfr29-guide-steps"><li><span>1</span>Ouvre une soumission en attente.</li><li><span>2</span>Regarde la preuve vidéo et le niveau.</li><li><span>3</span>Accepte ou refuse la complétion.</li></ol></div>${PROD.scopedReview(view)}${window.DLFR_CLAIMS.moderation(state)}<div class="paper dlfr27-scoped-packs">${state.adminTab==='packs'?packModerationEditor():''}</div>`;
+   return `${templateNotice()}<div class="paper"><div class="admin-mode">Modération · ${role==='nlw'?'NLW':'Top 150 + NLW'}</div><div class="row-between"><h1>Modération</h1><button class="btn subtle small" data-action="logout">Déconnexion</button></div><div class="dlfr-v60-tabs"><button type="button" data-admin-tab="requests" class="${state.adminTab!=='levels'?'active':''}">Soumissions</button><button type="button" data-admin-tab="levels" class="${state.adminTab==='levels'?'active':''}">Niveaux</button></div><p class="small muted">Les permissions de création et de modification sont vérifiées par Supabase selon ton rôle.</p></div>${state.adminTab==='levels'?scopedLevelsPanel(role):`${PROD.scopedReview(view)}${window.DLFR_CLAIMS.moderation(state)}<div class="paper dlfr27-scoped-packs">${state.adminTab==='packs'?packModerationEditor():''}</div>`}`;
  }
  const mergePlayers=state.adminTab==='profiles'?mergePlayerOptions():''; const players=['profiles','awards','achievements','safety','nlw'].includes(state.adminTab)?playerOptions():'';return `${templateNotice()}<div class="paper"><div class="admin-mode">Espace privé · équipe de modération</div><div class="row-between"><h1>Modération</h1><div><button class="btn subtle small" data-action="logout">Déconnexion</button></div></div><p class="muted">Choisis une action ci-dessous. Les modifications sont enregistrées et contrôlées automatiquement.</p></div><div class="admin-workspace" data-role="${state.demoRole}"><div class="admin-nav" role="tablist" aria-label="Sections de modération">${[['overview','Accueil'],['requests','Demandes'],['levels','Niveaux'],['packs','Level Packs'],['news','Actualités'],['profiles','Profils'],['awards','Badges & Palmarès'],['achievements','Achievements FR'],['clans','Clans'],['safety','Sanctions'],['audit','Journal'],...(state.staffRole==='owner'&&!ownerPreviewActive()?[['team','Équipe']]:[])].map(([id,label])=>`<button type="button" role="tab" aria-selected="${state.adminTab===id}" class="${state.adminTab===id?'active':''}" data-admin-tab="${id}">${label}</button>`).join('')}</div><div class="admin-content">${adminGuideHtml()}<div class="dlfr29-requests" ${state.adminTab==='requests'?'':'hidden'}>${state.adminTab==='requests'?(LIVE?PROD.scopedReview(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state)+PROD.moderation(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state):'')+window.DLFR_CLAIMS.moderation(state)+mergeRequestsModeratorPanel():''}</div><div class="admin-intro ${state.adminTab==='overview'?'':'is-hidden'}"><h2>Tableau de bord</h2>${state.adminTab==='overview'?statsOverview():''}<p class="muted">Choisis une action dans les raccourcis ou une rubrique dans le menu. Chaque modification est contrôlée avant son enregistrement.</p></div><div class="moderation-sections" data-active-admin="${state.adminTab}">
  ${state.adminTab==='team'?staffTeamPanel():''}
@@ -1744,7 +1805,7 @@ function render(){
      });
    }
  }
- if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();if(page==='admin'&&state.adminTab==='levels'){arrangeLevelsPanel();syncLevelStudio();}document.title=({list:'Demonlist',stats:'Statistiques',player:'Profil joueur',players:'Profils des joueurs',news:'Actualités',activity:'Vie communautaire',regions:'Carte des régions',packs:'Level Packs',hall:'Palmarès & exploits',honors:'Palmarès & exploits',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Palmarès & exploits',clans:'Clans',history:'Historique','my-profile':'Mon profil','my-submissions':'Mes soumissions','submit-record':'Soumettre un record',demon:'Niveau',archive:'Archives historiques'})[page]+' · DemonlistFrancophone';
+ if(page==='admin'&&state.adminTab==='levels'&&['nlw','moderator'].includes(state.staffRole))scopedLevelSearch('');if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();if(page==='admin'&&state.adminTab==='levels'){arrangeLevelsPanel();syncLevelStudio();}document.title=({list:'Demonlist',stats:'Statistiques',player:'Profil joueur',players:'Profils des joueurs',news:'Actualités',activity:'Vie communautaire',regions:'Carte des régions',packs:'Level Packs',hall:'Palmarès & exploits',honors:'Palmarès & exploits',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Palmarès & exploits',clans:'Clans',history:'Historique','my-profile':'Mon profil','my-submissions':'Mes soumissions','submit-record':'Soumettre un record',demon:'Niveau',archive:'Archives historiques'})[page]+' · DemonlistFrancophone';
  if(PERF_DEBUG)console.info('[DLFR perf] Rendu',page,Math.round(perfNow()-start)+' ms');
  }catch(error){showPageError(error);}
 }
@@ -1760,6 +1821,28 @@ async function save(table,item,{upsert=false,on=null}={}){
 async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLSearchParams(location.search).get('page')==='admin')throw Error('Aperçu du rôle en lecture seule.');if(state.busy)return;state.busy=true;const submit=form.querySelector('[type="submit"],button:not([type])');if(submit)submit.disabled=true;
  try{
  const type=form.dataset.form, f=Object.fromEntries(new FormData(form).entries());
+  if(type==='scopedCreateLevel'||type==='scopedEditLevel'){
+   if(!LIVE||!state.staff||!['nlw','moderator'].includes(state.staffRole))throw Error('Rôle de modération standard ou NLW requis.');
+   const pos=Number(f.position),nlw=state.staffRole==='nlw';
+   if(!Number.isSafeInteger(pos)||pos<(nlw?151:1)||pos>99999998)throw Error('Position non autorisée pour ce rôle.');
+   const params={p_name:plain(f.name),p_position:pos,p_publisher:plain(f.publisher),p_creator:plain(f.creator)||null,p_verifier:plain(f.verifier)||null,p_requirement:Number(f.requirement),p_completion_mode:plain(f.completion_mode)||'standard',p_verifier_video_url:plain(f.verifier_video_url)||null,p_thumbnail_url:plain(f.thumbnail_url)||null};
+   if(type==='scopedCreateLevel'){
+    params.p_gd_level_id=plain(f.level_id)||null;
+    const {error}=await db.rpc('dlfr_scoped_level_create',params);
+    if(error)throw Error(error.message);
+    toast('Niveau créé !');
+   }else{
+    const id=Number(f.demon_id);
+    const current=scopedAllowedLevels().find(d=>Number(d.id)===id);
+    if(!current)throw Error('Niveau inaccessible pour ce rôle.');
+    if(Number(current.position)!==pos&&f.confirm_move!=='on')throw Error('Confirme le changement de position avant de continuer.');
+    params.p_demon_id=id;params.p_level_id=plain(f.level_id)||null;params.p_video_url=plain(f.video_url)||null;
+    const {error}=await db.rpc('dlfr_scoped_level_update',params);
+    if(error)throw Error(error.message);
+    toast('Fiche de niveau mise à jour !');
+   }
+   await refreshLiveData();state.adminTab='levels';render();return;
+  }
  if(type==='compactNlw'){
   if(!hasFullStaffPowers())throw Error('Supermodération requise.');
   if(await window.DLFR_CLAIMS.compact(db,form,submitter)){await refreshLiveData();toast('Rangs NLW regroupés.');}return;
@@ -2300,7 +2383,8 @@ function bootEvents(){
    return;
  }
  if(ev.target.id==='modVictorySearch'){const sel=$('modVictoryLevel');if(sel)sel.innerHTML=modVictoryOptions(ev.target.value);return;}
- if(ev.target.id==='levelStudioSearch'){levelStudioChoices(ev.target.value);return;}
+ if(ev.target.id==='scopedLevelSearch'){scopedLevelSearch(ev.target.value);return;}
+  if(ev.target.id==='levelStudioSearch'){levelStudioChoices(ev.target.value);return;}
  if(ev.target.closest('[data-form="levelStudio"]')){updateStudioPreview(ev.target.closest('form'));updateStudioMovementPreview(ev.target.closest('form'));}
  if(ev.target.closest('[data-form="levelStudio"]')&&ev.target.name==='legacy'){
     const form=ev.target.closest('form');if(ev.target.checked)suggestLegacyAfterList(form);
@@ -2327,7 +2411,7 @@ function bootEvents(){
   const preview=$('dlfr251StatsPreview');if(preview)preview.innerHTML=statsProfilePreview(chosen);
  }
  });
- document.addEventListener('change',ev=>{
+ document.addEventListener('change',ev=>{if(ev.target.id==='scopedLevelCandidates'){scopedLevelPick(ev.target.value);return;}
   if(ev.target.id==='dlfrRegionSort'){state.regionsSort=['points','players','hardest'].includes(ev.target.value)?ev.target.value:'points';render();return;}
 
  if(ev.target.id==='selfCountry'){const code=ev.target.value;const regionRow=$('selfRegionRow'),region=$('selfRegion');if(regionRow)regionRow.hidden=code!=='FR';if(region&&code!=='FR')region.value='';if($('selfCountryFlag'))$('selfCountryFlag').innerHTML=GEO.countryImage(code);if($('selfRegionFlag'))$('selfRegionFlag').innerHTML=code==='FR'?GEO.regionImage(region?.value):'';}
