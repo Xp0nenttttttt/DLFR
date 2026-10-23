@@ -35,7 +35,8 @@ const livePublicTables=['fr_achievements','clans','clan_members','badge_awards']
 const communityTables=['dlfr_profile_preferences','dlfr_profile_showcase','dlfr_profile_follows'];
 const packTables=['dlfr_level_packs','dlfr_level_pack_levels','dlfr_level_pack_claims'];
 const livePrivateTables=['profile_claim_requests','level_submissions','clan_invites','clan_requests','player_profile_owners'];
-const liveStaffTables=['player_sanctions','community_audit_log','dlfr_level_archive_log'];
+// V64 : les tables de supervision ne sont lues que dans leur onglet de modération.
+const liveStaffTables=[];
 // V61 : conserver les tables nécessaires à la Demonlist au premier chargement.
 // Les groupes volumineux de personnalisation / level packs / historique sont lus
 // uniquement quand une page en a réellement besoin (et jamais pour un visiteur de la liste).
@@ -43,15 +44,23 @@ const tables = ['site_settings','players','demons','completions','news_items','p
 const optionalGroups = Object.freeze({
  community: ['dlfr_profile_preferences','dlfr_profile_showcase','dlfr_profile_follows'],
  packs: ['dlfr_level_packs','dlfr_level_pack_levels','dlfr_level_pack_claims'],
- history: ['player_stat_snapshots','demon_position_history']
+ history: ['player_stat_snapshots','demon_position_history'],
+ adminLevels: ['dlfr_level_archive_log'],
+ adminSafety: ['player_sanctions'],
+ adminAudit: ['community_audit_log']
 });
-const optionalStatus={community:'idle',packs:'idle',history:'idle'};
+const optionalStatus=Object.fromEntries(Object.keys(optionalGroups).map(name=>[name,'idle']));
 let dataGeneration=0;
 function requiredGroups(page){
  const groups=[];
- if(['stats','players','player','my-profile','activity','packs','admin'].includes(page))groups.push('community');
- if(['stats','players','player','my-profile','packs','admin'].includes(page))groups.push('packs');
+ if(['stats','players','player','my-profile','activity','packs'].includes(page)||page==='admin'&&['profiles','awards'].includes(state.adminTab))groups.push('community');
+ if(['stats','players','player','my-profile','packs'].includes(page)||page==='admin'&&state.adminTab==='packs')groups.push('packs');
  if(['player','demon'].includes(page))groups.push('history');
+ if(page==='admin'&&hasFullStaffPowers()){
+  if(state.adminTab==='levels')groups.push('adminLevels');
+  if(state.adminTab==='safety')groups.push('adminSafety');
+  if(state.adminTab==='audit')groups.push('adminAudit');
+ }
  return groups;
 }
 // Limite les pics de requêtes PostgREST, sans changer le nombre de connexions
@@ -1027,7 +1036,9 @@ async function savePackForm(form){
    p_reward_label:String(f.get('reward_label')||''),p_level_ids:selected,p_is_published:f.has('is_published')
  });
  if(error)throw Error(error.message);
- await refreshLiveData();toast('Level Pack enregistré !');render();
+ await Promise.all(packTables.map(async table=>{state.data[table]=await readAll(table);}));
+ optionalStatus.packs='ready';state.packsReady=true;
+ toast('Level Pack enregistré !');render();
 }
 async function claimPack(packId){
  if(!state.session||!state.ownKey)throw Error('Connecte ton profil DLFR.');
@@ -1619,7 +1630,8 @@ function adminPage(){if(LIVE&&!state.staff){
  }
  const mergePlayers=state.adminTab==='profiles'?mergePlayerOptions():''; const players=['profiles','awards','achievements','safety','nlw'].includes(state.adminTab)?playerOptions():'';return `${templateNotice()}<div class="paper"><div class="admin-mode">Espace privé · équipe de modération</div><div class="row-between"><h1>Modération</h1><div><button class="btn subtle small" data-action="logout">Déconnexion</button></div></div><p class="muted">Choisis une action ci-dessous. Les modifications sont enregistrées et contrôlées automatiquement.</p></div><div class="admin-workspace" data-role="${state.demoRole}"><div class="admin-nav" role="tablist" aria-label="Sections de modération">${[['overview','Accueil'],['requests','Demandes'],['levels','Niveaux'],['packs','Level Packs'],['news','Actualités'],['profiles','Profils'],['awards','Badges & Palmarès'],['achievements','Achievements FR'],['clans','Clans'],['safety','Sanctions'],['audit','Journal'],...(state.staffRole==='owner'&&!ownerPreviewActive()?[['team','Équipe']]:[])].map(([id,label])=>`<button type="button" role="tab" aria-selected="${state.adminTab===id}" class="${state.adminTab===id?'active':''}" data-admin-tab="${id}">${label}</button>`).join('')}</div><div class="admin-content">${adminGuideHtml()}<div class="dlfr29-requests" ${state.adminTab==='requests'?'':'hidden'}>${state.adminTab==='requests'?(LIVE?PROD.scopedReview(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state)+PROD.moderation(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state):'')+window.DLFR_CLAIMS.moderation(state)+mergeRequestsModeratorPanel():''}</div><div class="admin-intro ${state.adminTab==='overview'?'':'is-hidden'}"><h2>Tableau de bord</h2>${state.adminTab==='overview'?statsOverview():''}<p class="muted">Choisis une action dans les raccourcis ou une rubrique dans le menu. Chaque modification est contrôlée avant son enregistrement.</p></div><div class="moderation-sections" data-active-admin="${state.adminTab}">
  ${state.adminTab==='team'?staffTeamPanel():''}
- ${state.adminTab==='levels'&&activeLevelPanel==='edit'?levelCreditsEditor():''}${state.adminTab==='levels'&&activeLevelPanel==='review'?historicNlwPublisher():''}${packModerationEditor()}
+ ${state.adminTab==='audit'&&optionalStatus.adminAudit==='loading'||state.adminTab==='levels'&&optionalStatus.adminLevels==='loading'||state.adminTab==='safety'&&optionalStatus.adminSafety==='loading'?'<p class="small muted" aria-live="polite">Chargement des données de cette rubrique…</p>':''}
+ ${state.adminTab==='levels'&&activeLevelPanel==='edit'?levelCreditsEditor():''}${state.adminTab==='levels'&&activeLevelPanel==='review'?historicNlwPublisher():''}${state.adminTab==='packs'?packModerationEditor():''}
  ${state.adminTab==='levels'&&activeLevelPanel==='review'?window.DLFR_BULK.panel():''}${state.adminTab==='levels'&&activeLevelPanel==='review'?window.DLFR_CLAIMS.compactPanel():''}
  ${state.adminTab==='levels'&&activeLevelPanel==='create'?`<div class="admin-card" data-admin-section="levels"><h3>Ajouter directement un niveau</h3><p class="small muted">Pour accepter une soumission, utilise le panneau ci-dessous. La liste est maintenant entièrement gérée par les modérateurs. Indique un rang : les niveaux Rated suivants seront décalés si nécessaire. Les UNRATED sont gérés séparément.</p><form data-form="demon"><label class="field">Réutiliser une fiche importée et masquée (facultatif)<select name="existing_demon_id"><option value="">Nouveau niveau</option>${(state.unpublishedAredlDemons||[]).filter(d=>!(state.data.dlfr_level_archive_log||[]).some(a=>!a.restored_at&&String(a.demon_id)===String(d.id))).slice().sort((a,b)=>{const ra=Number(a.aredl_rank),rb=Number(b.aredl_rank);const va=Number.isFinite(ra)&&ra>0?ra:Number.POSITIVE_INFINITY;const vb=Number.isFinite(rb)&&rb>0?rb:Number.POSITIVE_INFINITY;return va-vb||String(a.name||"").localeCompare(String(b.name||""),"fr");}).map(d=>`<option value="${esc(d.id)}">${Number(d.aredl_rank)>0?`AREDL #${esc(d.aredl_rank)}`:"AREDL ?"} — ${esc(d.name)} (GD ${esc(d.level_id||"?")})</option>`).join("")}</select></label><p class="small muted" data-import-prefill-note>Sélectionne une fiche pour charger ses informations. Les crédits manquants restent à vérifier.</p><label class="field">Position dans la liste globale (151 = NLW #1)<input name="position" type="number" min="1" required></label><label class="field">Nom<input name="name" required maxlength="120"></label><label class="field">ID Geometry Dash<input name="level_id" inputmode="numeric" maxlength="30"></label><label class="field">Publié par / éditeur (texte libre)<input name="publisher" placeholder="Nom de l’éditeur" required maxlength="200"></label><label class="field">Vérifié par — joueur DLFR<select name="verifier_player_key"><option value="">Conserver / saisir le crédit ci-dessous</option>${(state.data.players||[]).slice().sort((a,b)=>String(a.display_name||a.username).localeCompare(String(b.display_name||b.username))).map(p=>`<option value="${esc(p.player_key)}">${esc(p.display_name||p.username)}</option>`).join('')}<option value="__new__">＋ Créer un nouveau joueur</option></select></label><label class="field">Nouveau joueur vérificateur (uniquement si « Créer »)<input name="new_verifier_name" maxlength="80" placeholder="Pseudo du nouveau joueur"></label><label class="field">Crédit vérificateur (si aucun joueur choisi)<input name="verifier" placeholder="À renseigner"></label><label class="field">Créateur<input name="creator"></label><label class="field">Mode de complétion<select name="completion_mode"><option value="">Conserver le mode existant / Standard</option><option value="solo">Solo</option><option value="two_player">2-Player</option></select></label><label class="field">Vidéo de vérification (facultatif)<input name="verifier_video_url" type="url" placeholder="https://youtu.be/…"></label><label class="field">Miniature YouTube ou image (facultatif)<input name="thumbnail_url" type="url" placeholder="https://i.ytimg.com/vi/…/hqdefault.jpg"></label><label class="field">Progression minimum (%)<input name="requirement" type="number" min="1" max="100" value="100" required></label><label class="field"><input name="legacy" type="checkbox" style="width:auto"> A déjà appartenu au Top 150 (Legacy)</label><label class="field">Date de sortie de liste (si connue)<input name="legacy_since" type="date"></label><label class="field"><input type="checkbox" name="unrated"> Niveau UNRATED (position estimée en mode alternatif)</label><div class="notice small" id="newLevelRankPreview" role="status" aria-live="polite">Choisis une position globale pour savoir où sera publié le niveau.</div><button class="btn">Ajouter le niveau</button><p class="small muted">Position 151 = NLW #1 ; position 157 = NLW #7. Coche « Legacy » uniquement pour publier le niveau dans les archives historiques (sans points NLW).</p></form></div>
  `:''}${state.adminTab==='levels'&&activeLevelPanel==='remove'?`<div class="admin-card" data-admin-section="levels"><h3>Retirer ou restaurer un niveau</h3>
@@ -2229,7 +2241,14 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   const {error}=await db.from('players').update({hidden_from_stats:f.hidden_from_stats==='true'}).eq('player_key',p.player_key);
   if(error)throw Error(error.message);
  }
- if(LIVE)await refreshLiveData();
+ if(LIVE){
+  const changedTables={news:['news_items'],frAchievement:['fr_achievements'],title:['profile_titles'],award:['player_profile_titles'],profile:['player_profiles','players'],hall:['hall_of_fame'],visibility:['players']}[type];
+  if(changedTables){
+   await Promise.all(changedTables.map(async name=>{state.data[name]=await readAll(name);}));
+   resetRenderCalculations();
+   if(PERF_DEBUG)console.info('[DLFR perf] Actualisation ciblée après',type,changedTables);
+  }else await refreshLiveData();
+ }
  toast('Modification enregistrée !');render();
  }catch(err){toast('Erreur : '+err.message);}finally{state.busy=false;if(submit)submit.disabled=false;}
 }
