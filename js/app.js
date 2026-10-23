@@ -522,11 +522,18 @@ function archivePage(){
  const img=imageLink(d.thumbnail_url);
  return `<div class="paper"><p><a href="${url('list',{tab:'nlw'})}" data-nav class="link">← Retour à la NLW</a></p><h1>${esc(d.name)}</h1><p class="notice">${outside?'Hors Top 150':'Ancien Top 150'} · rang de l’ancien site : #${esc(d.old_position)}. Fiche d’archive (instantané du 14 octobre 2026), sans points officiels tant que la modération ne l’a pas publiée dans NLW.</p><div class="level-detail">${img?`<img class="demon-thumb" src="${esc(img)}" alt="Miniature ${esc(d.name)}">`:`<div class="demon-thumb faux-thumb">${esc(d.name)}</div>`}<div><p><b>GD ID :</b> ${esc(d.level_id||'—')}<br><b>Créateur :</b> ${esc(d.creator||'—')}<br><b>Publiant :</b> ${esc(d.publisher||'—')}<br><b>Vérificateur :</b> ${esc(d.verifier||'—')}<br><b>Minimum historique :</b> ${esc(d.requirement)}%</p>${http(d.video_url)?`<a class="btn" rel="noopener noreferrer" target="_blank" href="${esc(http(d.video_url))}">Vidéo historique ↗</a>`:''}</div></div><h2>Records de l’ancienne liste (${all.length})</h2>${all.length?all.map(r=>`<div class="record-row"><div><a class="link" data-nav href="${url('player',{player:key(r.player)})}">${esc(r.player)}</a> — ${esc(r.progress)}% <span class="muted small">(date d'enregistrement : ${esc(plain(r.recorded_at).slice(0,10)||'inconnue')})</span></div>${http(r.video_url)?`<a target="_blank" rel="noopener noreferrer" class="link" href="${esc(http(r.video_url))}">Preuve ↗</a>`:''}</div>`).join(''):'<p class="muted">Aucun record archivé dans cet instantané.</p>'}</div>`;
 }
+// V67 — pour les niveaux NLW uniquement, présenter la première victoire française
+// connue comme vérificateur affiché. Le champ verifier de Supabase reste intact.
+function displayedLevelVerifier(d){
+ const firstFrench=V2.nlwRank(d)>0?plain(d.first_fr_player):'';
+ if(firstFrench&&!/^(?:à renseigner|a renseigner|inconnu|unknown|n\/?a|null|none|-)$/i.test(firstFrench))return firstFrench;
+ return plain(d.verifier)||'À renseigner';
+}
 function cardsHTML(demons){if(!demons.length)return '<div class="paper empty">Aucun niveau dans cette catégorie.</div>';
  return demons.map(d=>{const p=num(d.position),req=+d.requirement||100,isRank=p<=cfg().extended_limit;
    const pills=`<div class="level-status">${V2.nlwRank(d)>0?`<span class="level-badge outside">NLW #${V2.nlwRank(d)} · ${fmt(nlwPoints(d))} pts NLW</span>`:''}${d.legacy?'<span class="level-badge legacy">Legacy</span>':''}${d.unrated?'<span class="level-badge unrated-badge">UNRATED</span>':''}</div>`;
    const thumb=http(d.thumbnail_url)||((d.video_url||d.verifier_video_url)&&window.DLFR_NLW_MEDIA?.thumbnail(d.video_url||d.verifier_video_url))||'',image=thumb?`<img loading="lazy" class="demon-thumb" src="${esc(thumb)}" onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src=this.src.replace('/maxresdefault.jpg','/hqdefault.jpg')}else{this.style.display='none'}" alt="Miniature de ${esc(d.name)}">`:(String(d.thumbnail_url||'').startsWith('assets/')?`<img class="demon-thumb" src="${esc(d.thumbnail_url)}" alt="Miniature de ${esc(d.name)}">`:`<div class="demon-thumb faux-thumb">${esc(d.name)}</div>`);
-   return `<article class="paper list-entry ${p<=75?'main-rank':''}"><a href="${url('demon',{id:d.id})}" data-nav>${image}</a><div><h2><a href="${url('demon',{id:d.id})}" data-nav style="text-decoration:none">${p<=150?'#'+p:V2.nlwRank(d)>0?'NLW #'+V2.nlwRank(d):'Hors liste'} - ${esc(d.name)}</a></h2><div class="entry-meta">publié par <b>${esc(d.publisher&&d.publisher!=='AREDL'?d.publisher:'À renseigner')}</b>, vérifié par <b>${esc(d.verifier||'À renseigner')}</b></div><div class="points ${isRank?'':'no-points'}">${isRank?`${fmt(score(d,req))} (${req}%) — ${fmt(score(d,100))} (100%) points`:V2.nlwRank(d)>0?`NLW : ${fmt(nlwPoints(d))} points NLW (0 point principal)`:'Hors classement · 0 point'}</div>${(p>cfg().extended_limit||d.legacy||d.unrated)?pills:''}</div></article>`;
+   return `<article class="paper list-entry ${p<=75?'main-rank':''}"><a href="${url('demon',{id:d.id})}" data-nav>${image}</a><div><h2><a href="${url('demon',{id:d.id})}" data-nav style="text-decoration:none">${p<=150?'#'+p:V2.nlwRank(d)>0?'NLW #'+V2.nlwRank(d):'Hors liste'} - ${esc(d.name)}</a></h2><div class="entry-meta">publié par <b>${esc(d.publisher&&d.publisher!=='AREDL'?d.publisher:'À renseigner')}</b>, vérifié par <b>${esc(displayedLevelVerifier(d))}</b></div><div class="points ${isRank?'':'no-points'}">${isRank?`${fmt(score(d,req))} (${req}%) — ${fmt(score(d,100))} (100%) points`:V2.nlwRank(d)>0?`NLW : ${fmt(nlwPoints(d))} points NLW (0 point principal)`:'Hors classement · 0 point'}</div>${(p>cfg().extended_limit||d.legacy||d.unrated)?pills:''}</div></article>`;
  }).join('');}
 // Évite les doublons quand un niveau historique est publié en Main List OU en NLW.
 // L'ID GD est prioritaire ; le nom ne sert que si une des deux fiches n'a pas d'ID.
@@ -615,6 +622,8 @@ function listPage(){
  return `${templateNotice()}${state.unrated?callout('<b>Mode UNRATED</b> — estimation alternative des positions et points, sans modifier le classement officiel.'):''}${top}<div class="page-columns"><section><div class="center-panel"><h1>${heading}</h1><p>${description}</p><label class="filterbox"><span>⌕</span><input id="demonSearch" type="search" placeholder="Filtrer les niveaux affichés..." value="${esc(state.keyword)}" autocomplete="off"></label></div><div id="demonItems">${html}</div></section><aside class="right-side"><div class="info-panel right-panel"><h2>Éditeurs de liste</h2><p>Contacter les éditeurs pour les changements de classement.</p>${staffNamesHTML("general")}<h2>Équipe NLW</h2><p>L’équipe chargée de la liste NLW.</p>${staffNamesHTML("nlw")}</div>${listNewsSidebar()}${submissionGuidelinesSidebar()}</aside></div>`;
 }
 function completionLinks(levels){return levels.length?levels.sort((a,b)=>a.position-b.position).map(d=>`<a class="link" href="${url('demon',{id:d.id})}" data-nav>#${esc(d.position)} ${esc(d.name)}</a>`).join(' - '):'<span class="muted">Aucun</span>';}
+// V66 : le classement NLW commence à #1 pour la position globale 151.
+function nlwCompletionLinks(levels){return levels.length?levels.map(d=>`<a class="link" href="${url('demon',{id:d.id})}" data-nav>NLW #${esc(V2.nlwRank(d))} ${esc(d.name)}</a>`).join(' - '):'<span class="muted">Aucun</span>';}
 function titleHTML(p){return BADGES.gallery(state.data,p.player_key,esc,date);}
 
 const fullName=p=>p?.display_name||p?.username||p?.player_key||'?';
@@ -905,6 +914,12 @@ function statProfile(p){if(!p)return '<div class="stats-profile empty">Sélectio
  const currentListCompleted=[...(p.main||[]),...(p.extended||[])];
  const top75Completed=currentListCompleted.filter(d=>Number(d.position)>=1&&Number(d.position)<=75&&!d.legacy);
  const extendedCompleted=currentListCompleted.filter(d=>Number(d.position)>=76&&Number(d.position)<=150&&!d.legacy);
+ // V66 : afficher les niveaux NLW homologués réellement complétés, avec leurs rangs NLW.
+ // Ne pas mélanger la liste héritée ou les UNRATED avec les complétions NLW.
+ const nlwCompleted=[...new Map((p.beyond||[])
+   .filter(d=>d&&d.is_public!==false&&!d.legacy&&!d.unrated&&V2.nlwRank(d)>0)
+   .map(d=>[Number(d.id),d])).values()]
+   .sort((a,b)=>V2.nlwRank(a)-V2.nlwRank(b)||String(a.name).localeCompare(String(b.name),'fr'));
  const profileFacts=[['Région',p.country_code==='FR'?GEO.regionInfo(profile.region_code)?.name:''],['Depuis',profile.join_year],['Niveau favori',profile.favorite_level],['Objectif',profile.current_goal]]
   .filter(([_,v])=>plain(v)).map(([l,v])=>`<div class="profile-fact"><strong>${esc(l)}</strong><span>${esc(v)}</span></div>`).join('');
  const socials=[['YouTube',profile.youtube_url],['Twitch',profile.twitch_url],['Lien personnel',profile.social_url]].filter(([_,v])=>http(v))
@@ -925,7 +940,7 @@ function statProfile(p){if(!p)return '<div class="stats-profile empty">Sélectio
   ${socials?`<div class="profile-socials">${socials}</div>`:''}
   <div class="profile-section"><h3>Dernières complétions</h3>${recent.length?`<div class="recent-completions">${recent.map(r=>{const dem=demonLookup.get(+r.demon_id);return `<div class="recent-item"><span>✓</span><a class="link" href="${url('demon',{id:r.demon_id})}" data-nav>${esc(dem?.name||'Niveau inconnu')}</a><time>${date(r.created_at)}</time></div>`;}).join('')}</div>`:'<p class="muted">Aucun record daté.</p>'}</div>
  </div><div class="profile-pane ${state.profileTab==='records'?'':'is-hidden'}" data-pane="records">${recordTable(p)}
- <div class="profile-section"><h3>Top 75 complété</h3><p>${completionLinks(top75Completed)}</p></div><div class="profile-section"><h3>76–150 complété</h3><p>${completionLinks(extendedCompleted)}</p></div><div class="profile-section"><h3>NLW — ${p.beyond.length} niveau(x) complété(s)</h3><p class="muted small">Les détails des niveaux hors liste ne sont pas affichés dans les statistiques principales.</p></div>
+ <div class="profile-section"><h3>Top 75 complété</h3><p>${completionLinks(top75Completed)}</p></div><div class="profile-section"><h3>76–150 complété</h3><p>${completionLinks(extendedCompleted)}</p></div><div class="profile-section"><h3>NLW — ${nlwCompleted.length} niveau(x) complété(s)</h3><p>${nlwCompletionLinks(nlwCompleted)}</p></div>
  ${[['Démons créés',p.created],['Démons publiés',p.published],['Démons vérifiés',p.verified]].map(([t,a])=>`<div class="profile-section"><h3>${t}</h3><p>${completionLinks(a)}</p></div>`).join('')}
  <div class="profile-section"><h3>Progression sur</h3><p>${p.progress.length?p.progress.map(r=>esc(r.demon.name)+' : '+r.progress+'%').join(' · '):'Aucun'}</p></div>
  </div><div class="profile-pane ${state.profileTab==='charts'?'':'is-hidden'}" data-pane="charts">
@@ -1149,7 +1164,9 @@ function demonPage(){
  const r=V2.nlwRank(d),isNlw=r>0;
  const status=isNlw?'NLW #'+r:d.legacy?'Legacy · ancien Top 150':Number(d.position)<=cfg().main_limit?'Main List #'+d.position:Number(d.position)<=cfg().extended_limit?'Extended List #'+d.position:'Hors classement';
  const points=isNlw?fmt(nlwPoints(d))+' points NLW':Number(d.position)>cfg().extended_limit?'0 point officiel':fmt(score(d,100))+' points à 100 %';
- return templateNotice()+window.DLFR_LEVEL_CINEMA.render(d,{
+ // Clone destiné au rendu seulement : ne modifie jamais la fiche enregistrée.
+ const displayedDemon=isNlw?{...d,verifier:displayedLevelVerifier(d)}:d;
+ return templateNotice()+window.DLFR_LEVEL_CINEMA.render(displayedDemon,{
   records:recs,players:ranked().filter(statsPlayerVisible),history:state.data.demon_position_history||[],
   escape:esc,link:url,format:fmt,formatDate:date,status,points,
   listTab:isNlw?'nlw':d.legacy?'legacy':'main',proofHtml:window.DLFR_BULK.proof(d)+productionProofMedia(d)+window.DLFR_CLAIMS.claimPanel(d,state)

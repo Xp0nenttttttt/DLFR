@@ -3,7 +3,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const app=fs.readFileSync('js/app.js','utf8');
 const index=fs.readFileSync('index.html','utf8');
 const between=(a,b)=>{const i=app.indexOf(a),j=app.indexOf(b,i+1);assert(i>=0&&j>i,`missing ${a}`);return app.slice(i,j);};
-assert(index.includes('js/app.js?v=dlfr-v65-profile-top75-extended'));
+assert(index.includes('js/app.js?v=dlfr-v66-profile-nlw-completions'));
 assert(!app.includes('<h3>Top 150 complété</h3>'));
 assert(!app.includes('<h3>Liste héritée complétée'));
 assert(app.includes('<h3>Top 75 complété</h3>'));
