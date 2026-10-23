@@ -1564,11 +1564,12 @@ function scopedLevelPick(id){
 function scopedLevelsPanel(role){
  const nlw=role==='nlw';
  return `<section class="paper dlfr-v60-editor"><h2>Gérer les niveaux · ${nlw?'NLW uniquement':'Top 150 et NLW'}</h2>
- <p class="small muted">Créer une nouvelle fiche ou modifier un niveau existant. ${nlw?'Les rangs 1 à 150 ne sont pas accessibles à ton rôle.':'Les transferts entre Top 150 et NLW restent réservés aux supermodérateurs.'} Les niveaux UNRATED, Legacy, masqués et les retraits restent réservés à la supermodération.</p>
+ <p class="small muted">Créer une nouvelle fiche ou modifier un niveau existant. ${nlw?'Les rangs 1 à 150 et les UNRATED ne sont pas accessibles à ton rôle.':'Tu peux aussi créer des niveaux UNRATED ; les transferts Top 150 / NLW restent réservés aux supermodérateurs.'} ${nlw?'Les niveaux Legacy, masqués et les retraits restent réservés à la supermodération.':'La modification des fiches UNRATED, les niveaux Legacy, les fiches masquées et les retraits restent réservés à la supermodération.'}</p>
  <div class="admin-card"><h3>＋ Ajouter un niveau</h3>
  <form data-form="scopedCreateLevel" class="dlfr-v60-form">
  <label class="field">Nom du niveau<input name="name" maxlength="120" required></label>
- <label class="field">Position globale<input name="position" type="number" min="${nlw?151:1}" max="99999998" required placeholder="${nlw?151:1}"></label>
+ <label class="field">${nlw?'Position globale':'Position globale / rang UNRATED estimé'}<input name="position" type="number" min="${nlw?151:1}" max="99999998" required placeholder="${nlw?151:1}"></label>
+ ${!nlw?`<label class="field"><input type="checkbox" name="unrated" style="width:auto"> Publier comme niveau UNRATED</label><p class="small muted">Si coché, la position correspond au rang UNRATED estimé (classement séparé) : aucun niveau Rated n'est déplacé. Le rang UNRATED doit être libre.</p>`:''}
  <label class="field">ID Geometry Dash<input name="level_id" inputmode="numeric" pattern="[0-9]+" maxlength="30" placeholder="Facultatif"></label>
  <label class="field">Publié par<input name="publisher" maxlength="200" required></label>
  <label class="field">Créateur<input name="creator" maxlength="200"></label>
@@ -1577,7 +1578,7 @@ function scopedLevelsPanel(role){
  <label class="field">Mode<select name="completion_mode"><option value="standard">Standard</option><option value="solo">Solo</option><option value="two_player">2-Player</option></select></label>
  <label class="field">Vidéo de vérification<input name="verifier_video_url" type="url" maxlength="1000" placeholder="https://…"></label>
  <label class="field">Miniature<input name="thumbnail_url" type="url" maxlength="1000" placeholder="https://…"></label>
- <p class="small muted">Si le rang est occupé, les suivants sont décalés. Les niveaux déjà présents (y compris importés et masqués) ne sont pas recréés : contacte un supermodo pour les publier.</p>
+ <p class="small muted">Pour les niveaux Rated, un rang occupé décale les suivants. Pour les UNRATED, choisis un rang disponible. Les niveaux déjà présents (y compris importés et masqués) ne sont pas recréés : contacte un supermodo pour les publier.</p>
  <button class="btn" type="submit">Créer le niveau</button></form></div>
  <div class="admin-card"><h3>✎ Modifier une fiche existante</h3>
  <label class="field">Rechercher un niveau<input id="scopedLevelSearch" type="search" placeholder="Nom, rang ou ID Geometry Dash…" autocomplete="off"></label>
@@ -1899,13 +1900,15 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   if(type==='scopedCreateLevel'||type==='scopedEditLevel'){
    if(!LIVE||!state.staff||!['nlw','moderator'].includes(state.staffRole))throw Error('Rôle de modération standard ou NLW requis.');
    const pos=Number(f.position),nlw=state.staffRole==='nlw';
+   const isUnrated=type==='scopedCreateLevel'&&f.unrated==='on';
+   if(isUnrated&&state.staffRole!=='moderator')throw Error('La création UNRATED est réservée aux modos classiques et à la supermodération.');
    if(!Number.isSafeInteger(pos)||pos<(nlw?151:1)||pos>99999998)throw Error('Position non autorisée pour ce rôle.');
    const params={p_name:plain(f.name),p_position:pos,p_publisher:plain(f.publisher),p_creator:plain(f.creator)||null,p_verifier:plain(f.verifier)||null,p_requirement:Number(f.requirement),p_completion_mode:plain(f.completion_mode)||'standard',p_verifier_video_url:plain(f.verifier_video_url)||null,p_thumbnail_url:plain(f.thumbnail_url)||null};
    if(type==='scopedCreateLevel'){
     params.p_gd_level_id=plain(f.level_id)||null;
-    const {error}=await db.rpc('dlfr_scoped_level_create',params);
+    const {error}=await db.rpc(isUnrated?'dlfr_scoped_unrated_create':'dlfr_scoped_level_create',params);
     if(error)throw Error(error.message);
-    toast('Niveau créé !');
+    toast(isUnrated?'Niveau UNRATED créé !':'Niveau créé !');
    }else{
     const id=Number(f.demon_id);
     const current=scopedAllowedLevels().find(d=>Number(d.id)===id);
