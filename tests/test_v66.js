@@ -9,7 +9,7 @@ const take=(first,last)=>{
   assert.ok(a>=0&&b>a,`Could not extract ${first}`);
   return source.slice(a,b);
 };
-assert.match(index,/js\/app\.js\?v=dlfr-v66-profile-nlw-completions/);
+assert.match(index,/js\/app\.js\?v=dlfr-v68-priorite-verificateur-officiel/);
 assert.ok(!source.includes('Les détails des niveaux hors liste ne sont pas affichés'));
 assert.ok(source.includes('<h3>Top 75 complété</h3>')&&source.includes('<h3>76–150 complété</h3>'));
 assert.ok(!source.includes('<h3>Liste héritée complétée'));

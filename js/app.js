@@ -522,12 +522,32 @@ function archivePage(){
  const img=imageLink(d.thumbnail_url);
  return `<div class="paper"><p><a href="${url('list',{tab:'nlw'})}" data-nav class="link">← Retour à la NLW</a></p><h1>${esc(d.name)}</h1><p class="notice">${outside?'Hors Top 150':'Ancien Top 150'} · rang de l’ancien site : #${esc(d.old_position)}. Fiche d’archive (instantané du 14 octobre 2026), sans points officiels tant que la modération ne l’a pas publiée dans NLW.</p><div class="level-detail">${img?`<img class="demon-thumb" src="${esc(img)}" alt="Miniature ${esc(d.name)}">`:`<div class="demon-thumb faux-thumb">${esc(d.name)}</div>`}<div><p><b>GD ID :</b> ${esc(d.level_id||'—')}<br><b>Créateur :</b> ${esc(d.creator||'—')}<br><b>Publiant :</b> ${esc(d.publisher||'—')}<br><b>Vérificateur :</b> ${esc(d.verifier||'—')}<br><b>Minimum historique :</b> ${esc(d.requirement)}%</p>${http(d.video_url)?`<a class="btn" rel="noopener noreferrer" target="_blank" href="${esc(http(d.video_url))}">Vidéo historique ↗</a>`:''}</div></div><h2>Records de l’ancienne liste (${all.length})</h2>${all.length?all.map(r=>`<div class="record-row"><div><a class="link" data-nav href="${url('player',{player:key(r.player)})}">${esc(r.player)}</a> — ${esc(r.progress)}% <span class="muted small">(date d'enregistrement : ${esc(plain(r.recorded_at).slice(0,10)||'inconnue')})</span></div>${http(r.video_url)?`<a target="_blank" rel="noopener noreferrer" class="link" href="${esc(http(r.video_url))}">Preuve ↗</a>`:''}</div>`).join(''):'<p class="muted">Aucun record archivé dans cet instantané.</p>'}</div>`;
 }
-// V67 — pour les niveaux NLW uniquement, présenter la première victoire française
-// connue comme vérificateur affiché. Le champ verifier de Supabase reste intact.
+// V68 — priorité à une vérification reconnue dans la base (verifier_user_id).
+// L'acceptation d'une revendication renseigne cet identifiant via la RPC
+// dlfr_review_verification_claim. Sinon, pour la NLW, afficher le premier FR.
+// On ne modifie jamais les données Supabase : seulement le crédit affiché.
 function displayedLevelVerifier(d){
- const firstFrench=V2.nlwRank(d)>0?plain(d.first_fr_player):'';
- if(firstFrench&&!/^(?:à renseigner|a renseigner|inconnu|unknown|n\/?a|null|none|-)$/i.test(firstFrench))return firstFrench;
- return plain(d.verifier)||'À renseigner';
+ const isValidCredit=value=>{
+  const valueText=plain(value);
+  return valueText&&!/^(?:à renseigner|a renseigner|non renseigné|non renseigne|inconnu|unknown|n\/?a|null|none|aredl|—|-)$/i.test(valueText);
+ };
+ const recordedVerifier=plain(d.verifier);
+ if(V2.nlwRank(d)>0){
+  // Une revendication acceptée lie le vérificateur à sa fiche joueur.
+  // Un simple texte importé dans `verifier` n'atteste pas une revendication.
+  const verifiedId=Number(d.verifier_user_id);
+  if(Number.isSafeInteger(verifiedId)&&verifiedId>0){
+   // Privilégier le crédit saisi par la modération, puis la fiche liée si le
+   // texte public est encore un placeholder.
+   if(isValidCredit(recordedVerifier))return recordedVerifier;
+   const linked=(state.data?.players||[]).find(p=>Number(p.legacy_id)===verifiedId);
+   const linkedName=sortPlayerName(linked);
+   if(isValidCredit(linkedName))return linkedName;
+  }
+  const firstFrench=plain(d.first_fr_player);
+  if(isValidCredit(firstFrench))return firstFrench;
+ }
+ return isValidCredit(recordedVerifier)?recordedVerifier:'À renseigner';
 }
 function cardsHTML(demons){if(!demons.length)return '<div class="paper empty">Aucun niveau dans cette catégorie.</div>';
  return demons.map(d=>{const p=num(d.position),req=+d.requirement||100,isRank=p<=cfg().extended_limit;

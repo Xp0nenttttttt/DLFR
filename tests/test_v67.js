@@ -2,7 +2,7 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const source=fs.readFileSync('js/app.js','utf8');
 const index=fs.readFileSync('index.html','utf8');
-assert.ok(index.includes('js/app.js?v=dlfr-v67-first-fr-verifier-nlw'));
+assert.ok(index.includes('js/app.js?v=dlfr-v68-priorite-verificateur-officiel'));
 const take=(first,last)=>{const a=source.indexOf(first);const b=source.indexOf(last,a+first.length);assert(a>=0&&b>a,`Missing ${first}`);return source.slice(a,b);};
 const nlwRank=d=>!d.unrated&&!d.legacy&&d.is_public!==false&&Number(d.position)>150&&Number(d.position)<100000000?Number(d.position)-150:0;
 const all=[
