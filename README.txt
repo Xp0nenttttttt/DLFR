@@ -1,14 +1,12 @@
-PATCH DLFR — Suggestions de niveaux et identité liée
+DLFR V76 - correctif d'affichage des premiers records
 
-1. Remplacer js/app.js et css/style.css sur GitHub.
-2. Attendre le déploiement GitHub Pages puis faire Ctrl+F5.
+Base: V75.
+Remplacer seulement js/level-cinema.js.
 
-Nouveautés :
-- Le champ « Niveau » propose les fiches disponibles; la saisie peut rester libre.
-- Le joueur est prérempli depuis la fiche DLFR liée au compte Discord et ne peut pas être modifié.
-- Choisir un niveau renseigne son ID Geometry Dash (s'il est présent dans la fiche) et complète les crédits encore vides.
-- Le champ rang suggéré reste supprimé.
-- Exécuter `supabase/31_PSEUDO_SOUMISSIONS_VERROUILLE.sql` dans Supabase si ce garde-fou n'est pas déjà installé.
-- Aucun asset/drapeau inclus.
+- Affiche un champ séparé Premier record français daté si first_fr_player existe.
+- Si un seul record 100% est enregistré, le montre comme « Record français enregistré » sans prétendre que c'est historiquement le premier.
+- Laisse la vérification « À renseigner » tant que le vrai vérificateur n'est pas renseigné ou validé.
+- Les champs Création et Publication ne sont pas déductibles d'une soumission de record.
+- Pas de modification SQL; aucun drapeau touché.
 
-Note : les suggestions de niveaux proviennent des fiches déjà chargées par le site. Le menu déroulant natif dépend du navigateur.
+Important: ce correctif agit seulement sur l'affichage. Si tu souhaites enregistrer le premier victor officiel dans first_fr_player lors de l'acceptation, il faudra adapter la fonction SQL dlfr_review_existing_record et vérifier les sources/date historique avant de procéder.
