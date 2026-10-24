@@ -1266,6 +1266,7 @@ function mySubmissionsPage(){
   return `<article class="v59-submission-card v59-${meta.cls}">
    <div class="v59-submission-top"><div><h3>${esc(title)}</h3><p class="small muted">Soumission n°${esc(r.id)} · ${esc(date(r.created_at)||'Date inconnue')}${statusDate}</p></div><span class="v59-status v59-status-${meta.cls}">${esc(meta.label)}</span></div>
    <p class="v59-submission-details"><span>${esc(r.progress||100)} %</span>${r.level_id?`<span>ID GD : ${esc(r.level_id)}</span>`:''}<span>${esc(meta.description)}</span></p>
+   ${r.review_message&&meta.cls!=='pending'?`<div class="dlfr-review-message"><strong>Message de la modération</strong><p>${esc(r.review_message)}</p></div>`:''}
    <div class="v59-submission-links">${http(r.video_url)?`<a class="link" href="${esc(http(r.video_url))}" target="_blank" rel="noopener noreferrer">Vidéo de preuve ↗</a>`:''}${levelLink}</div>
   </article>`;
  }).join('');
@@ -1274,7 +1275,7 @@ function mySubmissionsPage(){
  <div class="v59-submission-filters" role="group" aria-label="Filtrer mes soumissions">${filterButton('all','Toutes')}${filterButton('pending','En attente')}${filterButton('approved','Acceptées')}${filterButton('rejected','Refusées')}</div>
  <label class="field v59-submission-search">Rechercher un niveau ou un ID<input id="mySubmissionSearch" type="search" placeholder="Nom du niveau, ID GD, numéro de soumission…" value="${esc(state.mySubmissionSearch)}" autocomplete="off"></label>
  <div class="v59-submission-results" id="mySubmissionResults">${cards||`<div class="v59-submission-empty"><strong>${rows.length?'Aucune soumission dans cette sélection.':'Tu n’as encore envoyé aucune soumission.'}</strong><p class="muted small">${rows.length?'Change de filtre ou efface ta recherche.':'Tes futurs envois et décisions de modération apparaîtront ici.'}</p></div>`}</div>
- <p class="small muted v59-submission-note">Une soumission acceptée n’est pas nécessairement déjà visible dans la liste publique si la publication du niveau attend encore une décision. Les commentaires de refus ne sont pas enregistrés dans le système actuel.</p>
+ <p class="small muted v59-submission-note">Une soumission acceptée n’est pas nécessairement déjà visible dans la liste publique si la publication du niveau attend encore une décision. Les messages envoyés par les modérateurs apparaissent sur les soumissions traitées.</p>
  <a class="btn" data-nav href="${url('submit-record')}">＋ Soumettre un record</a></section>`;
 }
 function submitRecordPage(){
@@ -1924,7 +1925,7 @@ function render(){
   el.innerHTML='<section class="center-panel loading" aria-live="polite"><h2>Chargement des données de cette page…</h2><p class="small muted">Les autres pages restent accessibles.</p></section>';
   return;
  }
- const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='player'?playerPage():page==='players'?playersPage():page==='my-profile'?selfProfilePage():page==='my-submissions'?mySubmissionsPage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():page==='packs'?packPage():page==='regions'?regionsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;
+ const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='player'?playerPage():page==='players'?playersPage():page==='my-profile'?selfProfilePage():page==='my-submissions'?mySubmissionsPage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():page==='packs'?packPage():page==='regions'?regionsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content+(page==='list'?'<div class="dlfr-list-photo"><img src="assets/easter-eggs/visiteur-surprise.png" alt="Photo humoristique" loading="lazy" width="1140" height="633"></div>':'');
  // Donner un accès clair à l'inscription et à la connexion, sans modifier la navigation existante.
  const accountNavLink=document.querySelector('a[data-link="my-profile"]');
  if(accountNavLink) accountNavLink.textContent=state.session?'Mon profil':'Se connecter / Créer un compte';

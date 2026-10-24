@@ -1,0 +1,10 @@
+DLFR V75 — Messages de modération + photo uniquement en bas de la Demonlist
+
+1. Dans Supabase SQL Editor, lancer supabase/75_MESSAGES_MODERATION_SOUMISSIONS.sql.
+2. Remplacer les fichiers index.html, js/app.js, js/production-tools.js et css/style.css sur le site.
+3. Garder assets/easter-eggs/visiteur-surprise.png à sa place (inclus pour éviter les assets manquants).
+4. Rafraîchir le navigateur et tester une acceptation / un refus avec un message, puis "Mes soumissions".
+
+Les modérateurs peuvent joindre un message facultatif à l'acceptation ou au refus. Il est conservé dans level_submissions.review_message et montré au joueur dans "Mes soumissions". La photo est affichée à la fin de la page ?page=list uniquement. Aucun fichier assets/flags/ n'est inclus.
+
+ATTENTION : le SQL suppose que les RPC existantes dlfr_review_existing_record(bigint,boolean) et dlfr_review_submission(bigint,boolean,boolean,integer) sont en place. Elles restent responsables des contrôles de modération et validations. Vérifier les fonctions sur un environnement de test avant production.
