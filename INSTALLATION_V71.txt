@@ -1,0 +1,21 @@
+DLFR V71 — formulaire de soumission plus clair
+
+Remplacer à la racine du site :
+- index.html
+- js/app.js
+- css/style.css
+
+Base de départ : fichiers du correctif V70 et CSS de la version envoyée dans DLFR (5).zip.
+Conserve js/production-tools.js de la V70 (non inclus, aucune modification nécessaire).
+Aucun changement SQL.
+Aucun fichier assets/flags/ n'est inclus.
+
+Changements :
+- choix « niveau existant » / « nouveau niveau » en grandes cartes explicatives ;
+- aucun niveau préselectionné ;
+- sélection confirmée visuellement ;
+- recherche n'impose plus automatiquement un autre niveau ;
+- Raw footage explicitement obligatoire pour le Top 150 ; attribut required maintenu selon le rang ;
+- validation serveur/app déjà existante conservée.
+
+Tester : Top 75, 76-150, NLW, et nouvelle proposition.

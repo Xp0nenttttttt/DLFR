@@ -1285,20 +1285,21 @@ function submitRecordPage(){
  return `${templateNotice()}<section class="paper v2-page dlfr-submit-clean"><div class="v2-intro"><h1>Soumettre un record</h1><p>Ton niveau est déjà dans la liste ? Sélectionne-le. Sinon, tu peux proposer un nouveau niveau avec ta preuve vidéo.</p></div>
  ${!ready?`<div class="notice warning">${!state.session?'Connecte-toi à ton compte DLFR.':'Associe ou crée ta fiche joueur dans Mon profil pour participer.'}</div><a href="${url('my-profile')}" data-nav class="btn">Accéder à mon profil</a>`:
  `<form data-form="submitRecord" class="submission-form submission-simple"><div class="submission-identity"><span class="small muted">Soumission par</span><strong>${esc(myName)}</strong></div>
- <fieldset class="dlfr-submit-mode"><legend>Quel type de niveau ?</legend>
- <label><input type="radio" name="submission_mode" value="existing" ${hasExisting?'checked':''} ${hasExisting?'':'disabled'}> Niveau déjà dans la liste</label>
- <label><input type="radio" name="submission_mode" value="new" ${hasExisting?'':'checked'}> Proposer un nouveau niveau</label></fieldset>
+ <fieldset class="dlfr-submit-mode"><legend>1 · Le niveau est-il déjà sur la DLFR ?</legend>
+ <div class="dlfr-submit-mode-options"><label class="dlfr-submit-mode-card"><input type="radio" name="submission_mode" value="existing" ${hasExisting?'checked':''} ${hasExisting?'':'disabled'}><span><strong>Oui, il est dans la liste</strong><small>Je soumets une complétion ou un record sur une fiche existante.</small></span></label>
+ <label class="dlfr-submit-mode-card"><input type="radio" name="submission_mode" value="new" ${hasExisting?'':'checked'}><span><strong>Non, proposer un niveau</strong><small>Le niveau n’a pas encore de fiche sur la DLFR.</small></span></label></div></fieldset>
  <div id="submitExistingFields" class="dlfr-submit-fields submission-wide" ${hasExisting?'':'hidden'}>
- <div class="field"><label for="submitLevelSearch">Rechercher un niveau</label><input id="submitLevelSearch" type="search" placeholder="Nom ou ID Geometry Dash…" autocomplete="off">
- <select id="submitLevelSelect" name="demon_id" ${hasExisting?'required':''} size="8">${levels.map(d=>`<option value="${esc(d.id)}" data-pos="${esc(d.unrated?0:num(d.position))}" data-req="${esc(Math.max(1,Math.min(100,num(d.requirement||100))))}" data-search="${esc(key(d.name)+' '+plain(d.level_id))}">${esc(submitLevelLabel(d))} — ${esc(d.name)}</option>`).join('')}</select></div></div>
+ <div class="field"><label for="submitLevelSearch">2 · Choisis le niveau de ta complétion</label><input id="submitLevelSearch" type="search" placeholder="Rechercher par nom ou ID Geometry Dash…" autocomplete="off">
+ <p class="small muted">Clique sur le niveau dans les résultats pour le sélectionner.</p>
+ <select id="submitLevelSelect" name="demon_id" aria-label="Résultats de niveaux" ${hasExisting?'required':''} size="8"><option value="" selected disabled>— Choisir un niveau dans la liste —</option>${levels.map(d=>`<option value="${esc(d.id)}" data-pos="${esc(d.unrated?0:num(d.position))}" data-req="${esc(Math.max(1,Math.min(100,num(d.requirement||100))))}" data-search="${esc(key(d.name)+' '+plain(d.level_id))}">${esc(submitLevelLabel(d))} — ${esc(d.name)}</option>`).join('')}</select><div id="submitSelectedLevel" class="dlfr-submit-selected" role="status" aria-live="polite"><span>◌</span> Aucun niveau sélectionné</div></div></div>
  <div id="submitNewFields" class="dlfr-submit-fields submission-wide" ${hasExisting?'hidden':''}>
  <div class="notice small">Ce niveau n'est pas encore publié. La modération examinera sa fiche et décidera du classement avant toute publication.</div>
  <label class="field">Nom du niveau<input name="level_name" maxlength="120" minlength="2" ${hasExisting?'':'required'} placeholder="Ex. Nouveau Extreme Demon"></label>
  <label class="field">ID Geometry Dash<input name="level_id" inputmode="numeric" pattern="[0-9]+" maxlength="18" ${hasExisting?'':'required'} placeholder="ID du niveau en jeu"></label>
  <p class="small muted">Tu n'as pas besoin de renseigner le créateur, l'éditeur ou le vérificateur : les modérateurs compléteront la fiche.</p></div>
- <p class="small muted submission-wide" id="submitLevelHint">Sélectionne un niveau pour voir ce qui est demandé.</p>
+ <p class="small muted submission-wide" id="submitLevelHint">Sélectionne un niveau pour voir les preuves requises.</p>
  <label class="field submission-wide">Vidéo YouTube de ta complétion<input name="video_url" type="url" required maxlength="1000" placeholder="https://youtu.be/…"></label>
- <label class="field submission-wide" id="submitRawField" hidden>Raw footage <span id="submitRawOptional">(facultatif pour une nouvelle proposition, recommandé si Top 150)</span><input name="raw_footage_url" type="url" maxlength="1000" placeholder="Lien Drive, YouTube non répertorié…"></label>
+ <label class="field submission-wide" id="submitRawField" hidden>Raw footage <span id="submitRawOptional">(obligatoire pour le Top 150)</span><input name="raw_footage_url" type="url" maxlength="1000" placeholder="Lien Drive, YouTube non répertorié…"></label>
  <label class="field" id="submitProgressField" hidden>Pourcentage de complétion (%)<input name="progress" type="number" min="1" max="100" value="100"></label>
  <button type="submit" class="btn">Envoyer en modération</button></form>`}${mySubmissionsTeaser()}</section>`;
 }
@@ -1310,9 +1311,11 @@ function submitSyncForm(){
  if(newFields)newFields.hidden=!isNew;
  sel.required=!isNew;
  for(const inp of newFields?.querySelectorAll('input')||[])inp.required=isNew;
- const opt=sel.selectedOptions[0],hint=document.getElementById('submitLevelHint'),raw=document.getElementById('submitRawField'),prog=document.getElementById('submitProgressField');
+ const opt=sel.value?sel.selectedOptions[0]:null,hint=document.getElementById('submitLevelHint'),raw=document.getElementById('submitRawField'),prog=document.getElementById('submitProgressField');
+ const chosen=document.getElementById('submitSelectedLevel');if(chosen){chosen.classList.toggle('is-selected',!!opt&&!isNew);chosen.textContent=isNew?'Nouveau niveau à proposer':opt?'✓ Niveau sélectionné : '+opt.textContent.trim():'◌ Aucun niveau sélectionné';}
  const pos=opt?num(opt.dataset.pos):0,req=opt?num(opt.dataset.req):100;
  const top150=!isNew&&!!opt&&pos>=1&&pos<=num(cfg().extended_limit),top75=!isNew&&!!opt&&pos>=1&&pos<=num(cfg().main_limit);
+ const rawLabel=document.getElementById('submitRawOptional');if(rawLabel)rawLabel.textContent=top150?'(obligatoire pour le Top 150)':'(facultatif pour une proposition hors liste)';
  raw.hidden=!(isNew||top150);raw.querySelector('input').required=top150;
  const pct=top75&&req<100;prog.hidden=!pct;const pi=prog.querySelector('input');pi.required=pct;pi.min=String(req);if(!pct)pi.value='100';else if(num(pi.value)<req)pi.value=String(req);
  hint.textContent=isNew?'Nouvelle proposition : ajoute une preuve YouTube à 100 %. Le raw footage pourra être demandé si le niveau rejoint le Top 150.':!opt?'Sélectionne un niveau pour voir ce qui est demandé.':top75?(req<100?`Top 75 : indique ton pourcentage (minimum ${req} %). Raw footage obligatoire.`:'Top 75 : complétion à 100 %. Raw footage obligatoire.'):top150?'Top 150 : complétion à 100 %. Raw footage obligatoire.':'Seule la vidéo YouTube est demandée (complétion à 100 %).';
@@ -2106,7 +2109,7 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   await checkSelfOwner();
   if(type==='selfCreatePlayer'&&!state.ownKey)throw Error('La fiche a ete creee, mais le lien avec ton compte n\'est pas visible. Recharge avant de recommencer : ne cree pas une deuxieme fiche.');
   if(['selfCreatePlayer','prodClaimReview'].includes(type))await refreshClanTools();
-  toast(type==='selfCreatePlayer'?'Fiche creee et associee a ton compte !':'Opération enregistrée.');render();return;
+  toast(type==='selfCreatePlayer'?'Fiche creee et associee a ton compte !':type==='prodClaim'?'Demande de liaison enregistrée. Elle attend la vérification de la modération.':'Opération enregistrée.');render();return;
  }
 
  if(type==='attachUsername'){
@@ -2620,7 +2623,7 @@ function bootEvents(){
   const doc=new DOMParser().parseFromString(mySubmissionsPage(),'text/html');
   root.replaceChildren(...Array.from(doc.querySelectorAll('#mySubmissionResults > *')));
  });
- document.addEventListener('input',ev=>{if(ev.target.id!=='submitLevelSearch')return;const sel=document.getElementById('submitLevelSelect');if(!sel)return;const q=key(ev.target.value);for(const o of sel.options)o.hidden=!key(o.textContent+' '+o.dataset.search).includes(q);const first=[...sel.options].find(x=>!x.hidden);if(sel.selectedOptions[0]?.hidden){sel.value=first?first.value:'';}submitSyncForm();});
+ document.addEventListener('input',ev=>{if(ev.target.id!=='submitLevelSearch')return;const sel=document.getElementById('submitLevelSelect');if(!sel)return;const q=key(ev.target.value);for(const o of sel.options){if(!o.value)continue;o.hidden=!key(o.textContent+' '+o.dataset.search).includes(q);}if(sel.value&&sel.selectedOptions[0]?.hidden)sel.value='';submitSyncForm();});
  document.addEventListener('change',ev=>{if(ev.target.id==='submitLevelSelect'||ev.target.name==='submission_mode')submitSyncForm();});
  document.addEventListener('submit',ev=>{if(ownerPreviewActive()&&new URLSearchParams(location.search).get('page')==='admin'){ev.preventDefault();ev.stopImmediatePropagation();toast('Aperçu en lecture seule.');}},true);
  document.addEventListener('submit',ev=>{if(ev.target.matches('[data-form="clanCreate"], [data-form="clanInvite"], [data-form="clanRequest"], [data-form="clanEdit"]')){ev.preventDefault();handleClanForm(ev.target);return;}if(ev.target.matches('[data-form]')){ev.preventDefault();handleForm(ev.target,ev.submitter||null);}});

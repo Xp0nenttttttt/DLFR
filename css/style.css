@@ -980,3 +980,20 @@ html.unrated-mode .level-badge.unrated-badge{background:#54206e;color:#fff}
 .dlfr-level-choice small{color:var(--muted);white-space:nowrap}
 .dlfr-level-choice:hover,.dlfr-level-choice:focus-visible{background:var(--panel)}
 @media(max-width:560px){.dlfr-level-choice{display:block}.dlfr-level-choice small{display:block;margin-top:4px}}
+
+/* V71 — Soumission guidée */
+.dlfr-submit-clean .submission-simple{max-width:780px}
+.dlfr-submit-mode{border:0;margin:0;padding:0;min-width:0}
+.dlfr-submit-mode legend{font-weight:750;margin-bottom:12px}
+.dlfr-submit-mode-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.dlfr-submit-mode-card{cursor:pointer;display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:17px;background:var(--panel);transition:border-color .15s,box-shadow .15s}
+.dlfr-submit-mode-card:has(input:checked){border-color:var(--accent,#6288ee);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent,#6288ee) 20%,transparent)}
+.dlfr-submit-mode-card:has(input:disabled){opacity:.5;cursor:not-allowed}
+.dlfr-submit-mode-card input{width:auto!important;margin:3px 0 0;accent-color:var(--accent,#6288ee)}
+.dlfr-submit-mode-card span{display:grid;gap:6px}
+.dlfr-submit-mode-card small{font-size:.84rem;color:var(--muted,#888);line-height:1.45}
+.dlfr-submit-clean #submitLevelSelect{margin-top:6px;min-height:225px;padding:6px}
+.dlfr-submit-clean #submitLevelSelect option:checked{background:var(--accent,#6288ee);color:white;font-weight:750}
+.dlfr-submit-selected{margin-top:12px;border:1px dashed var(--line);padding:13px 16px;border-radius:12px;font-weight:650;color:var(--muted,#888)}
+.dlfr-submit-selected.is-selected{border-style:solid;border-color:var(--accent,#6288ee);background:color-mix(in srgb,var(--accent,#6288ee) 10%,var(--panel));color:inherit}
+@media(max-width:620px){.dlfr-submit-mode-options{grid-template-columns:1fr}}
