@@ -1,0 +1,14 @@
+DLFR - Correctif revendications de profils (V70)
+
+1. Sauvegarder les fichiers existants.
+2. Copier index.html et les fichiers du dossier js/ dans les chemins correspondants du site.
+3. Ne pas supprimer les autres fichiers et ne rien changer dans assets/flags/.
+4. Publier le site et actualiser le navigateur (Ctrl+F5).
+5. Demander à Seventrack de se connecter sur SON compte Discord et de choisir Mon profil > J'ai deja une fiche joueur > seventrack, puis d'ajouter une preuve HTTPS.
+6. Un membre de la moderation verifie la preuve et approuve la revendication dans Demandes.
+
+Ce patch ne modifie pas Supabase. L'UUID Discord du 23 octobre n'a pas ete authentifie comme appartenant a Seventrack : ne pas effectuer de rattachement manuel avant verification.
+
+Modifications : guidance distincte fusion/revendication, blocage de nouvelle revendication si une fiche est deja associee, validation de preuve et session, message explicite si Supabase refuse l'insertion, verification de retour d'insertion, confirmation de demande en attente. Cache-busting des deux scripts dans index.html.
+
+Si l'envoi est toujours refuse, conserver le message d'erreur exact affiche par le site pour analyser la politique RLS / la session.
