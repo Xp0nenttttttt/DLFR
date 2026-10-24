@@ -1,0 +1,10 @@
+DLFR V73 — Easter egg visiteur surprise
+
+Patch incrémental à appliquer sur la V72.
+Copier à la racine du site :
+- index.html
+- css/style.css
+- assets/easter-eggs/visiteur-surprise.png
+
+Ne modifie pas js/app.js, ni assets/flags, ni Supabase.
+La photo apparaît en vignette dans le footer ; cliquer pour agrandir.

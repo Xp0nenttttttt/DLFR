@@ -1007,3 +1007,14 @@ html.unrated-mode .level-badge.unrated-badge{background:#54206e;color:#fff}
 #selfProfilePublicPreview .stats-profile{margin:0;max-width:none}
 .dlfr72-settings-heading{border-top:1px solid var(--line);padding-top:23px;margin:12px 0 17px}
 @media(max-width:700px){.dlfr72-self-preview{margin:20px 0 26px}.dlfr72-self-preview-head .btn{width:100%;text-align:center}}
+
+/* V73 — petit easter egg discret dans le pied de page */
+.dlfr-secret-cameo{display:inline-block;margin:14px auto 0;max-width:min(90vw,580px);text-align:center}
+.dlfr-secret-cameo summary{display:inline-flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;list-style:none;font-size:10px;color:var(--muted);transform:rotate(-5deg);transition:transform .2s ease}
+.dlfr-secret-cameo summary::-webkit-details-marker{display:none}
+.dlfr-secret-cameo summary::marker{content:""}
+.dlfr-secret-cameo summary:hover,.dlfr-secret-cameo summary:focus-visible{transform:rotate(0deg) scale(1.06)}
+.dlfr-secret-cameo summary img{width:104px;height:59px;object-fit:cover;border:3px solid var(--card);border-radius:5px;box-shadow:0 3px 12px rgba(0,0,0,.2)}
+.dlfr-secret-cameo-expanded{margin:10px auto 0;padding:6px;background:var(--card);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow)}
+.dlfr-secret-cameo-expanded img{display:block;width:100%;max-width:560px;height:auto;max-height:360px;object-fit:contain;border-radius:4px}
+@media(prefers-reduced-motion:reduce){.dlfr-secret-cameo summary{transition:none}}
