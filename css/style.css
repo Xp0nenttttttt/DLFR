@@ -997,3 +997,13 @@ html.unrated-mode .level-badge.unrated-badge{background:#54206e;color:#fff}
 .dlfr-submit-selected{margin-top:12px;border:1px dashed var(--line);padding:13px 16px;border-radius:12px;font-weight:650;color:var(--muted,#888)}
 .dlfr-submit-selected.is-selected{border-style:solid;border-color:var(--accent,#6288ee);background:color-mix(in srgb,var(--accent,#6288ee) 10%,var(--panel));color:inherit}
 @media(max-width:620px){.dlfr-submit-mode-options{grid-template-columns:1fr}}
+
+/* DLFR V72 — aperçu public du profil avant les paramètres */
+.dlfr72-self-preview{margin:26px 0 30px;min-width:0}
+.dlfr72-self-preview-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.dlfr72-self-preview-head h2,.dlfr72-settings-heading h2{margin:5px 0 8px;font-size:clamp(21px,3vw,27px)}
+.dlfr72-self-preview-head p,.dlfr72-settings-heading p{margin:0;line-height:1.5}
+#selfProfilePublicPreview{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--panel);min-width:0}
+#selfProfilePublicPreview .stats-profile{margin:0;max-width:none}
+.dlfr72-settings-heading{border-top:1px solid var(--line);padding-top:23px;margin:12px 0 17px}
+@media(max-width:700px){.dlfr72-self-preview{margin:20px 0 26px}.dlfr72-self-preview-head .btn{width:100%;text-align:center}}
