@@ -1,0 +1,11 @@
+DLFR V78 — Empêcher les soumissions de records déjà enregistrés
+
+1. Sur une installation V77, remplacer js/app.js et js/production-tools.js.
+2. Dans Supabase SQL Editor, exécuter supabase/78_BLOQUER_RECORDS_DEJA_IMPORTES.sql.
+3. Actualiser le navigateur (Ctrl+F5).
+4. Tester avec un joueur dont une victoire à 100 % existe déjà dans les records importés : l'envoi doit être refusé.
+5. Tester une amélioration (ancien record 60 %, nouveau 100 %) : elle doit rester possible.
+
+Les records historiques ne sont ni effacés ni modifiés. Les drapeaux assets/flags ne sont pas inclus.
+La correspondance se fait via le profil joueur lié (player_key/username/display_name).
+Si un ancien record est sous un pseudo totalement différent, il faut d'abord réconcilier l'alias ou la fiche : le simple nom ne permet pas une association fiable.

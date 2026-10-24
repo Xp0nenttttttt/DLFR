@@ -224,12 +224,25 @@ async function send(db,type,f,submitter){
    if(checkError)throw Error('Impossible de vérifier le niveau. Réessaie.');
    if(published?.length)throw Error('Ce niveau est déjà publié : sélectionne-le dans la liste.');
   }
+  // Refuse une victoire déjà importée ou enregistrée, pas uniquement les demandes en attente.
+  // La base vérifie elle aussi, car le formulaire seul ne suffit pas à sécuriser les envois.
   const {data:{user:who},error:whoError}=await db.auth.getUser();
   if(whoError||!who)throw Error('Connecte-toi pour envoyer ta soumission.');
   const {data:ownership,error:ownerError}=await db.from('player_profile_owners').select('player_key,players(username)').eq('auth_user_id',who.id).maybeSingle();
   if(ownerError)throw Error(ownerError.message);
   const nickname=trim(ownership?.players?.username);
   if(!nickname)throw Error('Relie ou crée une fiche DLFR avant de soumettre.');
+  if(!isNew){
+   const aliases=[ownership.player_key,nickname].filter(Boolean).map(v=>v.toLowerCase().trim());
+   const profiles=window.DLFR_SUBMISSION_STATE?.players||[];
+   const myProfile=profiles.find(p=>p.player_key===ownership.player_key);
+   if(myProfile?.display_name)aliases.push(trim(myProfile.display_name).toLowerCase());
+   const {data:oldRecords,error:recordsError}=await db.from('completions').select('player,progress').eq('demon_id',demon.id);
+   if(recordsError)throw Error('Impossible de vérifier tes anciennes victoires : '+recordsError.message);
+   const previous=(oldRecords||[]).filter(c=>aliases.includes(trim(c.player).toLowerCase())).sort((a,b)=>Number(b.progress)-Number(a.progress))[0];
+   if(previous&&Number(previous.progress)>=progress)throw Error('Record déjà enregistré sur '+level_name+' ('+previous.progress+' %). Tu peux uniquement soumettre une amélioration.');
+  }
+
   return errorOf(await db.from('level_submissions').insert({auth_user_id:who.id,level_name,level_id:level_id||null,player:nickname,progress,video_url:trim(f.video_url),raw_footage_url:raw||null,publisher:isNew?'À renseigner':trim(demon.publisher),creator:isNew?null:trim(demon.creator)||null,verifier:isNew?null:trim(demon.verifier)||null}));
  }
  throw Error('Action inconnue');

@@ -1278,6 +1278,19 @@ function mySubmissionsPage(){
  <p class="small muted v59-submission-note">Une soumission acceptée n’est pas nécessairement déjà visible dans la liste publique si la publication du niveau attend encore une décision. Les messages envoyés par les modérateurs apparaissent sur les soumissions traitées.</p>
  <a class="btn" data-nav href="${url('submit-record')}">＋ Soumettre un record</a></section>`;
 }
+function submissionPriorRecord(demon, playerKey){
+ if(!demon||!playerKey)return null;
+ const profile=(state.data?.players||[]).find(p=>p.player_key===playerKey);
+ const aliases=new Set([playerKey,profile?.username,profile?.display_name].filter(Boolean).map(key));
+ return (state.data?.completions||[]).filter(c=>Number(c.demon_id)===Number(demon.id)&&aliases.has(key(c.player)))
+   .sort((a,b)=>Number(b.progress||0)-Number(a.progress||0))[0]||null;
+}
+function submissionPriorWarning(demon, progress){
+ const prev=submissionPriorRecord(demon,state.ownKey);
+ if(!prev)return '';
+ const former=Number(prev.progress||0);
+ return former>=progress ? `Tu as déjà un record de ${former} % sur ce niveau (y compris les records importés). Une nouvelle soumission à ${progress} % serait un doublon.` : `Tu as déjà ${former} % sur ce niveau. Tu peux soumettre une amélioration à ${progress} %.`;
+}
 function submitRecordPage(){
  const owner=(state.data.players||[]).find(p=>p.player_key===state.ownKey);
  const myName=owner?.username||'';
@@ -1299,6 +1312,7 @@ function submitRecordPage(){
  <label class="field">Nom du niveau<input name="level_name" maxlength="120" minlength="2" ${hasExisting?'':'required'} placeholder="Ex. Nouveau Extreme Demon"></label>
  <label class="field">ID Geometry Dash<input name="level_id" inputmode="numeric" pattern="[0-9]+" maxlength="18" ${hasExisting?'':'required'} placeholder="ID du niveau en jeu"></label>
  <p class="small muted">Tu n'as pas besoin de renseigner le créateur, l'éditeur ou le vérificateur : les modérateurs compléteront la fiche.</p></div>
+ <div class="notice warning submission-wide" id="submitDuplicateWarning" role="status" hidden></div>
  <p class="small muted submission-wide" id="submitLevelHint">Sélectionne un niveau pour voir les preuves requises.</p>
  <label class="field submission-wide">Vidéo YouTube de ta complétion<input name="video_url" type="url" required maxlength="1000" placeholder="https://youtu.be/…"></label>
  <label class="field submission-wide" id="submitRawField" hidden>Raw footage <span id="submitRawOptional">(obligatoire pour le Top 150)</span><input name="raw_footage_url" type="url" maxlength="1000" placeholder="Lien Drive, YouTube non répertorié…"></label>
@@ -1320,6 +1334,10 @@ function submitSyncForm(){
  const rawLabel=document.getElementById('submitRawOptional');if(rawLabel)rawLabel.textContent=top150?'(obligatoire pour le Top 150)':'(facultatif pour une proposition hors liste)';
  raw.hidden=!(isNew||top150);raw.querySelector('input').required=top150;
  const pct=top75&&req<100;prog.hidden=!pct;const pi=prog.querySelector('input');pi.required=pct;pi.min=String(req);if(!pct)pi.value='100';else if(num(pi.value)<req)pi.value=String(req);
+ const selectedDemon=!isNew&&opt?(state.data?.demons||[]).find(d=>String(d.id)===String(opt.value)):null;
+ const requestedProgress=top75&&req<100?Number(pi.value||100):100;
+ const warning=document.getElementById('submitDuplicateWarning');
+ if(warning){const msg=submissionPriorWarning(selectedDemon,requestedProgress);warning.hidden=!msg;warning.textContent=msg;}
  hint.textContent=isNew?'Nouvelle proposition : ajoute une preuve YouTube à 100 %. Le raw footage pourra être demandé si le niveau rejoint le Top 150.':!opt?'Sélectionne un niveau pour voir ce qui est demandé.':top75?(req<100?`Top 75 : indique ton pourcentage (minimum ${req} %). Raw footage obligatoire.`:'Top 75 : complétion à 100 %. Raw footage obligatoire.'):top150?'Top 150 : complétion à 100 %. Raw footage obligatoire.':'Seule la vidéo YouTube est demandée (complétion à 100 %).';
 }
 function levelCreditsEditor(){
@@ -2626,7 +2644,7 @@ function bootEvents(){
   root.replaceChildren(...Array.from(doc.querySelectorAll('#mySubmissionResults > *')));
  });
  document.addEventListener('input',ev=>{if(ev.target.id!=='submitLevelSearch')return;const sel=document.getElementById('submitLevelSelect');if(!sel)return;const q=key(ev.target.value);for(const o of sel.options){if(!o.value)continue;o.hidden=!key(o.textContent+' '+o.dataset.search).includes(q);}if(sel.value&&sel.selectedOptions[0]?.hidden)sel.value='';submitSyncForm();});
- document.addEventListener('change',ev=>{if(ev.target.id==='submitLevelSelect'||ev.target.name==='submission_mode')submitSyncForm();});
+ document.addEventListener('change',ev=>{if(ev.target.id==='submitLevelSelect'||ev.target.name==='submission_mode'||ev.target.name==='progress')submitSyncForm();});
  document.addEventListener('submit',ev=>{if(ownerPreviewActive()&&new URLSearchParams(location.search).get('page')==='admin'){ev.preventDefault();ev.stopImmediatePropagation();toast('Aperçu en lecture seule.');}},true);
  document.addEventListener('submit',ev=>{if(ev.target.matches('[data-form="clanCreate"], [data-form="clanInvite"], [data-form="clanRequest"], [data-form="clanEdit"]')){ev.preventDefault();handleClanForm(ev.target);return;}if(ev.target.matches('[data-form]')){ev.preventDefault();handleForm(ev.target,ev.submitter||null);}});
  document.querySelectorAll('.nav-links a,.brand').forEach(a=>a.addEventListener('click',ev=>{ev.preventDefault();go(a.dataset.link||'list');}));
