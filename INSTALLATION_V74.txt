@@ -1,0 +1,7 @@
+DLFR V74 — Photo en grand dans le pied de page
+
+Patch incrémental à appliquer sur V73 (ou version compatible).
+Copier à la racine : index.html et css/style.css.
+La photo assets/easter-eggs/visiteur-surprise.png de V73 est conservée.
+Si elle n’est pas déjà sur le site, la copier depuis le ZIP.
+Aucune modification de JS, SQL ou assets/flags.
