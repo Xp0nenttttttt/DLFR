@@ -1,0 +1,12 @@
+const fs=require('fs');const assert=require('assert');
+const code=fs.readFileSync('js/app.js','utf8');
+const html=fs.readFileSync('index.html','utf8');
+assert(html.includes('dlfr-v69-synchronisation-fusions'));
+assert(code.includes("state.mergeCandidatesError='Recherche de fiches disponibles indisponible"));
+assert(code.includes("state.mergeRequests=Array.isArray(requests.data)?requests.data:[]"));
+assert(!code.includes('if(requests.error||candidates.error)'));
+assert(code.includes('data-refresh-merges'));
+assert(code.includes("state.adminTab==='requests'&&LIVE&&hasFullStaffPowers()"));
+assert(code.includes('dlfr_request_player_merge'));
+assert(code.includes('dlfr_review_player_merge_request'));
+console.log('V69 OK: migration intacte, chargements RPC independants, actualisation des demandes, boutons de validation.');

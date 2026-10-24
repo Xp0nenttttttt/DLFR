@@ -97,7 +97,7 @@ function startOptionalGroup(name){
  });
 }
 
-let db = null, state = { data:null, staff:false, staffRole:null, session:null, country:'MONDE', region:'ALL', selectedPlayer:'', list:'main', keyword:'', busy:false, statsTab:'players', statsYear:'all', comparePlayer:'', profileTab:'overview', activityTab:'following', selectedRegion:'BRE', regionsSort:'points', regionsGeometryRequested:false, newsFilter:'all', newsSearch:'', adminTab:'overview', editingNews:null, unrated:false, calcPlayer:'', calcDemons:[], calcNlw:false, unbeatSearch:'', unbeatLimit:120, communityExcel:{status:'idle',items:[],message:'',offline:false}, demoRole:'owner', demoActor:'spleen', selectedClan:1, clanSort:'points', clanSearch:'', clanDetailTab:'overview', ownKey:null, ownAccountMessage:'', mySubmissionFilter:'all', mySubmissionSearch:'', ownerPreview:'owner', ownerPreviewQueue:[], ownerPreviewError:'', teamCandidates:[], teamCandidatesReady:false, teamCandidatesError:'', mergedSourceKeys:[], mergedSourceError:'', mergeRequests:[], mergeRequestCandidates:[], mergeRequestsError:'', clanInbox:[], clanCandidates:[], clanExtraError:'', usernameAccount:null, usernameAccountError:'' };
+let db = null, state = { data:null, staff:false, staffRole:null, session:null, country:'MONDE', region:'ALL', selectedPlayer:'', list:'main', keyword:'', busy:false, statsTab:'players', statsYear:'all', comparePlayer:'', profileTab:'overview', activityTab:'following', selectedRegion:'BRE', regionsSort:'points', regionsGeometryRequested:false, newsFilter:'all', newsSearch:'', adminTab:'overview', editingNews:null, unrated:false, calcPlayer:'', calcDemons:[], calcNlw:false, unbeatSearch:'', unbeatLimit:120, communityExcel:{status:'idle',items:[],message:'',offline:false}, demoRole:'owner', demoActor:'spleen', selectedClan:1, clanSort:'points', clanSearch:'', clanDetailTab:'overview', ownKey:null, ownAccountMessage:'', mySubmissionFilter:'all', mySubmissionSearch:'', ownerPreview:'owner', ownerPreviewQueue:[], ownerPreviewError:'', teamCandidates:[], teamCandidatesReady:false, teamCandidatesError:'', mergedSourceKeys:[], mergedSourceError:'', mergeRequests:[], mergeRequestCandidates:[], mergeRequestsError:'', mergeCandidatesError:'', clanInbox:[], clanCandidates:[], clanExtraError:'', usernameAccount:null, usernameAccountError:'' };
 const PERF_DEBUG=new URLSearchParams(location.search).has('perf');
 const perfNow=()=>typeof performance!=='undefined'?performance.now():Date.now();
 const el = document.getElementById('app');
@@ -287,20 +287,22 @@ async function refreshLiveData(){
    console.warn('[DLFR] Lecture des fusions :',merged.error);
   }else state.mergedSourceKeys=(Array.isArray(merged.data)?merged.data:[]).map(x=>plain(x.player_key)).filter(Boolean);
  }
- state.mergeRequests=[];state.mergeRequestCandidates=[];state.mergeRequestsError='';
+ state.mergeRequests=[];state.mergeRequestCandidates=[];state.mergeRequestsError='';state.mergeCandidatesError='';
  if(state.session){
-  // Deux RPC SECURITE DEFINER : demandes visibles uniquement par leur auteur / supermodos.
+  // V69 : ces RPC sont indépendantes. Une erreur de chargement des candidats ne doit
+  // JAMAIS faire disparaitre la file de demandes deja retournee par Supabase.
   const [requests,candidates]=await Promise.all([
     db.rpc('dlfr_player_merge_request_list'),
     db.rpc('dlfr_player_merge_candidates')
   ]);
-  if(requests.error||candidates.error){
-   state.mergeRequestsError='Demandes de fusion indisponibles : vérifie la migration SQL 52.';
-   console.warn('[DLFR] Demandes de fusion :',requests.error||candidates.error);
-  }else{
-   state.mergeRequests=Array.isArray(requests.data)?requests.data:[];
-   state.mergeRequestCandidates=Array.isArray(candidates.data)?candidates.data:[];
-  }
+  if(requests.error){
+   state.mergeRequestsError='Demandes de fusion indisponibles : '+requests.error.message;
+   console.warn('[DLFR] Liste des demandes de fusion :',requests.error);
+  }else state.mergeRequests=Array.isArray(requests.data)?requests.data:[];
+  if(candidates.error){
+   state.mergeCandidatesError='Recherche de fiches disponibles indisponible : '+candidates.error.message;
+   console.warn('[DLFR] Candidats de fusion :',candidates.error);
+  }else state.mergeRequestCandidates=Array.isArray(candidates.data)?candidates.data:[];
  }
  state.scopedQueue=[];
  if(state.staff){
@@ -725,7 +727,7 @@ function playerMergeRequestPanel(){
  return `<section class="paper dlfr-merge-request"><h2>⇄ Demander une fusion de fiches</h2>
  <p class="small muted">Tu as une ancienne fiche joueur en doublon ? <b>Tout joueur connecté avec une fiche liée peut envoyer cette demande, sans être modérateur.</b> Demande à transférer ses records et badges vers ta fiche actuelle. <b>Cette demande n'est pas automatique :</b> un supermodérateur devra vérifier la preuve et approuver la fusion. Les comptes Discord ou pseudo ne sont pas fusionnés.</p>
  <p><strong>Fiche à conserver :</strong> ${esc(target.display_name||target.username)} <span class="muted small">(${esc(state.ownKey)})</span></p>
- ${state.mergeRequestsError?`<div class="notice warning">${esc(state.mergeRequestsError)}</div>`:
+ ${state.mergeRequestsError||state.mergeCandidatesError?`<div class="notice warning">${esc(state.mergeRequestsError||state.mergeCandidatesError)}</div>`:
  `<form data-form="requestPlayerMerge" class="dlfr-merge-request-form">
  <label class="field">Rechercher mon ancienne fiche<input type="search" id="selfMergeSourceSearch" placeholder="Pseudo, nom ou identifiant…" autocomplete="off"></label>
  <label class="field">Fiche en doublon à absorber<select id="selfMergeSourceSelect" name="source_key" size="6" required><option value="" selected disabled>Choisir une fiche dans les résultats</option>${preview.map(p=>`<option value="${esc(p.player_key)}">${esc(p.username)} · ${esc(p.player_key)}</option>`).join('')}</select></label>
@@ -740,8 +742,8 @@ function playerMergeRequestPanel(){
 function mergeRequestsModeratorPanel(){
  if(!LIVE||!hasFullStaffPowers()||ownerPreviewActive())return '';
  const requests=(state.mergeRequests||[]).filter(r=>r.status==='pending');
- return `<section class="paper dlfr-merge-moderation"><h2>⇄ Demandes de fusion de fiches (${requests.length})</h2>
- <p class="small muted">Vérifie que les deux fiches appartiennent bien à la même personne. Prévisualise avant d'accepter. Une fiche déjà associée à un autre compte ne peut pas être absorbée.</p>
+ return `<section class="paper dlfr-merge-moderation"><div class="row-between"><h2>⇄ Demandes de fusion de fiches (${requests.length})</h2><button type="button" class="btn subtle small" data-refresh-merges>Actualiser les fusions</button></div>
+ <p class="small muted">Vérifie que les deux fiches appartiennent bien à la même personne. Prévisualise avant d'accepter. Une fiche déjà associée à un autre compte ne peut pas être absorbée. Si ton ami a demandé une <b>revendication de fiche</b>, cette demande figure dans les demandes de profils, pas dans les fusions.</p>
  ${state.mergeRequestsError?`<div class="notice warning">${esc(state.mergeRequestsError)}</div>`:''}
  ${requests.length?requests.map(r=>`<div class="dlfr-merge-moderation-card">
  <h3>Demande #${esc(r.id)} : ${esc(r.source_username||r.source_key)} → ${esc(r.target_username||r.target_key)}</h3>
@@ -762,7 +764,7 @@ function selfProfilePage(){
   const usernameForms=C.enableUsernameLogin===true?`<div class="dlfr29-auth-grid">${usernameLoginForm()}<form data-form="usernameRegister" class="dlfr29-auth-card"><h3>Créer un compte DLFR</h3><label class="field">Pseudo<input name="username" autocomplete="username" minlength="3" maxlength="24" pattern="(?:[A-Za-z0-9_]|-){3,24}" required></label><label class="field">Mot de passe<input name="password" type="password" minlength="12" maxlength="128" autocomplete="new-password" required></label><label class="field">Confirmer le mot de passe<input name="password_confirm" type="password" minlength="12" maxlength="128" autocomplete="new-password" required></label><p class="small muted">Nouveaux comptes uniquement. Si tu avais un compte sur l’ancien site, utilise le formulaire « Connexion DLFR » ci-contre. Aucun e-mail demandé ; conserve ton mot de passe.</p><button class="btn" type="submit">Créer mon compte</button></form></div>`:usernameLoginForm();
   return `${templateNotice()}<section class="paper self-page"><h1>Se connecter ou créer un compte</h1>${usernameForms}${C.enableDiscordOAuth===true?`<details class="alternate-login"><summary>Ou continuer avec Discord</summary>${discordPanel(null)}</details>`:''}<p class="small muted">Un ancien compte validé peut récupérer sa fiche libre au premier accès si le pseudo correspond exactement et sans conflit. Les autres liaisons nécessitent une validation.</p></section>`;
  }
- if(LIVE&&!state.ownKey)return `<section class="paper self-page"><h1>Mon profil</h1><div class="notice warning">${esc(state.ownAccountMessage||'Ton compte n’est pas relié à un profil joueur.')}</div>${linkedAccountsPanel()}${discordPanel(null)}<section class="paper dlfr-merge-request" aria-labelledby="mergeRequestAccessTitle"><h2 id="mergeRequestAccessTitle">⇄ Demander une fusion de fiches</h2><p>Cette demande est <strong>ouverte à tous les joueurs connectés</strong>, sans permission de modérateur.</p><p>Pour que les records et badges soient transférés vers <strong>ta bonne fiche</strong>, associe d’abord une fiche joueur à ce compte dans le formulaire ci-dessous. Une fois la liaison effectuée, reviens dans « Mon profil » : le formulaire de demande apparaîtra ici.</p><p class="small muted">Si l’ancienne fiche est déjà associée à un autre compte, une intervention manuelle de la modération est nécessaire.</p></section><div id="selfPlayerClaim">${PROD.claimSection(state)}</div>${mySubmissionsTeaser()}<button class="btn subtle" type="button" data-action="selfLogout">Se déconnecter</button></section>`;
+ if(LIVE&&!state.ownKey)return `<section class="paper self-page"><h1>Mon profil</h1><div class="notice warning">${esc(state.ownAccountMessage||'Ton compte n’est pas relié à un profil joueur.')}</div>${linkedAccountsPanel()}${discordPanel(null)}<section class="paper dlfr-merge-request" aria-labelledby="mergeRequestAccessTitle"><h2 id="mergeRequestAccessTitle">⇄ Demander une fusion de fiches</h2><p>Cette demande est <strong>ouverte à tous les joueurs connectés</strong>, sans permission de modérateur.</p><p>Pour que les records et badges soient transférés vers <strong>ta bonne fiche</strong>, associe d’abord une fiche joueur à ce compte dans le formulaire ci-dessous. Une fois la liaison effectuée, reviens dans « Mon profil » : le formulaire de demande apparaîtra ici. Une revendication de fiche et une fusion de deux fiches sont deux demandes différentes.</p><p class="small muted">Si l’ancienne fiche est déjà associée à un autre compte, une intervention manuelle de la modération est nécessaire.</p></section><div id="selfPlayerClaim">${PROD.claimSection(state)}</div>${mySubmissionsTeaser()}<button class="btn subtle" type="button" data-action="selfLogout">Se déconnecter</button></section>`;
  const actor=LIVE?state.ownKey:state.demoActor;
  const player=state.data.players.find(p=>p.player_key===actor);
  if(!player)return '<section class="paper"><h1>Mon profil</h1><p>Aucun joueur lié à ce compte.</p></section>';
@@ -1670,7 +1672,7 @@ function adminPage(){if(LIVE&&!state.staff){
    const view=ownerPreviewActive()?{...state,staffRole:role,scopedQueue:state.ownerPreviewQueue.filter(x=>role==='moderator'||Number(x.position)>150),scopedQueueError:state.ownerPreviewError}:state;
    return `${templateNotice()}<div class="paper"><div class="admin-mode">Modération · ${role==='nlw'?'NLW':'Top 150 + NLW'}</div><div class="row-between"><h1>Modération</h1><button class="btn subtle small" data-action="logout">Déconnexion</button></div><div class="dlfr-v60-tabs"><button type="button" data-admin-tab="requests" class="${state.adminTab!=='levels'?'active':''}">Soumissions</button><button type="button" data-admin-tab="levels" class="${state.adminTab==='levels'?'active':''}">Niveaux</button></div><p class="small muted">Les permissions de création et de modification sont vérifiées par Supabase selon ton rôle.</p></div>${state.adminTab==='levels'?scopedLevelsPanel(role):`${PROD.scopedReview(view)}${window.DLFR_CLAIMS.moderation(state)}<div class="paper dlfr27-scoped-packs">${state.adminTab==='packs'?packModerationEditor():''}</div>`}`;
  }
- const mergePlayers=state.adminTab==='profiles'?mergePlayerOptions():''; const players=['profiles','awards','achievements','safety','nlw'].includes(state.adminTab)?playerOptions():'';return `${templateNotice()}<div class="paper"><div class="admin-mode">Espace privé · équipe de modération</div><div class="row-between"><h1>Modération</h1><div><button class="btn subtle small" data-action="logout">Déconnexion</button></div></div><p class="muted">Choisis une action ci-dessous. Les modifications sont enregistrées et contrôlées automatiquement.</p></div><div class="admin-workspace" data-role="${state.demoRole}"><div class="admin-nav" role="tablist" aria-label="Sections de modération">${[['overview','Accueil'],['requests','Demandes'],['levels','Niveaux'],['packs','Level Packs'],['news','Actualités'],['profiles','Profils'],['awards','Badges & Palmarès'],['achievements','Achievements FR'],['clans','Clans'],['safety','Sanctions'],['audit','Journal'],...(state.staffRole==='owner'&&!ownerPreviewActive()?[['team','Équipe']]:[])].map(([id,label])=>`<button type="button" role="tab" aria-selected="${state.adminTab===id}" class="${state.adminTab===id?'active':''}" data-admin-tab="${id}">${label}</button>`).join('')}</div><div class="admin-content">${adminGuideHtml()}<div class="dlfr29-requests" ${state.adminTab==='requests'?'':'hidden'}>${state.adminTab==='requests'?(LIVE?PROD.scopedReview(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state)+PROD.moderation(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state):'')+window.DLFR_CLAIMS.moderation(state)+mergeRequestsModeratorPanel():''}</div><div class="admin-intro ${state.adminTab==='overview'?'':'is-hidden'}"><h2>Tableau de bord</h2>${state.adminTab==='overview'?statsOverview():''}<p class="muted">Choisis une action dans les raccourcis ou une rubrique dans le menu. Chaque modification est contrôlée avant son enregistrement.</p></div><div class="moderation-sections" data-active-admin="${state.adminTab}">
+ const mergePlayers=state.adminTab==='profiles'?mergePlayerOptions():''; const players=['profiles','awards','achievements','safety','nlw'].includes(state.adminTab)?playerOptions():'';return `${templateNotice()}<div class="paper"><div class="admin-mode">Espace privé · équipe de modération</div><div class="row-between"><h1>Modération</h1><div><button class="btn subtle small" data-action="logout">Déconnexion</button></div></div><p class="muted">Choisis une action ci-dessous. Les modifications sont enregistrées et contrôlées automatiquement.</p></div><div class="admin-workspace" data-role="${state.demoRole}"><div class="admin-nav" role="tablist" aria-label="Sections de modération">${[['overview','Accueil'],['requests','Demandes'+((state.mergeRequests||[]).filter(x=>x.status==='pending').length?' · '+(state.mergeRequests||[]).filter(x=>x.status==='pending').length+' fusion(s)':'')],['levels','Niveaux'],['packs','Level Packs'],['news','Actualités'],['profiles','Profils'],['awards','Badges & Palmarès'],['achievements','Achievements FR'],['clans','Clans'],['safety','Sanctions'],['audit','Journal'],...(state.staffRole==='owner'&&!ownerPreviewActive()?[['team','Équipe']]:[])].map(([id,label])=>`<button type="button" role="tab" aria-selected="${state.adminTab===id}" class="${state.adminTab===id?'active':''}" data-admin-tab="${id}">${label}</button>`).join('')}</div><div class="admin-content">${adminGuideHtml()}<div class="dlfr29-requests" ${state.adminTab==='requests'?'':'hidden'}>${state.adminTab==='requests'?(LIVE?PROD.scopedReview(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state)+PROD.moderation(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state):'')+window.DLFR_CLAIMS.moderation(state)+mergeRequestsModeratorPanel():''}</div><div class="admin-intro ${state.adminTab==='overview'?'':'is-hidden'}"><h2>Tableau de bord</h2>${state.adminTab==='overview'?statsOverview():''}<p class="muted">Choisis une action dans les raccourcis ou une rubrique dans le menu. Chaque modification est contrôlée avant son enregistrement.</p>${(state.mergeRequests||[]).some(r=>r.status==='pending')?`<p class="notice">⇄ ${(state.mergeRequests||[]).filter(r=>r.status==='pending').length} demande(s) de fusion de fiches en attente. <button type="button" class="btn subtle small" data-admin-tab="requests">Ouvrir les demandes</button></p>`:''}</div><div class="moderation-sections" data-active-admin="${state.adminTab}">
  ${state.adminTab==='team'?staffTeamPanel():''}
  ${state.adminTab==='audit'&&optionalStatus.adminAudit==='loading'||state.adminTab==='levels'&&optionalStatus.adminLevels==='loading'||state.adminTab==='safety'&&optionalStatus.adminSafety==='loading'?'<p class="small muted" aria-live="polite">Chargement des données de cette rubrique…</p>':''}
  ${state.adminTab==='levels'&&activeLevelPanel==='edit'?levelCreditsEditor():''}${state.adminTab==='levels'&&activeLevelPanel==='review'?historicNlwPublisher():''}${state.adminTab==='packs'?packModerationEditor():''}
@@ -2456,7 +2458,34 @@ function bootEvents(){
  const levelGroupButton=ev.target.closest('.level-tools-tabs button[data-level-group]');if(levelGroupButton){activeLevelPanel=levelGroupButton.dataset.levelGroup;render();return;}
  const it=ev.target.closest('[data-identity-tab]');if(it){document.querySelectorAll('[data-identity-section]').forEach(e=>e.hidden=e.dataset.identitySection!==it.dataset.identityTab);return;}
  const loadV=ev.target.closest('[data-load-verifiers]');if(loadV){try{loadV.disabled=true;const {data,error}=await db.rpc('dlfr_unlinked_verifiers');if(error)throw Error(error.message);const names=Array.isArray(data)?data:[];window.__dlfrVerifierUnlinked=names;const sel=document.querySelector('[data-form="linkVerifier"] [name="verifier_name"]');if(sel){sel.innerHTML='<option value="">Sélectionner…</option>'+names.map((n,i)=>'<option value="'+i+'">'+esc(n.verifier_name)+' ('+n.count+' niveaux)</option>').join('');}const prev=document.getElementById('verifierLinkPreview');if(prev)prev.textContent=names.length+' crédits non liés. Sélectionne une entrée pour voir les niveaux.';}catch(e){toast(e.message||String(e));}finally{loadV.disabled=false;}return;}
- const ad=ev.target.closest('[data-admin-tab]');if(ad){state.adminTab=ad.dataset.adminTab;render();if(state.adminTab==='team'&&state.staffRole==='owner'&&!ownerPreviewActive()){await loadStaffCandidates();render();}return;}
+ const refreshMerges=ev.target.closest('[data-refresh-merges]');if(refreshMerges){
+  if(!LIVE||!hasFullStaffPowers()||ownerPreviewActive())return;
+  refreshMerges.disabled=true;
+  try{
+   const {data,error}=await db.rpc('dlfr_player_merge_request_list');
+   if(error)throw Error(error.message);
+   state.mergeRequests=Array.isArray(data)?data:[];
+   state.mergeRequestsError='';
+   render();toast('Demandes de fusion actualisées.');
+  }catch(error){state.mergeRequestsError='Impossible de charger les demandes : '+(error.message||String(error));console.warn('[DLFR] Actualisation fusions :',error);render();toast(state.mergeRequestsError);}
+  return;
+ }
+ const ad=ev.target.closest('[data-admin-tab]');if(ad){
+  state.adminTab=ad.dataset.adminTab;render();
+  // V69 : recharger la file de fusion quand on ouvre les demandes, sans
+  // rafraichir les 20+ autres tables de la Demonlist.
+  if(state.adminTab==='requests'&&LIVE&&hasFullStaffPowers()&&!ownerPreviewActive()){
+   try{
+    const {data,error}=await db.rpc('dlfr_player_merge_request_list');
+    if(error)throw Error(error.message);
+    state.mergeRequests=Array.isArray(data)?data:[];
+    state.mergeRequestsError='';
+   }catch(error){state.mergeRequestsError='Erreur de chargement des demandes : '+(error.message||String(error));console.warn('[DLFR] Demandes :',error);}
+   render();
+  }
+  if(state.adminTab==='team'&&state.staffRole==='owner'&&!ownerPreviewActive()){await loadStaffCandidates();render();}
+  return;
+ }
  const ed=ev.target.closest('[data-edit-news]');if(ed){if(!state.staff)return;state.adminTab='news';go('admin');fillNewsEditor(ed.dataset.editNews);return;}
  const tn=ev.target.closest('[data-toggle-news]');if(tn){if(!state.staff)return;const item=state.data.news_items.find(x=>String(x.id)===tn.dataset.toggleNews);if(item){try{await save('news_items',{...item,is_published:!item.is_published},{upsert:true,on:['id']});if(LIVE)state.data.news_items=await readAll('news_items');toast('Statut actualisé');render();}catch(e){toast('Erreur : '+e.message);}}return;}
  const clanSort=ev.target.closest('[data-clan-sort]');if(clanSort){state.clanSort=clanSort.dataset.clanSort;render();return;}
