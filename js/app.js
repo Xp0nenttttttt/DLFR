@@ -636,7 +636,7 @@ function submissionGuidelinesSidebar(){
 function listPage(){
  const nav=['main','nlw'],labels=['Main List · Top 150','NLW · rang 151+'];
  const sLabel=nav.includes(state.list)?state.list:'main';
- const levels=catalog().filter(x=>sLabel==='legacy'?x.legacy:sLabel==='nlw'?V2.nlwRank(x)>0:!x.unrated&&+x.position>0&&+x.position<=150);
+ const levels=catalog().filter(x=>sLabel==='legacy'?x.legacy:sLabel==='nlw'?V2.nlwRank(x)>0:(state.unrated||!x.unrated)&&+x.position>0&&+x.position<=150);
  const top=`<div class="list-tabs">${nav.map((x,i)=>`<button type="button" class="${sLabel===x?'active':''}" data-list="${x}">${esc(labels[i])}</button>`).join('')}</div>${sLabel==='main'?'<div class="v2-legend"><span class="hist-main">Main List · #1–75</span><span>Extended List · #76–150</span></div>':''}`;
  const heading={main:'Geometry Dash Demonlist',nlw:'NLW · Non List Worthy',legacy:'Legacy List'}[sLabel];
  const description={main:'Les 150 niveaux classés de la DemonlistFrancophone.',nlw:'Les niveaux NLW publiés et les fiches historiques de l’ancien site se consultent ici. Seuls les niveaux NLW homologués donnent des points, des rangs et des badges NLW.',legacy:'Anciens niveaux de la Main List, après validation de leur statut Legacy.'}[sLabel];
@@ -2572,7 +2572,7 @@ function bootEvents(){
  if(ev.target.id==='newsSearch'){state.newsSearch=ev.target.value;const items=state.data.news_items.filter(n=>(n.is_published||state.staff)&&(state.newsFilter==='all'||getNewsCategory(n)===state.newsFilter)&&`${key(n.headline)} ${key(n.body)} ${key(n.player_name)}`.includes(key(state.newsSearch)));$('newsItems').innerHTML=newsItemsHTML(items.sort((a,b)=>+(!!b.is_pinned)-+(!!a.is_pinned)||new Date(b.created_at)-new Date(a.created_at)));}
  if(ev.target.closest('[data-form="news"]'))updateNewsPreview(ev.target.closest('form'));
  if(ev.target.id==='calcSearch'){const q=key(ev.target.value);document.querySelectorAll('.v2-check-level').forEach(x=>x.hidden=!key(x.textContent).includes(q));}
- if(ev.target.id==='demonSearch'){state.keyword=ev.target.value;const d=catalog().filter(x=>state.list==='legacy'?x.legacy:state.list==='nlw'?V2.nlwRank(x)>0:!x.unrated&&+x.position>0&&+x.position<=150);$('demonItems').innerHTML=state.list==='nlw'?nlwListCards(state.keyword):cardsHTML(d.filter(x=>key(x.name).includes(key(state.keyword))));}
+ if(ev.target.id==='demonSearch'){state.keyword=ev.target.value;const d=catalog().filter(x=>state.list==='legacy'?x.legacy:state.list==='nlw'?V2.nlwRank(x)>0:(state.unrated||!x.unrated)&&+x.position>0&&+x.position<=150);$('demonItems').innerHTML=state.list==='nlw'?nlwListCards(state.keyword):cardsHTML(d.filter(x=>key(x.name).includes(key(state.keyword))));}
  if(ev.target.id==='dlfr24ProfileSearch'){const value=key(ev.target.value);let visible=0;document.querySelectorAll('[data-profile-search]').forEach(item=>{item.hidden=!item.dataset.profileSearch.includes(value);if(!item.hidden)visible++;});const empty=$('dlfr24NoProfiles');if(empty)empty.hidden=visible!==0;return;}
  if(ev.target.id==='playerSearch'){
   state.keyword=ev.target.value;
