@@ -1,4 +1,8 @@
-DLFR V91.1 - Correction des effets au changement d’onglet
+DLFR V91.3 — Nettoyage des textes de boutique
 
-Sur la V91, remplacer seulement js/app.js. Aucun SQL, aucun autre fichier à modifier.
-Après installation, recharger avec Ctrl + F5 et tester Records / Graphiques / Distinctions.
+Remplacer uniquement js/app.js par le fichier fourni.
+Retire les deux paragraphes :
+- Les wayllings dorés proviennent des défis hebdomadaires...
+- Une décoration par catégorie. Les objets de prestige évoluent...
+
+Aucune modification SQL, CSS ou des drapeaux.
