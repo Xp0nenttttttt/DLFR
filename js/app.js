@@ -635,6 +635,24 @@ function submissionGuidelinesSidebar(){
  ];
  return `<section class="info-panel right-panel v58-side-guidelines" aria-labelledby="v58-guidelines-title"><h2 id="v58-guidelines-title">Directives de soumission</h2><p class="v58-side-lead">Ces règles sont basées sur le standard de modération commun de Pointercrate.</p><p class="v58-guidelines-important"><strong>Important :</strong> Chaque soumission est examinée manuellement. L’absence de preuve ou une vidéo suspecte sera rejetée.</p><div class="v58-guideline-sections">${sections.map(([title,paragraphs])=>`<details class="v58-guideline"><summary>${esc(title)}</summary><div>${paragraphs.map(p=>`<p>${p.startsWith('<strong>')?p:esc(p)}</p>`).join('')}</div></details>`).join('')}</div><p class="v58-guidelines-tip"><strong>Astuce :</strong> Gardez la vidéo publique/non répertoriée et incluez des notes utiles sur le run. Des preuves plus claires signifient une approbation plus rapide.</p></section>`;
 }
+// V80 : défi hebdomadaire indépendant des points DLFR.
+let v80WeeklyLoad=0;
+async function v80WeeklyRender(){
+ const area=document.getElementById('v80-weekly');if(!area||!db)return;
+ const seq=++v80WeeklyLoad;
+ try{
+  const {data,error}=await db.rpc('dlfr_weekly_status');
+  if(error)throw error;
+  if(seq!==v80WeeklyLoad||!area.isConnected)return;
+  if(!data?.active){area.innerHTML='<span class="muted small">Aucun défi hebdomadaire publié pour cette semaine.</span>';return;}
+  const challenge=data.challenge||{};
+  const claimed=!!data.claimed,eligible=!!data.eligible;
+  area.innerHTML=`<div class="v80-weekly-title"><span>✦ Défi de la semaine</span><span class="v80-wallet">🪙 ${esc(data.wallet??0)} pièces</span></div>
+  <p><a data-nav href="${url('demon',{id:challenge.demon_id})}"><strong>${esc(challenge.name||'Niveau hebdomadaire')}</strong></a> <span class="muted small">· +${esc(challenge.reward||50)} pièces</span></p>
+  <p class="small muted">Complète le niveau à 100 % pendant la semaine du défi, puis réclame ta récompense. Les points DLFR ne changent pas.</p>
+  ${claimed?'<span class="v80-weekly-done">✓ Récompense récupérée</span>':eligible?'<button type="button" class="btn small" data-v80-claim>Récupérer mes pièces</button>':state.session?'<span class="small muted">En attente d’une complétion validée cette semaine.</span>':'<span class="small muted">Connecte-toi pour participer.</span>'}`;
+ }catch(err){if(seq===v80WeeklyLoad&&area.isConnected){area.innerHTML='<span class="muted small">Défis indisponibles : la migration V80 est-elle installée ?</span>';}}
+}
 function listPage(){
  const nav=['main','nlw'],labels=['Main List · Top 150','NLW · rang 151+'];
  const sLabel=nav.includes(state.list)?state.list:'main';
@@ -643,7 +661,7 @@ function listPage(){
  const heading={main:'Geometry Dash Demonlist',nlw:'NLW · Non List Worthy',legacy:'Legacy List'}[sLabel];
  const description={main:'Les 150 niveaux classés de la DemonlistFrancophone.',nlw:'Les niveaux NLW publiés et les fiches historiques de l’ancien site se consultent ici. Seuls les niveaux NLW homologués donnent des points, des rangs et des badges NLW.',legacy:'Anciens niveaux de la Main List, après validation de leur statut Legacy.'}[sLabel];
  const html=sLabel==='nlw'?nlwListCards(state.keyword):cardsHTML(levels.filter(x=>key(x.name).includes(key(state.keyword))));
- return `${templateNotice()}${sLabel==='nlw'?'<p class="notice small">Les niveaux UNRATED ont un classement séparé : <a class="link" data-nav href="'+url('stats')+'">voir l’onglet UNRATED des statistiques</a>.</p>':''}${state.unrated?callout('<b>Mode UNRATED</b> — estimation alternative des positions et points, sans modifier le classement officiel.'):''}${top}<div class="page-columns"><section><div class="center-panel"><h1>${heading}</h1><p>${description}</p><label class="filterbox"><span>⌕</span><input id="demonSearch" type="search" placeholder="Filtrer les niveaux affichés..." value="${esc(state.keyword)}" autocomplete="off"></label></div><div id="demonItems">${html}</div></section><aside class="right-side"><div class="info-panel right-panel"><h2>Éditeurs de liste</h2><p>Contacter les éditeurs pour les changements de classement.</p>${staffNamesHTML("general")}<h2>Équipe NLW</h2><p>L’équipe chargée de la liste NLW.</p>${staffNamesHTML("nlw")}</div>${listNewsSidebar()}${submissionGuidelinesSidebar()}</aside></div>`;
+ return `${templateNotice()}${sLabel==='nlw'?'<p class="notice small">Les niveaux UNRATED ont un classement séparé : <a class="link" data-nav href="'+url('stats')+'">voir l’onglet UNRATED des statistiques</a>.</p>':''}${state.unrated?callout('<b>Mode UNRATED</b> — estimation alternative des positions et points, sans modifier le classement officiel.'):''}${top}<div id="v80-weekly" class="v80-weekly" aria-live="polite"><span class="muted small">Chargement du défi hebdomadaire…</span></div><div class="page-columns"><section><div class="center-panel"><h1>${heading}</h1><p>${description}</p><label class="filterbox"><span>⌕</span><input id="demonSearch" type="search" placeholder="Filtrer les niveaux affichés..." value="${esc(state.keyword)}" autocomplete="off"></label></div><div id="demonItems">${html}</div></section><aside class="right-side"><div class="info-panel right-panel"><h2>Éditeurs de liste</h2><p>Contacter les éditeurs pour les changements de classement.</p>${staffNamesHTML("general")}<h2>Équipe NLW</h2><p>L’équipe chargée de la liste NLW.</p>${staffNamesHTML("nlw")}</div>${listNewsSidebar()}${submissionGuidelinesSidebar()}</aside></div>`;
 }
 function completionLinks(levels){return levels.length?levels.sort((a,b)=>a.position-b.position).map(d=>`<a class="link" href="${url('demon',{id:d.id})}" data-nav>#${esc(d.position)} ${esc(d.name)}</a>`).join(' - '):'<span class="muted">Aucun</span>';}
 // V66 : le classement NLW commence à #1 pour la position globale 151.
@@ -929,8 +947,12 @@ function profileRecentActivity(playerKey){
 function v79LevelGallery(items, kind='rated'){
  const arr=[...new Map((items||[]).filter(Boolean).map(d=>[String(d.id),d])).values()];
  if(!arr.length)return '<p class="muted small">Aucun niveau dans cette catégorie.</p>';
- return `<div class="v79-level-grid">${arr.map(d=>{const rank=d.unrated?'UNRATED #'+num(d.unrated_position):num(d.position)>150?'NLW #'+(num(d.position)-150):'#'+num(d.position);const pic=imageLink(d.thumbnail_url)||studioYoutubeThumbnail(d.video_url);return `<a class="v79-level-tile" data-nav href="${url('demon',{id:d.id})}">${pic?`<img src="${esc(pic)}" alt="" loading="lazy">`:'<span class="v79-level-fallback" aria-hidden="true">✦</span>'}<span class="v79-level-info"><small>${esc(rank)}</small><strong>${esc(d.name)}</strong></span></a>`;}).join('')}</div>`;
+ return `<div class="v80-level-list">${arr.map(d=>{
+   const rank=d.unrated?'UNRATED #'+num(d.unrated_position):num(d.position)>150?'NLW #'+(num(d.position)-150):'#'+num(d.position);
+   return `<a class="v80-level-row" data-nav href="${url('demon',{id:d.id})}"><span class="v80-level-rank">${esc(rank)}</span><strong>${esc(d.name)}</strong><span class="v80-level-arrow" aria-hidden="true">↗</span></a>`;
+ }).join('')}</div>`;
 }
+
 function statProfile(p){if(!p)return '<div class="stats-profile empty">Sélectionne un joueur.</div>';
  const profile=state.data.player_profiles.find(v=>v.player_key===p.player_key)||{};
  const snapshots=state.data.player_stat_snapshots.filter(s=>s.player_key===p.player_key).sort((a,b)=>String(a.snapshot_day??'').localeCompare(String(b.snapshot_day??'')));
@@ -1968,6 +1990,7 @@ function render(){
  // Donner un accès clair à l'inscription et à la connexion, sans modifier la navigation existante.
  const accountNavLink=document.querySelector('a[data-link="my-profile"]');
  if(accountNavLink) accountNavLink.textContent=state.session?'Mon profil':'Se connecter / Créer un compte';
+ if(page==='list')v80WeeklyRender();
  if(page==='admin'&&state.staffRole==='owner'){
    const switcher=document.createElement('section');switcher.className='paper owner-role-switcher';
    switcher.innerHTML='<h2>Aperçu des rôles de modération</h2><p class="small muted">Vue de l’interface seulement : ton compte reste propriétaire. Aucun enregistrement n’est autorisé en aperçu.</p><div class="owner-role-actions">'+
@@ -2419,6 +2442,13 @@ function bootEvents(){
    ev.preventDefault();ev.stopImmediatePropagation();toast('Aperçu en lecture seule.');
  },true);
  document.addEventListener('click',async(ev)=>{
+  const weeklyClaimButton=ev.target.closest('[data-v80-claim]');
+  if(weeklyClaimButton){
+   weeklyClaimButton.disabled=true;
+   try{const {error}=await db.rpc('dlfr_weekly_claim');if(error)throw error;toast('Récompense hebdomadaire récupérée !');await v80WeeklyRender();}
+   catch(err){toast('Impossible de récupérer les pièces : '+err.message);weeklyClaimButton.disabled=false;}
+   return;
+  }
   const reaction=ev.target.closest('[data-v79-react]');
   if(reaction){
    if(!state.session){toast('Connecte-toi pour réagir.');return;}

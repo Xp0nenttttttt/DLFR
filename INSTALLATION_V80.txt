@@ -1,0 +1,9 @@
+DLFR V80 — en partant de V79.
+1. Dans Supabase SQL Editor, exécuter supabase/80_DEFI_HEBDOMADAIRE.sql.
+2. Publier un défi avec la requête de fin du fichier SQL : remplacer 12345 par le vrai demons.id (PAS le level_id Geometry Dash).
+3. Remplacer js/app.js et css/style.css. Vider le cache.
+4. Tester avec un compte ayant un profil lié et une completion validée pendant la semaine UTC.
+Les niveaux déjà réussis avant la semaine ne donnent pas de monnaie rétroactivement.
+La monnaie est indépendante des points DLFR. Aucun objet boutique encore implémenté.
+Les défis sont choisis manuellement (aucun choix automatique).
+Aucun dossier assets/flags/ inclus.
