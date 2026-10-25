@@ -96,7 +96,7 @@ function moderation(s){if(!s.staff)return '';
  <div class="prod-grid"><form data-form="prodPlayer"><h3>Créer une fiche joueur</h3>${row('Pseudo Geometry Dash','<input name="username" required minlength="2" maxlength="70">')}${row('Nom affiché (facultatif)','<input name="display_name" maxlength="80">')}${row('Pays','<select name="country_code"><option value="">Inconnu</option><option value="FR">France</option><option value="BE">Belgique</option><option value="CH">Suisse</option><option value="CA">Canada</option></select>')}${button('Créer la fiche')}</form>
  </div>
  <h3>Demandes de liaison Discord / Geometry Dash (${claims.length})</h3>${claims.length?claims.map(x=>`<article class="prod-review"><strong>${esc(x.player_key)}</strong><p class="small">Utilisateur Auth : ${esc(x.auth_user_id)}</p><p class="small">${esc(x.note)}</p><a href="${safeUrl(x.proof_url)}" target="_blank" rel="noopener noreferrer">Examiner la preuve ↗</a><form data-form="prodClaimReview"><input type="hidden" name="request_id" value="${esc(x.id)}"><button class="btn" name="approve" value="yes">Approuver</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form></article>`).join(''):'<p class="muted">Aucune demande.</p>'}
- <h3>Autres demandes / cas particuliers (${subs.length})</h3><p class="small muted">Les niveaux déjà publiés passent par la file de réservation ci-dessus.</p>${subs.length?subs.map(x=>{const existing=demons.find(d=>x.level_id&&String(d.level_id)===String(x.level_id))||demons.find(d=>d.name.toLowerCase()===x.level_name.toLowerCase());return `<article class="prod-review"><strong>${esc(x.level_name)}</strong> · ${esc(x.player)} (${esc(x.progress)} %)<p><a href="${safeUrl(x.video_url)}" target="_blank" rel="noopener noreferrer">Vidéo ↗</a>${x.raw_footage_url?` · <a href="${safeUrl(x.raw_footage_url)}" target="_blank" rel="noopener noreferrer">Raw footage ↗</a>`:''}${existing?' · Fiche existante #'+esc(existing.id):' · Nouveau niveau'}</p><form data-form="prodReviewSubmission"><input type="hidden" name="request_id" value="${esc(x.id)}">${existing?'':row('Statut du niveau','<select name="rating"><option value="rated">Rated</option><option value="unrated">UNRATED</option></select>')}${existing?'':row('Position choisie (Rated : décalage des suivants) / position estimée (UNRATED)','<input name="position" type="number" min="1" required>')}<label class="field">Message au joueur (facultatif)<textarea name="review_message" maxlength="1000" rows="3" placeholder="Une explication, un conseil ou un petit mot…"></textarea></label><button class="btn" name="approve" value="yes">Valider</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form></article>`;}).join(''):'<p class="muted">Aucune soumission.</p>'}
+ <h3>Autres demandes / cas particuliers (${subs.length})</h3><p class="small muted">Les niveaux déjà publiés passent par la file de réservation ci-dessus.</p>${subs.length?subs.map(x=>{const existing=demons.find(d=>x.level_id&&String(d.level_id)===String(x.level_id))||demons.find(d=>d.name.toLowerCase()===x.level_name.toLowerCase());return `<article class="prod-review"><strong>${esc(x.level_name)}</strong> · ${esc(x.player)} (${esc(x.progress)} %)<p><a href="${safeUrl(x.video_url)}" target="_blank" rel="noopener noreferrer">Vidéo ↗</a>${x.raw_footage_url?` · <a href="${safeUrl(x.raw_footage_url)}" target="_blank" rel="noopener noreferrer">Raw footage ↗</a>`:''}${existing?' · Fiche existante #'+esc(existing.id):' · Nouveau niveau'}</p><form data-form="prodReviewSubmission"><input type="hidden" name="request_id" value="${esc(x.id)}">${existing?'':row('Statut du niveau','<select name="rating"><option value="rated">Rated</option><option value="unrated">UNRATED</option></select>')}${existing?'':row('Position choisie (Rated : décalage des suivants) / position estimée (UNRATED)','<input name="position" type="number" min="1" required>')}<button class="btn" name="approve" value="yes">Valider</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form></article>`;}).join(''):'<p class="muted">Aucune soumission.</p>'}
  <h3>Validations acceptées mais non visibles (${hiddenApproved.length})</h3>
  <p class="small muted">Rattrapage des anciennes soumissions : aucun niveau n'est publié automatiquement. Choisis la position DLFR avant de confirmer.</p>
  ${hiddenApproved.length?hiddenApproved.map(x=>{
@@ -118,12 +118,19 @@ function scopedReview(s){
  const free=rows.filter(x=>x.claim_status==='free');
  const busy=rows.filter(x=>x.claim_status==='other');
  const role=s.staffRole==='nlw'?'NLW':'Top 150 + NLW';
+ // Statistiques affichées dans la section Demandes. Elles reposent sur les décisions
+ // persistées en base, pas sur la file actuellement chargée.
+ const reviewerId=s.session?.user?.id;
+ const reviewed=(s.data?.level_submissions||[]).filter(x=>reviewerId && x.reviewed_by===reviewerId);
+ const acceptedCount=reviewed.filter(x=>['approved','accepted'].includes(String(x.status||'').toLowerCase())).length;
+ const rejectedCount=reviewed.filter(x=>['rejected','refused'].includes(String(x.status||'').toLowerCase())).length;
  const time=x=>x.claim_expires_at?new Date(x.claim_expires_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'';
  const item=x=>`<article class="prod-review dlfr30-review-card"><div class="row-between"><strong>${esc(x.level_name)}</strong><span class="small muted">${Number(x.position)>150?'NLW #'+esc(Number(x.position)-150):'Top #'+esc(x.position)}</span></div><p class="small">${esc(x.player)} · ${esc(x.progress)} %</p>
  <p><a href="${safeUrl(x.video_url)}" rel="noopener noreferrer" target="_blank">Vidéo ↗</a>${x.raw_footage_url?' · <a href="'+safeUrl(x.raw_footage_url)+'" rel="noopener noreferrer" target="_blank">Raw footage ↗</a>':''}</p>
- ${x.claim_status==='mine'?`<span class="notice small">Réservée pour toi jusqu'à ${esc(time(x))}</span><form data-form="prodScopedReview"><input type="hidden" name="request_id" value="${esc(x.id)}"><label class="field">Message au joueur (facultatif)<textarea name="review_message" maxlength="1000" rows="3" placeholder="Explique la décision ou encourage le joueur…"></textarea></label><button class="btn" name="approve" value="yes">Accepter</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form><div class="dlfr30-actions"><button class="btn subtle small" type="button" data-review-manage="renew" data-review-id="${esc(x.id)}">+20 min</button><button class="btn subtle small" type="button" data-review-manage="release" data-review-id="${esc(x.id)}">Libérer</button></div>`:
+ ${x.claim_status==='mine'?`<span class="notice small">Réservée pour toi jusqu'à ${esc(time(x))}</span><form data-form="prodScopedReview"><input type="hidden" name="request_id" value="${esc(x.id)}"><button class="btn" name="approve" value="yes">Accepter</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form><div class="dlfr30-actions"><button class="btn subtle small" type="button" data-review-manage="renew" data-review-id="${esc(x.id)}">+20 min</button><button class="btn subtle small" type="button" data-review-manage="release" data-review-id="${esc(x.id)}">Libérer</button></div>`:
  x.claim_status==='other'?'<p class="muted small">Déjà prise en charge par un autre modérateur.</p>':`<button class="btn subtle small" type="button" data-review-claim="${esc(x.id)}">Prendre en charge</button>`}</article>`;
  return `<section class="prod-panel dlfr30-queue"><div class="row-between"><div><h2>File de modération · ${esc(role)}</h2><p class="small muted">Choisis une demande ou laisse le site t’en attribuer une au hasard. La réservation dure 20 minutes.</p></div><button class="btn" type="button" data-review-claim="random">🎲 Tirer au hasard</button></div>
+ <div class="dlfr-review-personal-stats" aria-label="Tes décisions de modération"><div><strong>${acceptedCount}</strong><span>Acceptées par toi</span></div><div><strong>${rejectedCount}</strong><span>Refusées par toi</span></div><div><strong>${acceptedCount+rejectedCount}</strong><span>Total traité par toi</span></div></div>
  ${s.scopedQueueError?`<p class="notice warning">File temporairement indisponible. Réessaie après installation du correctif serveur.</p>`:''}
  <div class="dlfr30-totals"><span>Libres : <b>${free.length}</b></span><span>En cours : <b>${busy.length+current.length}</b></span><button class="btn subtle small" data-review-refresh type="button">↻ Actualiser</button></div>
  ${current.length?`<h3>Ma soumission</h3>${current.map(item).join('')}`:''}
@@ -137,7 +144,7 @@ async function send(db,type,f,submitter){
  const yes=submitter?.value==='yes';
  if(type==='prodScopedReview'){
   if(!Number.isSafeInteger(Number(f.request_id))||Number(f.request_id)<=0)throw Error('Soumission invalide.');
-  return r('dlfr_review_existing_record_with_message',{p_request_id:Number(f.request_id),p_approve:yes,p_message:trim(f.review_message)});
+  return r('dlfr_review_existing_record',{p_request_id:Number(f.request_id),p_approve:yes});
  }
  if(type==='prodArchiveLevel'){
   if(!Number.isSafeInteger(Number(f.demon_id))||Number(f.demon_id)<=0)throw Error('Choisis un niveau valide');
@@ -191,7 +198,7 @@ async function send(db,type,f,submitter){
   return errorOf(await db.from('profile_claim_requests').insert({player_key:f.player_key,proof_url:f.proof_url,note:trim(f.note||''),auth_user_id:(await db.auth.getUser()).data.user.id}));
  }
  if(type==='prodClaimReview')return r('dlfr_review_claim',{p_request_id:Number(f.request_id),p_approve:yes});
- if(type==='prodReviewSubmission')return r('dlfr_review_submission_with_message',{p_request_id:Number(f.request_id),p_approve:yes,p_unrated:f.rating==='unrated',p_position:f.position?Number(f.position):null,p_message:trim(f.review_message)});
+ if(type==='prodReviewSubmission')return r('dlfr_review_submission',{p_request_id:Number(f.request_id),p_approve:yes,p_unrated:f.rating==='unrated',p_position:f.position?Number(f.position):null});
  if(type==='prodPublishAccepted')return r('dlfr_publish_accepted_submission',{p_request_id:Number(f.request_id),p_position:Number(f.position),p_shift:f.shift==='yes'});
  if(type==='prodBadgeManual'){
   const date=f.obtained_at;
@@ -224,25 +231,12 @@ async function send(db,type,f,submitter){
    if(checkError)throw Error('Impossible de vérifier le niveau. Réessaie.');
    if(published?.length)throw Error('Ce niveau est déjà publié : sélectionne-le dans la liste.');
   }
-  // Refuse une victoire déjà importée ou enregistrée, pas uniquement les demandes en attente.
-  // La base vérifie elle aussi, car le formulaire seul ne suffit pas à sécuriser les envois.
   const {data:{user:who},error:whoError}=await db.auth.getUser();
   if(whoError||!who)throw Error('Connecte-toi pour envoyer ta soumission.');
   const {data:ownership,error:ownerError}=await db.from('player_profile_owners').select('player_key,players(username)').eq('auth_user_id',who.id).maybeSingle();
   if(ownerError)throw Error(ownerError.message);
   const nickname=trim(ownership?.players?.username);
   if(!nickname)throw Error('Relie ou crée une fiche DLFR avant de soumettre.');
-  if(!isNew){
-   const aliases=[ownership.player_key,nickname].filter(Boolean).map(v=>v.toLowerCase().trim());
-   const profiles=window.DLFR_SUBMISSION_STATE?.players||[];
-   const myProfile=profiles.find(p=>p.player_key===ownership.player_key);
-   if(myProfile?.display_name)aliases.push(trim(myProfile.display_name).toLowerCase());
-   const {data:oldRecords,error:recordsError}=await db.from('completions').select('player,progress').eq('demon_id',demon.id);
-   if(recordsError)throw Error('Impossible de vérifier tes anciennes victoires : '+recordsError.message);
-   const previous=(oldRecords||[]).filter(c=>aliases.includes(trim(c.player).toLowerCase())).sort((a,b)=>Number(b.progress)-Number(a.progress))[0];
-   if(previous&&Number(previous.progress)>=progress)throw Error('Record déjà enregistré sur '+level_name+' ('+previous.progress+' %). Tu peux uniquement soumettre une amélioration.');
-  }
-
   return errorOf(await db.from('level_submissions').insert({auth_user_id:who.id,level_name,level_id:level_id||null,player:nickname,progress,video_url:trim(f.video_url),raw_footage_url:raw||null,publisher:isNew?'À renseigner':trim(demon.publisher),creator:isNew?null:trim(demon.creator)||null,verifier:isNew?null:trim(demon.verifier)||null}));
  }
  throw Error('Action inconnue');

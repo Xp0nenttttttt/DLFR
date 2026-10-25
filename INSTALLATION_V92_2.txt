@@ -1,0 +1,13 @@
+DLFR V92.2 — Compteurs visibles + limites d'authentification assouplies
+
+A) Compteurs de décisions dans Modération > Demandes
+1. Remplacer index.html, js/production-tools.js et css/style.css.
+2. Dans Supabase SQL Editor, exécuter une fois le fichier supabase/71_COMPTEURS_DECISIONS_MODERATION.sql (fourni dans le correctif si présent; sinon le reprendre depuis le patch V92.1).
+3. Faire Ctrl+F5. Le numéro de version du script a été changé pour éviter le cache navigateur.
+
+B) Connexion / création de compte
+Le fichier supabase/functions/username-auth/index.ts relève les limites personnalisées à un niveau beaucoup plus élevé (inscriptions : 1000/IP/heure et 100/pseudo/15 min ; connexions : 2000/IP/heure et 100/pseudo/15 min ; association : 30/heure). Les protections anti-abus de Supabase Auth restent actives ; elles ne sont pas désactivées.
+
+Pour déployer ce changement, mettre à jour la fonction Edge `username-auth` dans Supabase (CLI ou éditeur de fonction), puis redéployer. Remplacer uniquement le fichier local ne change pas la fonction hébergée.
+
+À savoir : les compteurs ne peuvent attribuer les décisions anciennes que si reviewed_by a été renseigné. Le trigger SQL remplit cette colonne pour les décisions prises après son installation. Les chiffres s'affichent dans la file « Demandes », pas dans l'onglet « Équipe ».

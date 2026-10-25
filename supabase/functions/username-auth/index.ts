@@ -80,7 +80,7 @@ Deno.serve(async req=>{
     if(!Number.isFinite(latestLogin)||Date.now()-latestLogin>20*60*1000){
       return response(403,{error:'Pour sécuriser cette modification, reconnecte-toi avec Discord puis réessaie dans les 20 minutes.'},origin);
     }
-    if(!await rate('attach:'+user.id,5,3600))return response(429,{error:'Trop de tentatives. Réessaie plus tard.'},origin);
+    if(!await rate('attach:'+user.id,30,3600))return response(429,{error:'Trop de tentatives de liaison. Réessaie plus tard.'},origin);
     const {data:already,error:alreadyErr}=await admin.from('dlfr_username_accounts')
       .select('username_key').eq('auth_user_id',user.id).maybeSingle();
     if(alreadyErr)throw alreadyErr;
@@ -111,14 +111,14 @@ Deno.serve(async req=>{
   // V62 : quotas SEPARES entre inscription et connexion. Le quota commun de V57
   // pouvait bloquer toutes les inscriptions après des essais de connexion.
   // Ne jamais partager une seule clé « unknown » entre tous les visiteurs.
-  const ipLimit=action==='register'?60:100;
-  const handleLimit=action==='register'?5:16;
+  const ipLimit=action==='register'?1000:2000;
+  const handleLimit=action==='register'?100:100;
   const operation=action==='register'?'signup':'signin';
   if(remote!=='unknown' && !await rate('ip:'+operation+':'+remote,ipLimit,3600)){
-    return response(429,{error:action==='register'?'Trop d’inscriptions depuis ce réseau. Réessaie dans une heure ou contacte la modération.':'Trop de connexions depuis ce réseau. Réessaie plus tard.'},origin);
+    return response(429,{error:action==='register'?'Trop d’inscriptions depuis ce réseau. Réessaie plus tard.':'Trop de connexions depuis ce réseau. Réessaie plus tard.'},origin);
   }
   if(!await rate('handle:'+operation+':'+handle,handleLimit,900)){
-    return response(429,{error:action==='register'?'Trop de créations pour ce pseudo. Attends 15 minutes avant un nouvel essai.':'Trop de tentatives de connexion pour ce pseudo. Attends 15 minutes.'},origin);
+    return response(429,{error:action==='register'?'Trop de créations pour ce pseudo. Réessaie plus tard.':'Trop de tentatives de connexion pour ce pseudo. Réessaie plus tard.'},origin);
   }
   if(action==='register'){
     const {data:existing,error:lookErr}=await admin.from('dlfr_username_accounts')
