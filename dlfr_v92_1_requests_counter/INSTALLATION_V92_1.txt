@@ -1,0 +1,19 @@
+DLFR V92.1 — Compteurs personnels dans Demandes
+
+Affiche dans la file de modération :
+- soumissions acceptées par le modérateur connecté ;
+- soumissions refusées par le modérateur connecté ;
+- total de décisions prises par ce compte.
+
+Fichiers à remplacer sur le site :
+- js/app.js
+- js/production-tools.js
+- css/style.css
+
+ÉTAPE SQL NÉCESSAIRE :
+1. Ouvrir Supabase > SQL Editor.
+2. Copier le contenu de supabase/71_COMPTEURS_DECISIONS_MODERATION.sql.
+3. Exécuter une seule fois.
+4. Déployer les trois fichiers ci-dessus et recharger la page avec Ctrl+F5.
+
+Important : les compteurs commencent à enregistrer les décisions après l'installation du SQL. Les anciennes décisions ne peuvent pas être attribuées rétroactivement si la base n'a pas conservé l'identité du modérateur.
