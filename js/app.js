@@ -658,7 +658,7 @@ function v86AdminHTML(){
  const monday=new Date();const dow=(monday.getUTCDay()+6)%7;monday.setUTCDate(monday.getUTCDate()-dow);const week=monday.toISOString().slice(0,10);
  return `<section class="paper v86-owner" id="v86-owner"><h2>📅 Défis hebdomadaires</h2><p class="muted small">Programme plusieurs semaines à l'avance. La publication est automatique chaque lundi à 00:00 UTC.</p>
  <form data-form="v86Weekly" class="v86-weekly-form"><label class="field">Semaine (lundi UTC)<input name="week_start" type="date" required value="${week}"></label><label class="field">Niveau<select name="demon_id" required><option value="">Choisir un niveau public</option>${(state.data?.demons||[]).filter(d=>d.is_public!==false).sort((a,b)=>String(a.name).localeCompare(String(b.name),'fr')).map(d=>`<option value="${esc(d.id)}">${esc(d.name)} · #${esc(d.position)}</option>`).join('')}</select></label><label class="field">Pièces<input type="number" name="reward" min="1" max="500" value="50" required></label><button class="btn" type="submit">Ajouter / modifier la semaine</button></form>
- <div id="v86-schedule"><p class="small muted">Chargement du calendrier…</p></div><h2>🧪 Essais de la boutique</h2><p class="small muted">Accès de test réservé à ton compte. Aucun achat ni dépense : tu peux essayer les objets depuis la boutique et retirer leurs accès ici.</p><div id="v86-cosmetics"><p class="small muted">Chargement des objets…</p></div></section>`;
+ <div id="v86-schedule"><p class="small muted">Chargement du calendrier…</p></div><h2>🧪 Essais de la boutique</h2><p class="small muted">Accès de test réservé à ton compte. Aucun achat ni dépense : tu peux essayer les objets depuis la boutique et retirer leurs accès ici.</p><div id="v86-cosmetics"><p class="small muted">Chargement des objets…</p></div><h3>🛍️ Aperçu direct de la boutique</h3><p class="small muted">Après avoir activé un essai, utilise « Équiper » ici. Aucun achat nécessaire.</p><div id="v81-rewards" class="v81-rewards" aria-live="polite">Chargement de la boutique…</div></section>`;
 }
 async function v86AdminLoad(){
  const host=document.getElementById('v86-owner');if(!host||!db)return;
@@ -702,7 +702,7 @@ async function v81RewardsRender(){
   v82HalloweenOwned=owns.has('theme_halloween');if(equip.theme==='theme_halloween'){setTheme('halloween');}else if(document.documentElement.classList.contains('halloween')){setTheme('midnight');}
   area.innerHTML=`<div class="v81-header"><b>✦ DLFR Rewards</b><span>🪙 ${esc(status.balance??0)} pièces · 🔥 ${esc(status.streak??0)} semaine(s) de série</span></div>
   <p class="small muted">Les pièces proviennent des défis hebdomadaires. Les objets sont purement décoratifs et n'affectent jamais les points DLFR.</p>
-  <details class="v81-shop"><summary>🛍️ Boutique et collection ${status.signed_in?'':'· connexion requise'}</summary><div class="v81-items">${(cr.data||[]).map(item=>{
+  <details class="v81-shop" ${document.getElementById('v86-owner')?'open':''}><summary>🛍️ Boutique et collection ${status.signed_in?'':'· connexion requise'}</summary><div class="v81-items">${(cr.data||[]).map(item=>{
    const trial=(status.test_inventory||[]).includes(item.item_key),owned=owns.has(item.item_key)||trial,equipped=equip[item.category]===item.item_key;
    return `<div class="v81-item"><div class="v81-item-title">${esc(item.emoji)} <strong>${esc(item.label)}</strong>${trial?'<span class="muted small"> · essai propriétaire</span>':''}</div><small>${esc(item.description)}</small><div class="v81-item-action"><span>🪙 ${esc(item.price)}</span>${status.signed_in?(owned?`<button type="button" class="btn small subtle" data-v81-equip="${esc(item.item_key)}" data-v81-category="${esc(item.category)}">${equipped?'✓ Équipé':'Équiper'}</button>`:`<button type="button" class="btn small" data-v81-buy="${esc(item.item_key)}" ${Number(status.balance)<Number(item.price)?'disabled':''}>Acheter</button>`):'<span class="muted small">Se connecter</span>'}</div></div>`;
   }).join('')}</div><p class="small muted">Une décoration par catégorie. Les objets de prestige évoluent après 3 puis 8 défis hebdomadaires validés, sans nouveau paiement.</p></details>`;
@@ -1026,7 +1026,11 @@ function v79LevelGallery(items, kind='rated'){
 
 function statProfile(p){if(!p)return '<div class="stats-profile empty">Sélectionne un joueur.</div>';
  const profile=state.data.player_profiles.find(v=>v.player_key===p.player_key)||{};
- const snapshots=state.data.player_stat_snapshots.filter(s=>s.player_key===p.player_key).sort((a,b)=>String(a.snapshot_day??'').localeCompare(String(b.snapshot_day??'')));
+ const allSnapshots=state.data.player_stat_snapshots.filter(s=>s.player_key===p.player_key).sort((a,b)=>String(a.snapshot_day??'').localeCompare(String(b.snapshot_day??'')));
+ const todayUTC=new Date().toISOString().slice(0,10);
+ const unreliable=allSnapshots.filter(s=>s.snapshot_day===todayUTC && ((+s.points===0 && +p.score>0.01) || (+s.rank_position>0 && +p.rank>0 && +s.rank_position!==+p.rank)));
+ const snapshots=allSnapshots.filter(s=>!unreliable.includes(s));
+ const snapshotWarning=unreliable.length?'<p class="notice small">⚠️ Relevé du jour incohérent avec le classement actuel : masqué en attendant une correction. Aucun ancien score n’a été inventé.</p>':'';
  const recs=state.data.completions.filter(c=>key(c.player)===p.player_key);
  const monthly={};for(const r of recs){if(+r.progress<100)continue;const m=plain(r.created_at).slice(0,7);if(m)monthly[m]=(monthly[m]||0)+1;}
  const rankedStr=p.rank?`#${p.rank}`:'—';
@@ -1068,7 +1072,7 @@ function statProfile(p){if(!p)return '<div class="stats-profile empty">Sélectio
  ${[['Démons créés',p.created],['Démons publiés',p.published],['Démons vérifiés',p.verified]].map(([t,a])=>`<div class="profile-section"><h3>${t}</h3><p>${completionLinks(a)}</p></div>`).join('')}
  <div class="profile-section"><h3>Progression sur</h3><p>${p.progress.length?p.progress.map(r=>esc(r.demon.name)+' : '+r.progress+'%').join(' · '):'Aucun'}</p></div>
  </div><div class="profile-pane ${state.profileTab==='charts'?'':'is-hidden'}" data-pane="charts">
- <div class="profile-section"><h3>Progression historique</h3>${lineGraph(snapshots)}<p class="muted small">Les instantanés sont enregistrés uniquement à partir de leur activation.</p></div>
+ <div class="profile-section"><h3>Progression historique</h3>${snapshotWarning}${lineGraph(snapshots)}<p class="muted small">Les instantanés sont enregistrés uniquement à partir de leur activation.</p></div>
  <div class="profile-section"><h3>Évolution du rang</h3>${graphRank(snapshots)}</div>
  <div class="profile-section"><h3>Complétions par mois</h3>${barGraph(monthly)}</div></div>
  <div class="profile-pane ${state.profileTab==='achievements'?'':'is-hidden'}" data-pane="achievements">

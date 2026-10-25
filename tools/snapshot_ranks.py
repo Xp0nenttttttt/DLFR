@@ -114,6 +114,13 @@ def main():
         if d and d.get('position') is not None and (row['hardest'] is None or int(d['position'])<int(row['hardest']['position'])): row['hardest']=d
     ranked=sorted((p for p in players if not p.get('hidden_from_stats')),key=lambda p:(-float(p.get('points') or 0),p['player_key']))
     ranks={p['player_key']:i+1 for i,p in enumerate(ranked)}
+    # Protection contre les snapshots incohérents : le champ players.points peut être
+    # périmé alors que le site recalcule les scores depuis les records.
+    # Ne jamais écrire de faux 0 dans l'historique.
+    active_records={str(r.get('player') or '').strip().lower() for r in records if int(r.get('progress') or 0)==100}
+    suspects=[p['player_key'] for p in players if p['player_key'] in active_records and float(p.get('points') or 0)==0]
+    if suspects:
+        raise SystemExit('Export annulé : points stockés à zéro pour des joueurs avec records (ex.: '+', '.join(suspects[:8])+'). Le score officiel est calculé dans le site : synchroniser la formule exacte avant de créer des instantanés.')
     today=dt.date.today().isoformat()
     snapshots=[]
     for k,p in people.items():
