@@ -1071,3 +1071,12 @@ html.halloween .profile-hero{background:linear-gradient(120deg,#21132a,#662d38,#
 .v82-unrated-group{margin-top:30px;padding-top:14px;border-top:2px solid var(--border)}
 .v82-unrated-group>h2{font-size:21px;margin:5px 0}.v82-unrated-group>h2 small{font-size:13px;color:var(--muted)}
 .v82-unrated-item{border-left:3px solid #a369cb}.v82-unrated-item h2{font-size:19px}
+
+/* V85 — Prestige discret, responsive et sans animations imposées. */
+.v85-profile-picks{border-radius:12px;padding:14px;background:linear-gradient(105deg,rgba(112,65,159,.09),rgba(25,20,48,.03))}
+.v85-profile-picks .v85-prestige{border-color:#7b55c9;background:linear-gradient(115deg,rgba(77,40,112,.27),rgba(32,28,55,.22));color:var(--ink,#eee)}
+.v85-profile-picks .v85-tier-2{border-color:#ab78dd;box-shadow:0 0 0 1px rgba(171,120,221,.18)}
+.v85-profile-picks .v85-tier-3{border-color:#e6bd75;box-shadow:0 0 12px rgba(172,117,238,.25);background:linear-gradient(115deg,rgba(119,62,137,.3),rgba(201,137,65,.14))}
+.v85-profile-moon .v85-profile-picks{border:1px solid #a35363;background:linear-gradient(115deg,rgba(84,22,42,.28),rgba(21,17,35,.1))}
+.v85-profile-void .v85-profile-picks{border:1px solid #694ac0;background:radial-gradient(ellipse at right,rgba(109,69,180,.3),transparent 75%)}
+@media(prefers-reduced-motion:no-preference){.v85-profile-picks .v85-tier-3{animation:v85-pulse 5s ease-in-out infinite alternate}@keyframes v85-pulse{from{box-shadow:0 0 4px rgba(172,117,238,.2)}to{box-shadow:0 0 14px rgba(172,117,238,.5)}}}

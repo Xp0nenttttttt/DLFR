@@ -1,0 +1,15 @@
+DLFR V85 — Prestige évolutif et décorations de profil
+
+Pré-requis : site V84 et SQL V80 + V81 + V82 déjà exécutés.
+1. Sauvegarder les fichiers et la base de production.
+2. Exécuter supabase/85_PRESTIGE_EVOLUTIF.sql dans le SQL Editor.
+3. Remplacer js/app.js et css/style.css.
+4. Faire Ctrl+F5 et tester achat, équipement et profil public avec deux comptes.
+
+Objets : Couronne Améthyste 750, Éclipse Sanglante 1500, Ascension Céleste 2000, Voidwalker 3500 pièces.
+Évolution visuelle automatique : 1er palier initial, 2e à 3 défis validés, 3e à 8 défis validés.
+La progression dépend du nombre de récompenses hebdomadaires réclamées, y compris avant l'achat.
+Les objets restent achetés une seule fois. Une bannière ou un cadre à la fois.
+Aucun fichier assets/flags n'est inclus. Aucune modification des points DLFR.
+LIMITES : aperçu visuel concentré sur la vitrine de récompenses du profil, pas une refonte de toute la page.
+Tests SQL sur la vraie base non exécutés : sauvegarde recommandée.

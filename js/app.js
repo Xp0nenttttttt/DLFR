@@ -685,7 +685,7 @@ async function v81RewardsRender(){
   <details class="v81-shop"><summary>🛍️ Boutique et collection ${status.signed_in?'':'· connexion requise'}</summary><div class="v81-items">${(cr.data||[]).map(item=>{
    const owned=owns.has(item.item_key),equipped=equip[item.category]===item.item_key;
    return `<div class="v81-item"><div class="v81-item-title">${esc(item.emoji)} <strong>${esc(item.label)}</strong></div><small>${esc(item.description)}</small><div class="v81-item-action"><span>🪙 ${esc(item.price)}</span>${status.signed_in?(owned?`<button type="button" class="btn small subtle" data-v81-equip="${esc(item.item_key)}" data-v81-category="${esc(item.category)}">${equipped?'✓ Équipé':'Équiper'}</button>`:`<button type="button" class="btn small" data-v81-buy="${esc(item.item_key)}" ${Number(status.balance)<Number(item.price)?'disabled':''}>Acheter</button>`):'<span class="muted small">Se connecter</span>'}</div></div>`;
-  }).join('')}</div><p class="small muted">Une décoration par catégorie (cadre, badge, bannière ou thème). Les objets achetés restent dans ta collection.</p></details>`;
+  }).join('')}</div><p class="small muted">Une décoration par catégorie. Les objets de prestige évoluent après 3 puis 8 défis hebdomadaires validés, sans nouveau paiement.</p></details>`;
  }catch(err){if(seq===v81Request&&area.isConnected)area.innerHTML='<span class="small muted">Boutique indisponible : vérifie la migration SQL V81.</span>';}
 }
 async function v81ProfileRewards(){
@@ -695,7 +695,12 @@ async function v81ProfileRewards(){
   const {data,error}=await db.rpc('dlfr_rewards_public',{p_player_key:k});if(error)throw error;
   if(!area.isConnected||area.dataset.playerKey!==k)return;
   const badges=Array.isArray(data)?data:[];
-  area.innerHTML=badges.length?`<div class="v81-profile-picks"><b>✦ Récompenses exposées</b><div>${badges.map(x=>`<span class="v81-profile-pick" data-type="${esc(x.category)}">${esc(x.emoji)} ${esc(x.label)}</span>`).join('')}</div></div>`:'';
+  // Les classes sont calculées depuis une liste fermée, jamais depuis un champ libre SQL.
+  const prestige=new Set(['frame_amethyst_crown','frame_celestial','banner_bloodmoon','banner_voidwalker']);
+  area.classList.remove('v85-profile-moon','v85-profile-void');
+  if(badges.some(x=>x.item_key==='banner_bloodmoon'))area.classList.add('v85-profile-moon');
+  if(badges.some(x=>x.item_key==='banner_voidwalker'))area.classList.add('v85-profile-void');
+  area.innerHTML=badges.length?`<div class="v81-profile-picks v85-profile-picks"><b>✦ Récompenses exposées</b><div>${badges.map(x=>`<span class="v81-profile-pick ${prestige.has(x.item_key)?'v85-prestige':''} v85-tier-${[1,2,3].includes(Number(x.tier))?Number(x.tier):1}" data-type="${esc(x.category)}">${esc(x.emoji)} ${esc(x.label)}${prestige.has(x.item_key)?` <small>· ${esc(x.tier_label||'I')}</small>`:''}</span>`).join('')}</div></div>`:'';
  }catch(err){area.innerHTML='';}
 }
 function listPage(){
