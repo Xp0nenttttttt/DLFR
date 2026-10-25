@@ -1,0 +1,169 @@
+/* DLFR V90 — Effets premium des récompenses de profil
+   Chargé APRÈS style.css. Ne touche à aucune donnée : purement visuel.
+   Les animations sont désactivées si l'utilisateur a demandé moins de mouvement. */
+
+@property --v90-a{syntax:'<angle>';inherits:false;initial-value:0deg}
+
+/* ---------- Variables par objet ---------- */
+.stats-profile.v90-fx{--v90-p1:#fff;--v90-p2:#cbb6ff;--v90-n1:#fff;--v90-n2:#d9ccff;--v90-r1:#b48cff;--v90-r2:#6d3fd6;--v90-r3:#e7d6ff}
+.stats-profile.v90-has-banner_night{--v90-p1:#fff6c9;--v90-p2:#9fc3ff;--v90-n1:#fff;--v90-n2:#bcd2ff}
+.stats-profile.v90-has-badge_spark{--v90-p1:#ffe48a;--v90-p2:#fff}
+.stats-profile.v90-has-badge_flame{--v90-p1:#ff9a3c;--v90-p2:#ffd36b;--v90-n1:#fff3d6;--v90-n2:#ffb05a}
+.stats-profile.v90-has-frame_amethyst{--v90-r1:#c9a0ff;--v90-r2:#7d3df0;--v90-r3:#f0e0ff}
+.stats-profile.v90-has-frame_aurora{--v90-r1:#6dffd2;--v90-r2:#4aa8ff;--v90-r3:#c58bff}
+.stats-profile.v90-has-frame_amethyst_crown{--v90-r1:#ffd978;--v90-r2:#9b5cf0;--v90-r3:#fff1c2;--v90-p1:#ffe29a;--v90-p2:#d1a8ff;--v90-n1:#fff3cf;--v90-n2:#d9b8ff}
+.stats-profile.v90-has-frame_celestial{--v90-r1:#fff6d0;--v90-r2:#6fcdff;--v90-r3:#ffffff;--v90-p1:#fff4cf;--v90-p2:#9fe0ff;--v90-n1:#ffffff;--v90-n2:#a9e4ff}
+.stats-profile.v90-has-banner_bloodmoon{--v90-p1:#ff5a6e;--v90-p2:#ffb199;--v90-n1:#fff0ea;--v90-n2:#ff8d98}
+.stats-profile.v90-has-banner_voidwalker{--v90-p1:#c9b8ff;--v90-p2:#7c9bff;--v90-n1:#f4f0ff;--v90-n2:#a99bff}
+
+/* ---------- Calque d'effets dans la bannière ---------- */
+.v90-fx .profile-hero{isolation:isolate}
+.v90-fx-layer{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:1}
+.v90-fx .profile-hero-inner{position:relative;z-index:3}
+.v90-fx-layer i{position:absolute;left:var(--x);bottom:-12px;width:var(--s);height:var(--s);border-radius:50%;background:var(--v90-p1);box-shadow:0 0 9px var(--v90-p1);opacity:0}
+.v90-fx-layer i:nth-child(3n){background:var(--v90-p2);box-shadow:0 0 9px var(--v90-p2)}
+.v90-core,.v90-glow{position:absolute;pointer-events:none}
+.v90-glow{inset:0;opacity:.0}
+
+/* Balayage lumineux sur la bannière dès qu'un effet est actif */
+.stats-profile.v90-fx .profile-hero.profile-hero::after{content:'';position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.10) 48%,transparent 60%);background-size:250% 100%;background-position:130% 0}
+
+/* ---------- Nom du joueur en dégradé animé ---------- */
+.stats-profile.v90-fx .profile-hero .profile-hero-copy strong{
+  background:linear-gradient(90deg,var(--v90-n1),var(--v90-n2),var(--v90-n1));background-size:220% 100%;
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;
+  text-shadow:none;filter:drop-shadow(0 2px 8px rgba(0,0,0,.5))}
+.stats-profile.v90-fx .profile-hero .profile-hero-copy strong img{-webkit-text-fill-color:initial}
+
+/* ---------- Anneau animé autour de l'avatar ---------- */
+.v90-hasframe .profile-hero .dlfr27-frame,.v90-hasframe .dlfr24-profile-head .dlfr27-frame{position:relative;overflow:visible}
+.v90-hasframe .profile-hero .dlfr27-frame::before{content:'';position:absolute;inset:-8px;border-radius:22px;padding:3px;
+  background:conic-gradient(from var(--v90-a),var(--v90-r1),var(--v90-r2),var(--v90-r3),var(--v90-r2),var(--v90-r1));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;
+  filter:drop-shadow(0 0 7px var(--v90-r2));pointer-events:none;z-index:2}
+.v90-hasframe .profile-hero .dlfr27-frame::after{content:'';position:absolute;inset:-14px;border-radius:28px;pointer-events:none;z-index:0;
+  background:radial-gradient(circle,var(--v90-r2) 0,transparent 68%);opacity:.38;filter:blur(8px)}
+.v90-hasframe .profile-hero .profile-avatar{position:relative;z-index:1}
+
+/* Couronne (Améthyste prestige) */
+.v90-has-frame_amethyst_crown .profile-hero .dlfr27-frame>*:first-child{position:relative}
+.v90-has-frame_amethyst_crown .profile-hero .dlfr27-frame::after{inset:auto;left:50%;top:-24px;width:30px;height:22px;transform:translateX(-50%);
+  border-radius:0;background:linear-gradient(180deg,#fff0b8,#e8a93c);opacity:1;filter:drop-shadow(0 0 7px #ffd978);z-index:4;
+  clip-path:polygon(0 100%,0 30%,22% 62%,50% 0,78% 62%,100% 30%,100% 100%)}
+/* Halo céleste */
+.v90-has-frame_celestial .profile-hero .dlfr27-frame::after{inset:auto;left:50%;top:-18px;width:56px;height:14px;transform:translateX(-50%);
+  border-radius:50%;background:none;border:3px solid #fff4cf;box-shadow:0 0 14px #fff4cf,inset 0 0 8px #fff4cf;opacity:.95;filter:none;z-index:4}
+
+/* ---------- Bannières (cœur animé) ---------- */
+/* Nuit étoilée */
+.stats-profile.v90-has-banner_night .profile-hero{background:linear-gradient(120deg,#070b24,#17235a 55%,#0b1030)}
+.v90-has-banner_night .v90-glow{opacity:1;background:
+  radial-gradient(1.5px 1.5px at 12% 30%,#fff,transparent),radial-gradient(1.5px 1.5px at 28% 70%,#cfe0ff,transparent),
+  radial-gradient(2px 2px at 44% 22%,#fff,transparent),radial-gradient(1.5px 1.5px at 61% 62%,#fff,transparent),
+  radial-gradient(2px 2px at 76% 28%,#ffeebb,transparent),radial-gradient(1.5px 1.5px at 90% 74%,#fff,transparent),
+  radial-gradient(1.5px 1.5px at 6% 82%,#fff,transparent),radial-gradient(1.5px 1.5px at 54% 88%,#cfe0ff,transparent)}
+.v90-has-banner_night .v90-core{width:90px;height:2px;top:20%;left:-100px;background:linear-gradient(90deg,transparent,#fff);border-radius:2px;transform:rotate(18deg);opacity:0;box-shadow:0 0 8px #fff}
+
+/* Éclipse sanglante */
+.v90-has-banner_bloodmoon .v90-core{width:104px;height:104px;right:34px;top:14px;border-radius:50%;
+  background:radial-gradient(circle at 34% 34%,#ffb98a,#d1384f 45%,#3a0a16 76%);box-shadow:0 0 36px 6px rgba(214,52,76,.45),inset -14px -10px 22px rgba(0,0,0,.45)}
+.v90-has-banner_bloodmoon .v90-core::after{content:'';position:absolute;inset:-14px;border-radius:50%;border:2px solid rgba(255,110,120,.35);box-shadow:0 0 20px rgba(255,80,100,.35)}
+.v90-has-banner_bloodmoon .v90-glow{opacity:1;background:radial-gradient(ellipse at 85% 30%,rgba(255,60,80,.28),transparent 55%),linear-gradient(180deg,transparent 55%,rgba(120,10,30,.45))}
+
+/* Voidwalker */
+.stats-profile.v89-effect-voidwalker .profile-hero::before,.stats-profile.v89-effect-bloodmoon .profile-hero::before{display:none}
+.v90-has-banner_voidwalker .v90-core{width:132px;height:132px;right:14px;top:6px;border-radius:50%;
+  background:conic-gradient(from var(--v90-a),transparent 0,#7c5cff 14%,#e9dcff 22%,#4b2fb8 38%,transparent 52%,#6a8bff 70%,#b9a4ff 82%,transparent 100%);
+  -webkit-mask:radial-gradient(circle,transparent 0 27%,#000 29% 62%,transparent 70%);mask:radial-gradient(circle,transparent 0 27%,#000 29% 62%,transparent 70%);filter:blur(.4px) drop-shadow(0 0 14px rgba(124,92,255,.7))}
+.v90-has-banner_voidwalker .v90-core::after{content:'';position:absolute;inset:34%;border-radius:50%;background:#02030a;box-shadow:0 0 22px 6px rgba(0,0,0,.9),0 0 0 2px rgba(190,170,255,.35)}
+.v90-has-banner_voidwalker .v90-glow{opacity:1;background:radial-gradient(circle at 82% 42%,rgba(110,80,255,.35),transparent 48%)}
+
+/* Particules : montée (braises/étincelles) ou scintillement (étoiles) */
+.v90-has-banner_voidwalker .v90-fx-layer i,.v90-has-banner_night .v90-fx-layer i{bottom:auto;top:var(--y)}
+
+/* ---------- Badges animés ---------- */
+.v89-reward-chip.v89-badge_flame b{background:linear-gradient(90deg,#ffd36b,#ff7a2e,#ffd36b);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.v89-reward-chip.v89-badge_flame{border-color:#ff8a3c;box-shadow:0 0 14px rgba(255,122,46,.35)}
+.v89-reward-chip.v89-badge_spark{border-color:#ffd96b;position:relative;overflow:hidden}
+.v89-reward-chip.v89-badge_spark::after{content:'';position:absolute;inset:0;background:linear-gradient(110deg,transparent 40%,rgba(255,255,255,.35) 50%,transparent 60%);background-size:250% 100%;background-position:130% 0;pointer-events:none}
+.v89-reward-chip.v89-frame_aurora{border-color:#5fe3c8;box-shadow:0 0 12px rgba(95,227,200,.3)}
+.v89-reward-chip.v89-frame_amethyst{border-color:#a67cff;box-shadow:0 0 12px rgba(150,100,255,.3)}
+.v89-reward-chip.v89-banner_night{border-color:#6f86e6;box-shadow:0 0 12px rgba(111,134,230,.3)}
+.v89-reward-chip.v85-tier-3{position:relative;overflow:hidden}
+
+/* ---------- Paliers (pastilles) ---------- */
+.v90-tier-pips{display:flex;gap:6px;align-items:center;margin-top:8px}
+.v90-tier-pips i{width:26px;height:6px;border-radius:99px;background:rgba(255,255,255,.14)}
+.v90-tier-pips[data-t="1"] i:nth-child(1),.v90-tier-pips[data-t="2"] i:nth-child(-n+2),.v90-tier-pips[data-t="3"] i{background:linear-gradient(90deg,var(--v90-r1,#c9a0ff),var(--v90-r2,#7d3df0));box-shadow:0 0 8px var(--v90-r2,#7d3df0)}
+.v90-tier-hint{font-size:11px;color:var(--muted,#b9c3d8)}
+
+/* ---------- Boutique : cartes plus vivantes ---------- */
+.v81-item.v90-shop-item{position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s,border-color .2s}
+.v81-item.v90-shop-item::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--v90-bar,linear-gradient(90deg,#8c6bff,#52a8ff))}
+.v81-item.v90-shop-item:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(10,10,30,.28),0 0 0 1px var(--v90-edge,rgba(140,107,255,.5))}
+.v90-swatch{display:block;height:46px;border-radius:8px;margin-bottom:2px;border:1px solid rgba(255,255,255,.1);position:relative;overflow:hidden}
+.v90-item-frame_amethyst{--v90-bar:linear-gradient(90deg,#c9a0ff,#7d3df0);--v90-edge:#9a66ff}
+.v90-item-frame_aurora{--v90-bar:linear-gradient(90deg,#6dffd2,#4aa8ff,#c58bff);--v90-edge:#5fe3c8}
+.v90-item-badge_spark{--v90-bar:linear-gradient(90deg,#ffe48a,#fff);--v90-edge:#ffd96b}
+.v90-item-badge_flame{--v90-bar:linear-gradient(90deg,#ffd36b,#ff6a2e);--v90-edge:#ff8a3c}
+.v90-item-banner_night{--v90-bar:linear-gradient(90deg,#17235a,#8fb0ff);--v90-edge:#6f86e6}
+.v90-item-frame_amethyst_crown{--v90-bar:linear-gradient(90deg,#ffd978,#9b5cf0);--v90-edge:#e6bd75}
+.v90-item-frame_celestial{--v90-bar:linear-gradient(90deg,#fff6d0,#6fcdff);--v90-edge:#7fd2ff}
+.v90-item-banner_bloodmoon{--v90-bar:linear-gradient(90deg,#d1384f,#3a0a16);--v90-edge:#e0556a}
+.v90-item-banner_voidwalker{--v90-bar:linear-gradient(90deg,#7c5cff,#0a0f20);--v90-edge:#8c78ff}
+.v90-item-frame_amethyst .v90-swatch{background:conic-gradient(from 20deg,#c9a0ff,#7d3df0,#f0e0ff,#7d3df0,#c9a0ff)}
+.v90-item-frame_aurora .v90-swatch{background:conic-gradient(from 20deg,#6dffd2,#4aa8ff,#c58bff,#4aa8ff,#6dffd2)}
+.v90-item-badge_spark .v90-swatch{background:radial-gradient(circle at 30% 40%,#fff,transparent 12%),radial-gradient(circle at 70% 60%,#ffe48a,transparent 14%),linear-gradient(135deg,#4b3b12,#a8841f)}
+.v90-item-badge_flame .v90-swatch{background:radial-gradient(ellipse at 50% 100%,#ffd36b,#ff6a2e 45%,#3a0f06 85%)}
+.v90-item-banner_night .v90-swatch{background:radial-gradient(1.5px 1.5px at 20% 30%,#fff,transparent),radial-gradient(2px 2px at 60% 55%,#fff,transparent),radial-gradient(1.5px 1.5px at 85% 25%,#cfe0ff,transparent),linear-gradient(120deg,#070b24,#17235a)}
+.v90-item-frame_amethyst_crown .v90-swatch{background:conic-gradient(from 0deg,#ffd978,#9b5cf0,#fff1c2,#9b5cf0,#ffd978)}
+.v90-item-frame_celestial .v90-swatch{background:radial-gradient(ellipse at 50% 0,#fff,transparent 40%),linear-gradient(135deg,#254a74,#6fcdff 80%)}
+.v90-item-banner_bloodmoon .v90-swatch{background:radial-gradient(circle at 72% 50%,#ffb98a,#d1384f 30%,transparent 46%),linear-gradient(120deg,#220f18,#4d1624)}
+.v90-item-banner_voidwalker .v90-swatch{background:radial-gradient(circle at 72% 50%,#02030a 0 12%,#7c5cff 20%,transparent 38%),linear-gradient(120deg,#0a1020,#1a0f33)}
+
+/* ---------- Animations (uniquement si le mouvement est autorisé) ---------- */
+@media(prefers-reduced-motion:no-preference){
+  .stats-profile.v90-fx .profile-hero.profile-hero::after{animation:v90-sweep 7s ease-in-out infinite}
+  .stats-profile.v90-fx .profile-hero .profile-hero-copy strong{animation:v90-name 6s linear infinite}
+  .v90-hasframe .profile-hero .dlfr27-frame::before{animation:v90-spin 6s linear infinite}
+  .v90-hasframe.v90-t2 .profile-hero .dlfr27-frame::before{animation-duration:4.5s}
+  .v90-hasframe.v90-t3 .profile-hero .dlfr27-frame::before{animation-duration:3s}
+  .v90-hasframe .profile-hero .dlfr27-frame::after{animation:v90-breathe 3.6s ease-in-out infinite}
+  .v90-has-frame_amethyst_crown .profile-hero .dlfr27-frame::after{animation:v90-bob 3s ease-in-out infinite}
+  .v90-has-frame_celestial .profile-hero .dlfr27-frame::after{animation:v90-halo 4s ease-in-out infinite}
+  .v90-fx-layer i{animation:v90-rise var(--d) linear var(--l) infinite}
+  .v90-has-banner_voidwalker .v90-fx-layer i,.v90-has-banner_night .v90-fx-layer i{animation:v90-twinkle var(--d) ease-in-out var(--l) infinite alternate}
+  .v90-has-banner_night .v90-core{animation:v90-shoot 7s ease-in 2s infinite}
+  .v90-has-banner_bloodmoon .v90-core{animation:v90-moon 5s ease-in-out infinite}
+  .v90-has-banner_bloodmoon .v90-glow{animation:v90-pulse 5s ease-in-out infinite}
+  .v90-has-banner_voidwalker .v90-core{animation:v90-spin 7s linear infinite}
+  .v90-has-banner_voidwalker.v90-t3 .v90-core{animation-duration:3.5s}
+  .v90-has-banner_voidwalker .v90-glow{animation:v90-pulse 4s ease-in-out infinite}
+  .v89-reward-chip.v89-badge_flame b{animation:v90-name 3s linear infinite}
+  .v89-reward-chip.v89-badge_flame{animation:v90-flicker 2.2s ease-in-out infinite}
+  .v89-reward-chip.v89-badge_spark::after{animation:v90-sweep 3.5s ease-in-out infinite}
+  .v89-reward-chip.v85-tier-3::before{content:'';position:absolute;inset:0;background:linear-gradient(110deg,transparent 40%,rgba(255,255,255,.22) 50%,transparent 60%);background-size:250% 100%;animation:v90-sweep 4s ease-in-out infinite;pointer-events:none}
+  .v81-item.v90-shop-item .v90-swatch{animation:v90-swatch 6s ease-in-out infinite alternate;background-size:140% 140%}
+  @keyframes v90-spin{to{--v90-a:360deg}}
+  @keyframes v90-name{to{background-position:220% 0}}
+  @keyframes v90-sweep{0%,35%{background-position:130% 0}70%,100%{background-position:-60% 0}}
+  @keyframes v90-rise{0%{transform:translate(0,0) scale(.5);opacity:0}15%{opacity:.95}100%{transform:translate(var(--dx,14px),-190px) scale(1);opacity:0}}
+  @keyframes v90-twinkle{from{opacity:.1;transform:scale(.6)}to{opacity:1;transform:scale(1.25)}}
+  @keyframes v90-shoot{0%{left:-100px;top:12%;opacity:0}6%{opacity:1}22%{left:75%;top:48%;opacity:0}100%{left:75%;top:48%;opacity:0}}
+  @keyframes v90-moon{0%,100%{transform:scale(1);filter:brightness(1)}50%{transform:scale(1.05);filter:brightness(1.18)}}
+  @keyframes v90-pulse{0%,100%{opacity:.7}50%{opacity:1}}
+  @keyframes v90-breathe{0%,100%{opacity:.25;transform:scale(.96)}50%{opacity:.55;transform:scale(1.04)}}
+  @keyframes v90-bob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-4px)}}
+  @keyframes v90-halo{0%,100%{transform:translateX(-50%) scale(1);opacity:.85}50%{transform:translateX(-50%) scale(1.08);opacity:1}}
+  @keyframes v90-flicker{0%,100%{box-shadow:0 0 12px rgba(255,122,46,.3)}50%{box-shadow:0 0 22px rgba(255,150,60,.6)}}
+  @keyframes v90-swatch{from{background-position:0 0}to{background-position:100% 100%}}
+}
+
+/* ---------- Mobile ---------- */
+@media(max-width:690px){
+  .v90-has-banner_bloodmoon .v90-core{width:64px;height:64px;right:12px;top:10px}
+  .v90-has-banner_voidwalker .v90-core{width:92px;height:92px;right:4px;top:4px}
+  .v90-hasframe .profile-hero .dlfr27-frame::before{inset:-6px;border-radius:18px}
+  .v90-has-frame_amethyst_crown .profile-hero .dlfr27-frame::after{top:-20px;width:24px;height:18px}
+  .v90-has-frame_celestial .profile-hero .dlfr27-frame::after{width:44px;top:-15px}
+}

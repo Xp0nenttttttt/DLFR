@@ -704,9 +704,27 @@ async function v81RewardsRender(){
   <p class="small muted">Les pièces proviennent des défis hebdomadaires. Les objets sont purement décoratifs et n'affectent jamais les points DLFR.</p>
   <details class="v81-shop" ${document.getElementById('v86-owner')?'open':''}><summary>🛍️ Boutique et collection ${status.signed_in?'':'· connexion requise'}</summary><div class="v81-items">${(cr.data||[]).map(item=>{
    const trial=(status.test_inventory||[]).includes(item.item_key),owned=owns.has(item.item_key)||trial,equipped=equip[item.category]===item.item_key;
-   return `<div class="v81-item"><div class="v81-item-title">${esc(item.emoji)} <strong>${esc(item.label)}</strong>${trial?'<span class="muted small"> · essai propriétaire</span>':''}</div><small>${esc(item.description)}</small><div class="v81-item-action"><span>🪙 ${esc(item.price)}</span>${status.signed_in?(owned?`<button type="button" class="btn small subtle" data-v81-equip="${esc(item.item_key)}" data-v81-category="${esc(item.category)}">${equipped?'✓ Équipé':'Équiper'}</button>`:`<button type="button" class="btn small" data-v81-buy="${esc(item.item_key)}" ${Number(status.balance)<Number(item.price)?'disabled':''}>Acheter</button>`):'<span class="muted small">Se connecter</span>'}</div></div>`;
+   return `<div class="v81-item v90-shop-item v90-item-${esc(item.item_key)}"><span class="v90-swatch" aria-hidden="true"></span><div class="v81-item-title">${esc(item.emoji)} <strong>${esc(item.label)}</strong>${trial?'<span class="muted small"> · essai propriétaire</span>':''}</div><small>${esc(item.description)}</small><div class="v81-item-action"><span>🪙 ${esc(item.price)}</span>${status.signed_in?(owned?`<button type="button" class="btn small subtle" data-v81-equip="${esc(item.item_key)}" data-v81-category="${esc(item.category)}">${equipped?'✓ Équipé':'Équiper'}</button>`:`<button type="button" class="btn small" data-v81-buy="${esc(item.item_key)}" ${Number(status.balance)<Number(item.price)?'disabled':''}>Acheter</button>`):'<span class="muted small">Se connecter</span>'}</div></div>`;
   }).join('')}</div><p class="small muted">Une décoration par catégorie. Les objets de prestige évoluent après 3 puis 8 défis hebdomadaires validés, sans nouveau paiement.</p></details>`;
  }catch(err){if(seq===v81Request&&area.isConnected)area.innerHTML='<span class="small muted">Boutique indisponible : '+esc(err.message||'Erreur Supabase')+'</span>';}
+}
+// V90 — calque d'effets animés (anneau d'avatar, particules, bannière vivante). Purement visuel.
+function v90Fx(card,badges,prestige){
+ if(!card)return;
+ [...card.classList].filter(c=>c.startsWith('v90-')).forEach(c=>card.classList.remove(c));
+ card.querySelectorAll('.v90-fx-layer').forEach(n=>n.remove());
+ if(!badges.length)return;
+ const keys=new Set(badges.map(x=>String(x.item_key||'')).filter(k=>/^[a-z0-9_]+$/.test(k)));
+ const tiers=badges.filter(x=>prestige.has(x.item_key)).map(x=>[1,2,3].includes(Number(x.tier))?Number(x.tier):1);
+ const tier=tiers.length?Math.max(...tiers):1;
+ card.classList.add('v90-fx','v90-t'+tier);
+ keys.forEach(k=>card.classList.add('v90-has-'+k));
+ if([...keys].some(k=>k.startsWith('frame_')))card.classList.add('v90-hasframe');
+ const hero=card.querySelector('.profile-hero');if(!hero)return;
+ const n=keys.has('banner_voidwalker')||keys.has('banner_night')?18:14;
+ let parts='';
+ for(let i=0;i<n;i++)parts+=`<i style="--x:${(i*53+7)%96}%;--y:${(i*29+13)%88}%;--s:${2+(i*7)%4}px;--d:${(3.2+((i*13)%40)/10).toFixed(1)}s;--l:${(((-(i*7))%50)/10).toFixed(1)}s;--dx:${(i%2?1:-1)*(6+(i*5)%22)}px"></i>`;
+ hero.insertAdjacentHTML('beforeend',`<div class="v90-fx-layer" aria-hidden="true"><span class="v90-glow"></span><b class="v90-core"></b>${parts}</div>`);
 }
 async function v81ProfileRewards(){
  const area=document.getElementById('v81-profile-rewards');if(!area||!db)return;
@@ -726,9 +744,10 @@ async function v81ProfileRewards(){
   if(effectClass){area.classList.add(effectClass);card&&card.classList.add(effectClass);community&&community.classList.add(effectClass);}
   if(badges.some(x=>x.item_key==='banner_bloodmoon'))area.classList.add('v85-profile-moon');
   if(badges.some(x=>x.item_key==='banner_voidwalker'))area.classList.add('v85-profile-void');
+  v90Fx(card||community,badges,prestige);
   const tierLabel=x=>prestige.has(x.item_key)?esc(x.tier_label||'I'):'Collection';
   const tierNum=x=>[1,2,3].includes(Number(x.tier))?Number(x.tier):1;
-  const highlight=primary?`<div class="v89-reward-stage v89-stage-${esc(primary.item_key)} v89-tier-${tierNum(primary)}"><div class="v89-reward-stage-visual" aria-hidden="true"><span class="v89-orb v89-orb-a"></span><span class="v89-orb v89-orb-b"></span><span class="v89-orb v89-orb-c"></span></div><div class="v89-reward-stage-copy"><span class="kicker">Effet principal actif</span><strong>${esc(primary.emoji)} ${esc(primary.label)}</strong><p>${esc(primary.description||'Récompense cosmétique premium équipée sur la carte du joueur.')}</p><small>${prestige.has(primary.item_key)?`Palier ${esc(primary.tier_label||'I')}`:'Actif'} · Effets visuels appliqués à la fiche du joueur</small></div></div>`:'';
+  const highlight=primary?`<div class="v89-reward-stage v89-stage-${esc(primary.item_key)} v89-tier-${tierNum(primary)}"><div class="v89-reward-stage-visual" aria-hidden="true"><span class="v89-orb v89-orb-a"></span><span class="v89-orb v89-orb-b"></span><span class="v89-orb v89-orb-c"></span></div><div class="v89-reward-stage-copy"><span class="kicker">Effet principal actif</span><strong>${esc(primary.emoji)} ${esc(primary.label)}</strong><p>${esc(primary.description||'Récompense cosmétique premium équipée sur la carte du joueur.')}</p><small>${prestige.has(primary.item_key)?`Palier ${esc(primary.tier_label||'I')}`:'Actif'} · Effets visuels appliqués à la fiche du joueur</small>${prestige.has(primary.item_key)?`<div class="v90-tier-pips" data-t="${tierNum(primary)}"><i></i><i></i><i></i></div><div class="v90-tier-hint">${tierNum(primary)>=3?'Palier maximal atteint':tierNum(primary)===2?'Palier III à 8 défis réclamés':'Palier II à 3 défis réclamés'}</div>`:''}</div></div>`:'';
   area.innerHTML=badges.length?`<div class="v81-profile-picks v85-profile-picks v89-profile-picks"><div class="row-between"><b>✦ Récompenses exposées</b><span class="small muted">${badges.length} équipée(s)</span></div>${highlight}<div class="v89-reward-grid">${badges.map(x=>`<span class="v81-profile-pick v89-reward-chip ${prestige.has(x.item_key)?'v85-prestige':''} v89-${esc(x.item_key)} v85-tier-${tierNum(x)}" data-type="${esc(x.category)}"><span class="v89-chip-emoji">${esc(x.emoji)}</span><span><b>${esc(x.label)}</b><small>${tierLabel(x)}</small></span></span>`).join('')}</div></div>`:'';
  }catch(err){area.innerHTML='';}
 }

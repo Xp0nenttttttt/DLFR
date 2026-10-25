@@ -1,0 +1,23 @@
+DLFR V90 — Effets animés des récompenses de profil
+
+Aucun SQL à exécuter. Aucun changement de points, de prix ni d'achats.
+Pré-requis : site V88 (V85 + V89 déjà en place).
+
+1. Copier dans ton dépôt, en écrasant :
+   - index.html            (charge la nouvelle feuille de style)
+   - js/app.js
+   - css/v90-rewards-fx.css  (NOUVEAU fichier)
+2. Ctrl+F5 puis ouvrir un profil avec des objets équipés.
+
+Ce qui change :
+- Anneau lumineux animé autour de l'avatar pour tous les cadres
+  (couronne dorée sur Améthyste prestige, halo sur Ascension Céleste).
+- Nom du joueur en dégradé animé aux couleurs de l'objet.
+- Bannières vivantes : étoiles + étoile filante (Nuit étoilée), lune qui
+  pulse + brume rouge (Éclipse Sanglante), disque d'accrétion qui tourne
+  (Voidwalker).
+- Particules (braises, étincelles, étoiles) et balayage lumineux.
+- Les 9 objets ont maintenant un rendu (avant : 4 seulement).
+- Paliers I/II/III visibles (pastilles) : la vitesse de l'anneau augmente.
+- Boutique : aperçu coloré de chaque objet + survol.
+- Respecte « réduire les animations » du système (effets figés).
