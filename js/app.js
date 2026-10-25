@@ -771,12 +771,12 @@ async function v81ProfileRewards(){
   const badges=Array.isArray(data)?data:[];
   const prestige=V90_PRESTIGE;
   const card=area.closest('.stats-profile'),community=area.closest('.dlfr20-community');
-  const classes=['v85-profile-moon','v85-profile-void','v89-effect-amethyst','v89-effect-celestial','v89-effect-bloodmoon','v89-effect-voidwalker','v89-effect-glitch'];
+  const classes=['v85-profile-moon','v85-profile-void','v89-effect-amethyst','v89-effect-celestial','v89-effect-bloodmoon','v89-effect-voidwalker','v89-effect-glitch','v89-effect-glitch-frame','v89-effect-glitch-banner'];
   area.classList.remove(...classes);
   card&&card.classList.remove(...classes);
   community&&community.classList.remove(...classes);
   const primary=(['banner_glitch','banner_voidwalker','banner_bloodmoon','frame_glitch','frame_celestial','frame_amethyst_crown'].map(key=>badges.find(x=>x.item_key===key)).find(Boolean))||null;
-  const effectClass=primary?({banner_glitch:'v89-effect-glitch',frame_glitch:'v89-effect-glitch',banner_voidwalker:'v89-effect-voidwalker',banner_bloodmoon:'v89-effect-bloodmoon',frame_celestial:'v89-effect-celestial',frame_amethyst_crown:'v89-effect-amethyst'}[primary.item_key]||''):'';
+  const effectClass=primary?({banner_glitch:'v89-effect-glitch-banner',frame_glitch:'v89-effect-glitch-frame',banner_voidwalker:'v89-effect-voidwalker',banner_bloodmoon:'v89-effect-bloodmoon',frame_celestial:'v89-effect-celestial',frame_amethyst_crown:'v89-effect-amethyst'}[primary.item_key]||''):'';
   if(effectClass){area.classList.add(effectClass);card&&card.classList.add(effectClass);community&&community.classList.add(effectClass);}
   if(badges.some(x=>x.item_key==='banner_bloodmoon'))area.classList.add('v85-profile-moon');
   if(badges.some(x=>x.item_key==='banner_voidwalker'))area.classList.add('v85-profile-void');
