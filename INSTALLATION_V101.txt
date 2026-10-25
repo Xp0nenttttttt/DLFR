@@ -1,0 +1,16 @@
+DLFR V101 — Afficher le modérateur auteur du message
+
+Supabase PRODUCTION DLFR :
+- Fonction RPC dlfr_my_submission_review_authors déjà installée sur le projet DLFR.
+- SQL de sauvegarde dans supabase/101_review_message_author.sql (ne pas réexécuter).
+
+GitHub Pages :
+1. Remplacer index.html.
+2. Remplacer js/app.js.
+3. Publier les fichiers et recharger avec Ctrl+F5.
+
+Dans « Mes soumissions », les messages des demandes acceptées/refusées
+affichent le nom public du modérateur et un lien vers sa fiche si elle existe.
+Les messages sans auteur identifiable conservent le titre « Message de la modération ».
+Le pseudo suit la fiche actuelle : ce n'est pas un instantané immuable du nom du modo à la date de décision.
+Aucun autre fichier (drapeaux, clans, boutique, moderation) n'est modifié.

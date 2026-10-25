@@ -106,6 +106,28 @@ Object.assign(state,{
  modLeaderboardReady:false,modLeaderboardError:'',modLeaderboardUpdatedAt:''
 });
 let modLeaderboardSequence=0;
+// V101 — noms publics des auteurs des messages de modération (soumissions du compte uniquement).
+state.mySubmissionReviewAuthors=Object.create(null);
+async function refreshMySubmissionReviewAuthors(){
+ const uid=state.session?.user?.id;
+ state.mySubmissionReviewAuthors=Object.create(null);
+ if(!uid||!db)return;
+ try{
+  const {data,error}=await db.rpc('dlfr_my_submission_review_authors');
+  if(error)throw error;
+  if(state.session?.user?.id!==uid)return;
+  for(const row of Array.isArray(data)?data:[]){
+   const id=Number(row.submission_id);
+   if(!Number.isSafeInteger(id)||id<=0)continue;
+   state.mySubmissionReviewAuthors[String(id)]={
+    name:plain(row.moderator_name)||'la modération',
+    playerKey:plain(row.moderator_player_key)
+   };
+  }
+ }catch(error){
+  console.warn('[DLFR V101] Auteurs des messages indisponibles :',error?.message||error);
+ }
+}
 const PERF_DEBUG=new URLSearchParams(location.search).has('perf');
 const perfNow=()=>typeof performance!=='undefined'?performance.now():Date.now();
 const el = document.getElementById('app');
@@ -362,6 +384,7 @@ async function refreshLiveData(){
  }
  state.communityReady=false;state.packsReady=false;
  await Promise.all(publicTables.map(async t=>{state.data[t]=await readAll(t);}));
+ await refreshMySubmissionReviewAuthors();
  state.verificationClaims=[];state.verificationClaimsError='';
  if(state.session){const claims=await db.rpc('dlfr_verification_claim_list');
    if(claims.error)state.verificationClaimsError='Demandes indisponibles : installe la migration 45 ou réessaie. '+claims.error.message;
@@ -1519,11 +1542,18 @@ function mySubmissionsPage(){
   const d=(state.data?.demons||[]).find(x=>Number(x.id)===Number(r.demon_id));
   const title=plain(r.level_name)||(d?.name||'Niveau non renseigné');
   const statusDate=r.reviewed_at&&meta.cls!=='pending'?` · Examinée le ${esc(date(r.reviewed_at))}`:'';
+  const reviewer=state.mySubmissionReviewAuthors?.[String(r.id)];
+  const reviewerName=reviewer?.name||'la modération';
+  const reviewerKey=reviewer?.playerKey;
+  const reviewerLabel=reviewerKey && (state.data.players||[]).some(p=>p.player_key===reviewerKey)
+   ? `<a class="link" data-nav href="${url('player',{player:reviewerKey})}">${esc(reviewerName)}</a>`
+   : esc(reviewerName);
+  const reviewTitle=reviewer ? `Message de ${reviewerLabel}` : 'Message de la modération';
   const levelLink=meta.cls==='approved'&&d?`<a class="link" data-nav href="${url('demon',{id:d.id})}">Voir le niveau ↗</a>`:'';
   return `<article class="v59-submission-card v59-${meta.cls}">
    <div class="v59-submission-top"><div><h3>${esc(title)}</h3><p class="small muted">Soumission n°${esc(r.id)} · ${esc(date(r.created_at)||'Date inconnue')}${statusDate}</p></div><span class="v59-status v59-status-${meta.cls}">${esc(meta.label)}</span></div>
    <p class="v59-submission-details"><span>${esc(r.progress||100)} %</span>${r.level_id?`<span>ID GD : ${esc(r.level_id)}</span>`:''}<span>${esc(meta.description)}</span></p>
-   ${r.review_message&&meta.cls!=='pending'?`<div class="dlfr-review-message"><strong>Message de la modération</strong><p>${esc(r.review_message)}</p></div>`:''}
+   ${r.review_message&&meta.cls!=='pending'?`<div class="dlfr-review-message"><strong>${reviewTitle}</strong><p>${esc(r.review_message)}</p></div>`:''}
    <div class="v59-submission-links">${http(r.video_url)?`<a class="link" href="${esc(http(r.video_url))}" target="_blank" rel="noopener noreferrer">Vidéo de preuve ↗</a>`:''}${levelLink}</div>
   </article>`;
  }).join('');
@@ -2985,7 +3015,7 @@ function bootEvents(){
      if(error)throw Error(error.message);
      const mine=(data||[]);
      const others=(state.data.level_submissions||[]).filter(r=>r.auth_user_id!==state.session.user.id);
-     state.data.level_submissions=[...others,...mine];render();toast('Soumissions actualisées.');
+     state.data.level_submissions=[...others,...mine];await refreshMySubmissionReviewAuthors();render();toast('Soumissions actualisées.');
    }catch(error){toast('Impossible d’actualiser : '+error.message);act.disabled=false;}
    return;
  }
