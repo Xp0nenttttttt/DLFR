@@ -653,6 +653,34 @@ async function v80WeeklyRender(){
   ${claimed?'<span class="v80-weekly-done">✓ Récompense récupérée</span>':eligible?'<button type="button" class="btn small" data-v80-claim>Récupérer mes pièces</button>':state.session?'<span class="small muted">En attente d’une complétion validée cette semaine.</span>':'<span class="small muted">Connecte-toi pour participer.</span>'}`;
  }catch(err){if(seq===v80WeeklyLoad&&area.isConnected){area.innerHTML='<span class="muted small">Défis indisponibles : la migration V80 est-elle installée ?</span>';}}
 }
+// V81 : boutique cosmétique, monnaie et équipement, sans toucher aux points DLFR.
+let v81Request=0;
+async function v81RewardsRender(){
+ const area=document.getElementById('v81-rewards');if(!area||!db)return;
+ const seq=++v81Request;
+ try{
+  const [sr,cr]=await Promise.all([db.rpc('dlfr_rewards_status'),db.from('dlfr_reward_catalog').select('item_key,label,description,emoji,category,price').eq('active',true).order('price')]);
+  if(sr.error)throw sr.error;if(cr.error)throw cr.error;
+  if(seq!==v81Request||!area.isConnected)return;
+  const status=sr.data||{},owns=new Set(status.inventory||[]),equip=status.equipped||{};
+  area.innerHTML=`<div class="v81-header"><b>✦ DLFR Rewards</b><span>🪙 ${esc(status.balance??0)} pièces · 🔥 ${esc(status.streak??0)} semaine(s) de série</span></div>
+  <p class="small muted">Les pièces proviennent des défis hebdomadaires. Les objets sont purement décoratifs et n'affectent jamais les points DLFR.</p>
+  <details class="v81-shop"><summary>🛍️ Boutique et collection ${status.signed_in?'':'· connexion requise'}</summary><div class="v81-items">${(cr.data||[]).map(item=>{
+   const owned=owns.has(item.item_key),equipped=equip[item.category]===item.item_key;
+   return `<div class="v81-item"><div class="v81-item-title">${esc(item.emoji)} <strong>${esc(item.label)}</strong></div><small>${esc(item.description)}</small><div class="v81-item-action"><span>🪙 ${esc(item.price)}</span>${status.signed_in?(owned?`<button type="button" class="btn small subtle" data-v81-equip="${esc(item.item_key)}" data-v81-category="${esc(item.category)}">${equipped?'✓ Équipé':'Équiper'}</button>`:`<button type="button" class="btn small" data-v81-buy="${esc(item.item_key)}" ${Number(status.balance)<Number(item.price)?'disabled':''}>Acheter</button>`):'<span class="muted small">Se connecter</span>'}</div></div>`;
+  }).join('')}</div><p class="small muted">Une seule décoration par catégorie (cadre, badge ou bannière). Les objets achetés restent dans ta collection.</p></details>`;
+ }catch(err){if(seq===v81Request&&area.isConnected)area.innerHTML='<span class="small muted">Boutique indisponible : vérifie la migration SQL V81.</span>';}
+}
+async function v81ProfileRewards(){
+ const area=document.getElementById('v81-profile-rewards');if(!area||!db)return;
+ const k=area.dataset.playerKey;
+ try{
+  const {data,error}=await db.rpc('dlfr_rewards_public',{p_player_key:k});if(error)throw error;
+  if(!area.isConnected||area.dataset.playerKey!==k)return;
+  const badges=Array.isArray(data)?data:[];
+  area.innerHTML=badges.length?`<div class="v81-profile-picks"><b>✦ Récompenses exposées</b><div>${badges.map(x=>`<span class="v81-profile-pick" data-type="${esc(x.category)}">${esc(x.emoji)} ${esc(x.label)}</span>`).join('')}</div></div>`:'';
+ }catch(err){area.innerHTML='';}
+}
 function listPage(){
  const nav=['main','nlw'],labels=['Main List · Top 150','NLW · rang 151+'];
  const sLabel=nav.includes(state.list)?state.list:'main';
@@ -661,7 +689,7 @@ function listPage(){
  const heading={main:'Geometry Dash Demonlist',nlw:'NLW · Non List Worthy',legacy:'Legacy List'}[sLabel];
  const description={main:'Les 150 niveaux classés de la DemonlistFrancophone.',nlw:'Les niveaux NLW publiés et les fiches historiques de l’ancien site se consultent ici. Seuls les niveaux NLW homologués donnent des points, des rangs et des badges NLW.',legacy:'Anciens niveaux de la Main List, après validation de leur statut Legacy.'}[sLabel];
  const html=sLabel==='nlw'?nlwListCards(state.keyword):cardsHTML(levels.filter(x=>key(x.name).includes(key(state.keyword))));
- return `${templateNotice()}${sLabel==='nlw'?'<p class="notice small">Les niveaux UNRATED ont un classement séparé : <a class="link" data-nav href="'+url('stats')+'">voir l’onglet UNRATED des statistiques</a>.</p>':''}${state.unrated?callout('<b>Mode UNRATED</b> — estimation alternative des positions et points, sans modifier le classement officiel.'):''}${top}<div id="v80-weekly" class="v80-weekly" aria-live="polite"><span class="muted small">Chargement du défi hebdomadaire…</span></div><div class="page-columns"><section><div class="center-panel"><h1>${heading}</h1><p>${description}</p><label class="filterbox"><span>⌕</span><input id="demonSearch" type="search" placeholder="Filtrer les niveaux affichés..." value="${esc(state.keyword)}" autocomplete="off"></label></div><div id="demonItems">${html}</div></section><aside class="right-side"><div class="info-panel right-panel"><h2>Éditeurs de liste</h2><p>Contacter les éditeurs pour les changements de classement.</p>${staffNamesHTML("general")}<h2>Équipe NLW</h2><p>L’équipe chargée de la liste NLW.</p>${staffNamesHTML("nlw")}</div>${listNewsSidebar()}${submissionGuidelinesSidebar()}</aside></div>`;
+ return `${templateNotice()}${sLabel==='nlw'?'<p class="notice small">Les niveaux UNRATED ont un classement séparé : <a class="link" data-nav href="'+url('stats')+'">voir l’onglet UNRATED des statistiques</a>.</p>':''}${state.unrated?callout('<b>Mode UNRATED</b> — estimation alternative des positions et points, sans modifier le classement officiel.'):''}${top}<div id="v80-weekly" class="v80-weekly" aria-live="polite"><span class="muted small">Chargement du défi hebdomadaire…</span></div><div id="v81-rewards" class="v81-rewards" aria-live="polite">Chargement des récompenses…</div><div class="page-columns"><section><div class="center-panel"><h1>${heading}</h1><p>${description}</p><label class="filterbox"><span>⌕</span><input id="demonSearch" type="search" placeholder="Filtrer les niveaux affichés..." value="${esc(state.keyword)}" autocomplete="off"></label></div><div id="demonItems">${html}</div></section><aside class="right-side"><div class="info-panel right-panel"><h2>Éditeurs de liste</h2><p>Contacter les éditeurs pour les changements de classement.</p>${staffNamesHTML("general")}<h2>Équipe NLW</h2><p>L’équipe chargée de la liste NLW.</p>${staffNamesHTML("nlw")}</div>${listNewsSidebar()}${submissionGuidelinesSidebar()}</aside></div>`;
 }
 function completionLinks(levels){return levels.length?levels.sort((a,b)=>a.position-b.position).map(d=>`<a class="link" href="${url('demon',{id:d.id})}" data-nav>#${esc(d.position)} ${esc(d.name)}</a>`).join(' - '):'<span class="muted">Aucun</span>';}
 // V66 : le classement NLW commence à #1 pour la position globale 151.
@@ -884,6 +912,7 @@ function communityPublicPanel(playerKey){
  ${title?`<div class="dlfr20-title">✧ ${esc(title.label)}</div>`:''}
  ${highlighted.length?`<div class="dlfr20-featured-badges">${highlighted.map(x=>`<div class="dlfr-badge dlfr20-favorite" data-rarity="${esc(x.def.rarity.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,''))}"><span class="dlfr-badge-icon">${esc(x.def.symbol)}</span><b>${esc(x.def.label)}</b></div>`).join('')}</div>`:''}
  ${packEnabled()?(state.data.dlfr_level_pack_claims||[]).filter(c=>c.player_key===playerKey).map(c=>{const p=(state.data.dlfr_level_packs||[]).find(p=>Number(p.id)===Number(c.pack_id));return p?`<span class="dlfr27-earned-reward">✦ ${esc(p.reward_label)} · Level Pack</span>`:'';}).join(''):''}
+ <div id="v81-profile-rewards" data-player-key="${esc(playerKey)}"></div>
  ${showcase.length?`<h3 class="dlfr20-gallery-title">Ma vitrine de niveaux</h3><div class="dlfr20-gallery">${showcase.map(({s,d})=>{const thumb=imageLink(d.thumbnail_url);const video=http(s.video_url);return `<article class="dlfr20-level-card"><a data-nav href="${url('demon',{id:d.id})}" class="dlfr20-card-link">${thumb?`<img loading="lazy" src="${esc(thumb)}" alt="Miniature du niveau ${esc(d.name)}">`:'<span class="dlfr20-no-thumb">✦</span>'}<strong>${esc(d.name)}</strong></a>${s.caption?`<p>${esc(s.caption)}</p>`:''}${video?`<a href="${esc(video)}" target="_blank" rel="noopener noreferrer" class="link">Voir ma vidéo ↗</a>`:''}</article>`;}).join('')}</div>`:''}
  ${state.ownKey===playerKey&&following.length?`<details class="dlfr20-follow-list"><summary>Mes abonnements (${following.length})</summary><div>${following.map(x=>`<a data-nav class="link" href="${url('player',{player:x.followed_key})}">${esc(getPlayer(x.followed_key)?.display_name||getPlayer(x.followed_key)?.username||x.followed_key)}</a>`).join(' · ')}</div></details>`:''}
  </section>`;
@@ -1990,7 +2019,8 @@ function render(){
  // Donner un accès clair à l'inscription et à la connexion, sans modifier la navigation existante.
  const accountNavLink=document.querySelector('a[data-link="my-profile"]');
  if(accountNavLink) accountNavLink.textContent=state.session?'Mon profil':'Se connecter / Créer un compte';
- if(page==='list')v80WeeklyRender();
+ if(page==='list'){v80WeeklyRender();v81RewardsRender();}
+ if(page==='player')v81ProfileRewards();
  if(page==='admin'&&state.staffRole==='owner'){
    const switcher=document.createElement('section');switcher.className='paper owner-role-switcher';
    switcher.innerHTML='<h2>Aperçu des rôles de modération</h2><p class="small muted">Vue de l’interface seulement : ton compte reste propriétaire. Aucun enregistrement n’est autorisé en aperçu.</p><div class="owner-role-actions">'+
@@ -2449,6 +2479,10 @@ function bootEvents(){
    catch(err){toast('Impossible de récupérer les pièces : '+err.message);weeklyClaimButton.disabled=false;}
    return;
   }
+  const buy=ev.target.closest('[data-v81-buy]');
+  if(buy){buy.disabled=true;try{const {error}=await db.rpc('dlfr_reward_buy',{p_item_key:buy.dataset.v81Buy});if(error)throw error;toast('Objet ajouté à ta collection !');await v81RewardsRender();}catch(err){toast('Achat impossible : '+err.message);buy.disabled=false;}return;}
+  const equip=ev.target.closest('[data-v81-equip]');
+  if(equip){equip.disabled=true;try{const {error}=await db.rpc('dlfr_reward_equip',{p_item_key:equip.textContent.includes('Équipé')?'':equip.dataset.v81Equip,p_category:equip.dataset.v81Category});if(error)throw error;toast('Vitrine mise à jour !');await v81RewardsRender();}catch(err){toast('Équipement impossible : '+err.message);equip.disabled=false;}return;}
   const reaction=ev.target.closest('[data-v79-react]');
   if(reaction){
    if(!state.session){toast('Connecte-toi pour réagir.');return;}

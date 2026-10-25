@@ -1,0 +1,17 @@
+DLFR V81 — Rewards
+==================
+PRÉREQUIS : V80 installée, y compris supabase/80_DEFI_HEBDOMADAIRE.sql.
+1. Sauvegarder les fichiers du site et la base de production.
+2. Supabase > SQL Editor : exécuter supabase/81_REWARDS_BOUTIQUE_SERIES.sql UNE FOIS.
+3. Remplacer js/app.js et css/style.css par ceux de cette archive.
+4. Ctrl+F5. Aller sur Demonlist et ouvrir « Boutique et collection ».
+5. Tester avec un compte utilisateur de test, puis consulter son profil public.
+
+MONNAIE : solde = pièces V80 réclamées - achats V81. Aucun impact sur les points officiels.
+SÉRIE : nombre de semaines consécutives réclamées, calculé à partir de V80 ; la semaine en cours est tolérée si elle n'est pas finie.
+CATALOGUE : cinq objets cosmétiques de lancement. Un achat par objet et par compte, un équipement par catégorie.
+VITRINE : les décorations équipées sont visibles sur le profil public ; elles ne changent pas les badges officiels.
+
+LIMITES : nécessite une complétion validée et des pièces effectivement réclamées en V80. Pour l'instant, les récompenses se réclament pendant la semaine en cours. Le SQL n'a pas été exécuté sur la base réelle : vérifier sur un compte de test avant ouverture générale.
+
+Ce patch n'inclut ni assets/flags/ ni autres médias personnalisés.
