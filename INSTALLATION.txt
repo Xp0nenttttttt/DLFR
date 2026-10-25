@@ -1,0 +1,4 @@
+DLFR V91.1 - Correction des effets au changement d’onglet
+
+Sur la V91, remplacer seulement js/app.js. Aucun SQL, aucun autre fichier à modifier.
+Après installation, recharger avec Ctrl + F5 et tester Records / Graphiques / Distinctions.
