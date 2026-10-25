@@ -1,0 +1,30 @@
+/* DLFR V99 — Clans. Surcouche non destructive sur le design existant. */
+.clan-v99-field-wide{grid-column:1/-1}
+.clan-v99-editor .clan-v22-form{align-items:end}
+.clan-v99-editor .clan-v22-form>div>b{display:block;margin:5px 0 10px}
+.clan-v99-editor input[type="color"]{width:100%;min-height:43px;padding:3px;border-radius:10px;cursor:pointer}
+.clan-v99-editor .clan-v22-check{align-items:center;padding:8px 0}
+.clan-v99-editor .clan-v22-check input{width:18px;height:18px}
+.clan-v99-preview{--clan-accent:#287bba;position:relative;min-height:175px;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:linear-gradient(125deg,var(--clan-accent),#171b34 72%);isolation:isolate;color:#fff;margin-top:8px}
+.clan-v99-preview-cover{position:absolute;inset:0;z-index:-2}.clan-v99-preview-cover img{width:100%;height:100%;object-fit:cover;display:block}
+.clan-v99-preview:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(9,13,28,.9),rgba(9,13,28,.3));z-index:-1}
+.clan-v99-preview-content{display:flex;align-items:center;gap:18px;padding:30px 22px;min-width:0}
+.clan-v99-preview-logo{width:86px;height:86px;flex:0 0 86px;border-radius:20px;border:2px solid rgba(255,255,255,.68);background:var(--clan-accent);display:flex;justify-content:center;align-items:center;font-weight:800;font-size:17px;overflow:hidden;box-shadow:0 12px 32px rgba(0,0,0,.25)}
+.clan-v99-preview-logo img{display:block;width:100%;height:100%;object-fit:cover}
+.clan-v99-preview-identity{display:flex;flex-direction:column;gap:5px;min-width:0}
+.clan-v99-preview-identity small{text-transform:uppercase;font-weight:800;letter-spacing:.1em;opacity:.82}
+.clan-v99-preview-identity strong{font-size:clamp(18px,3vw,27px);line-height:1.2;overflow-wrap:anywhere}
+.clan-v99-preview-identity em{font-size:13px;font-style:normal;color:rgba(255,255,255,.86);overflow-wrap:anywhere}
+.clan-v99-hero-motto{font-size:14px;color:#f4e7ff;font-weight:700;margin:8px 0 12px;max-width:85%;overflow-wrap:anywhere}
+.clan-v99-style-neon.clan-v22-hero,.clan-v99-style-neon.clan-v99-preview{box-shadow:inset 0 0 26px color-mix(in srgb,var(--clan-accent),transparent 45%),0 0 16px color-mix(in srgb,var(--clan-accent),transparent 70%)}
+.clan-v99-style-neon .clan-v22-logo,.clan-v99-style-neon .clan-v99-preview-logo{box-shadow:0 0 23px var(--clan-accent),inset 0 0 9px rgba(255,255,255,.25);border-radius:50%}
+.clan-v99-style-aurora.clan-v22-hero,.clan-v99-style-aurora.clan-v99-preview{background:linear-gradient(130deg,#162438,var(--clan-accent),#633b91,#171a31);background-size:210% 210%;animation:clan-v99-aurora 15s ease-in-out infinite alternate}
+.clan-v99-style-aurora .clan-v22-logo,.clan-v99-style-aurora .clan-v99-preview-logo{border-radius:24px 10px 24px 10px}
+.clan-v99-style-minimal.clan-v22-hero,.clan-v99-style-minimal.clan-v99-preview{background:linear-gradient(120deg,#141929,#2b3041);border-top:4px solid var(--clan-accent)}
+.clan-v99-style-minimal .clan-v22-logo,.clan-v99-style-minimal .clan-v99-preview-logo{border-radius:6px;border-color:var(--clan-accent)}
+.clan-v99-style-aurora.clan-v22-rank-row{border-left:3px solid var(--clan-accent)}
+.clan-v99-style-neon.clan-v22-rank-row:hover{box-shadow:inset 3px 0 15px color-mix(in srgb,var(--clan-accent),transparent 78%)}
+.clan-v99-style-minimal.clan-v22-rank-row .clan-v22-mark{border-radius:0}
+@keyframes clan-v99-aurora{to{background-position:100% 70%}}
+@media(max-width:650px){.clan-v99-editor .clan-v22-form{grid-template-columns:minmax(0,1fr)}.clan-v99-preview-content{padding:21px 14px;gap:12px}.clan-v99-preview-logo{width:65px;height:65px;flex-basis:65px;font-size:13px}}
+@media(prefers-reduced-motion:reduce){.clan-v99-style-aurora.clan-v22-hero,.clan-v99-style-aurora.clan-v99-preview{animation:none}}

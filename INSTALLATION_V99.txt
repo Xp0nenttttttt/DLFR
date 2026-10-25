@@ -1,0 +1,42 @@
+DLFR V99 — Aperçu du profil et personnalisation des clans
+=========================================================
+
+BASE : V98 Halloween navigation + changements de création de fiche V97.
+
+INSTALLATION SUR GITHUB PAGES
+1. À la racine du dépôt DLFR, remplacer exactement :
+   - index.html
+   - js/app.js
+   - js/clan-core.js
+   - js/clan-plus.js
+2. Ajouter :
+   - css/v99-clans.css
+3. Publier / recharger Ctrl+F5 (le cache-busting des 3 scripts est inclus).
+
+NE PAS REMPLACER les autres fichiers (notamment css/style.css,
+js/production-tools.js, assets/flags/, V96 Halloween et assets custom).
+
+CE QUE FAIT LA VERSION
+- "Aperçu de mon profil" apparaît AVANT "Demander une fusion de fiches".
+- Un chef de clan peut modifier bannière, logo, description, couleur,
+  devise, style (classique / aurore / néon / minimaliste) et candidatures.
+- L'éditeur contient un aperçu visuel en temps réel.
+- Les nouveaux styles apparaissent sur la fiche et dans la liste des clans.
+- La création des clans donne accès aux mêmes options.
+- La démonstration locale conserve aussi ces paramètres.
+
+SUPABASE
+La base de production DLFR (mcoaeocsthivggyspykf) a DÉJÀ été mise à jour :
+- Colonnes manquantes ajoutées à public.clans.
+- Fonction dlfr_clan_action mise à jour pour l'enregistrement.
+- Politique de lecture des candidatures de clan corrigée.
+
+AUCUN SQL À EXÉCUTER POUR DLFR PRODUCTION.
+DLFR Beta n'est pas modifié : cette archive n'effectue aucune migration Beta.
+
+TESTS
+- Syntaxe JavaScript des trois scripts contrôlée avec Node.js.
+- Scénario local : création, mise à jour devise/style, recrutement.
+- Test d'une mise à jour de clan avec appel SQL : transaction ANNULÉE
+  (ROLLBACK vérifié) ; aucun clan réel modifié.
+- L'interface connectée en navigateur n'a pas été testée en conditions réelles.

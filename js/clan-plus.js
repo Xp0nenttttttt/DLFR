@@ -49,7 +49,9 @@ function apply(source,cmd){
   if(name.length<3||name.length>45||desc.length>500)throw Error('Nom ou description invalide.');
   if(data.clans.some(x=>x.id!==id&&key(x.name)===key(name)))throw Error('Ce nom est déjà utilisé.');
   for(const value of [banner,logo])if(value){try{const u=new URL(value);if(!['https:','http:'].includes(u.protocol))throw Error();}catch{throw Error('Les images doivent utiliser une URL HTTP(S).');}}
-  Object.assign(c,{name,description:desc,color:hex(cmd.color),banner_url:banner,logo_url:logo,recruiting:!!cmd.recruiting,updated_at:now});return data;
+  Object.assign(c,{name,description:desc,color:hex(cmd.color),banner_url:banner,logo_url:logo,
+   motto:String(cmd.motto||'').trim().slice(0,110),card_style:['classic','aurora','neon','minimal'].includes(cmd.card_style)?cmd.card_style:'classic',
+   recruiting:!!cmd.recruiting,updated_at:now});return data;
  }
  if(kind==='promote'||kind==='demote'){
   if(!c||!isLeader(data,id,actor)||target===actor)throw Error('Seul le chef peut nommer un officier.');

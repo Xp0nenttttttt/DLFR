@@ -23,7 +23,11 @@ function apply(source,command){
   if(description.length>300)throw Error('Description trop longue (300 caractères max).');
   if(data.clans.some(c=>key(c.name)===key(name)||key(c.tag)===key(tag)))throw Error('Ce nom ou ce tag est déjà utilisé.');
   const nextId=Math.max(0,...data.clans.map(c=>Number(c.id)||0))+1;
-  data.clans.push({id:nextId,name,tag,description,color:/^#[0-9a-f]{6}$/i.test(command.color)?command.color:'#287bba',created_by:actor});
+  data.clans.push({id:nextId,name,tag,description,color:/^#[0-9a-f]{6}$/i.test(command.color)?command.color:'#287bba',
+   banner_url:/^https:\/\//i.test(command.banner_url||'')?String(command.banner_url).slice(0,500):'',
+   logo_url:/^https:\/\//i.test(command.logo_url||'')?String(command.logo_url).slice(0,500):'',
+   motto:String(command.motto||'').slice(0,110),card_style:['classic','aurora','neon','minimal'].includes(command.card_style)?command.card_style:'classic',
+   recruiting:!!command.recruiting,created_by:actor});
   data.clan_members.push({clan_id:nextId,player_key:actor,role:'leader'});
   return data;
  }
