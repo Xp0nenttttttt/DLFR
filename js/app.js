@@ -42,6 +42,7 @@ const liveStaffTables=[];
 // uniquement quand une page en a réellement besoin (et jamais pour un visiteur de la liste).
 const tables = ['site_settings','players','demons','completions','news_items','profile_titles','player_profile_titles','player_profiles','hall_of_fame'];
 const optionalGroups = Object.freeze({
+ reactions: ['dlfr_reactions'],
  community: ['dlfr_profile_preferences','dlfr_profile_showcase','dlfr_profile_follows'],
  packs: ['dlfr_level_packs','dlfr_level_pack_levels','dlfr_level_pack_claims'],
  history: ['player_stat_snapshots','demon_position_history'],
@@ -53,6 +54,7 @@ const optionalStatus=Object.fromEntries(Object.keys(optionalGroups).map(name=>[n
 let dataGeneration=0;
 function requiredGroups(page){
  const groups=[];
+ if(['activity','news','player','my-profile'].includes(page))groups.push('reactions');
  if(['stats','players','player','my-profile','activity','packs'].includes(page)||page==='admin'&&['profiles','awards'].includes(state.adminTab))groups.push('community');
  if(['stats','players','player','my-profile','packs'].includes(page)||page==='admin'&&state.adminTab==='packs')groups.push('packs');
  if(['player','demon'].includes(page))groups.push('history');
@@ -641,7 +643,7 @@ function listPage(){
  const heading={main:'Geometry Dash Demonlist',nlw:'NLW · Non List Worthy',legacy:'Legacy List'}[sLabel];
  const description={main:'Les 150 niveaux classés de la DemonlistFrancophone.',nlw:'Les niveaux NLW publiés et les fiches historiques de l’ancien site se consultent ici. Seuls les niveaux NLW homologués donnent des points, des rangs et des badges NLW.',legacy:'Anciens niveaux de la Main List, après validation de leur statut Legacy.'}[sLabel];
  const html=sLabel==='nlw'?nlwListCards(state.keyword):cardsHTML(levels.filter(x=>key(x.name).includes(key(state.keyword))));
- return `${templateNotice()}${state.unrated?callout('<b>Mode UNRATED</b> — estimation alternative des positions et points, sans modifier le classement officiel.'):''}${top}<div class="page-columns"><section><div class="center-panel"><h1>${heading}</h1><p>${description}</p><label class="filterbox"><span>⌕</span><input id="demonSearch" type="search" placeholder="Filtrer les niveaux affichés..." value="${esc(state.keyword)}" autocomplete="off"></label></div><div id="demonItems">${html}</div></section><aside class="right-side"><div class="info-panel right-panel"><h2>Éditeurs de liste</h2><p>Contacter les éditeurs pour les changements de classement.</p>${staffNamesHTML("general")}<h2>Équipe NLW</h2><p>L’équipe chargée de la liste NLW.</p>${staffNamesHTML("nlw")}</div>${listNewsSidebar()}${submissionGuidelinesSidebar()}</aside></div>`;
+ return `${templateNotice()}${sLabel==='nlw'?'<p class="notice small">Les niveaux UNRATED ont un classement séparé : <a class="link" data-nav href="'+url('stats')+'">voir l’onglet UNRATED des statistiques</a>.</p>':''}${state.unrated?callout('<b>Mode UNRATED</b> — estimation alternative des positions et points, sans modifier le classement officiel.'):''}${top}<div class="page-columns"><section><div class="center-panel"><h1>${heading}</h1><p>${description}</p><label class="filterbox"><span>⌕</span><input id="demonSearch" type="search" placeholder="Filtrer les niveaux affichés..." value="${esc(state.keyword)}" autocomplete="off"></label></div><div id="demonItems">${html}</div></section><aside class="right-side"><div class="info-panel right-panel"><h2>Éditeurs de liste</h2><p>Contacter les éditeurs pour les changements de classement.</p>${staffNamesHTML("general")}<h2>Équipe NLW</h2><p>L’équipe chargée de la liste NLW.</p>${staffNamesHTML("nlw")}</div>${listNewsSidebar()}${submissionGuidelinesSidebar()}</aside></div>`;
 }
 function completionLinks(levels){return levels.length?levels.sort((a,b)=>a.position-b.position).map(d=>`<a class="link" href="${url('demon',{id:d.id})}" data-nav>#${esc(d.position)} ${esc(d.name)}</a>`).join(' - '):'<span class="muted">Aucun</span>';}
 // V66 : le classement NLW commence à #1 pour la position globale 151.
@@ -889,6 +891,7 @@ function activityCards(entries,compact=false){
    <a class="dlfr21-feed-avatar" data-nav href="${playerUrl}" aria-label="Profil de ${esc(display)}">${avatar}</a>
    <div class="dlfr21-feed-content"><div class="dlfr21-activity-meta"><a data-nav href="${playerUrl}">${esc(display)}</a><time datetime="${stamp}">${esc(when)}</time></div>
    <p>${isCompletion?'✓ ':esc(e.badgeSymbol)+' '}${action}</p>
+   ${isCompletion?v79ReactionBar(e.id):''}
    ${proof?`<a class="link small" target="_blank" rel="noopener noreferrer" href="${esc(proof)}">Voir la preuve vidéo ↗</a>`:''}</div>
    ${media&&!compact?`<a data-nav href="${url('demon',{id:e.levelId})}" class="dlfr21-level-thumb"><img loading="lazy" src="${esc(media)}" alt="Miniature de ${esc(e.levelName)}"></a>`:''}
   </article>`;
@@ -922,6 +925,11 @@ function profileRecentActivity(playerKey){
  if(!state.communityReady||!ACTIVITY)return '';
  const events=ACTIVITY.events(state.data,{badges:BADGES,onlyKeys:[playerKey],limit:3,days:365});
  return events.length?`<section class="profile-section dlfr21-profile-activity"><div class="row-between"><h3>Activité récente</h3><a class="link small" href="${url('activity')}" data-nav>Voir le fil communautaire ↗</a></div>${activityCards(events,true)}</section>`:'';
+}
+function v79LevelGallery(items, kind='rated'){
+ const arr=[...new Map((items||[]).filter(Boolean).map(d=>[String(d.id),d])).values()];
+ if(!arr.length)return '<p class="muted small">Aucun niveau dans cette catégorie.</p>';
+ return `<div class="v79-level-grid">${arr.map(d=>{const rank=d.unrated?'UNRATED #'+num(d.unrated_position):num(d.position)>150?'NLW #'+(num(d.position)-150):'#'+num(d.position);const pic=imageLink(d.thumbnail_url)||studioYoutubeThumbnail(d.video_url);return `<a class="v79-level-tile" data-nav href="${url('demon',{id:d.id})}">${pic?`<img src="${esc(pic)}" alt="" loading="lazy">`:'<span class="v79-level-fallback" aria-hidden="true">✦</span>'}<span class="v79-level-info"><small>${esc(rank)}</small><strong>${esc(d.name)}</strong></span></a>`;}).join('')}</div>`;
 }
 function statProfile(p){if(!p)return '<div class="stats-profile empty">Sélectionne un joueur.</div>';
  const profile=state.data.player_profiles.find(v=>v.player_key===p.player_key)||{};
@@ -963,7 +971,7 @@ function statProfile(p){if(!p)return '<div class="stats-profile empty">Sélectio
   ${socials?`<div class="profile-socials">${socials}</div>`:''}
   <div class="profile-section"><h3>Dernières complétions</h3>${recent.length?`<div class="recent-completions">${recent.map(r=>{const dem=demonLookup.get(+r.demon_id);return `<div class="recent-item"><span>✓</span><a class="link" href="${url('demon',{id:r.demon_id})}" data-nav>${esc(dem?.name||'Niveau inconnu')}</a><time>${date(r.created_at)}</time></div>`;}).join('')}</div>`:'<p class="muted">Aucun record daté.</p>'}</div>
  </div><div class="profile-pane ${state.profileTab==='records'?'':'is-hidden'}" data-pane="records">${recordTable(p)}
- <div class="profile-section"><h3>Top 75 complété</h3><p>${completionLinks(top75Completed)}</p></div><div class="profile-section"><h3>76–150 complété</h3><p>${completionLinks(extendedCompleted)}</p></div><div class="profile-section"><h3>NLW — ${nlwCompleted.length} niveau(x) complété(s)</h3><p>${nlwCompletionLinks(nlwCompleted)}</p></div>
+ <div class="profile-section"><h3>Top 75 complété</h3>${v79LevelGallery(top75Completed)}</div><div class="profile-section"><h3>76–150 complété</h3>${v79LevelGallery(extendedCompleted)}</div><div class="profile-section"><h3>NLW — ${nlwCompleted.length} niveau(x) complété(s)</h3>${v79LevelGallery(nlwCompleted)}</div>
  ${[['Démons créés',p.created],['Démons publiés',p.published],['Démons vérifiés',p.verified]].map(([t,a])=>`<div class="profile-section"><h3>${t}</h3><p>${completionLinks(a)}</p></div>`).join('')}
  <div class="profile-section"><h3>Progression sur</h3><p>${p.progress.length?p.progress.map(r=>esc(r.demon.name)+' : '+r.progress+'%').join(' · '):'Aucun'}</p></div>
  </div><div class="profile-pane ${state.profileTab==='charts'?'':'is-hidden'}" data-pane="charts">
@@ -1172,7 +1180,7 @@ function statsPage(){const users=ranked().filter(statsPlayerVisible);const count
  const chosen=filtered.find(p=>p.player_key===state.selectedPlayer)||filtered[0]||null;if(chosen)state.selectedPlayer=chosen.player_key;
  const top=`${templateNotice()}<section class="paper stats-main"><div class="center-panel" style="box-shadow:none;border:0;padding:13px 0 4px"><h1>Statistiques</h1><p>Joueurs, pays et progression de la communauté francophone.</p></div>${statsOverview()}
  <div class="switch-tabs"><button type="button" data-stats-tab="players" class="${state.statsTab==='players'?'active':''}">Joueurs</button><button type="button" data-stats-tab="countries" class="${state.statsTab==='countries'?'active':''}">Pays</button><button type="button" data-stats-tab="nlw" class="${state.statsTab==='nlw'?'active':''}">Classement NLW</button><button type="button" data-stats-tab="unrated" class="${state.statsTab==='unrated'?'active':''}">UNRATED</button><button type="button" data-stats-tab="compare" class="${state.statsTab==='compare'?'active':''}">Comparaison</button></div>`;
- if(state.statsTab==='unrated'){const u=unratedData(),active=u.players.filter(x=>x.points||x.completions||x.verifications),p=getPlayer(state.selectedPlayer);return top+`<div class="notice"><b>UNRATED — statistiques simulées</b><p>Ces points correspondent uniquement aux démons UNRATED, calculés sur leurs positions estimées lorsque le mode UNRATED est activé. Ils ne sont pas des points officiels.</p><button type="button" class="btn subtle small" data-action="toggleUnratedStats">${state.unrated?'Revenir au classement officiel':'Activer le classement UNRATED'}</button></div><div class="overview-stats">${box('Niveaux UNRATED',u.demons.length)}${box('Complétions UNRATED',u.totalCompletions)}${box('Vérifications UNRATED',u.totalVerifications)}${box('Joueurs concernés',active.length)}</div><h3>Classement des points UNRATED</h3><div class="record-table-wrap"><table class="record-table"><thead><tr><th>Rang</th><th>Joueur</th><th>Complétés</th><th>Vérifiés</th><th>Points simulés</th></tr></thead><tbody>${active.map((x,i)=>`<tr><td>#${i+1}</td><td><a class="link" data-nav href="${url('player',{player:x.player_key})}">${esc(x.name)}</a></td><td>${x.completions}</td><td>${x.verifications}</td><td><b>${fmt(x.points)}</b></td></tr>`).join('')||'<tr><td colspan="5">Aucune donnée UNRATED pour le moment.</td></tr>'}</tbody></table></div><h3>Niveaux UNRATED et positions estimées</h3><div class="record-table-wrap"><table class="record-table"><thead><tr><th>Position en mode UNRATED</th><th>Niveau</th><th>Vérificateur</th><th>Points à 100 %</th></tr></thead><tbody>${u.demons.map(d=>`<tr><td>#${d.position}</td><td>${esc(d.name)}</td><td>${esc(d.verifier||'—')}</td><td>${fmt(V2.actualPoints(d,100,num(cfg().top1_points)))}</td></tr>`).join('')||'<tr><td colspan="4">Aucun niveau UNRATED.</td></tr>'}</tbody></table></div></section>`;}
+ if(state.statsTab==='unrated'){const u=unratedData(),active=u.players.filter(x=>x.points||x.completions||x.verifications),p=getPlayer(state.selectedPlayer);return top+`<div class="notice"><b>UNRATED — statistiques simulées</b><p>Ces points correspondent uniquement aux démons UNRATED, calculés sur leurs positions estimées lorsque le mode UNRATED est activé. Ils ne sont pas des points officiels.</p><button type="button" class="btn subtle small" data-action="toggleUnratedStats">${state.unrated?'Revenir au classement officiel':'Activer le classement UNRATED'}</button></div><div class="overview-stats">${box('Niveaux UNRATED',u.demons.length)}${box('Complétions UNRATED',u.totalCompletions)}${box('Vérifications UNRATED',u.totalVerifications)}${box('Joueurs concernés',active.length)}</div><h3>Classement des points UNRATED</h3><div class="record-table-wrap"><table class="record-table"><thead><tr><th>Rang</th><th>Joueur</th><th>Complétés</th><th>Vérifiés</th><th>Points simulés</th></tr></thead><tbody>${active.map((x,i)=>`<tr><td>#${i+1}</td><td><a class="link" data-nav href="${url('player',{player:x.player_key})}">${esc(x.name)}</a></td><td>${x.completions}</td><td>${x.verifications}</td><td><b>${fmt(x.points)}</b></td></tr>`).join('')||'<tr><td colspan="5">Aucune donnée UNRATED pour le moment.</td></tr>'}</tbody></table></div><h3>Niveaux UNRATED et positions estimées</h3><div class="record-table-wrap"><table class="record-table"><thead><tr><th>Position en mode UNRATED</th><th>Niveau</th><th>Vérificateur</th><th>Points à 100 %</th></tr></thead><tbody>${u.demons.map(d=>`<tr><td>#${d.position}</td><td><a class="link" data-nav href="${url('demon',{id:d.id})}">${esc(d.name)}</a></td><td>${esc(d.verifier||'—')}</td><td>${fmt(V2.actualPoints(d,100,num(cfg().top1_points)))}</td></tr>`).join('')||'<tr><td colspan="4">Aucun niveau UNRATED.</td></tr>'}</tbody></table></div></section>`;}
  if(state.statsTab==='nlw')return top+nlwLeaderboardHtml(filtered,countries);
  if(state.statsTab==='countries')return top+`<div class="record-table-wrap"><table class="record-table"><thead><tr><th>Rang</th><th>Pays</th><th>Points cumulés</th><th>Joueurs</th><th>Complétions</th><th>Meilleur joueur</th></tr></thead><tbody>${countryRows().map((c,i)=>`<tr><td>#${i+1}</td><td>${flag(c.code)} ${esc(c.code==='??'?'Non renseigné':c.code)}</td><td><b>${fmt(c.score)}</b></td><td>${c.players}</td><td>${c.records}</td><td>${esc(fullName(c.leader))}</td></tr>`).join('')}</tbody></table></div><p class="muted small">Joueurs historiques inclus, même sans compte Discord lié. Les profils sans pays renseigné sont regroupés sous « Non renseigné ».</p></section>`;
  if(state.statsTab==='compare'){const a=chosen||users[0],b=users.find(p=>p.player_key===state.comparePlayer)||users.find(p=>p.player_key!==a?.player_key);return top+`<div class="compare-panel"><div class="compare-selects"><label>Joueur A <select id="compareA">${users.map(p=>`<option value="${esc(p.player_key)}" ${p.player_key===a?.player_key?'selected':''}>${esc(fullName(p))}</option>`).join('')}</select></label><label>Joueur B <select id="compareB">${users.filter(p=>p.player_key!==a?.player_key).map(p=>`<option value="${esc(p.player_key)}" ${p.player_key===b?.player_key?'selected':''}>${esc(fullName(p))}</option>`).join('')}</select></label></div>${a?comparison(a,b):'<p class="empty">Pas de joueurs.</p>'}</div></section>`;}
@@ -1200,7 +1208,16 @@ function newsPage(){const all=[...state.data.news_items].filter(x=>x.is_publishe
  const categories=['all','Annonce','Record','Classement','Communauté'];
  return `${templateNotice()}<div class="paper news-page"><div class="center-panel" style="box-shadow:none;border:0"><h1>Actualités</h1><p>Informations, nouveaux records et événements de la communauté.</p></div><div class="news-controls"><div class="news-filters">${categories.map(c=>`<button type="button" class="${state.newsFilter===c?'active':''}" data-news-filter="${esc(c)}">${c==='all'?'Tout voir':esc(c)}</button>`).join('')}</div><label class="filterbox"><span>⌕</span><input id="newsSearch" type="search" value="${esc(state.newsSearch)}" placeholder="Rechercher une actualité"></label></div><div id="newsItems">${newsItemsHTML(items)}</div></div>`;
 }
-function newsItemsHTML(items){return items.length?items.map(n=>`<article class="news-card ${n.is_pinned?'pinned':''}"><div class="news-meta"><span class="news-category">${esc(getNewsCategory(n))}</span>${n.is_pinned?'<span class="news-pin">★ À la une</span>':''}<time>${date(n.created_at)}${!n.is_published?' · Brouillon':''}</time></div><h3>${esc(n.headline)}</h3><p class="news-body">${esc(n.body)}</p>${newsMedia(n)}${n.player_name?`<a class="tag" href="${url('player',{player:key(n.player_name)})}" data-nav>${esc(n.player_name)}</a>`:''}${hasFullStaffPowers()?`<div class="news-editor-actions"><button class="btn subtle small" data-edit-news="${n.id}">Modifier</button><button class="btn subtle small" data-toggle-news="${n.id}">${n.is_published?'Mettre en brouillon':'Publier'}</button></div>`:''}</article>`).join(''):'<p class="empty">Aucune actualité trouvée.</p>';}
+const V79_REACTIONS=['❤️','🔥','👏','💜','🎉'];
+function v79ReactionBar(target){
+ if(!state.data?.dlfr_reactions)return '';
+ const rows=(state.data.dlfr_reactions||[]).filter(r=>r.target_key===target);
+ return `<div class="v79-reactions" aria-label="Réactions">${V79_REACTIONS.map(emoji=>{
+ const matched=rows.filter(r=>r.emoji===emoji),mine=!!state.session&&matched.some(r=>r.auth_user_id===state.session.user.id);
+ return `<button type="button" data-v79-react="${esc(target)}" data-v79-emoji="${esc(emoji)}" class="v79-reaction ${mine?'selected':''}" aria-pressed="${mine}" title="${esc(emoji)}">${esc(emoji)} <small>${matched.length||''}</small></button>`;
+ }).join('')}</div>`;
+}
+function newsItemsHTML(items){return items.length?items.map(n=>`<article class="news-card ${n.is_pinned?'pinned':''}"><div class="news-meta"><span class="news-category">${esc(getNewsCategory(n))}</span>${n.is_pinned?'<span class="news-pin">★ À la une</span>':''}<time>${date(n.created_at)}${!n.is_published?' · Brouillon':''}</time></div><h3>${esc(n.headline)}</h3><p class="news-body">${esc(n.body)}</p>${newsMedia(n)}${v79ReactionBar('news:'+n.id)}${n.player_name?`<a class="tag" href="${url('player',{player:key(n.player_name)})}" data-nav>${esc(n.player_name)}</a>`:''}${hasFullStaffPowers()?`<div class="news-editor-actions"><button class="btn subtle small" data-edit-news="${n.id}">Modifier</button><button class="btn subtle small" data-toggle-news="${n.id}">${n.is_published?'Mettre en brouillon':'Publier'}</button></div>`:''}</article>`).join(''):'<p class="empty">Aucune actualité trouvée.</p>';}
 // Un champ de modération ne doit proposer que de vrais joueurs enregistrés.
 const playerOptions=()=>state.data.players.slice().sort((a,b)=>sortPlayerName(a).localeCompare(sortPlayerName(b),'fr')).map(x=>`<option value="${esc(x.player_key)}">${esc(sortPlayerName(x))}</option>`).join('');
 // Ne retirer QUE les véritables sources de fusion enregistrées en base.
@@ -1360,7 +1377,7 @@ function levelCreditsEditor(){
  <label class="field">Progression requise (%)<input name="requirement" type="number" min="1" max="100" required></label>
  <label class="field">Mode de complétion<select name="completion_mode"><option value="standard">Standard</option><option value="solo">Solo</option><option value="two_player">2-Player</option></select></label>
  </div><div><h3>Classement et publication</h3>
- <label class="field">Position globale<input name="position" type="number" min="1" max="99999998" required></label>
+ <label class="field" id="studioPositionLabel">Position globale<input name="position" type="number" min="1" max="99999998" required></label><label class="field" id="studioUnratedRankLabel" hidden>Rang UNRATED estimé<input name="unrated_position" type="number" min="1" max="99999998"></label>
  <p class="small muted">Top 150 : #1–150 · NLW #1 : 151 · NLW #5 : 155. Pour sortir un niveau du Top 150, saisis une position au-delà de 150 et coche « Legacy » uniquement si le niveau doit rejoindre les archives historiques.</p>
  <div class="notice small" id="levelStudioMoveNotice" role="status" aria-live="polite">Sélectionne un niveau et un rang pour prévisualiser le déplacement.</div>
  <label class="field"><input name="is_public" type="checkbox"> Fiche publiée</label>
@@ -1389,12 +1406,12 @@ function levelStudioChoices(query='', open=true){
  const levels=(state.data?.demons||[]).slice().sort((a,b)=>num(a.position)-num(b.position));
  const matches=levels.filter(d=>{
   if(!q)return true;
-  const rank=num(d.position)>150?'nlw '+(num(d.position)-150):String(num(d.position));
+  const rank=d.unrated?'unrated '+num(d.unrated_position):num(d.position)>150?'nlw '+(num(d.position)-150):String(num(d.position));
   return key([d.name,d.level_id,d.id,rank].map(plain).join(' ')).includes(q);
  });
  const visible=matches.slice(0,35);
  holder.innerHTML=`<div class="dlfr-level-choice-info">${matches.length} résultat(s) · ${visible.length} affiché(s)${!q?' · tape un nom pour affiner':''}</div>`+
- visible.map(d=>`<button type="button" class="dlfr-level-choice" data-studio-pick="${esc(d.id)}"><span>${num(d.position)>150?'NLW #'+esc(num(d.position)-150):'#'+esc(d.position)} — ${esc(d.name)}</span><small>GD ${esc(d.level_id||'—')}</small></button>`).join('')+
+ visible.map(d=>`<button type="button" class="dlfr-level-choice" data-studio-pick="${esc(d.id)}"><span>${d.unrated?'UNRATED #'+esc(d.unrated_position||'?'):num(d.position)>150?'NLW #'+esc(num(d.position)-150):'#'+esc(d.position)} — ${esc(d.name)}</span><small>GD ${esc(d.level_id||'—')}</small></button>`).join('')+
  (!matches.length?'<p class="small muted">Aucun niveau trouvé. Vérifie le nom ou l’ID Geometry Dash.</p>':'');
  holder.hidden=false;
  input.setAttribute('aria-expanded','true');
@@ -1405,7 +1422,7 @@ function chooseLevelStudio(id){
  if(!select||!level)return;
  select.replaceChildren(new Option(String(level.name||''),String(level.id),true,true));
  const current=document.getElementById('levelStudioCurrent');
- if(current)current.textContent='Fiche sélectionnée : '+(num(level.position)>150?'NLW #'+(num(level.position)-150):'#'+num(level.position))+' — '+String(level.name||'');
+ if(current)current.textContent='Fiche sélectionnée : '+(level.unrated?'UNRATED #'+(level.unrated_position||'?'):num(level.position)>150?'NLW #'+(num(level.position)-150):'#'+num(level.position))+' — '+String(level.name||'');
  const search=document.getElementById('levelStudioSearch');
  if(search)search.value='';
  levelStudioChoices('',false);
@@ -1414,6 +1431,10 @@ function chooseLevelStudio(id){
 function syncLevelStudio(){
  const select=document.getElementById('levelStudioSelect'),form=select?.closest('form');if(!form)return;
  const d=(state.data.demons||[]).find(x=>String(x.id)===select.value);if(!d)return;
+ const rankLabel=document.getElementById('studioUnratedRankLabel'),positionLabel=document.getElementById('studioPositionLabel');
+ if(rankLabel)rankLabel.hidden=!d.unrated; if(positionLabel)positionLabel.hidden=!!d.unrated;
+ if(form.elements.position){form.elements.position.required=!d.unrated;form.elements.position.disabled=!!d.unrated;}
+ if(form.elements.unrated_position){form.elements.unrated_position.value=d.unrated?String(Number(d.unrated_position)||151):'';form.elements.unrated_position.required=!!d.unrated;}
  for(const field of ['name','level_id','creator','creator_more','publisher','verifier','difficulty','requirement','completion_mode','position','legacy_since','video_url','verifier_video_url','thumbnail_url','description']){
   if(!form.elements[field])continue;
   const v=d[field];form.elements[field].value=v==null?'':String(v);
@@ -1453,8 +1474,8 @@ function updateStudioMovementPreview(form){
     ?'Confirmation de sortie du Top 150 : saisis <b>TRANSFERER</b>'
     :'Confirmation d’entrée dans le Top 150 : saisis <b>TRANSFERER</b>';
  if(!cross)form.elements.confirm_transfer.value='';
+ if(unrated){const rank=Number(form.elements.unrated_position?.value);preview.textContent=Number.isSafeInteger(rank)&&rank>=1&&rank<=99999998?`Rang UNRATED simulé #${rank}. La position technique SQL ne sera pas modifiée.`:'Saisis un rang UNRATED estimé valide (1 à 99 999 998).';return;}
  if(!valid){preview.textContent='Saisis une position globale valide (1 à 99 999 998).';return;}
- if(unrated){preview.textContent='Les niveaux UNRATED possèdent un classement distinct. Utilise leur outil dédié.';return;}
  if(legacy&&to<=150){preview.textContent='Un niveau Legacy doit être placé hors du Top 150 (position 151 ou plus).';return;}
  if(legacy&&!level.legacy&&to<suggestedLegacyPosition(level.id)){preview.textContent=`Pour garder la NLW sans trou, place le niveau Legacy après les niveaux NLW publiés : position ${suggestedLegacyPosition(level.id)} ou plus.`;return;}
  if(from===to){preview.textContent=legacy&&!level.legacy
@@ -2196,12 +2217,18 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   if(!LIVE||!hasFullStaffPowers())throw Error('Supermodérateur requis.');
   const id=Number(f.demon_id),pos=Number(f.position),current=(state.data.demons||[]).find(x=>Number(x.id)===id);
   if(!current)throw Error('Fiche introuvable.');
+  if(current.unrated){
+    const unratedRank=Number(f.unrated_position);
+    if(!Number.isSafeInteger(unratedRank)||unratedRank<1||unratedRank>=99999999)throw Error('Rang UNRATED invalide.');
+    const {error}=await db.rpc('dlfr_v79_update_unrated', {p_demon_id:id,p_unrated_rank:unratedRank,p_name:plain(f.name),p_level_id:plain(f.level_id),p_creator:plain(f.creator),p_creator_more:plain(f.creator_more),p_publisher:plain(f.publisher),p_verifier:plain(f.verifier),p_difficulty:plain(f.difficulty),p_requirement:Number(f.requirement),p_completion_mode:plain(f.completion_mode),p_video_url:plain(f.video_url),p_verifier_video_url:plain(f.verifier_video_url),p_thumbnail_url:plain(f.thumbnail_url),p_description:plain(f.description),p_is_public:f.is_public==='on'});
+    if(error)throw Error(error.message);
+    await refreshLiveData();toast('Fiche UNRATED enregistrée sans toucher à sa position technique.');render();return;
+  }
   if(!Number.isSafeInteger(pos)||pos<1||pos>=99999999)throw Error('Position invalide.');
   if(pos!==Number(current.position)&&f.confirm_move!=='on')throw Error('Coche la confirmation pour modifier le classement.');
   const from=Number(current.position);
   const crossing=(from<=150&&pos>150)||(from>150&&from<100000000&&pos<=150);
   if(crossing&&f.confirm_transfer!=='TRANSFERER')throw Error('Pour changer de classement, écris TRANSFERER dans le champ de confirmation.');
-  if(current.unrated)throw Error('Utilise l’éditeur UNRATED pour déplacer ce niveau.');
   if(f.legacy==='on'&&pos<=150)throw Error('Un niveau Legacy doit avoir une position supérieure à 150.');
   if(f.legacy==='on'&&!current.legacy&&pos<suggestedLegacyPosition(current.id))throw Error('Place le niveau Legacy après les niveaux NLW publiés, à partir de la position '+suggestedLegacyPosition(current.id)+'.');
   if(crossing&&(f.is_public!=='on'))throw Error('Le niveau doit rester public pour changer de classement.');
@@ -2392,6 +2419,22 @@ function bootEvents(){
    ev.preventDefault();ev.stopImmediatePropagation();toast('Aperçu en lecture seule.');
  },true);
  document.addEventListener('click',async(ev)=>{
+  const reaction=ev.target.closest('[data-v79-react]');
+  if(reaction){
+   if(!state.session){toast('Connecte-toi pour réagir.');return;}
+   if(!state.data?.dlfr_reactions){toast('Réactions indisponibles : applique la migration SQL V79.');return;}
+   const target=reaction.dataset.v79React,emoji=reaction.dataset.v79Emoji;
+   if(!/^(news:[0-9]+|completion:[0-9]+|badge:[a-z0-9_-]+:[a-z0-9_-]+)$/.test(target)||!V79_REACTIONS.includes(emoji))return;
+   try{
+    reaction.disabled=true;
+    const current=(state.data.dlfr_reactions||[]).find(r=>r.target_key===target&&r.emoji===emoji&&r.auth_user_id===state.session.user.id);
+    const query=db.from('dlfr_reactions');
+    const {error}=current?await query.delete().eq('target_key',target).eq('emoji',emoji).eq('auth_user_id',state.session.user.id):await query.insert({target_key:target,emoji,auth_user_id:state.session.user.id});
+    if(error)throw error;
+    state.data.dlfr_reactions=await readAll('dlfr_reactions');render();
+   }catch(error){toast('Réaction non enregistrée : '+error.message);reaction.disabled=false;}
+   return;
+  }
   const pick=ev.target.closest('[data-studio-pick]');
   if(pick){ev.preventDefault();chooseLevelStudio(pick.dataset.studioPick);return;}
   if(!ev.target.closest('#levelStudioSearch,#levelStudioChoices'))levelStudioChoices('',false);

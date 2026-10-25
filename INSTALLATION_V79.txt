@@ -1,0 +1,16 @@
+DLFR V79 — correction UNRATED, galeries de records, réactions
+
+Base: fichiers de "DLFR Beta.zip" (datés 25 octobre), qui contiennent déjà les évolutions récentes.
+1. Sauvegarder les fichiers et faire un export de la base avant toute modification.
+2. Exécuter supabase/79_UNRATED_ET_REACTIONS.sql dans le SQL Editor de la BONNE base.
+3. Copier js/app.js et css/style.css aux mêmes emplacements sur le site.
+4. Vider le cache du navigateur (Ctrl+F5).
+5. Tester sur un niveau UNRATED avec position technique élevée, sans déplacer le classement officiel.
+6. Tester les réactions en compte connecté et en visiteur (visiteur en lecture seule).
+
+IMPORTANT : l'éditeur UNRATED nouveau est réservé aux supermodérateurs, propriétaire et éditeur.
+Le rang simulé UNRATED est modifié, jamais la colonne demons.position.
+Les réactions sont limitées aux actualités publiées et aux records à 100 % reconnus en base.
+La galerie de profil est dans l'onglet Records ; les statistiques n'ont pas été recalculées.
+Aucun fichier assets/flags/ dans ce patch.
+Si une erreur SQL se produit, ne pas tenter d'exécuter d'autres anciens scripts au hasard : transmettre l'erreur exacte.
