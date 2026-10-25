@@ -1,0 +1,10 @@
+DLFR V97 — Suisse dans la création de fiche
+
+1. Remplacer index.html à la racine du site.
+2. Remplacer js/production-tools.js.
+3. Publier le site sur GitHub Pages, puis faire Ctrl+F5.
+
+Le menu de création de fiche propose désormais France (FR), Belgique (BE), Suisse (CH) et Canada (CA) en tête.
+Les autres pays restent accessibles en français.
+Pas de modification SQL ni d'autre fichier.
+Ne pas toucher aux images de drapeaux personnalisées assets/flags/.

@@ -19,8 +19,15 @@ function claimSection(s){
  const usernameAccount=user.user_metadata?.dlfr_auth_method==='username';
  const canCreate=discordConnected||usernameAccount;
  const geo=typeof window!=='undefined'?window.DLFR_GEO:null;
- const countryOptions=(geo?.countries||[['FR','France'],['BE','Belgique'],['CH','Suisse'],['CA','Canada']])
-   .map(([code,name])=>`<option value="${esc(code)}" ${code==='FR'?'selected':''}>${esc(name)}</option>`).join('');
+ // Les pays francophones sont affichés en premier, en français, pour ne pas
+ // cacher la Suisse sous « Switzerland » au milieu des noms anglais.
+ const featuredCountries=[['FR','France'],['BE','Belgique'],['CH','Suisse'],['CA','Canada']];
+ const otherCountries=(geo?.countries||[])
+   .filter(([code])=>!featuredCountries.some(([featured])=>featured===code))
+   .map(([code,name])=>[code,geo?.countryName?.(code)||name])
+   .sort((a,b)=>a[1].localeCompare(b[1],'fr'));
+ const countryOptions=[...featuredCountries,...otherCountries]
+   .map(([code,name])=>`<option value="${esc(code)}" ${code==='FR'?'selected':''}>${esc(name)} (${esc(code)})</option>`).join('');
  const regionOptions=(geo?.regions||[]).map(r=>`<option value="${esc(r.code)}">${esc(r.name)}</option>`).join('');
  const create = `<section class="prod-panel prod-onboarding"><h3>✨ Je n'ai pas encore de fiche</h3><p class="small muted">Crée une fiche joueur vierge, liée à ton compte DLFR. Cette action n'attribue aucun record ni badge. Si ton pseudo existe déjà, utilise plutôt la demande de liaison ci-dessous.</p>
  ${pending?'<div class="notice warning">Une revendication est en attente : attends sa réponse avant de créer une autre fiche.</div>':
