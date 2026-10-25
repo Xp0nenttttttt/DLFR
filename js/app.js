@@ -2598,31 +2598,40 @@ let v82HalloweenOwned=false;
 let v96ThemeSessionId=undefined;
 let v96ThemeRequest=0;
 function v96StoredTheme(){
- try{return localStorage.getItem('demonlist-theme')||'light';}catch{return 'light';}
+ // null signifie « aucun choix explicite » : on évite de l'écraser au démarrage.
+ try{return localStorage.getItem('demonlist-theme');}catch{return null;}
+}
+function v96SyncThemeMenu(){
+ const sel=$('themeSelect');
+ if(!sel)return;
+ let opt=sel.querySelector('option[value="halloween"]');
+ if(v82HalloweenOwned&&!opt){opt=new Option('Halloween ✦','halloween');sel.add(opt);}
+ if(!v82HalloweenOwned&&opt)opt.remove();
+ const current=['halloween','autumn','midnight','dark'].find(name=>document.documentElement.classList.contains(name))||'light';
+ if(sel.value!==current)sel.value=current;
 }
 function setTheme(theme,persist=true){
  const valid=['light','dark','midnight','autumn'];
  const t=theme==='halloween'&&v82HalloweenOwned?'halloween':valid.includes(theme)?theme:'light';
  document.documentElement.classList.remove('dark','midnight','autumn','halloween');
  if(t!=='light')document.documentElement.classList.add(t);
- const sel=$('themeSelect');
- if(sel){
-  let opt=sel.querySelector('option[value="halloween"]');
-  if(v82HalloweenOwned&&!opt){opt=new Option('Halloween ✦','halloween');sel.add(opt);}
-  if(!v82HalloweenOwned&&opt)opt.remove();
-  sel.value=t;
- }
+ v96SyncThemeMenu();
  if(persist){try{localStorage.setItem('demonlist-theme',t);}catch{}}
 }
 function v96ApplyHalloweenStatus(status){
  const inventory=new Set([...(status?.inventory||[]),...(status?.test_inventory||[])]);
  v82HalloweenOwned=!!status?.signed_in&&inventory.has('theme_halloween');
  const equipped=v82HalloweenOwned&&status?.equipped?.theme==='theme_halloween';
- // Un vrai équipement serveur prime sur les préférences de navigateur.
- // Si l'objet est retiré, ne pas laisser le thème actif.
  const saved=v96StoredTheme();
- if(equipped)setTheme('halloween');
- else setTheme(saved==='halloween'?'midnight':saved);
+ // IMPORTANT : lors d'un changement de page, le rafraîchissement de la boutique
+ // ne doit PAS remplacer un choix « Halloween » enregistré par « Midnight ».
+ // L'équipement côté serveur fournit uniquement le défaut en l'absence de choix.
+ const requested=saved||(equipped?'halloween':'light');
+ if(requested==='halloween'&&!v82HalloweenOwned){
+  setTheme('light'); // le thème n'est plus possédé sur ce compte
+ }else{
+  setTheme(requested,saved===null);
+ }
 }
 async function v96RefreshHalloweenTheme(){
  const seq=++v96ThemeRequest;
@@ -2630,7 +2639,7 @@ async function v96RefreshHalloweenTheme(){
  if(!uid||!db){
   v82HalloweenOwned=false;
   const saved=v96StoredTheme();
-  setTheme(saved==='halloween'?'light':saved);
+  setTheme(saved==='halloween'?'light':(saved||'light'),saved==='halloween');
   return;
  }
  try{
@@ -2639,15 +2648,27 @@ async function v96RefreshHalloweenTheme(){
   if(seq!==v96ThemeRequest||state.session?.user?.id!==uid)return;
   v96ApplyHalloweenStatus(data||{});
  }catch(err){
-  // Ne pas effacer la préférence ni donner un accès sans validation serveur.
+  // Une erreur réseau ne doit pas retirer un thème déjà vérifié pour
+  // la même session. Réessai possible depuis le rafraîchissement de la boutique.
   console.warn('[DLFR Halloween] Impossible de charger le thème :',err);
+  v96SyncThemeMenu();
  }
 }
 function v96EnsureHalloweenTheme(){
  const uid=state.session?.user?.id||null;
- if(uid===v96ThemeSessionId)return;
- v96ThemeSessionId=uid;
- void v96RefreshHalloweenTheme();
+ if(uid!==v96ThemeSessionId){
+  v96ThemeSessionId=uid;
+  v82HalloweenOwned=false;
+  // Revalider les droits lors d'un changement de compte, pas à chaque page.
+  void v96RefreshHalloweenTheme();
+  return;
+ }
+ // Le rendu de la page peut changer, mais l'option du menu et les classes
+ // CSS ne doivent pas disparaître quand on navigue dans le site.
+ if(v82HalloweenOwned&&v96StoredTheme()==='halloween'&&
+    !document.documentElement.classList.contains('halloween')){
+  setTheme('halloween',false);
+ }else v96SyncThemeMenu();
 }
 function refreshUnrated(){document.documentElement.classList.toggle('unrated-mode',state.unrated);const button=$('unratedToggle');button.textContent=state.unrated?'◈ UNRATED ON':'◈ UNRATED OFF';button.setAttribute('aria-pressed',String(state.unrated));}
 function bootEvents(){
@@ -2705,7 +2726,7 @@ function bootEvents(){
   const buy=ev.target.closest('[data-v81-buy]');
   if(buy){buy.disabled=true;try{const {error}=await db.rpc('dlfr_reward_buy',{p_item_key:buy.dataset.v81Buy});if(error)throw error;toast('Objet ajouté à ta collection !');await v81RewardsRender();}catch(err){toast('Achat impossible : '+err.message);buy.disabled=false;}return;}
   const equip=ev.target.closest('[data-v81-equip]');
-  if(equip){equip.disabled=true;try{const {error}=await db.rpc('dlfr_reward_equip',{p_item_key:equip.textContent.includes('Équipé')?'':equip.dataset.v81Equip,p_category:equip.dataset.v81Category});if(error)throw error;toast('Vitrine mise à jour !');V90_FX.t=0;await v81RewardsRender();}catch(err){toast('Équipement impossible : '+err.message);equip.disabled=false;}return;}
+  if(equip){equip.disabled=true;try{const item=equip.textContent.includes('Équipé')?'':equip.dataset.v81Equip;const category=equip.dataset.v81Category;const {error}=await db.rpc('dlfr_reward_equip',{p_item_key:item,p_category:category});if(error)throw error;toast('Vitrine mise à jour !');V90_FX.t=0;if(category==='theme'){if(item==='theme_halloween'){v82HalloweenOwned=true;setTheme('halloween');}else if(v96StoredTheme()==='halloween')setTheme('light');}await v81RewardsRender();}catch(err){toast('Équipement impossible : '+err.message);equip.disabled=false;}return;}
   const reaction=ev.target.closest('[data-v79-react]');
   if(reaction){
    if(!state.session){toast('Connecte-toi pour réagir.');return;}
@@ -2981,7 +3002,7 @@ function bootEvents(){
  $('themeSelect').addEventListener('change',e=>setTheme(e.target.value));
  $('unratedToggle').addEventListener('click',()=>{state.unrated=!state.unrated;state.calcDemons=[];refreshUnrated();render();});
  window.addEventListener('popstate',()=>{closeNavMenus();state.keyword='';render();});
- try{const initial=v96StoredTheme();setTheme(initial==='halloween'?'light':initial,initial!=='halloween');}catch{}refreshUnrated();
+ try{const initial=v96StoredTheme();setTheme(initial==='halloween'?'light':(initial||'light'),false);}catch{}refreshUnrated();
 }
 try{
  bootEvents();

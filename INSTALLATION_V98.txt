@@ -1,0 +1,21 @@
+DLFR V98 — Halloween ne disparaît plus au changement de page
+
+Installation (sur la base V97) :
+  1. Remplacer index.html à la racine du site
+  2. Remplacer js/app.js
+  3. Déployer sur GitHub Pages et actualiser avec Ctrl+F5
+
+Conserver les autres fichiers de la V97/V96, notamment :
+  css/v96-halloween.css
+  css/v90-rewards-fx.css
+  js/production-tools.js (qui contient le correctif Suisse V97)
+  assets/flags/ (drapeaux personnels : ne pas remplacer)
+
+Correctifs :
+- Choix de thème local persistant et conservé pendant la navigation
+- Boutique ne réinitialise plus Halloween en Midnight pendant le chargement
+- Option Halloween réinsérée dans le menu pour les comptes autorisés
+- L'équipement Halloween via la boutique applique immédiatement le thème
+- Changement de session : droits du thème revalidés côté Supabase
+
+Aucune modification SQL ni récompense attribuée automatiquement.
