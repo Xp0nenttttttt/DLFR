@@ -1,0 +1,32 @@
+DLFR V95 — RESTAURATION BOUTIQUE & EFFETS DE PROFIL
+
+Base du correctif : code de la V94 (conserve la pagination et les contrôles de compte).
+Sources comparées : sauvegardes V90, V91 et V91.1 envoyées par le propriétaire du site.
+
+PROBLÈMES CONFIRMÉS
+1. La V93/V94 ne charge plus css/v90-rewards-fx.css dans index.html : les animations, habillages et aperçus visuels n'ont donc plus de styles.
+2. V91.3 puis V94 ont perdu la réapplication des effets lors des changements d'onglets du profil introduite en V91.1.
+3. V91.3 puis V94 ont remplacé les classes spécifiques des deux effets Glitch, alors que la V91 possède des styles distincts.
+
+CONTENU : index.html, js/app.js, css/v90-rewards-fx.css.
+
+INSTALLATION
+1. Conserver une copie des fichiers actuels.
+2. Remplacer UNIQUEMENT les trois fichiers ci-dessus aux chemins indiqués.
+3. Publier sur GitHub Pages et forcer l'actualisation (Ctrl + F5).
+4. Tester la boutique, les visuels Voidwalker/Glitch et les onglets d'une fiche joueur.
+5. Tester Mon profil > Aperçu de mon profil.
+
+AUCUNE modification SQL requise pour ce correctif visuel.
+AUCUN fichier dans assets/flags/ inclus ni modifié.
+NE PAS remplacer js/production-tools.js ni js/username-auth.js.
+La correction SQL de la file de 250 soumissions et l'Edge Function version 7 restent intactes.
+
+DONNEES DE PRODUCTION AU MOMENT DU DIAGNOSTIC
+12 articles actifs en catalogue ; 0 achat enregistré ; 1 récompense équipée (catégorie thème) ; 1 accès de test ; 0 gain hebdomadaire.
+Ce correctif n'attribue pas de produits et ne modifie aucune table. L'absence d'effets sur des comptes qui n'en ont pas équipé n'est pas un bug graphique.
+
+VÉRIFICATIONS
+Syntaxe JS : node --check.
+Test statique : présence du CSS V91, des deux classes Glitch, de la réapplication lors du changement d'onglet et de la conservation du code V94.
+Aucune validation automatisée du navigateur sur un compte connecté n'a été effectuée.

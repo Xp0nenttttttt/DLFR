@@ -799,12 +799,12 @@ async function v81ProfileRewards(){
   const badges=Array.isArray(data)?data:[];
   const prestige=V90_PRESTIGE;
   const card=area.closest('.stats-profile'),community=area.closest('.dlfr20-community');
-  const classes=['v85-profile-moon','v85-profile-void','v89-effect-amethyst','v89-effect-celestial','v89-effect-bloodmoon','v89-effect-voidwalker','v89-effect-glitch'];
+  const classes=['v85-profile-moon','v85-profile-void','v89-effect-amethyst','v89-effect-celestial','v89-effect-bloodmoon','v89-effect-voidwalker','v89-effect-glitch','v89-effect-glitch-frame','v89-effect-glitch-banner'];
   area.classList.remove(...classes);
   card&&card.classList.remove(...classes);
   community&&community.classList.remove(...classes);
   const primary=(['banner_glitch','banner_voidwalker','banner_bloodmoon','frame_glitch','frame_celestial','frame_amethyst_crown'].map(key=>badges.find(x=>x.item_key===key)).find(Boolean))||null;
-  const effectClass=primary?({banner_glitch:'v89-effect-glitch',frame_glitch:'v89-effect-glitch',banner_voidwalker:'v89-effect-voidwalker',banner_bloodmoon:'v89-effect-bloodmoon',frame_celestial:'v89-effect-celestial',frame_amethyst_crown:'v89-effect-amethyst'}[primary.item_key]||''):'';
+  const effectClass=primary?({banner_glitch:'v89-effect-glitch-banner',frame_glitch:'v89-effect-glitch-frame',banner_voidwalker:'v89-effect-voidwalker',banner_bloodmoon:'v89-effect-bloodmoon',frame_celestial:'v89-effect-celestial',frame_amethyst_crown:'v89-effect-amethyst'}[primary.item_key]||''):'';
   if(effectClass){area.classList.add(effectClass);card&&card.classList.add(effectClass);community&&community.classList.add(effectClass);}
   if(badges.some(x=>x.item_key==='banner_bloodmoon'))area.classList.add('v85-profile-moon');
   if(badges.some(x=>x.item_key==='banner_voidwalker'))area.classList.add('v85-profile-void');
@@ -813,7 +813,7 @@ async function v81ProfileRewards(){
   const tierNum=x=>[1,2,3].includes(Number(x.tier))?Number(x.tier):1;
   const highlight=primary?`<div class="v89-reward-stage v89-stage-${esc(primary.item_key)} v89-tier-${tierNum(primary)}"><div class="v89-reward-stage-visual" aria-hidden="true"><span class="v89-orb v89-orb-a"></span><span class="v89-orb v89-orb-b"></span><span class="v89-orb v89-orb-c"></span></div><div class="v89-reward-stage-copy"><span class="kicker">Effet principal actif</span><strong>${esc(primary.emoji)} ${esc(primary.label)}</strong><p>${esc(primary.description||'Récompense cosmétique premium équipée sur la carte du joueur.')}</p><small>${prestige.has(primary.item_key)?`Palier ${esc(primary.tier_label||'I')}`:'Actif'} · Effets visuels appliqués à la fiche du joueur</small>${prestige.has(primary.item_key)?`<div class="v90-tier-pips" data-t="${tierNum(primary)}"><i></i><i></i><i></i></div><div class="v90-tier-hint">${tierNum(primary)>=3?'Palier maximal atteint':tierNum(primary)===2?'Palier III à 8 défis réclamés':'Palier II à 3 défis réclamés'}</div>`:''}</div></div>`:'';
   area.innerHTML=badges.length?`<div class="v81-profile-picks v85-profile-picks v89-profile-picks"><div class="row-between"><b>✦ Récompenses exposées</b><span class="small muted">${badges.length} équipée(s)</span></div>${highlight}<div class="v89-reward-grid">${badges.map(x=>`<span class="v81-profile-pick v89-reward-chip ${prestige.has(x.item_key)?'v85-prestige':''} v89-${esc(x.item_key)} v85-tier-${tierNum(x)}" data-type="${esc(x.category)}"><span class="v89-chip-emoji">${esc(x.emoji)}</span><span><b>${esc(x.label)}</b><small>${tierLabel(x)}</small></span></span>`).join('')}</div></div>`:'';
- }catch(err){area.innerHTML='';}
+ }catch(err){console.warn('[DLFR] Récompenses du profil indisponibles',err);if(area.isConnected)area.innerHTML='<p class="small muted">Impossible de charger les effets de profil pour le moment.</p>';}
 }
 function listPage(){
  const nav=['main','nlw'],labels=['Main List · Top 150','NLW · rang 151+'];
@@ -2162,7 +2162,7 @@ function render(){
  const accountNavLink=document.querySelector('a[data-link="my-profile"]');
  if(accountNavLink) accountNavLink.textContent=state.session?'Mon profil':'Se connecter / Créer un compte';
  if(page==='list'){v80WeeklyRender();v81RewardsRender();}if(page==='admin'&&state.adminTab==='weekly'&&state.staffRole==='owner'&&!ownerPreviewActive())v86AdminLoad();
- if(page==='player')v81ProfileRewards();if(page==='stats'||page==='players')v90LoadFx();
+ if(page==='player'||(page==='my-profile'&&document.getElementById('v81-profile-rewards')))v81ProfileRewards();if(page==='stats'||page==='players')v90LoadFx();
  if(page==='admin'&&state.staffRole==='owner'){
    const switcher=document.createElement('section');switcher.className='paper owner-role-switcher';
    switcher.innerHTML='<h2>Aperçu des rôles de modération</h2><p class="small muted">Vue de l’interface seulement : ton compte reste propriétaire. Aucun enregistrement n’est autorisé en aperçu.</p><div class="owner-role-actions">'+
@@ -2702,7 +2702,7 @@ function bootEvents(){
  if(teamRefresh){if(state.staffRole==='owner'&&!ownerPreviewActive()){await loadStaffCandidates();render();}return;}
  const previewChoice=ev.target.closest('[data-stats-preview]');if(previewChoice){chooseStatsPreview(previewChoice.dataset.statsPreview);return;}
  const st=ev.target.closest('[data-stats-tab]');if(st){state.statsTab=st.dataset.statsTab;state.keyword='';render();return;}
- const pt=ev.target.closest('[data-profile-tab]');if(pt){state.profileTab=pt.dataset.profileTab;const ownPreview=pt.closest('#selfProfilePublicPreview');if(ownPreview){const actor=LIVE?state.ownKey:state.demoActor;ownPreview.innerHTML=statProfile(getPlayer(actor));}else{const chosen=getPlayer(state.selectedPlayer);if($('profileContent'))$('profileContent').innerHTML=statProfile(chosen);}return;}
+ const pt=ev.target.closest('[data-profile-tab]');if(pt){state.profileTab=pt.dataset.profileTab;const ownPreview=pt.closest('#selfProfilePublicPreview');if(ownPreview){const actor=LIVE?state.ownKey:state.demoActor;ownPreview.innerHTML=statProfile(getPlayer(actor));}else{const chosen=getPlayer(state.selectedPlayer);if($('profileContent'))$('profileContent').innerHTML=statProfile(chosen);}/* V95 : un changement d'onglet remplace la carte du profil, donc recharger les effets. */v81ProfileRewards().catch(err=>console.warn('[DLFR] Effets de profil',err));return;}
  const at=ev.target.closest('[data-activity-tab]');if(at){state.activityTab=at.dataset.activityTab==='all'?'all':'following';render();return;}
  const nf=ev.target.closest('[data-news-filter]');if(nf){state.newsFilter=nf.dataset.newsFilter;render();return;}
  const myFilter=ev.target.closest('[data-my-submission-filter]');if(myFilter){state.mySubmissionFilter=myFilter.dataset.mySubmissionFilter;render();return;}
