@@ -99,11 +99,21 @@ def compute(players, demons, completions, settings):
 
 
 def main():
-    settings=request('site_settings',params={'select':'*','id':'eq.1'})[0]
     players=fetch_all('players')
     demons=fetch_all('demons')
     records=fetch_all('completions')
-    people,ranks=compute(players,demons,records,settings)
+    # Lecture seule pour les données du site : on photographie les points publiés,
+    # sans recalculer/écraser les scores depuis une formule historique.
+    by_id={d['id']:d for d in demons}
+    people={p['player_key']:{'score':float(p.get('points') or 0),'complete_count':0,'hardest':None} for p in players}
+    for r in records:
+        who=(r.get('player') or '').strip().lower()
+        if who not in people or int(r.get('progress') or 0)!=100: continue
+        row=people[who]; row['complete_count']+=1
+        d=by_id.get(r.get('demon_id'))
+        if d and d.get('position') is not None and (row['hardest'] is None or int(d['position'])<int(row['hardest']['position'])): row['hardest']=d
+    ranked=sorted((p for p in players if not p.get('hidden_from_stats')),key=lambda p:(-float(p.get('points') or 0),p['player_key']))
+    ranks={p['player_key']:i+1 for i,p in enumerate(ranked)}
     today=dt.date.today().isoformat()
     snapshots=[]
     for k,p in people.items():
@@ -111,12 +121,10 @@ def main():
         snapshots.append({'snapshot_day':today,'player_key':k,'points':score,
             'rank_position':ranks.get(k),'completions':p['complete_count'],
             'hardest_demon':p['hardest']['name'] if p['hardest'] else None})
-        # Conserver aussi les points publics synchronisés, sans modifier les autres champs du profil.
-        request('players',method='PATCH',params={'player_key':'eq.'+k},payload={'points':score})
     for i in range(0,len(snapshots),300):
         request('player_stat_snapshots',method='POST',params={'on_conflict':'snapshot_day,player_key'},
           payload=snapshots[i:i+300],prefer='resolution=merge-duplicates,return=minimal')
-    print(f'{len(players)} profils, {len(demons)} démons, {len(records)} records, {len(snapshots)} snapshots au {today}.')
+    print(f'{len(players)} profils, {len(demons)} démons, {len(records)} records, {len(snapshots)} snapshots au {today} (aucun score modifié).')
 
 if __name__=='__main__':
     main()

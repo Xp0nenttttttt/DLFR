@@ -1,0 +1,10 @@
+DLFR V87 — Essais de boutique + graphiques historiques
+
+1. Remplacer uniquement js/app.js sur la version V86, puis Ctrl+F5.
+2. Pour les essais, aller dans Modération > Défis & tests, activer un objet, puis ouvrir Boutique > Boutique et collection et cliquer sur Équiper. Retour en administration pour retirer l'essai.
+3. Pour l'historique, la page Graphiques ne peut montrer de tendance sans snapshots réels. Vérifier dans GitHub Actions le workflow « Historique journalier Demonlist » ; activer les Actions si nécessaire et configurer les secrets du dépôt SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY dans Settings > Secrets and variables > Actions. Ne JAMAIS mettre la service-role key dans le site, ni l'envoyer dans un chat.
+4. Copier .github/workflows/daily-snapshots.yml et tools/snapshot_ranks.py à la racine de ton dépôt GitHub. Le script fourni n'écrit jamais dans players et photographie les scores publics existants.
+5. Utiliser workflow_dispatch (Run workflow) pour créer le premier instantané, puis le cron prend le relais. Au premier relevé : chiffre et date, à partir du deuxième : courbe. Ne pas inventer des valeurs historiques.
+6. Requête lecture seule facultative : 87_DIAGNOSTIC_HISTORIQUE.sql.
+Attention : si les tables de snapshots n'existent pas ou si les secrets/permissions sont absents, GitHub Actions renverra une erreur. Ne pas désactiver RLS ni mettre de clé admin dans le code client.
+Aucun changement de SQL nécessaire pour les tests déjà installés en V86. Pas de dossier assets/flags/ dans le patch.
