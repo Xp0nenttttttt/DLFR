@@ -1,0 +1,12 @@
+DLFR V92.4 — Correctif des messages de modération
+
+Remplacer : js/production-tools.js
+
+Le correctif rétablit le champ « Message au joueur (facultatif) » dans les demandes de cas particuliers et les demandes réservées au modérateur, puis transmet le texte aux fonctions SQL avec message.
+
+RPC appelées :
+- dlfr_review_submission_with_message
+- dlfr_review_existing_record_with_message
+
+Prérequis : ces deux fonctions SQL doivent exister dans Supabase. Si elles n'existent pas, le champ s'affichera mais la validation renverra une erreur RPC ; il faudra installer la migration SQL qui crée ces fonctions.
+Déployer le fichier sur GitHub Pages, puis faire Ctrl+F5.
