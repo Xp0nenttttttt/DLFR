@@ -1083,3 +1083,61 @@ html.halloween .profile-hero{background:linear-gradient(120deg,#21132a,#662d38,#
 
 /* V86 : administration hebdomadaire */
 .v86-owner{margin-bottom:1.25rem}.v86-weekly-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;align-items:end}.v86-rows{display:grid;gap:8px;margin:12px 0 20px}.v86-row{display:flex;gap:12px;justify-content:space-between;align-items:center;padding:11px 13px;border:1px solid var(--border,#5b5680);border-radius:10px;min-width:0}.v86-row>div{min-width:0;overflow-wrap:anywhere}@media(max-width:600px){.v86-row{align-items:flex-start;flex-direction:column}}
+
+
+/* V89 : récompenses qui claquent vraiment sur la fiche joueur */
+.v89-profile-picks{position:relative;overflow:hidden;border:1px solid rgba(133,112,214,.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 10px 28px rgba(12,10,28,.18)}
+.v89-profile-picks::before{content:'';position:absolute;inset:-20% -10%;background:radial-gradient(circle at top right,rgba(163,115,255,.18),transparent 36%),radial-gradient(circle at bottom left,rgba(82,171,255,.10),transparent 28%);pointer-events:none}
+.v89-reward-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.v89-reward-chip{display:inline-flex;align-items:center;gap:9px;padding:8px 12px;border-radius:16px;min-width:170px;background:rgba(38,34,72,.52);backdrop-filter:blur(4px)}
+.v89-reward-chip b{display:block;font-size:12px;line-height:1.15}
+.v89-reward-chip small{display:block;font-size:10px;color:var(--muted,#b7c1d8);margin-top:2px}
+.v89-chip-emoji{font-size:18px;line-height:1}
+.v89-reward-stage{position:relative;display:grid;grid-template-columns:110px 1fr;gap:16px;align-items:center;margin:14px 0 8px;padding:16px;border-radius:18px;border:1px solid rgba(138,126,212,.42);background:linear-gradient(135deg,rgba(18,18,36,.85),rgba(53,35,89,.68));overflow:hidden;isolation:isolate}
+.v89-reward-stage::after{content:'';position:absolute;inset:0;background:linear-gradient(125deg,rgba(255,255,255,.05),transparent 28%,transparent 65%,rgba(255,255,255,.04));pointer-events:none}
+.v89-reward-stage-copy strong{display:block;font-size:18px;line-height:1.2;margin:4px 0 6px}
+.v89-reward-stage-copy p{margin:0 0 5px;font-size:12px;color:var(--ink,#e8ecf3)}
+.v89-reward-stage-copy small{color:var(--muted,#b9c3d8)}
+.v89-reward-stage-visual{position:relative;width:100px;height:100px;justify-self:center;border-radius:24px;background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.24),transparent 30%),linear-gradient(145deg,rgba(123,76,205,.78),rgba(17,16,35,.95));box-shadow:inset 0 1px 14px rgba(255,255,255,.09),0 0 30px rgba(121,88,226,.35)}
+.v89-reward-stage-visual::before,.v89-reward-stage-visual::after{content:'';position:absolute;inset:12px;border-radius:20px;border:1px solid rgba(255,255,255,.14)}
+.v89-reward-stage-visual::after{inset:auto 18px 18px 18px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.42),transparent);border:0}
+.v89-orb{position:absolute;border-radius:999px;filter:blur(0.4px);opacity:.95}
+.v89-orb-a{width:16px;height:16px;top:16px;left:16px;background:#fff5c7;box-shadow:0 0 18px #fff2ab}
+.v89-orb-b{width:10px;height:10px;right:18px;top:26px;background:#cba9ff;box-shadow:0 0 14px #cba9ff}
+.v89-orb-c{width:14px;height:14px;right:20px;bottom:18px;background:#83d4ff;box-shadow:0 0 14px #83d4ff}
+
+.stats-profile.v89-effect-amethyst,.dlfr20-community.v89-effect-amethyst{box-shadow:0 0 0 1px rgba(144,110,223,.24),0 0 28px rgba(111,72,202,.18)}
+.stats-profile.v89-effect-amethyst .profile-hero{background:linear-gradient(120deg,#211634,#4a2480,#25193f)}
+.stats-profile.v89-effect-amethyst .profile-hero::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 12% 18%,rgba(255,255,255,.14),transparent 14%),radial-gradient(circle at 85% 25%,rgba(196,160,255,.2),transparent 20%),linear-gradient(140deg,transparent 35%,rgba(255,255,255,.08) 50%,transparent 64%);mix-blend-mode:screen;pointer-events:none}
+
+.stats-profile.v89-effect-celestial,.dlfr20-community.v89-effect-celestial{box-shadow:0 0 0 1px rgba(119,195,255,.28),0 0 34px rgba(88,172,255,.17)}
+.stats-profile.v89-effect-celestial .profile-hero{background:linear-gradient(120deg,#102338,#244c76,#1a2747)}
+.stats-profile.v89-effect-celestial .profile-hero::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 20% 24%,rgba(255,245,212,.28),transparent 12%),radial-gradient(circle at 75% 38%,rgba(136,210,255,.20),transparent 19%),radial-gradient(circle at 60% 18%,rgba(255,255,255,.09),transparent 8%),linear-gradient(90deg,transparent,rgba(170,230,255,.08),transparent);pointer-events:none}
+
+.stats-profile.v89-effect-bloodmoon,.dlfr20-community.v89-effect-bloodmoon{box-shadow:0 0 0 1px rgba(195,87,98,.3),0 0 34px rgba(136,32,43,.18)}
+.stats-profile.v89-effect-bloodmoon .profile-hero{background:linear-gradient(120deg,#220f18,#4d1624,#190d17)}
+.stats-profile.v89-effect-bloodmoon .profile-hero::before{content:'';position:absolute;right:34px;top:18px;width:96px;height:96px;border-radius:50%;background:radial-gradient(circle at 32% 35%,rgba(255,170,122,.95),rgba(164,31,52,.88) 43%,rgba(36,8,17,.94) 72%);box-shadow:0 0 28px rgba(198,62,80,.28);opacity:.82;pointer-events:none}
+.stats-profile.v89-effect-bloodmoon .profile-hero::after{content:'';position:absolute;inset:0;background:linear-gradient(100deg,rgba(255,255,255,.03),transparent 28%),radial-gradient(circle at 82% 28%,rgba(255,135,115,.17),transparent 20%);pointer-events:none}
+
+.stats-profile.v89-effect-voidwalker,.dlfr20-community.v89-effect-voidwalker{box-shadow:0 0 0 1px rgba(121,94,239,.34),0 0 40px rgba(78,40,182,.24)}
+.stats-profile.v89-effect-voidwalker .profile-hero{background:radial-gradient(circle at 78% 42%,rgba(119,86,255,.46),transparent 0 12%,rgba(10,13,24,.0) 13%),linear-gradient(120deg,#0a1020,#1a0f33,#090d19)}
+.stats-profile.v89-effect-voidwalker .profile-hero::before{content:'';position:absolute;right:18px;top:12px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(123,94,255,.10) 0 22%,rgba(65,40,131,.72) 23% 28%,rgba(10,14,23,.98) 29% 47%,rgba(77,52,170,.18) 52%,transparent 63%);filter:drop-shadow(0 0 18px rgba(136,96,255,.26));pointer-events:none}
+.stats-profile.v89-effect-voidwalker .profile-hero::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 80% 26%,rgba(255,255,255,.14),transparent 2%),radial-gradient(circle at 70% 62%,rgba(132,160,255,.13),transparent 2%),radial-gradient(circle at 62% 18%,rgba(209,176,255,.10),transparent 1.6%),linear-gradient(100deg,transparent 30%,rgba(255,255,255,.03) 48%,transparent 66%);pointer-events:none}
+
+.v89-stage-banner_voidwalker .v89-reward-stage-visual{background:radial-gradient(circle at 62% 48%,rgba(135,108,255,.45),transparent 0 18%,rgba(21,21,46,0) 20%),linear-gradient(145deg,#24133c,#0f1427 70%);box-shadow:inset 0 0 28px rgba(125,97,255,.24),0 0 28px rgba(94,57,209,.36)}
+.v89-stage-banner_bloodmoon .v89-reward-stage-visual{background:radial-gradient(circle at 50% 43%,rgba(255,157,114,.88),rgba(141,33,54,.78) 44%,rgba(32,7,16,.92) 72%),linear-gradient(145deg,#38131f,#140d16)}
+.v89-stage-frame_celestial .v89-reward-stage-visual{background:radial-gradient(circle at 30% 30%,rgba(255,244,215,.36),transparent 22%),linear-gradient(145deg,#254a74,#13233d 72%);box-shadow:inset 0 0 24px rgba(147,226,255,.18),0 0 24px rgba(89,188,255,.27)}
+.v89-stage-frame_amethyst_crown .v89-reward-stage-visual{background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.24),transparent 22%),linear-gradient(145deg,#6536ab,#1b1736 72%);box-shadow:inset 0 0 24px rgba(208,163,255,.18),0 0 24px rgba(134,94,233,.27)}
+
+@media(prefers-reduced-motion:no-preference){
+ .v89-profile-picks::before{animation:v89-nebula 14s linear infinite alternate}
+ .v89-reward-stage::after{animation:v89-shine 5s ease-in-out infinite}
+ .v89-reward-stage-visual{animation:v89-float 5.5s ease-in-out infinite}
+ .v89-orb-a,.v89-orb-b,.v89-orb-c{animation:v89-spark 4.8s ease-in-out infinite alternate}
+ .stats-profile.v89-effect-voidwalker .profile-hero::before,.stats-profile.v89-effect-bloodmoon .profile-hero::before{animation:v89-float 6s ease-in-out infinite}
+ @keyframes v89-nebula{from{transform:translate3d(-2%,0,0)}to{transform:translate3d(2%,2%,0)}}
+ @keyframes v89-shine{0%,100%{opacity:.4;transform:translateX(-5%)}50%{opacity:.9;transform:translateX(5%)}}
+ @keyframes v89-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+ @keyframes v89-spark{from{transform:translateY(0) scale(1);opacity:.75}to{transform:translateY(-5px) scale(1.08);opacity:1}}
+}
+@media(max-width:690px){.v89-reward-stage{grid-template-columns:1fr;text-align:center}.v89-reward-stage-copy{display:grid;justify-items:center}.v89-reward-grid{gap:8px}.v89-reward-chip{min-width:unset;flex:1 1 100%}}
