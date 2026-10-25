@@ -1,23 +1,39 @@
-DLFR V90 — Effets animés des récompenses de profil
+DLFR V90 — Effets animés des récompenses + GLITCH + onglet Statistiques
 
-Aucun SQL à exécuter. Aucun changement de points, de prix ni d'achats.
-Pré-requis : site V88 (V85 + V89 déjà en place).
+Pré-requis : site V88 et SQL V80, V81, V82, V85 déjà exécutés.
+Aucun changement des points DLFR, des pièces ni des achats existants.
 
-1. Copier dans ton dépôt, en écrasant :
-   - index.html            (charge la nouvelle feuille de style)
+1. Sauvegarder les fichiers du site.
+2. Supabase > SQL Editor : exécuter supabase/90_GLITCH_ET_STATS_FX.sql UNE FOIS.
+   (ajoute 2 objets au catalogue + une fonction de lecture publique groupée)
+3. Copier dans le dépôt, en écrasant :
+   - index.html
    - js/app.js
-   - css/v90-rewards-fx.css  (NOUVEAU fichier)
-2. Ctrl+F5 puis ouvrir un profil avec des objets équipés.
+   - css/v90-rewards-fx.css   (NOUVEAU fichier)
+4. Ctrl+F5.
 
-Ce qui change :
-- Anneau lumineux animé autour de l'avatar pour tous les cadres
-  (couronne dorée sur Améthyste prestige, halo sur Ascension Céleste).
-- Nom du joueur en dégradé animé aux couleurs de l'objet.
-- Bannières vivantes : étoiles + étoile filante (Nuit étoilée), lune qui
-  pulse + brume rouge (Éclipse Sanglante), disque d'accrétion qui tourne
-  (Voidwalker).
-- Particules (braises, étincelles, étoiles) et balayage lumineux.
-- Les 9 objets ont maintenant un rendu (avant : 4 seulement).
-- Paliers I/II/III visibles (pastilles) : la vitesse de l'anneau augmente.
-- Boutique : aperçu coloré de chaque objet + survol.
-- Respecte « réduire les animations » du système (effets figés).
+NOUVEAUX OBJETS (boutique, évolutifs aux paliers 3 puis 8 défis réclamés)
+- 👾 GLITCH.EXE (bannière, 2800 pièces) : scanlines, barres de bug RVB,
+  nom qui se découpe, flashs d'écran. Plus violent à chaque palier.
+- 📺 Cadre Désynchronisé (cadre, 1600 pièces) : anneau saccadé cyan/magenta,
+  avatar qui tremble.
+  Pour les tester sans pièces : Modération > Défis & tests > Essais.
+
+VISIBLE DANS STATISTIQUES (et Profils des joueurs)
+- Classement : liseré coloré, nom teinté, emojis des objets équipés,
+  reflet qui passe (plus rapide au palier III).
+- Carte d'aperçu à droite : bannière animée, avatar avec anneau/couronne/halo,
+  nom en dégradé (ou glitch), bordure rotative au palier III.
+- Annuaire « Profils des joueurs » : anneau animé autour des avatars.
+- Les données viennent d'UN seul appel (dlfr_rewards_public_bulk), mis en
+  cache 60 secondes.
+
+EFFETS PREMIUM EN PLUS
+- Flash d'entrée à l'ouverture d'un profil, avatar qui « pop ».
+- Reflet lumineux et parallaxe qui suivent la souris sur la bannière.
+- Bordure de carte rotative au palier III.
+- Tout est coupé si le système demande « réduire les animations ».
+
+LIMITES : rendu testé sur une maquette (thèmes sombre et clair, mobile pour
+la V90 de base). Si le SQL n'est pas exécuté, le site fonctionne mais les
+effets n'apparaissent pas dans Statistiques. Pas de dossier assets/flags.

@@ -708,24 +708,60 @@ async function v81RewardsRender(){
   }).join('')}</div><p class="small muted">Une décoration par catégorie. Les objets de prestige évoluent après 3 puis 8 défis hebdomadaires validés, sans nouveau paiement.</p></details>`;
  }catch(err){if(seq===v81Request&&area.isConnected)area.innerHTML='<span class="small muted">Boutique indisponible : '+esc(err.message||'Erreur Supabase')+'</span>';}
 }
-// V90 — calque d'effets animés (anneau d'avatar, particules, bannière vivante). Purement visuel.
-function v90Fx(card,badges,prestige){
+// V90 — effets animés des récompenses (profil, aperçu Statistiques, classement). Purement visuel.
+const V90_PRESTIGE=new Set(['frame_amethyst_crown','frame_celestial','banner_bloodmoon','banner_voidwalker','frame_glitch','banner_glitch']);
+const V90_FX={items:{},t:0,loading:false};
+function v90Safe(items){return (Array.isArray(items)?items:[]).filter(x=>/^[a-z0-9_]+$/.test(String(x?.item_key||'')));}
+function v90Cls(items){
+ const list=v90Safe(items);if(!list.length)return '';
+ const tiers=list.filter(x=>V90_PRESTIGE.has(x.item_key)).map(x=>[1,2,3].includes(Number(x.tier))?Number(x.tier):1);
+ const c=['v90-fx','v90-t'+(tiers.length?Math.max(...tiers):1),...list.map(x=>'v90-has-'+x.item_key)];
+ if(list.some(x=>x.item_key.startsWith('frame_')))c.push('v90-hasframe');
+ return c.join(' ');
+}
+function v90LayerHTML(items){
+ const list=v90Safe(items);if(!list.length)return '';
+ const keys=new Set(list.map(x=>x.item_key));
+ const n=keys.has('banner_voidwalker')||keys.has('banner_night')||keys.has('banner_glitch')?18:14;
+ let parts='';
+ for(let i=0;i<n;i++)parts+=`<i style="--x:${(i*53+7)%96}%;--y:${(i*29+13)%88}%;--s:${2+(i*7)%4}px;--d:${(3.2+((i*13)%40)/10).toFixed(1)}s;--l:${(((-(i*7))%50)/10).toFixed(1)}s;--dx:${(i%2?1:-1)*(6+(i*5)%22)}px"></i>`;
+ return `<div class="v90-fx-layer" aria-hidden="true"><span class="v90-glow"></span><b class="v90-core"></b>${parts}</div>`;
+}
+function v90Emojis(items){return v90Safe(items).map(x=>esc(x.emoji||'')).join('');}
+function v90Fx(card,badges){
  if(!card)return;
  [...card.classList].filter(c=>c.startsWith('v90-')).forEach(c=>card.classList.remove(c));
  card.querySelectorAll('.v90-fx-layer').forEach(n=>n.remove());
- if(!badges.length)return;
- const keys=new Set(badges.map(x=>String(x.item_key||'')).filter(k=>/^[a-z0-9_]+$/.test(k)));
- const tiers=badges.filter(x=>prestige.has(x.item_key)).map(x=>[1,2,3].includes(Number(x.tier))?Number(x.tier):1);
- const tier=tiers.length?Math.max(...tiers):1;
- card.classList.add('v90-fx','v90-t'+tier);
- keys.forEach(k=>card.classList.add('v90-has-'+k));
- if([...keys].some(k=>k.startsWith('frame_')))card.classList.add('v90-hasframe');
+ if(!v90Safe(badges).length)return;
+ const cls=v90Cls(badges);card.classList.add(...cls.split(' '));
  const hero=card.querySelector('.profile-hero');if(!hero)return;
- const n=keys.has('banner_voidwalker')||keys.has('banner_night')?18:14;
- let parts='';
- for(let i=0;i<n;i++)parts+=`<i style="--x:${(i*53+7)%96}%;--y:${(i*29+13)%88}%;--s:${2+(i*7)%4}px;--d:${(3.2+((i*13)%40)/10).toFixed(1)}s;--l:${(((-(i*7))%50)/10).toFixed(1)}s;--dx:${(i%2?1:-1)*(6+(i*5)%22)}px"></i>`;
- hero.insertAdjacentHTML('beforeend',`<div class="v90-fx-layer" aria-hidden="true"><span class="v90-glow"></span><b class="v90-core"></b>${parts}</div>`);
+ hero.classList.add('v90-hero');
+ const nm=hero.querySelector('.profile-hero-copy strong');if(nm)nm.classList.add('v90-name');
+ hero.insertAdjacentHTML('beforeend',v90LayerHTML(badges));
 }
+// Charge, une seule fois par minute, les objets équipés de tous les joueurs (1 appel RPC).
+async function v90LoadFx(){
+ if(!db||V90_FX.loading||Date.now()-V90_FX.t<60000)return;
+ V90_FX.loading=true;
+ try{
+  const {data,error}=await db.rpc('dlfr_rewards_public_bulk');
+  if(error)throw error;
+  const next=data&&typeof data==='object'?data:{};
+  const changed=JSON.stringify(next)!==JSON.stringify(V90_FX.items);
+  V90_FX.items=next;V90_FX.t=Date.now();
+  const page=new URLSearchParams(location.search).get('page')||'list';
+  if(changed&&(page==='stats'||page==='players'))render();
+ }catch(e){V90_FX.t=Date.now();}finally{V90_FX.loading=false;}
+}
+// Reflet + parallaxe qui suivent la souris au-dessus des bannières animées.
+if(!window.__v90Pointer){window.__v90Pointer=true;let raf=0;
+ document.addEventListener('pointermove',ev=>{
+  const hero=ev.target.closest&&ev.target.closest('.v90-hero');if(!hero||raf)return;
+  raf=requestAnimationFrame(()=>{raf=0;const r=hero.getBoundingClientRect();if(!r.width)return;
+   const x=(ev.clientX-r.left)/r.width,y=(ev.clientY-r.top)/r.height;
+   hero.style.setProperty('--mx',(x*100).toFixed(1)+'%');hero.style.setProperty('--my',(y*100).toFixed(1)+'%');
+   hero.style.setProperty('--px',(x*2-1).toFixed(2));hero.style.setProperty('--py',(y*2-1).toFixed(2));});
+ },{passive:true});}
 async function v81ProfileRewards(){
  const area=document.getElementById('v81-profile-rewards');if(!area||!db)return;
  const k=area.dataset.playerKey;
@@ -733,18 +769,18 @@ async function v81ProfileRewards(){
   const {data,error}=await db.rpc('dlfr_rewards_public',{p_player_key:k});if(error)throw error;
   if(!area.isConnected||area.dataset.playerKey!==k)return;
   const badges=Array.isArray(data)?data:[];
-  const prestige=new Set(['frame_amethyst_crown','frame_celestial','banner_bloodmoon','banner_voidwalker']);
+  const prestige=V90_PRESTIGE;
   const card=area.closest('.stats-profile'),community=area.closest('.dlfr20-community');
-  const classes=['v85-profile-moon','v85-profile-void','v89-effect-amethyst','v89-effect-celestial','v89-effect-bloodmoon','v89-effect-voidwalker'];
+  const classes=['v85-profile-moon','v85-profile-void','v89-effect-amethyst','v89-effect-celestial','v89-effect-bloodmoon','v89-effect-voidwalker','v89-effect-glitch'];
   area.classList.remove(...classes);
   card&&card.classList.remove(...classes);
   community&&community.classList.remove(...classes);
-  const primary=(['banner_voidwalker','banner_bloodmoon','frame_celestial','frame_amethyst_crown'].map(key=>badges.find(x=>x.item_key===key)).find(Boolean))||null;
-  const effectClass=primary?({banner_voidwalker:'v89-effect-voidwalker',banner_bloodmoon:'v89-effect-bloodmoon',frame_celestial:'v89-effect-celestial',frame_amethyst_crown:'v89-effect-amethyst'}[primary.item_key]||''):'';
+  const primary=(['banner_glitch','banner_voidwalker','banner_bloodmoon','frame_glitch','frame_celestial','frame_amethyst_crown'].map(key=>badges.find(x=>x.item_key===key)).find(Boolean))||null;
+  const effectClass=primary?({banner_glitch:'v89-effect-glitch',frame_glitch:'v89-effect-glitch',banner_voidwalker:'v89-effect-voidwalker',banner_bloodmoon:'v89-effect-bloodmoon',frame_celestial:'v89-effect-celestial',frame_amethyst_crown:'v89-effect-amethyst'}[primary.item_key]||''):'';
   if(effectClass){area.classList.add(effectClass);card&&card.classList.add(effectClass);community&&community.classList.add(effectClass);}
   if(badges.some(x=>x.item_key==='banner_bloodmoon'))area.classList.add('v85-profile-moon');
   if(badges.some(x=>x.item_key==='banner_voidwalker'))area.classList.add('v85-profile-void');
-  v90Fx(card||community,badges,prestige);
+  v90Fx(card||community,badges);
   const tierLabel=x=>prestige.has(x.item_key)?esc(x.tier_label||'I'):'Collection';
   const tierNum=x=>[1,2,3].includes(Number(x.tier))?Number(x.tier):1;
   const highlight=primary?`<div class="v89-reward-stage v89-stage-${esc(primary.item_key)} v89-tier-${tierNum(primary)}"><div class="v89-reward-stage-visual" aria-hidden="true"><span class="v89-orb v89-orb-a"></span><span class="v89-orb v89-orb-b"></span><span class="v89-orb v89-orb-c"></span></div><div class="v89-reward-stage-copy"><span class="kicker">Effet principal actif</span><strong>${esc(primary.emoji)} ${esc(primary.label)}</strong><p>${esc(primary.description||'Récompense cosmétique premium équipée sur la carte du joueur.')}</p><small>${prestige.has(primary.item_key)?`Palier ${esc(primary.tier_label||'I')}`:'Actif'} · Effets visuels appliqués à la fiche du joueur</small>${prestige.has(primary.item_key)?`<div class="v90-tier-pips" data-t="${tierNum(primary)}"><i></i><i></i><i></i></div><div class="v90-tier-hint">${tierNum(primary)>=3?'Palier maximal atteint':tierNum(primary)===2?'Palier III à 8 défis réclamés':'Palier II à 3 défis réclamés'}</div>`:''}</div></div>`:'';
@@ -1250,7 +1286,7 @@ function playersPage(){
  const items=players.map(p=>{
    const profile=profileByKey().get(p.player_key)||{};
    const avatar=avatarOf(p.player_key,profile);
-   return `<a class="dlfr24-player-card ${p.has_account?'':'unclaimed'}" data-nav href="${url('player',{player:p.player_key})}" data-profile-search="${esc(key(fullName(p)))}">
+   return `<a class="dlfr24-player-card ${p.has_account?'':'unclaimed'} ${v90Cls(V90_FX.items[p.player_key])}" data-nav href="${url('player',{player:p.player_key})}" data-profile-search="${esc(key(fullName(p)))}">
      ${framedAvatar(p.player_key,`<span class="dlfr24-player-avatar">${avatar?`<img loading="lazy" src="${esc(avatar)}" alt="">`:esc(fullName(p).slice(0,1).toUpperCase()||'?')}</span>`)}
      <span class="dlfr24-player-info"><strong>${flag(p.country_code)} ${esc(fullName(p))}</strong><small>${p.rank?'#'+p.rank+' · ':''}${fmt(p.score)} pts · ${p.has_account?'Compte lié':'Sans compte'}</small></span><span aria-hidden="true">↗</span></a>`;
  }).join('');
@@ -1267,10 +1303,11 @@ function statsProfilePreview(p){
  const titles=state.communityReady?COMMUNITY.ownedTitles(state.data,p.player_key):[];
  const featured=titles.find(t=>String(t.id)===String(pref.featured_title_id));
  const mainCount=new Set(p.main.map(d=>d.id)).size,extendedCount=new Set(p.extended.map(d=>d.id)).size;
- return `<article class="dlfr251-preview" style="--dlfr251-accent:${esc(accent)}" aria-label="Aperçu de ${esc(name)}">
-   <div class="dlfr251-preview-banner">${banner?`<img loading="lazy" src="${esc(banner)}" alt="">`:''}</div>
+ const fxItems=V90_FX.items[p.player_key];
+ return `<article class="dlfr251-preview ${v90Cls(fxItems)}" style="--dlfr251-accent:${esc(accent)}" aria-label="Aperçu de ${esc(name)}">
+   <div class="dlfr251-preview-banner ${fxItems?.length?'v90-hero':''}">${banner?`<img loading="lazy" src="${esc(banner)}" alt="">`:''}${v90LayerHTML(fxItems)}</div>
    <div class="dlfr251-preview-content">
-    <div class="dlfr251-preview-identity">${framedAvatar(p.player_key,`<span class="dlfr251-preview-avatar">${avatar?`<img loading="lazy" src="${esc(avatar)}" alt="Avatar de ${esc(name)}">`:`<span aria-hidden="true">${esc(initial)}</span>`}</span>`)}<div class="dlfr251-preview-name"><h3>${flag(p.country_code)} ${esc(name)}</h3><p class="muted small">${p.has_account?'Compte DLFR':'Profil non revendiqué'} ${p.country_code==='FR'?`· ${esc(GEO.regionInfo(regionFor(p))?.name||'France')}`:''}</p></div></div>
+    <div class="dlfr251-preview-identity">${framedAvatar(p.player_key,`<span class="dlfr251-preview-avatar">${avatar?`<img loading="lazy" src="${esc(avatar)}" alt="Avatar de ${esc(name)}">`:`<span aria-hidden="true">${esc(initial)}</span>`}</span>`)}<div class="dlfr251-preview-name"><h3 class="${fxItems?.length?'v90-name':''}">${flag(p.country_code)} ${esc(name)}</h3><p class="muted small">${p.has_account?'Compte DLFR':'Profil non revendiqué'} ${p.country_code==='FR'?`· ${esc(GEO.regionInfo(regionFor(p))?.name||'France')}`:''}</p></div></div>
     ${featured?`<p class="dlfr251-preview-title">✦ ${esc(featured.label)}</p>`:''}
     <div class="dlfr251-preview-stats">${box('Rang DLFR',p.rank?'#'+p.rank:'—')}${box('Points Top 150',fmt(p.score))}${box('Points NLW',fmt(p.nlwScore||0))}${box('Rang NLW',p.nlwRank?'#'+p.nlwRank:'—')}${box('Hardest',hardestLabel(p))}${box('Main List',mainCount)}${box('Extended',extendedCount)}${box('NLW',p.beyond.length)}</div>
     ${profile.bio?`<p class="dlfr251-preview-bio">${esc(profile.bio)}</p>`:''}
@@ -1311,7 +1348,7 @@ function statsPage(){const users=ranked().filter(statsPlayerVisible);const count
  if(state.statsTab==='compare'){const a=chosen||users[0],b=users.find(p=>p.player_key===state.comparePlayer)||users.find(p=>p.player_key!==a?.player_key);return top+`<div class="compare-panel"><div class="compare-selects"><label>Joueur A <select id="compareA">${users.map(p=>`<option value="${esc(p.player_key)}" ${p.player_key===a?.player_key?'selected':''}>${esc(fullName(p))}</option>`).join('')}</select></label><label>Joueur B <select id="compareB">${users.filter(p=>p.player_key!==a?.player_key).map(p=>`<option value="${esc(p.player_key)}" ${p.player_key===b?.player_key?'selected':''}>${esc(fullName(p))}</option>`).join('')}</select></label></div>${a?comparison(a,b):'<p class="empty">Pas de joueurs.</p>'}</div></section>`;}
  return top+`<div class="dlfr24-stats-ranking dlfr251-stats-layout"><div class="ranking-panel"><div class="kicker">International</div><div class="country-select-row"><span id="countryFilterPreview">${flag(state.country)}</span><select id="countryFilter" aria-label="Filtrer par pays">${countries.map(c=>`<option value="${esc(c)}" ${c===state.country?'selected':''}>${c==='MONDE'?'MONDE - International':GEO.countryName(c)+' ('+esc(c)+')'}</option>`).join('')}</select></div>${state.country==='FR'?`<div class="country-select-row"><span>${GEO.regionImage(state.region)}</span><select id="regionFilter" aria-label="Filtrer par région française"><option value="ALL">Toutes les régions</option>${GEO.regions.map(r=>`<option value="${r.code}" ${state.region===r.code?'selected':''}>${esc(r.name)}</option>`).join('')}</select></div>`:''}<label class="filterbox" style="margin-top:9px"><span>⌕</span><input type="search" id="playerSearch" placeholder="Rechercher un joueur…" value="${esc(state.keyword)}"></label><div class="rank-list" id="rankList">${rankRows(filtered,chosen)}</div><p class="muted small">Clique sur un joueur pour afficher son aperçu. Ouvre ensuite sa fiche complète depuis la carte à droite. Les profils sans compte apparaissent en gris.</p></div><aside id="dlfr251StatsPreview" class="dlfr251-preview-column" aria-live="polite">${statsProfilePreview(chosen)}</aside></div></section>`;
 }
-function rankRows(users,chosen,mode='main'){return users.length?users.map(p=>`<button type="button" data-stats-preview="${esc(p.player_key)}" aria-pressed="${p.player_key===chosen?.player_key}" class="rank-item ${p.has_account?'':'unclaimed'} ${p.player_key===chosen?.player_key?'selected':''}"><span class="rank-num">#${mode==='nlw'?(p.nlwRank||'-'):(p.rank||'-')}</span><span class="rank-name">${flag(p.country_code)} ${regionFlag(p)} ${esc(p.display_name||p.username)}</span><span class="rank-score">${fmt(mode==='nlw'?p.nlwScore:p.score)}</span></button>`).join(''):'<div class="empty">Aucun joueur trouvé.</div>';}
+function rankRows(users,chosen,mode='main'){return users.length?users.map(p=>`<button type="button" data-stats-preview="${esc(p.player_key)}" aria-pressed="${p.player_key===chosen?.player_key}" class="rank-item ${p.has_account?'':'unclaimed'} ${p.player_key===chosen?.player_key?'selected':''} ${v90Cls(V90_FX.items[p.player_key])}"><span class="rank-num">#${mode==='nlw'?(p.nlwRank||'-'):(p.rank||'-')}</span><span class="rank-name">${flag(p.country_code)} ${regionFlag(p)} ${esc(p.display_name||p.username)}${V90_FX.items[p.player_key]?.length?`<span class="v90-row-fx" aria-hidden="true">${v90Emojis(V90_FX.items[p.player_key])}</span>`:''}</span><span class="rank-score">${fmt(mode==='nlw'?p.nlwScore:p.score)}</span></button>`).join(''):'<div class="empty">Aucun joueur trouvé.</div>';}
 function demonPage(){
  const id=Number(new URLSearchParams(location.search).get('id'));
  const d=catalog().find(x=>Number(x.id)===id);
@@ -2094,7 +2131,7 @@ function render(){
  const accountNavLink=document.querySelector('a[data-link="my-profile"]');
  if(accountNavLink) accountNavLink.textContent=state.session?'Mon profil':'Se connecter / Créer un compte';
  if(page==='list'){v80WeeklyRender();v81RewardsRender();}if(page==='admin'&&state.adminTab==='weekly'&&state.staffRole==='owner'&&!ownerPreviewActive())v86AdminLoad();
- if(page==='player')v81ProfileRewards();
+ if(page==='player')v81ProfileRewards();if(page==='stats'||page==='players')v90LoadFx();
  if(page==='admin'&&state.staffRole==='owner'){
    const switcher=document.createElement('section');switcher.className='paper owner-role-switcher';
    switcher.innerHTML='<h2>Aperçu des rôles de modération</h2><p class="small muted">Vue de l’interface seulement : ton compte reste propriétaire. Aucun enregistrement n’est autorisé en aperçu.</p><div class="owner-role-actions">'+
@@ -2567,7 +2604,7 @@ function bootEvents(){
   const buy=ev.target.closest('[data-v81-buy]');
   if(buy){buy.disabled=true;try{const {error}=await db.rpc('dlfr_reward_buy',{p_item_key:buy.dataset.v81Buy});if(error)throw error;toast('Objet ajouté à ta collection !');await v81RewardsRender();}catch(err){toast('Achat impossible : '+err.message);buy.disabled=false;}return;}
   const equip=ev.target.closest('[data-v81-equip]');
-  if(equip){equip.disabled=true;try{const {error}=await db.rpc('dlfr_reward_equip',{p_item_key:equip.textContent.includes('Équipé')?'':equip.dataset.v81Equip,p_category:equip.dataset.v81Category});if(error)throw error;toast('Vitrine mise à jour !');await v81RewardsRender();}catch(err){toast('Équipement impossible : '+err.message);equip.disabled=false;}return;}
+  if(equip){equip.disabled=true;try{const {error}=await db.rpc('dlfr_reward_equip',{p_item_key:equip.textContent.includes('Équipé')?'':equip.dataset.v81Equip,p_category:equip.dataset.v81Category});if(error)throw error;toast('Vitrine mise à jour !');V90_FX.t=0;await v81RewardsRender();}catch(err){toast('Équipement impossible : '+err.message);equip.disabled=false;}return;}
   const reaction=ev.target.closest('[data-v79-react]');
   if(reaction){
    if(!state.session){toast('Connecte-toi pour réagir.');return;}

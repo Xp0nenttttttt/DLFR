@@ -5,58 +5,58 @@
 @property --v90-a{syntax:'<angle>';inherits:false;initial-value:0deg}
 
 /* ---------- Variables par objet ---------- */
-.stats-profile.v90-fx{--v90-p1:#fff;--v90-p2:#cbb6ff;--v90-n1:#fff;--v90-n2:#d9ccff;--v90-r1:#b48cff;--v90-r2:#6d3fd6;--v90-r3:#e7d6ff}
-.stats-profile.v90-has-banner_night{--v90-p1:#fff6c9;--v90-p2:#9fc3ff;--v90-n1:#fff;--v90-n2:#bcd2ff}
-.stats-profile.v90-has-badge_spark{--v90-p1:#ffe48a;--v90-p2:#fff}
-.stats-profile.v90-has-badge_flame{--v90-p1:#ff9a3c;--v90-p2:#ffd36b;--v90-n1:#fff3d6;--v90-n2:#ffb05a}
-.stats-profile.v90-has-frame_amethyst{--v90-r1:#c9a0ff;--v90-r2:#7d3df0;--v90-r3:#f0e0ff}
-.stats-profile.v90-has-frame_aurora{--v90-r1:#6dffd2;--v90-r2:#4aa8ff;--v90-r3:#c58bff}
-.stats-profile.v90-has-frame_amethyst_crown{--v90-r1:#ffd978;--v90-r2:#9b5cf0;--v90-r3:#fff1c2;--v90-p1:#ffe29a;--v90-p2:#d1a8ff;--v90-n1:#fff3cf;--v90-n2:#d9b8ff}
-.stats-profile.v90-has-frame_celestial{--v90-r1:#fff6d0;--v90-r2:#6fcdff;--v90-r3:#ffffff;--v90-p1:#fff4cf;--v90-p2:#9fe0ff;--v90-n1:#ffffff;--v90-n2:#a9e4ff}
-.stats-profile.v90-has-banner_bloodmoon{--v90-p1:#ff5a6e;--v90-p2:#ffb199;--v90-n1:#fff0ea;--v90-n2:#ff8d98}
-.stats-profile.v90-has-banner_voidwalker{--v90-p1:#c9b8ff;--v90-p2:#7c9bff;--v90-n1:#f4f0ff;--v90-n2:#a99bff}
+.v90-fx{--v90-p1:#fff;--v90-p2:#cbb6ff;--v90-n1:#fff;--v90-n2:#d9ccff;--v90-r1:#b48cff;--v90-r2:#6d3fd6;--v90-r3:#e7d6ff}
+.v90-fx.v90-has-banner_night{--v90-r1:#9fc3ff;--v90-r2:#3b57d6;--v90-r3:#fff;--v90-p1:#fff6c9;--v90-p2:#9fc3ff;--v90-n1:#fff;--v90-n2:#bcd2ff}
+.v90-fx.v90-has-badge_spark{--v90-r1:#ffe48a;--v90-r2:#c99a00;--v90-r3:#fff;--v90-p1:#ffe48a;--v90-p2:#fff}
+.v90-fx.v90-has-badge_flame{--v90-r1:#ffb05a;--v90-r2:#e8590c;--v90-r3:#ffd36b;--v90-p1:#ff9a3c;--v90-p2:#ffd36b;--v90-n1:#fff3d6;--v90-n2:#ffb05a}
+.v90-fx.v90-has-frame_amethyst{--v90-r1:#c9a0ff;--v90-r2:#7d3df0;--v90-r3:#f0e0ff}
+.v90-fx.v90-has-frame_aurora{--v90-r1:#6dffd2;--v90-r2:#4aa8ff;--v90-r3:#c58bff}
+.v90-fx.v90-has-frame_amethyst_crown{--v90-r1:#ffd978;--v90-r2:#9b5cf0;--v90-r3:#fff1c2;--v90-p1:#ffe29a;--v90-p2:#d1a8ff;--v90-n1:#fff3cf;--v90-n2:#d9b8ff}
+.v90-fx.v90-has-frame_celestial{--v90-r1:#fff6d0;--v90-r2:#3aa6e6;--v90-r3:#ffffff;--v90-p1:#fff4cf;--v90-p2:#9fe0ff;--v90-n1:#ffffff;--v90-n2:#a9e4ff}
+.v90-fx.v90-has-banner_bloodmoon{--v90-r1:#ff7a8a;--v90-r2:#d1384f;--v90-r3:#ffb199;--v90-p1:#ff5a6e;--v90-p2:#ffb199;--v90-n1:#fff0ea;--v90-n2:#ff8d98}
+.v90-fx.v90-has-banner_voidwalker{--v90-r1:#a58bff;--v90-r2:#5b3fd9;--v90-r3:#c9b8ff;--v90-p1:#c9b8ff;--v90-p2:#7c9bff;--v90-n1:#f4f0ff;--v90-n2:#a99bff}
 
 /* ---------- Calque d'effets dans la bannière ---------- */
-.v90-fx .profile-hero{isolation:isolate}
+.v90-fx .v90-hero{isolation:isolate}
 .v90-fx-layer{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:1}
-.v90-fx .profile-hero-inner{position:relative;z-index:3}
+.v90-fx .profile-hero-inner,.v90-fx .dlfr251-preview-identity{position:relative;z-index:3}
 .v90-fx-layer i{position:absolute;left:var(--x);bottom:-12px;width:var(--s);height:var(--s);border-radius:50%;background:var(--v90-p1);box-shadow:0 0 9px var(--v90-p1);opacity:0}
 .v90-fx-layer i:nth-child(3n){background:var(--v90-p2);box-shadow:0 0 9px var(--v90-p2)}
 .v90-core,.v90-glow{position:absolute;pointer-events:none}
 .v90-glow{inset:0;opacity:.0}
 
 /* Balayage lumineux sur la bannière dès qu'un effet est actif */
-.stats-profile.v90-fx .profile-hero.profile-hero::after{content:'';position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.10) 48%,transparent 60%);background-size:250% 100%;background-position:130% 0}
+.v90-fx .v90-hero.v90-hero::after{content:'';position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.10) 48%,transparent 60%);background-size:250% 100%;background-position:130% 0}
 
 /* ---------- Nom du joueur en dégradé animé ---------- */
-.stats-profile.v90-fx .profile-hero .profile-hero-copy strong{
+.v90-fx :is(strong,h3).v90-name.v90-name{
   background:linear-gradient(90deg,var(--v90-n1),var(--v90-n2),var(--v90-n1));background-size:220% 100%;
   -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;
   text-shadow:none;filter:drop-shadow(0 2px 8px rgba(0,0,0,.5))}
-.stats-profile.v90-fx .profile-hero .profile-hero-copy strong img{-webkit-text-fill-color:initial}
+.v90-fx :is(strong,h3).v90-name.v90-name img{-webkit-text-fill-color:initial}
 
 /* ---------- Anneau animé autour de l'avatar ---------- */
-.v90-hasframe .profile-hero .dlfr27-frame,.v90-hasframe .dlfr24-profile-head .dlfr27-frame{position:relative;overflow:visible}
-.v90-hasframe .profile-hero .dlfr27-frame::before{content:'';position:absolute;inset:-8px;border-radius:22px;padding:3px;
+.v90-hasframe .dlfr27-frame{position:relative;overflow:visible}
+.v90-hasframe .dlfr27-frame::before{content:'';position:absolute;inset:-8px;border-radius:22px;padding:3px;
   background:conic-gradient(from var(--v90-a),var(--v90-r1),var(--v90-r2),var(--v90-r3),var(--v90-r2),var(--v90-r1));
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;
   filter:drop-shadow(0 0 7px var(--v90-r2));pointer-events:none;z-index:2}
-.v90-hasframe .profile-hero .dlfr27-frame::after{content:'';position:absolute;inset:-14px;border-radius:28px;pointer-events:none;z-index:0;
+.v90-hasframe .dlfr27-frame::after{content:'';position:absolute;inset:-14px;border-radius:28px;pointer-events:none;z-index:0;
   background:radial-gradient(circle,var(--v90-r2) 0,transparent 68%);opacity:.38;filter:blur(8px)}
-.v90-hasframe .profile-hero .profile-avatar{position:relative;z-index:1}
+.v90-hasframe .dlfr27-frame>*{position:relative;z-index:1}
 
 /* Couronne (Améthyste prestige) */
-.v90-has-frame_amethyst_crown .profile-hero .dlfr27-frame>*:first-child{position:relative}
-.v90-has-frame_amethyst_crown .profile-hero .dlfr27-frame::after{inset:auto;left:50%;top:-24px;width:30px;height:22px;transform:translateX(-50%);
+.v90-has-frame_amethyst_crown .dlfr27-frame>*:first-child{position:relative}
+.v90-has-frame_amethyst_crown .dlfr27-frame::after{inset:auto;left:50%;top:-24px;width:30px;height:22px;transform:translateX(-50%);
   border-radius:0;background:linear-gradient(180deg,#fff0b8,#e8a93c);opacity:1;filter:drop-shadow(0 0 7px #ffd978);z-index:4;
   clip-path:polygon(0 100%,0 30%,22% 62%,50% 0,78% 62%,100% 30%,100% 100%)}
 /* Halo céleste */
-.v90-has-frame_celestial .profile-hero .dlfr27-frame::after{inset:auto;left:50%;top:-18px;width:56px;height:14px;transform:translateX(-50%);
+.v90-has-frame_celestial .dlfr27-frame::after{inset:auto;left:50%;top:-18px;width:56px;height:14px;transform:translateX(-50%);
   border-radius:50%;background:none;border:3px solid #fff4cf;box-shadow:0 0 14px #fff4cf,inset 0 0 8px #fff4cf;opacity:.95;filter:none;z-index:4}
 
 /* ---------- Bannières (cœur animé) ---------- */
 /* Nuit étoilée */
-.stats-profile.v90-has-banner_night .profile-hero{background:linear-gradient(120deg,#070b24,#17235a 55%,#0b1030)}
+.v90-fx.v90-has-banner_night .v90-hero{background:linear-gradient(120deg,#070b24,#17235a 55%,#0b1030)}
 .v90-has-banner_night .v90-glow{opacity:1;background:
   radial-gradient(1.5px 1.5px at 12% 30%,#fff,transparent),radial-gradient(1.5px 1.5px at 28% 70%,#cfe0ff,transparent),
   radial-gradient(2px 2px at 44% 22%,#fff,transparent),radial-gradient(1.5px 1.5px at 61% 62%,#fff,transparent),
@@ -123,14 +123,14 @@
 
 /* ---------- Animations (uniquement si le mouvement est autorisé) ---------- */
 @media(prefers-reduced-motion:no-preference){
-  .stats-profile.v90-fx .profile-hero.profile-hero::after{animation:v90-sweep 7s ease-in-out infinite}
-  .stats-profile.v90-fx .profile-hero .profile-hero-copy strong{animation:v90-name 6s linear infinite}
-  .v90-hasframe .profile-hero .dlfr27-frame::before{animation:v90-spin 6s linear infinite}
-  .v90-hasframe.v90-t2 .profile-hero .dlfr27-frame::before{animation-duration:4.5s}
-  .v90-hasframe.v90-t3 .profile-hero .dlfr27-frame::before{animation-duration:3s}
-  .v90-hasframe .profile-hero .dlfr27-frame::after{animation:v90-breathe 3.6s ease-in-out infinite}
-  .v90-has-frame_amethyst_crown .profile-hero .dlfr27-frame::after{animation:v90-bob 3s ease-in-out infinite}
-  .v90-has-frame_celestial .profile-hero .dlfr27-frame::after{animation:v90-halo 4s ease-in-out infinite}
+  .v90-fx .v90-hero.v90-hero::after{animation:v90-sweep 7s ease-in-out infinite}
+  .v90-fx :is(strong,h3).v90-name.v90-name{animation:v90-name 6s linear infinite}
+  .v90-hasframe .dlfr27-frame::before{animation:v90-spin 6s linear infinite}
+  .v90-hasframe.v90-t2 .dlfr27-frame::before{animation-duration:4.5s}
+  .v90-hasframe.v90-t3 .dlfr27-frame::before{animation-duration:3s}
+  .v90-hasframe .dlfr27-frame::after{animation:v90-breathe 3.6s ease-in-out infinite}
+  .v90-has-frame_amethyst_crown .dlfr27-frame::after{animation:v90-bob 3s ease-in-out infinite}
+  .v90-has-frame_celestial .dlfr27-frame::after{animation:v90-halo 4s ease-in-out infinite}
   .v90-fx-layer i{animation:v90-rise var(--d) linear var(--l) infinite}
   .v90-has-banner_voidwalker .v90-fx-layer i,.v90-has-banner_night .v90-fx-layer i{animation:v90-twinkle var(--d) ease-in-out var(--l) infinite alternate}
   .v90-has-banner_night .v90-core{animation:v90-shoot 7s ease-in 2s infinite}
@@ -163,7 +163,126 @@
 @media(max-width:690px){
   .v90-has-banner_bloodmoon .v90-core{width:64px;height:64px;right:12px;top:10px}
   .v90-has-banner_voidwalker .v90-core{width:92px;height:92px;right:4px;top:4px}
-  .v90-hasframe .profile-hero .dlfr27-frame::before{inset:-6px;border-radius:18px}
-  .v90-has-frame_amethyst_crown .profile-hero .dlfr27-frame::after{top:-20px;width:24px;height:18px}
-  .v90-has-frame_celestial .profile-hero .dlfr27-frame::after{width:44px;top:-15px}
+  .v90-hasframe .dlfr27-frame::before{inset:-6px;border-radius:18px}
+  .v90-has-frame_amethyst_crown .dlfr27-frame::after{top:-20px;width:24px;height:18px}
+  .v90-has-frame_celestial .dlfr27-frame::after{width:44px;top:-15px}
+}
+
+
+/* =====================================================================
+   V90.1 — GLITCH, aperçu Statistiques, lignes de classement, effets premium
+   ===================================================================== */
+
+/* ---------- Variables glitch ---------- */
+.v90-fx.v90-has-banner_glitch,.v90-fx.v90-has-frame_glitch{--v90-r1:#00f0ff;--v90-r2:#ff2bd6;--v90-r3:#ffffff;--v90-p1:#00f0ff;--v90-p2:#ff2bd6;--v90-n1:#fff;--v90-n2:#fff}
+
+/* ---------- Bannière GLITCH.EXE ---------- */
+.v90-fx.v90-has-banner_glitch .v90-hero{background:linear-gradient(120deg,#07070d,#14091f 55%,#05080f)}
+.v90-has-banner_glitch .v90-core{inset:0;width:auto;height:auto;border-radius:0;background:
+  repeating-linear-gradient(0deg,rgba(255,255,255,.055) 0 1px,transparent 1px 3px),
+  linear-gradient(90deg,rgba(0,240,255,.07) 1px,transparent 1px) 0 0/34px 34px,
+  radial-gradient(ellipse at 80% 20%,rgba(255,43,214,.22),transparent 55%),
+  radial-gradient(ellipse at 10% 90%,rgba(0,240,255,.18),transparent 55%)}
+.v90-has-banner_glitch .v90-glow{opacity:1;overflow:hidden}
+.v90-has-banner_glitch .v90-glow::before,.v90-has-banner_glitch .v90-glow::after{content:'';position:absolute;left:-5%;right:-5%;height:13%;opacity:0;mix-blend-mode:screen}
+.v90-has-banner_glitch .v90-glow::before{top:20%;background:linear-gradient(90deg,transparent,rgba(0,240,255,.5) 30%,rgba(0,240,255,.15) 70%,transparent)}
+.v90-has-banner_glitch .v90-glow::after{top:62%;background:linear-gradient(90deg,transparent,rgba(255,43,214,.5) 40%,rgba(255,43,214,.15) 80%,transparent)}
+.v90-has-banner_glitch .v90-fx-layer i{bottom:auto;top:var(--y);border-radius:0;width:calc(var(--s)*6);height:2px;background:var(--v90-p1);box-shadow:0 0 6px var(--v90-p1)}
+.v90-has-banner_glitch .v90-fx-layer i:nth-child(2n){background:var(--v90-p2);box-shadow:0 0 6px var(--v90-p2)}
+
+/* Nom : séparation RVB + saccades (remplace le dégradé) */
+.v90-fx.v90-has-banner_glitch :is(strong,h3).v90-name.v90-name,
+.v90-fx.v90-has-frame_glitch :is(strong,h3).v90-name.v90-name{background:none;-webkit-text-fill-color:#fff;color:#fff;filter:none;text-shadow:2px 0 #00f0ff,-2px 0 #ff2bd6}
+
+/* Carte de profil (même logique que les autres effets V89) */
+.stats-profile.v89-effect-glitch{background:linear-gradient(180deg,#0e0b18 0%,#0a0d16 100%);box-shadow:0 0 0 1px rgba(0,240,255,.2),0 16px 40px rgba(255,43,214,.16)}
+.stats-profile.v89-effect-glitch::after{background:radial-gradient(circle at 50% 0,rgba(255,43,214,.2),transparent 62%)}
+.stats-profile.v89-effect-glitch .player-title,.stats-profile.v89-effect-glitch .profile-tabs button.active{background:linear-gradient(135deg,#00b4c4,#a8168f);border-color:rgba(255,255,255,.3)}
+.stats-profile.v89-effect-glitch .statbox,.stats-profile.v89-effect-glitch .profile-section,.stats-profile.v89-effect-glitch .dlfr20-community{background:linear-gradient(160deg,rgba(0,240,255,.08),rgba(255,43,214,.07));border-color:rgba(0,240,255,.16)}
+.stats-profile.v89-effect-glitch .profile-avatar{border-color:#fff;box-shadow:3px 0 0 rgba(0,240,255,.6),-3px 0 0 rgba(255,43,214,.6)}
+.stats-profile.v89-effect-glitch .stat-value{color:#fff;text-shadow:1px 0 #00f0ff,-1px 0 #ff2bd6}
+.v89-stage-banner_glitch .v89-reward-stage-visual,.v89-stage-frame_glitch .v89-reward-stage-visual{background:repeating-linear-gradient(0deg,rgba(255,255,255,.08) 0 1px,transparent 1px 3px),linear-gradient(135deg,#0b0b14,#2a0f3a);box-shadow:4px 0 0 rgba(0,240,255,.5),-4px 0 0 rgba(255,43,214,.5),0 0 28px rgba(255,43,214,.3)}
+.v89-reward-chip.v89-banner_glitch,.v89-reward-chip.v89-frame_glitch{border-color:#00f0ff;box-shadow:2px 0 0 rgba(0,240,255,.5),-2px 0 0 rgba(255,43,214,.5)}
+
+/* Boutique */
+.v90-item-banner_glitch{--v90-bar:linear-gradient(90deg,#00f0ff,#ff2bd6);--v90-edge:#ff2bd6}
+.v90-item-frame_glitch{--v90-bar:linear-gradient(90deg,#ff2bd6,#00f0ff);--v90-edge:#00f0ff}
+.v90-item-banner_glitch .v90-swatch{background:repeating-linear-gradient(0deg,rgba(255,255,255,.1) 0 1px,transparent 1px 3px),linear-gradient(110deg,#07070d,#3b0f4d 55%,#06353d)}
+.v90-item-frame_glitch .v90-swatch{background:conic-gradient(from 10deg,#00f0ff,#ff2bd6,#fff,#ff2bd6,#00f0ff)}
+
+/* ---------- APERÇU STATISTIQUES (carte de droite) ---------- */
+.dlfr251-preview.v90-fx{--ink:#e9ecf2;--ink2:#fff;--muted:#b4c0ce;--card:#141829;--panel:#1d2340;--line:#323c66;--border:#323c66;position:relative;color:var(--ink);border-color:rgba(255,255,255,.12)}
+.dlfr251-preview.v90-fx .dlfr251-preview-content{background:linear-gradient(180deg,#171b30,#10132a)}
+.dlfr251-preview.v90-fx .dlfr251-preview-banner{height:112px}
+.dlfr251-preview.v90-fx .dlfr251-preview-banner img{position:relative;z-index:0}
+.dlfr251-preview.v90-fx .dlfr251-preview-avatar{border-color:#171b30}
+.dlfr251-preview.v90-fx .dlfr251-preview-identity{margin-top:-34px}
+.dlfr251-preview.v90-fx .dlfr251-preview-name h3{font-size:19px;display:inline-block}
+.dlfr251-preview.v90-fx .stat-value,.dlfr251-preview.v90-fx .statbox b{color:#fff!important}
+.dlfr251-preview.v90-fx .stat-label{color:#b4c0ce!important}
+.dlfr251-preview.v90-fx .muted{color:#b4c0ce}
+.dlfr251-preview.v90-fx .statbox{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.09)}
+.dlfr251-preview.v90-fx .dlfr251-preview-open{background:linear-gradient(135deg,var(--v90-r2),var(--v90-r1));color:#fff;border-color:transparent;text-shadow:0 1px 4px rgba(0,0,0,.5)}
+/* fonds de bannière quand il n'y a pas de page profil pour les fournir */
+.dlfr251-preview.v90-has-frame_celestial .v90-hero{background:linear-gradient(120deg,#102338,#244c76,#1a2747)}
+.dlfr251-preview.v90-has-frame_amethyst_crown .v90-hero{background:linear-gradient(120deg,#211634,#4a2480,#25193f)}
+.dlfr251-preview.v90-has-banner_night .v90-hero{background:linear-gradient(120deg,#070b24,#17235a 55%,#0b1030)}
+.dlfr251-preview.v90-has-banner_voidwalker .v90-hero{background:linear-gradient(120deg,#0a1020,#1a0f33,#090d19)}
+.dlfr251-preview.v90-has-banner_bloodmoon .v90-hero{background:linear-gradient(120deg,#220f18,#4d1624,#190d17)}
+.dlfr251-preview.v90-has-banner_glitch .v90-hero{background:linear-gradient(120deg,#07070d,#14091f 55%,#05080f)}
+.dlfr251-preview.v90-has-banner_voidwalker .v90-core{width:104px;height:104px;right:8px;top:2px}
+.dlfr251-preview.v90-has-banner_bloodmoon .v90-core{width:70px;height:70px;right:16px;top:12px}
+.dlfr251-preview.v90-has-banner_glitch .v90-core{width:auto;height:auto}
+
+/* ---------- LIGNES DU CLASSEMENT ---------- */
+.rank-item.v90-fx{position:relative;overflow:hidden;box-shadow:inset 4px 0 0 var(--v90-r2);background-image:linear-gradient(90deg,color-mix(in srgb,var(--v90-r2) 14%,transparent),transparent 55%)}
+.rank-item.v90-fx.v90-t3{box-shadow:inset 4px 0 0 var(--v90-r2),inset 0 0 18px color-mix(in srgb,var(--v90-r2) 22%,transparent)}
+.rank-item.v90-fx .rank-name{color:color-mix(in srgb,var(--v90-r2) 72%,var(--ink));font-weight:700}
+.rank-item.v90-fx.v90-has-banner_glitch .rank-name,.rank-item.v90-fx.v90-has-frame_glitch .rank-name{text-shadow:1px 0 rgba(0,240,255,.8),-1px 0 rgba(255,43,214,.8)}
+.v90-row-fx{margin-left:6px;font-size:12px;letter-spacing:2px;white-space:nowrap;filter:drop-shadow(0 0 4px var(--v90-r2))}
+.rank-item.v90-fx::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.16) 50%,transparent 60%);background-size:250% 100%;background-position:130% 0}
+.dlfr24-player-card.v90-fx{position:relative;border-color:var(--v90-r2)}
+
+/* ---------- Effets premium communs ---------- */
+/* Reflet qui suit la souris sur la bannière */
+.v90-fx-layer::after{content:'';position:absolute;inset:0;opacity:0;transition:opacity .3s;background:radial-gradient(circle at var(--mx,70%) var(--my,30%),rgba(255,255,255,.22),transparent 38%);mix-blend-mode:overlay}
+.v90-hero:hover .v90-fx-layer::after{opacity:1}
+/* Parallaxe du cœur de la bannière (propriété translate = ne casse pas les animations transform) */
+.v90-core{translate:calc(var(--px,0)*-10px) calc(var(--py,0)*-6px);transition:translate .15s linear}
+/* Bordure rotative autour de la carte au palier III */
+.stats-profile.v90-t3[class*="v89-effect-"]::before{padding:2px;background:conic-gradient(from var(--v90-a),var(--v90-r1),transparent 25%,var(--v90-r2) 50%,transparent 75%,var(--v90-r1))}
+.dlfr251-preview.v90-t3::before{content:'';position:absolute;inset:0;padding:2px;z-index:6;pointer-events:none;border-radius:inherit;background:conic-gradient(from var(--v90-a),var(--v90-r1),transparent 25%,var(--v90-r2) 50%,transparent 75%,var(--v90-r1));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+
+@media(prefers-reduced-motion:no-preference){
+  /* flash d'entrée */
+  .v90-fx .v90-hero{animation:v90-intro .9s ease-out 1}
+  .v90-hasframe .dlfr27-frame{animation:v90-pop .6s cubic-bezier(.2,1.4,.4,1) 1}
+  .stats-profile.v90-t3[class*="v89-effect-"]::before,.dlfr251-preview.v90-t3::before{animation:v90-spin 5s linear infinite}
+  .rank-item.v90-fx::after{animation:v90-sweep 6s ease-in-out infinite}
+  .rank-item.v90-fx.v90-t3::after{animation-duration:3.5s}
+  /* glitch */
+  .v90-fx.v90-has-banner_glitch .v90-hero{animation:v90-intro .9s ease-out 1,v90-gflash 3.6s steps(1) 1s infinite}
+  .v90-has-banner_glitch .v90-core{animation:v90-scan 6s linear infinite}
+  .v90-has-banner_glitch .v90-glow::before{animation:v90-gbar 3.4s steps(1) infinite}
+  .v90-has-banner_glitch .v90-glow::after{animation:v90-gbar 3.4s steps(1) 1.1s infinite}
+  .v90-has-banner_glitch .v90-fx-layer i{animation:v90-gpix var(--d) steps(1) var(--l) infinite}
+  .v90-fx.v90-has-banner_glitch :is(strong,h3).v90-name.v90-name,.v90-fx.v90-has-frame_glitch :is(strong,h3).v90-name.v90-name{animation:v90-gname 2.8s steps(1) infinite}
+  .v90-has-frame_glitch .dlfr27-frame{animation:v90-pop .6s cubic-bezier(.2,1.4,.4,1) 1,v90-gjit 2.6s steps(1) .6s infinite}
+  .v90-has-frame_glitch .dlfr27-frame::before{animation-timing-function:steps(20)}
+  .v90-fx.v90-t2.v90-has-banner_glitch :is(strong,h3).v90-name.v90-name{animation-duration:2.4s}
+  .v90-fx.v90-t3.v90-has-banner_glitch .v90-glow::before{animation-duration:1.9s}
+  .v90-fx.v90-t3.v90-has-banner_glitch :is(strong,h3).v90-name.v90-name{animation-duration:1.7s}
+  .v90-fx.v90-t3.v90-has-frame_glitch .dlfr27-frame{animation:v90-gjit 1.5s steps(1) infinite}
+  @keyframes v90-intro{0%{filter:brightness(2.4) saturate(1.8)}100%{filter:none}}
+  @keyframes v90-pop{0%{transform:scale(.6);opacity:0}100%{transform:none;opacity:1}}
+  @keyframes v90-scan{from{background-position:0 0,0 0,0 0,0 0}to{background-position:0 60px,0 0,0 0,0 0}}
+  @keyframes v90-gflash{0%,91%,100%{filter:none}92%{filter:hue-rotate(80deg) saturate(2.2)}94%{filter:invert(.1) contrast(1.3)}96%{filter:none;transform:translateX(3px)}97%{transform:none}}
+  @keyframes v90-gbar{0%,80%{opacity:0}81%{opacity:1;top:18%;transform:translateX(-6%)}84%{top:44%;transform:translateX(7%)}87%{top:72%;opacity:.8;transform:translateX(-3%)}90%,100%{opacity:0}}
+  @keyframes v90-gpix{0%,68%{opacity:0;transform:translateX(0)}70%{opacity:1}78%{opacity:1;transform:translateX(26px)}80%,100%{opacity:0}}
+  @keyframes v90-gname{0%,84%,100%{transform:none;clip-path:none;text-shadow:2px 0 #00f0ff,-2px 0 #ff2bd6}86%{transform:translate(-4px,0) skewX(-10deg);clip-path:inset(8% 0 52% 0);text-shadow:6px 0 #00f0ff,-6px 0 #ff2bd6}88%{transform:translate(4px,1px);clip-path:inset(52% 0 6% 0)}90%{transform:translate(-2px,0) skewX(6deg);clip-path:none;text-shadow:-5px 0 #00f0ff,5px 0 #ff2bd6}92%{transform:none}}
+  @keyframes v90-gjit{0%,82%,100%{transform:none;filter:none}84%{transform:translate(-3px,1px);filter:drop-shadow(4px 0 #00f0ff) drop-shadow(-4px 0 #ff2bd6)}86%{transform:translate(3px,-1px) skewX(5deg)}88%{transform:translate(-1px,0);filter:hue-rotate(120deg)}90%{transform:none;filter:none}}
+}
+@media(max-width:690px){
+  .dlfr251-preview.v90-has-banner_voidwalker .v90-core{width:84px;height:84px}
+  .v90-row-fx{display:none}
 }
