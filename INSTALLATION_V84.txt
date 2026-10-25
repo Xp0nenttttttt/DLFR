@@ -1,0 +1,6 @@
+DLFR V84 — Retrait de la photo humoristique
+
+Sur la V83, remplacer uniquement js/app.js par celui du ZIP.
+La photo ne sera plus affichée sur la Demonlist.
+Vous pouvez supprimer assets/easter-eggs/visiteur-surprise.png si elle ne sert plus ailleurs.
+Aucun SQL, aucun fichier assets/flags/.
