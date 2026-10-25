@@ -100,6 +100,12 @@ function startOptionalGroup(name){
 }
 
 let db = null, state = { data:null, staff:false, staffRole:null, session:null, country:'MONDE', region:'ALL', selectedPlayer:'', list:'main', keyword:'', busy:false, statsTab:'players', statsYear:'all', comparePlayer:'', profileTab:'overview', activityTab:'following', selectedRegion:'BRE', regionsSort:'points', regionsGeometryRequested:false, newsFilter:'all', newsSearch:'', adminTab:'overview', editingNews:null, unrated:false, calcPlayer:'', calcDemons:[], calcNlw:false, unbeatSearch:'', unbeatLimit:120, communityExcel:{status:'idle',items:[],message:'',offline:false}, demoRole:'owner', demoActor:'spleen', selectedClan:1, clanSort:'points', clanSearch:'', clanDetailTab:'overview', ownKey:null, ownAccountMessage:'', mySubmissionFilter:'all', mySubmissionSearch:'', ownerPreview:'owner', ownerPreviewQueue:[], ownerPreviewError:'', teamCandidates:[], teamCandidatesReady:false, teamCandidatesError:'', mergedSourceKeys:[], mergedSourceError:'', mergeRequests:[], mergeRequestCandidates:[], mergeRequestsError:'', mergeCandidatesError:'', clanInbox:[], clanCandidates:[], clanExtraError:'', usernameAccount:null, usernameAccountError:'' };
+// V100 : classement privé des décisions de modération, uniquement via une RPC agrégée.
+Object.assign(state,{
+ moderationLeaderboard:[],modLeaderboardPeriod:0,modLeaderboardLoading:false,
+ modLeaderboardReady:false,modLeaderboardError:'',modLeaderboardUpdatedAt:''
+});
+let modLeaderboardSequence=0;
 const PERF_DEBUG=new URLSearchParams(location.search).has('perf');
 const perfNow=()=>typeof performance!=='undefined'?performance.now():Date.now();
 const el = document.getElementById('app');
@@ -208,6 +214,45 @@ async function loadStaffCandidates(){
  state.teamCandidatesError=error?.message||'';
  state.teamCandidates=error?[]:(Array.isArray(data)?data:[]);
 }
+async function loadModeratorLeaderboard(){
+ if(!LIVE||!db||!state.session||!state.staff)return;
+ const sequence=++modLeaderboardSequence;
+ const days=state.modLeaderboardPeriod||null;
+ state.modLeaderboardLoading=true;
+ state.modLeaderboardError='';
+ state.modLeaderboardReady=false;
+ try{
+  const {data,error}=await db.rpc('dlfr_moderation_leaderboard',{p_days:days});
+  if(error)throw Error(error.message);
+  if(sequence!==modLeaderboardSequence)return;
+  if(!Array.isArray(data))throw Error('Réponse du classement invalide.');
+  state.moderationLeaderboard=data;
+  state.modLeaderboardReady=true;
+  state.modLeaderboardUpdatedAt=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+ }catch(error){
+  if(sequence!==modLeaderboardSequence)return;
+  state.modLeaderboardError=error.message||String(error);
+  state.moderationLeaderboard=[];
+  state.modLeaderboardReady=true;
+ }finally{
+  if(sequence===modLeaderboardSequence){state.modLeaderboardLoading=false;if(nav()==='admin'&&state.adminTab==='leaderboard')render();}
+ }
+}
+function moderationLeaderboardPage(){
+ const rows=(state.moderationLeaderboard||[]).slice().sort((a,b)=>Number(b.total||0)-Number(a.total||0)||Number(b.accepted||0)-Number(a.accepted||0)||String(a.display_name||'').localeCompare(String(b.display_name||''),'fr'));
+ const played=rows.filter(r=>Number(r.total)>0);
+ const overall=played.reduce((x,r)=>x+Number(r.total||0),0);
+ const approved=played.reduce((x,r)=>x+Number(r.accepted||0),0);
+ const rejected=played.reduce((x,r)=>x+Number(r.rejected||0),0);
+ const max=Math.max(1,...played.map(r=>Number(r.total)||0));
+ const roleName={owner:'Propriétaire',supermoderator:'Supermodo',editor:'Supermodo',moderator:'Modo',nlw:'Modo NLW',former:'Ancien membre'};
+ const periodButtons=[[0,'Depuis toujours'],[30,'30 jours'],[7,'7 jours']].map(([days,label])=>`<button type="button" data-mod-leaderboard-period="${days}" class="btn small ${state.modLeaderboardPeriod===days?'':'subtle'}" aria-pressed="${state.modLeaderboardPeriod===days}">${label}</button>`).join('');
+ const displayName=r=>r.player_key?`<a data-nav class="link" href="${url('player',{player:r.player_key})}">${esc(r.display_name||'Modérateur')}</a>`:esc(r.display_name||'Modérateur');
+ const medal=['🥇','🥈','🥉'];
+ const podium=[1,0,2].filter(i=>played[i]).map(i=>{const r=played[i];return `<div class="dlfr-v100-podium-card dlfr-v100-place-${i+1} ${r.is_self?'is-self':''}"><div class="dlfr-v100-medal" aria-hidden="true">${medal[i]}</div><div class="dlfr-v100-podium-name">${displayName(r)}</div><span class="dlfr-v100-podium-role">${esc(roleName[r.moderation_role]||'Modo')}</span><strong>${Number(r.total)||0}</strong><span class="small muted">soumissions traitées</span></div>`;}).join('');
+ const cards=rows.map((r,i)=>{const total=Number(r.total)||0,accept=Number(r.accepted)||0,deny=Number(r.rejected)||0;return `<div class="dlfr-v100-rank-row ${r.is_self?'is-self':''}"><div class="dlfr-v100-rank-position">${total>0&&i<3?medal[i]:`#${i+1}`}</div><div class="dlfr-v100-rank-body"><div class="dlfr-v100-rank-name">${r.country_code?flag(r.country_code)+' ':''}${displayName(r)}${r.is_self?'<span class="dlfr-v100-you">Toi</span>':''}<small>${esc(roleName[r.moderation_role]||'Modo')}</small></div><div class="dlfr-v100-progress" role="img" aria-label="${total} soumissions traitées"><span style="width:${total?Math.max(1,Math.round(total/max*100)):0}%"></span></div></div><div class="dlfr-v100-rank-split"><span><b>${accept}</b> acceptée(s)</span><span><b>${deny}</b> refusée(s)</span></div><div class="dlfr-v100-total"><strong>${total}</strong><small>total</small></div></div>`;}).join('');
+ return `<section class="dlfr-v100-board"><div class="dlfr-v100-head"><div><span class="kicker">ÉQUIPE DLFR · SOUMISSIONS</span><h2>Classement des modérateurs</h2><p class="muted small">Chaque soumission de niveau acceptée ou refusée compte une fois, au nom du compte ayant pris la décision. Les demandes en attente ne comptent pas.</p></div><button type="button" class="btn subtle small" data-mod-leaderboard-refresh ${state.modLeaderboardLoading?'disabled':''}>↻ Actualiser</button></div><div class="dlfr-v100-controls">${periodButtons}</div>${state.modLeaderboardLoading?'<p class="notice" aria-live="polite">Chargement du classement…</p>':state.modLeaderboardError?`<div class="notice warning">Classement indisponible. ${esc(state.modLeaderboardError)}</div>`:`<div class="dlfr-v100-summary"><div><strong>${overall}</strong><span>Soumissions traitées</span></div><div><strong>${approved}</strong><span>Acceptées</span></div><div><strong>${rejected}</strong><span>Refusées</span></div><div><strong>${played.length}</strong><span>Modos ayant traité une demande</span></div></div>${podium?`<div class="dlfr-v100-podium">${podium}</div>`:''}<div class="dlfr-v100-rank-list">${cards||'<p class="muted">Aucune soumission modérée sur cette période.</p>'}</div><p class="small muted">${state.modLeaderboardUpdatedAt?'Mis à jour à '+esc(state.modLeaderboardUpdatedAt)+' · ':''}Les anciens membres ayant un historique apparaissent également. Les actions anciennes non attribuées à un modérateur ne sont pas comptabilisées.</p>`}</section>`;
+}
 function staffTeamPanel(){
  if(state.staffRole!=='owner'||ownerPreviewActive())return '';
  const roles={owner:'Propriétaire',supermoderator:'Supermodo',editor:'Supermodo (ancien)',moderator:'Modo',nlw:'Modo NLW'};
@@ -291,6 +336,7 @@ async function readAll(name){return withReadSlot(async()=>{
  return out;
 });}
 async function refreshLiveData(){
+ state.modLeaderboardReady=false;
  ++dataGeneration; // Invalider les chargements optionnels antérieurs à une modification.
  resetRenderCalculations();
  const base=await withTimeout(Promise.all(tables.map(readAll)),45000,'Supabase ne répond pas après 45 secondes.');
@@ -1791,6 +1837,7 @@ const ADMIN_GUIDES={
  clans:{name:'Gérer les clans',desc:'Consulte les groupes et les demandes de la communauté.',steps:['Sélectionne le clan.','Vérifie l’action demandée.','Confirme le changement.']},
  safety:{name:'Sécurité et sanctions',desc:'Interviens sur des profils et contenus signalés.',steps:['Lis le signalement.','Vérifie les éléments disponibles.','Applique la mesure adaptée.']},
  team:{name:'Gérer les accès',desc:'Ajoute un modérateur NLW, un modo, un supermodo ou un deuxième propriétaire.',steps:['Sélectionne le compte connecté.','Choisis le rôle nécessaire.','Confirme la modification des permissions.']},
+ leaderboard:{name:'Classement des modérateurs',desc:'Un podium amusant basé sur les décisions de soumissions réellement enregistrées.',steps:['Choisis la période.', 'Compare les acceptations et les refus.', 'Actualise après une session de modération.']},
  nlw:{name:'Équipe NLW',desc:'Gère les responsabilités spécifiques à la liste NLW.',steps:['Choisis la personne concernée.','Vérifie les droits à attribuer.','Confirme la mise à jour.']},
  audit:{name:'Journal de modération',desc:'Retrouve les actions effectuées pour comprendre l’historique des changements.',steps:['Parcours les modifications.','Identifie la fiche concernée.','Vérifie le résultat sur le site.']}
 };
@@ -1908,10 +1955,10 @@ function adminPage(){if(LIVE&&!state.staff){
  if(LIVE&&(['nlw','moderator'].includes(state.staffRole)||ownerPreviewActive()&&['nlw','moderator'].includes(state.ownerPreview))){
    const role=ownerPreviewActive()?state.ownerPreview:state.staffRole;
    const view=ownerPreviewActive()?{...state,staffRole:role,scopedQueue:state.ownerPreviewQueue.filter(x=>role==='moderator'||Number(x.position)>150),scopedQueueError:state.ownerPreviewError}:state;
-   return `${templateNotice()}<div class="paper"><div class="admin-mode">Modération · ${role==='nlw'?'NLW':'Top 150 + NLW'}</div><div class="row-between"><h1>Modération</h1><button class="btn subtle small" data-action="logout">Déconnexion</button></div><div class="dlfr-v60-tabs"><button type="button" data-admin-tab="requests" class="${state.adminTab!=='levels'?'active':''}">Soumissions</button><button type="button" data-admin-tab="levels" class="${state.adminTab==='levels'?'active':''}">Niveaux</button></div><p class="small muted">Les permissions de création et de modification sont vérifiées par Supabase selon ton rôle.</p></div>${state.adminTab==='levels'?scopedLevelsPanel(role):`${PROD.scopedReview(view)}${window.DLFR_CLAIMS.moderation(state)}<div class="paper dlfr27-scoped-packs">${state.adminTab==='packs'?packModerationEditor():''}</div>`}`;
+   return `${templateNotice()}<div class="paper"><div class="admin-mode">Modération · ${role==='nlw'?'NLW':'Top 150 + NLW'}</div><div class="row-between"><h1>Modération</h1><button class="btn subtle small" data-action="logout">Déconnexion</button></div><div class="dlfr-v60-tabs"><button type="button" data-admin-tab="requests" class="${state.adminTab!=='levels'?'active':''}">Soumissions</button><button type="button" data-admin-tab="levels" class="${state.adminTab==='levels'?'active':''}">Niveaux</button><button type="button" data-admin-tab="leaderboard" class="${state.adminTab==='leaderboard'?'active':''}">🏆 Classement</button></div><p class="small muted">Les permissions de création et de modification sont vérifiées par Supabase selon ton rôle.</p></div>${state.adminTab==='leaderboard'?moderationLeaderboardPage():state.adminTab==='levels'?scopedLevelsPanel(role):`${PROD.scopedReview(view)}${window.DLFR_CLAIMS.moderation(state)}<div class="paper dlfr27-scoped-packs">${state.adminTab==='packs'?packModerationEditor():''}</div>`}`;
  }
- const mergePlayers=state.adminTab==='profiles'?mergePlayerOptions():''; const players=['profiles','awards','achievements','safety','nlw'].includes(state.adminTab)?playerOptions():'';return `${templateNotice()}<div class="paper"><div class="admin-mode">Espace privé · équipe de modération</div><div class="row-between"><h1>Modération</h1><div><button class="btn subtle small" data-action="logout">Déconnexion</button></div></div><p class="muted">Choisis une action ci-dessous. Les modifications sont enregistrées et contrôlées automatiquement.</p></div><div class="admin-workspace" data-role="${state.demoRole}"><div class="admin-nav" role="tablist" aria-label="Sections de modération">${[['overview','Accueil'],['requests','Demandes'+((state.mergeRequests||[]).filter(x=>x.status==='pending').length?' · '+(state.mergeRequests||[]).filter(x=>x.status==='pending').length+' fusion(s)':'')],['levels','Niveaux'],['packs','Level Packs'],...(state.staffRole==='owner'&&!ownerPreviewActive()?[['weekly','Défis & tests']]:[]),['news','Actualités'],['profiles','Profils'],['awards','Badges & Palmarès'],['achievements','Achievements FR'],['clans','Clans'],['safety','Sanctions'],['audit','Journal'],...(state.staffRole==='owner'&&!ownerPreviewActive()?[['team','Équipe']]:[])].map(([id,label])=>`<button type="button" role="tab" aria-selected="${state.adminTab===id}" class="${state.adminTab===id?'active':''}" data-admin-tab="${id}">${label}</button>`).join('')}</div><div class="admin-content">${state.adminTab==='weekly'?v86AdminHTML():''}${state.adminTab==='weekly'?'':adminGuideHtml()}<div class="dlfr29-requests" ${state.adminTab==='requests'?'':'hidden'}>${state.adminTab==='requests'?(LIVE?PROD.scopedReview(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state)+PROD.moderation(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state):'')+window.DLFR_CLAIMS.moderation(state)+mergeRequestsModeratorPanel():''}</div><div class="admin-intro ${state.adminTab==='overview'?'':'is-hidden'}"><h2>Tableau de bord</h2>${state.adminTab==='overview'?statsOverview():''}<p class="muted">Choisis une action dans les raccourcis ou une rubrique dans le menu. Chaque modification est contrôlée avant son enregistrement.</p>${(state.mergeRequests||[]).some(r=>r.status==='pending')?`<p class="notice">⇄ ${(state.mergeRequests||[]).filter(r=>r.status==='pending').length} demande(s) de fusion de fiches en attente. <button type="button" class="btn subtle small" data-admin-tab="requests">Ouvrir les demandes</button></p>`:''}</div><div class="moderation-sections" data-active-admin="${state.adminTab}">
- ${state.adminTab==='team'?staffTeamPanel():''}
+ const mergePlayers=state.adminTab==='profiles'?mergePlayerOptions():''; const players=['profiles','awards','achievements','safety','nlw'].includes(state.adminTab)?playerOptions():'';return `${templateNotice()}<div class="paper"><div class="admin-mode">Espace privé · équipe de modération</div><div class="row-between"><h1>Modération</h1><div><button class="btn subtle small" data-action="logout">Déconnexion</button></div></div><p class="muted">Choisis une action ci-dessous. Les modifications sont enregistrées et contrôlées automatiquement.</p></div><div class="admin-workspace" data-role="${state.demoRole}"><div class="admin-nav" role="tablist" aria-label="Sections de modération">${[['overview','Accueil'],['requests','Demandes'+((state.mergeRequests||[]).filter(x=>x.status==='pending').length?' · '+(state.mergeRequests||[]).filter(x=>x.status==='pending').length+' fusion(s)':'')],['levels','Niveaux'],['leaderboard','🏆 Classement modos'],['packs','Level Packs'],...(state.staffRole==='owner'&&!ownerPreviewActive()?[['weekly','Défis & tests']]:[]),['news','Actualités'],['profiles','Profils'],['awards','Badges & Palmarès'],['achievements','Achievements FR'],['clans','Clans'],['safety','Sanctions'],['audit','Journal'],...(state.staffRole==='owner'&&!ownerPreviewActive()?[['team','Équipe']]:[])].map(([id,label])=>`<button type="button" role="tab" aria-selected="${state.adminTab===id}" class="${state.adminTab===id?'active':''}" data-admin-tab="${id}">${label}</button>`).join('')}</div><div class="admin-content">${state.adminTab==='weekly'?v86AdminHTML():''}${state.adminTab==='weekly'?'':adminGuideHtml()}<div class="dlfr29-requests" ${state.adminTab==='requests'?'':'hidden'}>${state.adminTab==='requests'?(LIVE?PROD.scopedReview(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state)+PROD.moderation(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state):'')+window.DLFR_CLAIMS.moderation(state)+mergeRequestsModeratorPanel():''}</div><div class="admin-intro ${state.adminTab==='overview'?'':'is-hidden'}"><h2>Tableau de bord</h2>${state.adminTab==='overview'?statsOverview():''}<p class="muted">Choisis une action dans les raccourcis ou une rubrique dans le menu. Chaque modification est contrôlée avant son enregistrement.</p>${(state.mergeRequests||[]).some(r=>r.status==='pending')?`<p class="notice">⇄ ${(state.mergeRequests||[]).filter(r=>r.status==='pending').length} demande(s) de fusion de fiches en attente. <button type="button" class="btn subtle small" data-admin-tab="requests">Ouvrir les demandes</button></p>`:''}</div><div class="moderation-sections" data-active-admin="${state.adminTab}">
+ ${state.adminTab==='leaderboard'?moderationLeaderboardPage():''}${state.adminTab==='team'?staffTeamPanel():''}
  ${state.adminTab==='audit'&&optionalStatus.adminAudit==='loading'||state.adminTab==='levels'&&optionalStatus.adminLevels==='loading'||state.adminTab==='safety'&&optionalStatus.adminSafety==='loading'?'<p class="small muted" aria-live="polite">Chargement des données de cette rubrique…</p>':''}
  ${state.adminTab==='levels'&&activeLevelPanel==='edit'?levelCreditsEditor():''}${state.adminTab==='levels'&&activeLevelPanel==='review'?historicNlwPublisher():''}${state.adminTab==='packs'?packModerationEditor():''}
  ${state.adminTab==='levels'&&activeLevelPanel==='review'?window.DLFR_BULK.panel():''}${state.adminTab==='levels'&&activeLevelPanel==='review'?window.DLFR_CLAIMS.compactPanel():''}
@@ -2208,6 +2255,7 @@ function render(){
   el.innerHTML='<section class="center-panel loading" aria-live="polite"><h2>Chargement des données de cette page…</h2><p class="small muted">Les autres pages restent accessibles.</p></section>';
   return;
  }
+ if(page==='admin'&&state.adminTab==='leaderboard'&&!state.modLeaderboardReady&&!state.modLeaderboardLoading)void loadModeratorLeaderboard();
  const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='player'?playerPage():page==='players'?playersPage():page==='my-profile'?selfProfilePage():page==='my-submissions'?mySubmissionsPage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():page==='packs'?packPage():page==='regions'?regionsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;
  // Donner un accès clair à l'inscription et à la connexion, sans modifier la navigation existante.
  const accountNavLink=document.querySelector('a[data-link="my-profile"]');
@@ -2895,6 +2943,15 @@ function bootEvents(){
   }catch(error){state.mergeRequestsError='Impossible de charger les demandes : '+(error.message||String(error));console.warn('[DLFR] Actualisation fusions :',error);render();toast(state.mergeRequestsError);}
   return;
  }
+ const modPeriod=ev.target.closest('[data-mod-leaderboard-period]');
+ if(modPeriod){
+  const days=Number(modPeriod.dataset.modLeaderboardPeriod);
+  if(![0,7,30].includes(days))return;
+  if(days!==state.modLeaderboardPeriod){state.modLeaderboardPeriod=days;void loadModeratorLeaderboard();render();}
+  return;
+ }
+ const modRefresh=ev.target.closest('[data-mod-leaderboard-refresh]');
+ if(modRefresh){void loadModeratorLeaderboard();render();return;}
  const ad=ev.target.closest('[data-admin-tab]');if(ad){
   state.adminTab=ad.dataset.adminTab;render();
   // V69 : recharger la file de fusion quand on ouvre les demandes, sans

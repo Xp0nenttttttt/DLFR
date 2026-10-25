@@ -1,0 +1,35 @@
+DLFR V100 — Classement des modérateurs
+======================================
+
+BASE DE TRAVAIL : V99 — clans / personnalisations / profil.
+
+Sur GitHub Pages, REMPLACER :
+  - index.html
+  - js/app.js
+
+AJOUTER :
+  - css/v100-moderation-leaderboard.css
+
+NE PAS toucher aux autres scripts, à la boutique, aux thèmes, aux clans,
+aux données Supabase ou au répertoire assets/flags/.
+
+Supabase : la fonction dlfr_moderation_leaderboard(p_days) est déjà créée et
+vérifiée dans le projet « DLFR » de production. Le fichier
+supabase/100_classement_moderation.sql est une SAUVEGARDE, pas une étape
+nécessaire de l'installation. Ne pas le réexécuter si tout fonctionne.
+
+Navigation :
+  Modération > Classement modos (supermodos, propriétaires et modos).
+  Modération > Classement (modos NLW et modos classiques).
+
+Affiche : podium, nombre de validations / refus, total traité et filtres
+« Depuis toujours », « 30 jours », « 7 jours ».
+Le nombre de demandes en attente ne contribue pas au total.
+Anciennes décisions non attribuées à un compte : non comptées.
+Les anciens membres avec des décisions enregistrées restent visibles.
+
+Le classement est en lecture seule : aucun droit modérateur supplémentaire.
+
+Déploiement : publier les 3 fichiers et faire Ctrl+F5 pour forcer le JS.
+Tests : node --check sur app.js, SQL testé sur comptes propriétaire et modo NLW,
+lecture refusée aux non-modérateurs, filtres de période testés en base.
