@@ -726,7 +726,7 @@ async function v81RewardsRender(){
   if(sr.error)throw sr.error;if(cr.error)throw cr.error;
   if(seq!==v81Request||!area.isConnected)return;
   const status=sr.data||{},owns=new Set(status.inventory||[]),equip=status.equipped||{};
-  v82HalloweenOwned=owns.has('theme_halloween');if(equip.theme==='theme_halloween'){setTheme('halloween');}else if(document.documentElement.classList.contains('halloween')){setTheme('midnight');}
+  v96ApplyHalloweenStatus(status);
   area.innerHTML=`<div class="v81-header"><b>✦ DLFR Rewards</b><span>✦ ${wayllingLabel(status.balance??0)} · 🔥 ${esc(status.streak??0)} semaine(s) de série</span></div>
   <details class="v81-shop" ${document.getElementById('v86-owner')?'open':''}><summary>🛍️ Boutique et collection ${status.signed_in?'':'· connexion requise'}</summary><div class="v81-items">${(cr.data||[]).map(item=>{
    const trial=(status.test_inventory||[]).includes(item.item_key),owned=owns.has(item.item_key)||trial,equipped=equip[item.category]===item.item_key;
@@ -2145,7 +2145,7 @@ function showPageError(error){
 
 function render(){
  const start=perfNow();
- resetRenderCalculations();if(!state.data)return;try{
+ resetRenderCalculations();if(!state.data)return;v96EnsureHalloweenTheme();try{
  if(!BADGES?.init || !UNRATED_STATS?.calculate || !V2?.decorate || !V2?.project || !UNVERIFIED?.classify || !CLANS?.apply || !CLAN_PLUS?.stats || !SUBMISSIONS?.approve)throw Error('Fichier JavaScript V2 manquant ou version incohérente : réinstalle les scripts du pack V2.0.3.');
  if(!LIVE){const first=state.data.badge_baseline_scanned!==true;const changed=BADGES.captureAutomatic(state.data,ranked(),new Date().toISOString().slice(0,10),first);if(first){state.data.badge_baseline_scanned=true;}if(changed||first)saveDemo();}
  const page=nav(),params=new URLSearchParams(location.search);if(page==='unbeaten'&&state.communityExcel.status==='idle')loadCommunityExcel().catch(showPageError);if(page==='stats'&&params.has('player')){history.replaceState({},'',url('player',{player:params.get('player')}));return render();}if(page==='player')state.selectedPlayer=key(params.get('player'));if(page==='list'){const tab=new URLSearchParams(location.search).get('tab');state.list=(tab==='nlw'||tab==='archive')?'nlw':'main';}
@@ -2591,8 +2591,64 @@ function updateNewsPreview(form){if(!form)return;const holder=$('newsDraftPrevie
  holder.innerHTML=`<div class="news-meta"><span class="news-category">${esc(form.elements.category?.value||'Annonce')}</span>${form.elements.is_pinned?.checked?'<span class="news-pin">★ À la une</span>':''}</div><h4>${esc(headline)}</h4><p class="news-body">${esc(body.slice(0,350))}</p>${media&&imageLink(media)?`<img class="news-preview-img" src="${esc(imageLink(media))}" alt="Aperçu">`:''}`;
 }
 // Import JSON de démonstration désactivé.
+// V96 — le thème Halloween est un cosmétique du compte, et non une permission
+// dépendante de l'affichage de la boutique. On vérifie les droits serveur à
+// chaque changement de session puis on garde la préférence locale.
 let v82HalloweenOwned=false;
-function setTheme(theme){const t=theme==='halloween'&&v82HalloweenOwned?'halloween':['light','dark','midnight','autumn'].includes(theme)?theme:'light';document.documentElement.classList.remove('dark','midnight','autumn','halloween');if(t!=='light')document.documentElement.classList.add(t);const sel=$('themeSelect');if(sel){let opt=sel.querySelector('option[value="halloween"]');if(v82HalloweenOwned&&!opt){opt=new Option('Halloween ✦','halloween');sel.add(opt);}if(!v82HalloweenOwned&&opt)opt.remove();sel.value=t;}try{localStorage.setItem('demonlist-theme',t);}catch{}}
+let v96ThemeSessionId=undefined;
+let v96ThemeRequest=0;
+function v96StoredTheme(){
+ try{return localStorage.getItem('demonlist-theme')||'light';}catch{return 'light';}
+}
+function setTheme(theme,persist=true){
+ const valid=['light','dark','midnight','autumn'];
+ const t=theme==='halloween'&&v82HalloweenOwned?'halloween':valid.includes(theme)?theme:'light';
+ document.documentElement.classList.remove('dark','midnight','autumn','halloween');
+ if(t!=='light')document.documentElement.classList.add(t);
+ const sel=$('themeSelect');
+ if(sel){
+  let opt=sel.querySelector('option[value="halloween"]');
+  if(v82HalloweenOwned&&!opt){opt=new Option('Halloween ✦','halloween');sel.add(opt);}
+  if(!v82HalloweenOwned&&opt)opt.remove();
+  sel.value=t;
+ }
+ if(persist){try{localStorage.setItem('demonlist-theme',t);}catch{}}
+}
+function v96ApplyHalloweenStatus(status){
+ const inventory=new Set([...(status?.inventory||[]),...(status?.test_inventory||[])]);
+ v82HalloweenOwned=!!status?.signed_in&&inventory.has('theme_halloween');
+ const equipped=v82HalloweenOwned&&status?.equipped?.theme==='theme_halloween';
+ // Un vrai équipement serveur prime sur les préférences de navigateur.
+ // Si l'objet est retiré, ne pas laisser le thème actif.
+ const saved=v96StoredTheme();
+ if(equipped)setTheme('halloween');
+ else setTheme(saved==='halloween'?'midnight':saved);
+}
+async function v96RefreshHalloweenTheme(){
+ const seq=++v96ThemeRequest;
+ const uid=state.session?.user?.id||null;
+ if(!uid||!db){
+  v82HalloweenOwned=false;
+  const saved=v96StoredTheme();
+  setTheme(saved==='halloween'?'light':saved);
+  return;
+ }
+ try{
+  const {data,error}=await db.rpc('dlfr_rewards_status');
+  if(error)throw error;
+  if(seq!==v96ThemeRequest||state.session?.user?.id!==uid)return;
+  v96ApplyHalloweenStatus(data||{});
+ }catch(err){
+  // Ne pas effacer la préférence ni donner un accès sans validation serveur.
+  console.warn('[DLFR Halloween] Impossible de charger le thème :',err);
+ }
+}
+function v96EnsureHalloweenTheme(){
+ const uid=state.session?.user?.id||null;
+ if(uid===v96ThemeSessionId)return;
+ v96ThemeSessionId=uid;
+ void v96RefreshHalloweenTheme();
+}
 function refreshUnrated(){document.documentElement.classList.toggle('unrated-mode',state.unrated);const button=$('unratedToggle');button.textContent=state.unrated?'◈ UNRATED ON':'◈ UNRATED OFF';button.setAttribute('aria-pressed',String(state.unrated));}
 function bootEvents(){
  setupDiscordServerLink();
@@ -2925,7 +2981,7 @@ function bootEvents(){
  $('themeSelect').addEventListener('change',e=>setTheme(e.target.value));
  $('unratedToggle').addEventListener('click',()=>{state.unrated=!state.unrated;state.calcDemons=[];refreshUnrated();render();});
  window.addEventListener('popstate',()=>{closeNavMenus();state.keyword='';render();});
- try{setTheme(localStorage.getItem('demonlist-theme')||'light');}catch{}refreshUnrated();
+ try{const initial=v96StoredTheme();setTheme(initial==='halloween'?'light':initial,initial!=='halloween');}catch{}refreshUnrated();
 }
 try{
  bootEvents();

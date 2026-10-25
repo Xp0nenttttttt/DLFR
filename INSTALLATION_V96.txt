@@ -1,0 +1,38 @@
+DLFR V96 — Halloween rétabli
+==========================
+Base: V95, sans revenir sur les corrections précédentes.
+
+Installation
+------------
+Remplacer dans le dépôt GitHub Pages :
+  index.html
+  js/app.js
+Ajouter (nouveau fichier) :
+  css/v96-halloween.css
+
+Ne pas écraser css/style.css, js/production-tools.js, js/username-auth.js ni assets/flags/.
+Pas de SQL, pas de redéploiement Edge Function, pas de changement de données.
+
+Corrections
+-----------
+- La propriété Halloween est vérifiée auprès de Supabase dès l'ouverture du site,
+  pas uniquement lorsqu'on visite la boutique.
+- Un thème Halloween équipé est activé automatiquement sur toutes les pages
+  et après rechargement / reconnexion.
+- Les droits des essais du propriétaire sont pris en compte.
+- Les anciennes animations FX et le changement d'onglets restent conservés.
+- Nouvelle feuille Halloween gothique (prune, braise orange, touches ambrées),
+  chargée après les CSS existants ; aucune image externe.
+- Sans accès serveur validé à l'article Halloween, on ne peut pas activer
+  le thème premium via les seuls réglages du navigateur.
+
+Tests recommandés
+----------------
+1. Sur un compte possédant/essayant Halloween, ouvrir Boutique > Équiper.
+2. Constater les couleurs sombres violettes/orange sur l'ensemble du site.
+3. Actualiser et naviguer entre plusieurs pages : le thème reste actif.
+4. Déséquiper Halloween, vérifier le retour à une palette ordinaire.
+5. Tester sur un compte ne possédant pas Halloween : l'option n'est pas accessible.
+
+Notes : la CSS seule ne donne pas la possession du thème. Le propriétaire doit
+encore être autorisé à utiliser l'objet dans la base Supabase.

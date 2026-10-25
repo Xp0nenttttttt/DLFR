@@ -1,0 +1,131 @@
+/* DLFR V96 — Halloween premium. Chargé EN DERNIER afin de ne pas dépendre de css/style.css.
+   Palette nocturne prune / braise / clair de lune. Effets sans images externes. */
+html.halloween {
+  color-scheme: dark;
+  --bg:#100d17;
+  --card:#211a2d;
+  --ink:#f0e5f4;
+  --ink2:#fff4eb;
+  --muted:#c4adc9;
+  --line:#4f394f;
+  --border:#694758;
+  --blue:#f09b50;
+  --panel:#2c2038;
+  --shadow:0 9px 26px rgba(7,2,14,.28);
+  --focus:#ffbd7e;
+}
+html.halloween body {
+  color:var(--ink);
+  background:
+    radial-gradient(ellipse 50% 34% at 86% 2%,rgba(153,64,71,.25),transparent 90%),
+    radial-gradient(ellipse 36% 50% at 0% 70%,rgba(97,46,119,.23),transparent 85%),
+    linear-gradient(160deg,#140e20 0%,#120d1b 48%,#1a1022 100%);
+  background-attachment:fixed;
+}
+html.halloween .site-header {
+  background:rgba(29,19,41,.97);
+  color:#f3e4f4;
+  border-bottom:1px solid #70495f;
+  box-shadow:0 5px 22px rgba(5,2,12,.33);
+}
+html.halloween .brand {
+  color:#ffd0a1;
+  text-shadow:0 0 16px rgba(255,126,66,.32);
+}
+html.halloween .nav-links>a { border-color:rgba(229,167,164,.12); }
+html.halloween .nav-links>a:hover,
+html.halloween .nav-links>a.active {
+  background:linear-gradient(140deg,rgba(151,69,106,.36),rgba(104,53,109,.27));
+  color:#ffe3c7;
+}
+html.halloween .nav-menu,html.halloween .nav-menu[open],
+html.halloween .nav-theme,html.halloween .site-footer {color:var(--ink);border-color:var(--line)}
+html.halloween .paper,html.halloween .center-panel,html.halloween .info-panel,
+html.halloween .right-panel,html.halloween .admin-card,html.halloween .stats-profile,
+html.halloween .ranking-panel,html.halloween .hof-item {
+  background:linear-gradient(150deg,rgba(42,29,55,.98),rgba(29,22,42,.98));
+  color:var(--ink);
+  border-color:var(--border);
+}
+html.halloween .center-panel h1,
+html.halloween .paper h1,
+html.halloween .paper h2,
+html.halloween .list-entry h2,
+html.halloween .rank-num,
+html.halloween .player-title {color:#fff0e1}
+html.halloween .center-panel h1 {text-shadow:0 0 24px rgba(244,116,82,.23)}
+html.halloween .kicker,html.halloween .hof-year,
+html.halloween .stat-value {color:#ffc18c}
+html.halloween .muted,html.halloween .small.muted,
+html.halloween .stat-label,html.halloween .points,
+html.halloween .entry-meta,html.halloween .right-panel p,
+html.halloween .rank-score {color:#c4b0ca}
+html.halloween .list-tabs,
+html.halloween .list-tabs button,
+html.halloween .rank-item,
+html.halloween .filterbox {background:#221a2e;color:var(--ink);border-color:#56425d}
+html.halloween .list-tabs button.active,
+html.halloween .list-tabs button:hover,
+html.halloween .rank-item:hover,
+html.halloween .rank-item.selected {
+ background:linear-gradient(100deg,rgba(151,69,89,.42),rgba(87,47,117,.38));
+ color:#ffe4d0;
+}
+html.halloween .statbox,html.halloween .tag,
+html.halloween .chart-box,html.halloween .news-card {
+ background:#30243c;color:#f7e8ef;border-color:#694f65;
+}
+html.halloween .profile-section,html.halloween .record-row,
+html.halloween .rank-item {border-color:#594360}
+html.halloween input,html.halloween select,html.halloween textarea,
+html.halloween .select {
+ background:#281d35;
+ color:#f7eaf5;
+ border-color:#78556d;
+}
+html.halloween input::placeholder,html.halloween textarea::placeholder{color:#b9a4c1}
+html.halloween input:focus-visible,
+html.halloween select:focus-visible,
+html.halloween textarea:focus-visible,
+html.halloween button:focus-visible,
+html.halloween a:focus-visible {outline:2px solid #ffc18c;outline-offset:2px}
+html.halloween .btn:not(.subtle):not(.danger) {
+ background:linear-gradient(120deg,#d46b49,#ed9b58);
+ color:#1d1026;
+ border-color:rgba(247,179,117,.5);
+ text-shadow:none;
+}
+html.halloween .btn.subtle {
+ background:#40304d;
+ color:#ffe6ef;
+ border-color:#875b73;
+}
+html.halloween .notice{background:#39253c;color:#f4e5ee;border-color:#dc8e61}
+html.halloween .notice.warning{background:#422b2c;border-color:#efa65c}
+html.halloween .v81-rewards {
+ background:linear-gradient(155deg,#311c3c,#251c35 50%,#3d263c);
+ color:#f7e9f0;
+ border-color:#b67c71;
+ box-shadow:0 0 22px rgba(180,76,100,.11);
+}
+html.halloween .v81-shop,html.halloween .v81-item,
+html.halloween .v90-shop-item {
+ background:#32223e;
+ color:#f7eaf1;
+ border-color:#82596d;
+}
+html.halloween .v81-item-title strong,html.halloween .v81-header b{color:#ffdfbd}
+html.halloween .v81-item-action{color:#ffd1aa}
+/* Ne pas effacer les bannières et FX propres aux joueurs ayant équipé une récompense. */
+html.halloween .stats-profile:not(.v90-fx) .profile-hero,
+html.halloween .dlfr20-community:not(.v90-fx) .profile-hero {
+ background:linear-gradient(115deg,#23172f,#5e2f4e,#a8543b);
+}
+html.halloween .dlfr-team-panel,html.halloween .dlfr-v60-panel {color:var(--ink)}
+@media(max-width:720px){
+ html.halloween body{background-attachment:scroll}
+ html.halloween .nav-links>a{border-left-color:transparent}
+}
+@media(prefers-reduced-motion:reduce){
+ html.halloween *,html.halloween *::before,html.halloween *::after{scroll-behavior:auto}
+}
