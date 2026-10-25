@@ -72,5 +72,13 @@
     if(typeof password!=='string'||password.length<12||password.length>128)throw Error('Mot de passe : 12 à 128 caractères.');
     return authenticatedRequest(db,config,'attach',{username,password});
   }
-  return {validUsername,signIn,status,attach};
+  async function rename(db,config,username){
+    if(!validUsername(username))throw Error('Pseudo : 3 à 24 caractères (lettres, chiffres, _ ou -).');
+    return authenticatedRequest(db,config,'rename',{username});
+  }
+  async function removeAccount(db,config,confirmation,password){
+    if(confirmation!=='SUPPRIMER')throw Error('Écris SUPPRIMER pour confirmer la suppression.');
+    return authenticatedRequest(db,config,'delete_account',{confirmation,password:password||''});
+  }
+  return {validUsername,signIn,status,attach,rename,removeAccount};
 });

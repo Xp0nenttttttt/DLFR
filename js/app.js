@@ -872,7 +872,10 @@ function linkedAccountsPanel(){
  ${creator?`<form data-form="attachUsername" class="dlfr29-auth-card"><h3>Ajouter un pseudo et un mot de passe à mon compte Discord</h3><label class="field">Pseudo de connexion<input name="username" autocomplete="username" pattern="(?:[A-Za-z0-9_]|-){3,24}" minlength="3" maxlength="24" required></label><label class="field">Mot de passe<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label><label class="field">Confirmer le mot de passe<input name="password_confirm" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label><p class="muted small">Le pseudo sert uniquement à te connecter et ne change pas le pseudo de ta fiche Geometry Dash. Pour la sécurité, reconnecte-toi à Discord juste avant cette opération.</p><button class="btn" type="submit">Activer la connexion par pseudo</button></form>`:''}
  ${username&&!discord&&C.enableDiscordOAuth===true?'<button type="button" class="btn discord-button" data-action="discordIdentityLink">Associer mon Discord</button>':''}
  ${username&&discord?'<p class="notice">Les deux connexions sont associées à ce compte DLFR.</p>':''}
- ${username&&!discord?'<p class="muted small">Si Discord appartient déjà à un autre compte DLFR, la liaison sera refusée. Contacte l’équipe pour vérifier les deux comptes.</p>':''}</section>`;
+ ${username&&!discord?'<p class="muted small">Si Discord appartient déjà à un autre compte DLFR, la liaison sera refusée. Contacte l’équipe pour vérifier les deux comptes.</p>':''}
+ ${username?`<details class="account-management"><summary>Modifier mon pseudo de connexion</summary><form data-form="renameUsername" class="dlfr29-auth-card"><label class="field">Nouveau pseudo<input name="username" value="${esc(username)}" autocomplete="username" pattern="(?:[A-Za-z0-9_]|-){3,24}" minlength="3" maxlength="24" required></label><button class="btn" type="submit">Enregistrer le nouveau pseudo</button><p class="small muted">Cela change uniquement le pseudo utilisé pour te connecter, pas ta fiche Geometry Dash.</p></form></details>`:''}
+ <details class="account-management account-danger"><summary>Supprimer mon compte DLFR</summary><form data-form="deleteAccount" class="dlfr29-auth-card"><p class="small muted">Cette action est définitive : tu seras déconnecté·e et tu ne pourras plus utiliser ce compte. Les records et badges publics déjà associés à ta fiche joueur ne sont pas automatiquement effacés.</p>${username?'<label class="field">Mot de passe actuel<input name="password" type="password" autocomplete="current-password" required></label>':''}<label class="field">Pour confirmer, écris SUPPRIMER<input name="confirmation" autocomplete="off" placeholder="SUPPRIMER" pattern="SUPPRIMER" required></label><button class="btn danger" type="submit">Supprimer définitivement mon compte</button></form></details>
+ </section>`;
 }
 function mergeRequestStatus(status){return status==='accepted'?'Acceptée':status==='rejected'?'Refusée':'En attente';}
 function playerMergeRequestPanel(){
@@ -2328,6 +2331,20 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   toast(type==='selfCreatePlayer'?'Fiche creee et associee a ton compte !':type==='prodClaim'?'Demande de liaison enregistrée. Elle attend la vérification de la modération.':'Opération enregistrée.');render();return;
  }
 
+ if(type==='renameUsername'){
+  if(!LIVE||!state.session||!USERNAME_AUTH?.rename)throw Error('Connecte-toi pour modifier ton pseudo.');
+  const result=await USERNAME_AUTH.rename(db,C,f.username);
+  await refreshUsernameAccount();
+  toast('Pseudo de connexion modifié.');render();return;
+ }
+ if(type==='deleteAccount'){
+  if(!LIVE||!state.session||!USERNAME_AUTH?.removeAccount)throw Error('Connecte-toi pour supprimer ton compte.');
+  if(!confirm('Supprimer définitivement ton compte DLFR ? Cette action est irréversible.'))return;
+  await USERNAME_AUTH.removeAccount(db,C,f.confirmation,f.password||'');
+  try{await db.auth.signOut({scope:'local'});}catch{}
+  state.session=null;state.ownKey=null;state.usernameAccount=null;state.usernameAccountError='';state.staff=false;state.staffRole=null;
+  toast('Compte supprimé.');render();return;
+ }
  if(type==='attachUsername'){
   if(!LIVE||!state.session||!discordIdentity()||C.enableUsernameLogin!==true||!USERNAME_AUTH?.attach)throw Error('Connecte-toi avec Discord pour activer ton pseudo.');
   if(f.password!==f.password_confirm)throw Error('Les mots de passe ne correspondent pas.');

@@ -1,0 +1,26 @@
+DLFR — V93 : changement de pseudo et suppression de compte
+
+Fichiers inclus :
+- index.html
+- js/app.js
+- js/username-auth.js
+- supabase/functions/username-auth/index.ts
+
+1) Remplace ces 4 fichiers dans ton dépôt par ceux de l’archive.
+2) Déploie le site sur GitHub Pages.
+3) Redéploie l’Edge Function Supabase username-auth (obligatoire pour que les actions soient réellement prises en charge).
+   Depuis la racine du projet, avec Supabase CLI déjà lié au bon projet :
+   supabase functions deploy username-auth --no-verify-jwt
+   Les secrets existants de la fonction doivent rester configurés (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY, AUTH_RATE_PEPPER, ALLOWED_ORIGINS).
+4) Recharge le site avec Ctrl+F5 et teste d’abord le changement de pseudo.
+
+Fonctionnement :
+- Le changement concerne le pseudo de connexion, pas le pseudo public Geometry Dash.
+- Les pseudos restent uniques et les pseudos réservés aux anciens comptes ne peuvent pas être repris.
+- La suppression exige le mot de passe actuel si un pseudo/mot de passe est lié. Pour un compte Discord sans pseudo, une connexion récente est exigée.
+- La suppression supprime le compte d’authentification, mais ne supprime pas automatiquement les records/badges publics associés à la fiche joueur. Ceux-ci restent dans les données DLFR.
+- La suppression est irréversible. Le site demande une confirmation dans le formulaire et une seconde confirmation du navigateur.
+
+Vérifications effectuées :
+- `node --check` réussi sur js/app.js et js/username-auth.js.
+- Le comportement Supabase en production n’a pas pu être testé depuis cette archive : il faut impérativement redéployer l’Edge Function pour activer les actions côté serveur.

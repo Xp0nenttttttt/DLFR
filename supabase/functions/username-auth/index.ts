@@ -44,23 +44,50 @@ Deno.serve(async req=>{
  try{
   const body=await req.json();
   const action=body?.action;
-  if(!['login','register','status','attach'].includes(action)){
+  if(!['login','register','status','attach','rename','delete_account'].includes(action)){
     return response(400,{error:'Action non reconnue.'},origin);
   }
   const authorization=req.headers.get('authorization')||'';
   // Pour lire ou ajouter un pseudo à un compte Discord, on vérifie le JWT côté serveur.
   // L'identifiant utilisateur est obtenu de Supabase Auth, jamais du corps de la requête.
-  if(action==='status'||action==='attach'){
+  if(['status','attach','rename','delete_account'].includes(action)){ 
     const token=/^Bearer\s+(.+)$/i.exec(authorization)?.[1]||'';
     if(!token)return response(401,{error:'Connecte-toi pour continuer.'},origin);
     const {data:verified,error:verifyError}=await admin.auth.getUser(token);
     if(verifyError||!verified?.user)return response(401,{error:'Session expirée. Reconnecte-toi.'},origin);
     const user=verified.user;
-    if(action==='status'){
-      const {data:existing,error:existingErr}=await admin.from('dlfr_username_accounts')
-        .select('username_key').eq('auth_user_id',user.id).maybeSingle();
-      if(existingErr)throw existingErr;
-      return response(200,{username:existing?.username_key||null},origin);
+    const {data:existing,error:existingErr}=await admin.from('dlfr_username_accounts')
+      .select('username_key').eq('auth_user_id',user.id).maybeSingle();
+    if(existingErr)throw existingErr;
+    if(action==='status')return response(200,{username:existing?.username_key||null},origin);
+    if(action==='rename'){
+      const username=String(body?.username||'').trim(),handle=username.toLowerCase();
+      if(!allowedUsername.test(username))return response(400,{error:'Pseudo : 3 à 24 caractères (lettres, chiffres, _ ou -).'},origin);
+      if(denylist.has(handle))return response(400,{error:'Pseudo réservé.'},origin);
+      if(!existing)return response(400,{error:'Aucun pseudo de connexion n’est associé à ce compte.'},origin);
+      if(handle===existing.username_key)return response(200,{username:handle},origin);
+      const {data:reserved,error:reserveErr}=await admin.from('dlfr_legacy_credentials').select('username_key').eq('username_key',handle).maybeSingle();
+      if(reserveErr)throw reserveErr;
+      if(reserved)return response(409,{error:'Ce pseudo est réservé à un ancien compte.'},origin);
+      const {error:updateErr}=await admin.from('dlfr_username_accounts').update({username_key:handle}).eq('auth_user_id',user.id).eq('username_key',existing.username_key);
+      if(updateErr)return response(updateErr.code==='23505'?409:500,{error:updateErr.code==='23505'?'Ce pseudo est déjà utilisé.':'Impossible de changer le pseudo.'},origin);
+      await admin.auth.admin.updateUserById(user.id,{user_metadata:{...(user.user_metadata||{}),dlfr_username:handle}});
+      return response(200,{username:handle},origin);
+    }
+    if(action==='delete_account'){
+      if(body?.confirmation!=='SUPPRIMER')return response(400,{error:'Confirmation de suppression invalide.'},origin);
+      if(existing){
+        const password=body?.password;
+        if(typeof password!=='string'||!password.length||!user.email)return response(400,{error:'Saisis ton mot de passe actuel pour confirmer la suppression.'},origin);
+        const {error:passwordError}=await publicClient().auth.signInWithPassword({email:user.email,password});
+        if(passwordError)return response(403,{error:'Mot de passe incorrect : compte non supprimé.'},origin);
+      }else{
+        const latestLogin=Date.parse(user.last_sign_in_at||'');
+        if(!Number.isFinite(latestLogin)||Date.now()-latestLogin>20*60*1000)return response(403,{error:'Reconnecte-toi récemment avant de supprimer ton compte.'},origin);
+      }
+      const {error:deleteError}=await admin.auth.admin.deleteUser(user.id);
+      if(deleteError)throw deleteError;
+      return response(200,{deleted:true},origin);
     }
     const username=String(body?.username||'').trim();
     const password=body?.password;
