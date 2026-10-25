@@ -657,7 +657,7 @@ function v86AdminHTML(){
  if(state.staffRole!=='owner'||ownerPreviewActive())return '';
  const monday=new Date();const dow=(monday.getUTCDay()+6)%7;monday.setUTCDate(monday.getUTCDate()-dow);const week=monday.toISOString().slice(0,10);
  return `<section class="paper v86-owner" id="v86-owner"><h2>📅 Défis hebdomadaires</h2><p class="muted small">Programme plusieurs semaines à l'avance. La publication est automatique chaque lundi à 00:00 UTC.</p>
- <form data-form="v86Weekly" class="v86-weekly-form"><label class="field">Semaine (lundi UTC)<input name="week_start" type="date" required value="${week}"></label><label class="field">Niveau<select name="demon_id" required><option value="">Choisir un niveau public</option>${(state.data?.demons||[]).filter(d=>d.is_public!==false).sort((a,b)=>String(a.name).localeCompare(String(b.name),'fr')).map(d=>`<option value="${esc(d.id)}">${esc(d.name)} · #${esc(d.position)}</option>`).join('')}</select></label><label class="field">Pièces<input type="number" name="reward" min="1" max="500" value="50" required></label><button class="btn" type="submit">Ajouter / modifier la semaine</button></form>
+ <form data-form="v86Weekly" class="v86-weekly-form"><label class="field">Semaine (lundi UTC)<input name="week_start" type="date" required value="${week}"></label><label class="field">Niveau<select name="demon_id" required><option value="">Choisir un niveau public</option>${(state.data?.demons||[]).filter(d=>d.is_public!==false).sort((a,b)=>String(a.name).localeCompare(String(b.name),'fr')).map(d=>`<option value="${esc(d.id)}">${esc(d.name)} · #${esc(d.position)}</option>`).join('')}</select></label><label class="field">Wayllings dorés<input type="number" name="reward" min="1" max="500" value="50" required></label><button class="btn" type="submit">Ajouter / modifier la semaine</button></form>
  <div id="v86-schedule"><p class="small muted">Chargement du calendrier…</p></div><h2>🧪 Essais de la boutique</h2><p class="small muted">Accès de test réservé à ton compte. Aucun achat ni dépense : tu peux essayer les objets depuis la boutique et retirer leurs accès ici.</p><div id="v86-cosmetics"><p class="small muted">Chargement des objets…</p></div><h3>🛍️ Aperçu direct de la boutique</h3><p class="small muted">Après avoir activé un essai, utilise « Équiper » ici. Aucun achat nécessaire.</p><div id="v81-rewards" class="v81-rewards" aria-live="polite">Chargement de la boutique…</div></section>`;
 }
 async function v86AdminLoad(){
@@ -667,7 +667,7 @@ async function v86AdminLoad(){
   const {data,error}=await db.rpc('dlfr_owner_rewards_panel');if(error)throw error;
   if(seq!==v86Loading||!host.isConnected)return;
   const schedule=document.getElementById('v86-schedule');const items=document.getElementById('v86-cosmetics');const rows=data.weeks||[];
-  schedule.innerHTML=`<h3>Calendrier programmé</h3>${rows.length?`<div class="v86-rows">${rows.map(w=>`<div class="v86-row"><div><b>${esc(w.week_start)}</b> · ${esc(w.name)} <span class="muted small">+${esc(w.reward)} 🪙 ${w.locked?'· récompenses distribuées':''}</span></div>${!w.locked?`<button type="button" class="btn subtle small" data-v86-delete="${esc(w.week_start)}">Retirer</button>`:'<span class="muted small">Verrouillé</span>'}</div>`).join('')}</div>`:'<p class="muted small">Aucun défi programmé.</p>'}`;
+  schedule.innerHTML=`<h3>Calendrier programmé</h3>${rows.length?`<div class="v86-rows">${rows.map(w=>`<div class="v86-row"><div><b>${esc(w.week_start)}</b> · ${esc(w.name)} <span class="muted small">+${wayllingLabel(w.reward)} ${w.locked?'· récompenses distribuées':''}</span></div>${!w.locked?`<button type="button" class="btn subtle small" data-v86-delete="${esc(w.week_start)}">Retirer</button>`:'<span class="muted small">Verrouillé</span>'}</div>`).join('')}</div>`:'<p class="muted small">Aucun défi programmé.</p>'}`;
   items.innerHTML=`<div class="v86-rows">${(data.items||[]).map(i=>`<div class="v86-row"><div>${esc(i.emoji)} <b>${esc(i.label)}</b> <span class="muted small">${i.purchased?'· acheté':''}${i.testing?' · test actif':''}</span></div>${!i.purchased?`<button type="button" class="btn small ${i.testing?'subtle':''}" data-v86-test="${esc(i.item_key)}" data-v86-enable="${i.testing?'false':'true'}">${i.testing?'Retirer le test':'Essayer gratuitement'}</button>`:'<span class="muted small">Déjà possédé</span>'}</div>`).join('')}</div>`;
  }catch(err){if(host.isConnected)host.querySelector('#v86-schedule').textContent='Erreur de chargement : '+err.message;}
 }
@@ -684,12 +684,14 @@ async function v80WeeklyRender(){
   const challenge=data.challenge||{};
   const claimed=!!data.claimed,eligible=!!data.eligible;
   area.innerHTML=`<div class="v80-weekly-title"><span>✦ Défi de la semaine</span><span class="v80-wallet">🪙 ${esc(data.wallet??0)} pièces</span></div>
-  <p><a data-nav href="${url('demon',{id:challenge.demon_id})}"><strong>${esc(challenge.name||'Niveau hebdomadaire')}</strong></a> <span class="muted small">· +${esc(challenge.reward||50)} pièces</span></p>
+  <p><a data-nav href="${url('demon',{id:challenge.demon_id})}"><strong>${esc(challenge.name||'Niveau hebdomadaire')}</strong></a> <span class="muted small">· +${wayllingLabel(challenge.reward||50)}</span></p>
   <p class="small muted">Complète le niveau à 100 % pendant la semaine du défi, puis réclame ta récompense. Les points DLFR ne changent pas.</p>
   ${claimed?'<span class="v80-weekly-done">✓ Récompense récupérée</span>':eligible?'<button type="button" class="btn small" data-v80-claim>Récupérer mes pièces</button>':state.session?'<span class="small muted">En attente d’une complétion validée cette semaine.</span>':'<span class="small muted">Connecte-toi pour participer.</span>'}`;
  }catch(err){if(seq===v80WeeklyLoad&&area.isConnected){area.innerHTML='<span class="muted small">Défis indisponibles : la migration V80 est-elle installée ?</span>';}}
 }
 // V81 : boutique cosmétique, monnaie et équipement, sans toucher aux points DLFR.
+const wayllingLabel=n=>`${esc(n??0)} waylling${Number(n)>1?'s':''} doré${Number(n)>1?'s':''}`;
+
 let v81Request=0;
 async function v81RewardsRender(){
  const area=document.getElementById('v81-rewards');if(!area||!db)return;
@@ -700,11 +702,13 @@ async function v81RewardsRender(){
   if(seq!==v81Request||!area.isConnected)return;
   const status=sr.data||{},owns=new Set(status.inventory||[]),equip=status.equipped||{};
   v82HalloweenOwned=owns.has('theme_halloween');if(equip.theme==='theme_halloween'){setTheme('halloween');}else if(document.documentElement.classList.contains('halloween')){setTheme('midnight');}
-  area.innerHTML=`<div class="v81-header"><b>✦ DLFR Rewards</b><span>🪙 ${esc(status.balance??0)} pièces · 🔥 ${esc(status.streak??0)} semaine(s) de série</span></div>
-  <p class="small muted">Les pièces proviennent des défis hebdomadaires. Les objets sont purement décoratifs et n'affectent jamais les points DLFR.</p>
+  area.innerHTML=`<div class="v81-header"><b>✦ DLFR Rewards</b><span>✦ ${wayllingLabel(status.balance??0)} · 🔥 ${esc(status.streak??0)} semaine(s) de série</span></div>
+  <p class="small muted">Les wayllings dorés proviennent des défis hebdomadaires. Les objets sont purement décoratifs et n'affectent jamais les points DLFR.</p>
   <details class="v81-shop" ${document.getElementById('v86-owner')?'open':''}><summary>🛍️ Boutique et collection ${status.signed_in?'':'· connexion requise'}</summary><div class="v81-items">${(cr.data||[]).map(item=>{
    const trial=(status.test_inventory||[]).includes(item.item_key),owned=owns.has(item.item_key)||trial,equipped=equip[item.category]===item.item_key;
-   return `<div class="v81-item v90-shop-item v90-item-${esc(item.item_key)}"><span class="v90-swatch" aria-hidden="true"></span><div class="v81-item-title">${esc(item.emoji)} <strong>${esc(item.label)}</strong>${trial?'<span class="muted small"> · essai propriétaire</span>':''}</div><small>${esc(item.description)}</small><div class="v81-item-action"><span>🪙 ${esc(item.price)}</span>${status.signed_in?(owned?`<button type="button" class="btn small subtle" data-v81-equip="${esc(item.item_key)}" data-v81-category="${esc(item.category)}">${equipped?'✓ Équipé':'Équiper'}</button>`:`<button type="button" class="btn small" data-v81-buy="${esc(item.item_key)}" ${Number(status.balance)<Number(item.price)?'disabled':''}>Acheter</button>`):'<span class="muted small">Se connecter</span>'}</div></div>`;
+   const showDesc=item.category==='badge';
+   const desc=showDesc?esc(item.description||'Badge cosmétique à exposer sur ton profil.'):'';
+   return `<div class="v81-item v90-shop-item v90-item-${esc(item.item_key)}"><span class="v90-swatch" aria-hidden="true"></span><div class="v81-item-title">${esc(item.emoji)} <strong>${esc(item.label)}</strong>${trial?'<span class="muted small"> · essai propriétaire</span>':''}</div>${showDesc?`<small>${desc}</small>`:''}<div class="v81-item-action"><span>✦ ${wayllingLabel(item.price)}</span>${status.signed_in?(owned?`<button type="button" class="btn small subtle" data-v81-equip="${esc(item.item_key)}" data-v81-category="${esc(item.category)}">${equipped?'✓ Équipé':'Équiper'}</button>`:`<button type="button" class="btn small" data-v81-buy="${esc(item.item_key)}" ${Number(status.balance)<Number(item.price)?'disabled':''}>Acheter</button>`):'<span class="muted small">Se connecter</span>'}</div></div>`;
   }).join('')}</div><p class="small muted">Une décoration par catégorie. Les objets de prestige évoluent après 3 puis 8 défis hebdomadaires validés, sans nouveau paiement.</p></details>`;
  }catch(err){if(seq===v81Request&&area.isConnected)area.innerHTML='<span class="small muted">Boutique indisponible : '+esc(err.message||'Erreur Supabase')+'</span>';}
 }
@@ -771,12 +775,12 @@ async function v81ProfileRewards(){
   const badges=Array.isArray(data)?data:[];
   const prestige=V90_PRESTIGE;
   const card=area.closest('.stats-profile'),community=area.closest('.dlfr20-community');
-  const classes=['v85-profile-moon','v85-profile-void','v89-effect-amethyst','v89-effect-celestial','v89-effect-bloodmoon','v89-effect-voidwalker','v89-effect-glitch','v89-effect-glitch-frame','v89-effect-glitch-banner'];
+  const classes=['v85-profile-moon','v85-profile-void','v89-effect-amethyst','v89-effect-celestial','v89-effect-bloodmoon','v89-effect-voidwalker','v89-effect-glitch'];
   area.classList.remove(...classes);
   card&&card.classList.remove(...classes);
   community&&community.classList.remove(...classes);
   const primary=(['banner_glitch','banner_voidwalker','banner_bloodmoon','frame_glitch','frame_celestial','frame_amethyst_crown'].map(key=>badges.find(x=>x.item_key===key)).find(Boolean))||null;
-  const effectClass=primary?({banner_glitch:'v89-effect-glitch-banner',frame_glitch:'v89-effect-glitch-frame',banner_voidwalker:'v89-effect-voidwalker',banner_bloodmoon:'v89-effect-bloodmoon',frame_celestial:'v89-effect-celestial',frame_amethyst_crown:'v89-effect-amethyst'}[primary.item_key]||''):'';
+  const effectClass=primary?({banner_glitch:'v89-effect-glitch',frame_glitch:'v89-effect-glitch',banner_voidwalker:'v89-effect-voidwalker',banner_bloodmoon:'v89-effect-bloodmoon',frame_celestial:'v89-effect-celestial',frame_amethyst_crown:'v89-effect-amethyst'}[primary.item_key]||''):'';
   if(effectClass){area.classList.add(effectClass);card&&card.classList.add(effectClass);community&&community.classList.add(effectClass);}
   if(badges.some(x=>x.item_key==='banner_bloodmoon'))area.classList.add('v85-profile-moon');
   if(badges.some(x=>x.item_key==='banner_voidwalker'))area.classList.add('v85-profile-void');
@@ -2657,7 +2661,7 @@ function bootEvents(){
  if(teamRefresh){if(state.staffRole==='owner'&&!ownerPreviewActive()){await loadStaffCandidates();render();}return;}
  const previewChoice=ev.target.closest('[data-stats-preview]');if(previewChoice){chooseStatsPreview(previewChoice.dataset.statsPreview);return;}
  const st=ev.target.closest('[data-stats-tab]');if(st){state.statsTab=st.dataset.statsTab;state.keyword='';render();return;}
- const pt=ev.target.closest('[data-profile-tab]');if(pt){state.profileTab=pt.dataset.profileTab;const ownPreview=pt.closest('#selfProfilePublicPreview');if(ownPreview){const actor=LIVE?state.ownKey:state.demoActor;ownPreview.innerHTML=statProfile(getPlayer(actor));}else{const chosen=getPlayer(state.selectedPlayer);if($('profileContent'))$('profileContent').innerHTML=statProfile(chosen);}/* Chaque changement d'onglet recrée le DOM : réappliquer les effets équipés. */v81ProfileRewards().catch(err=>console.warn('[DLFR] Profil rewards',err));return;}
+ const pt=ev.target.closest('[data-profile-tab]');if(pt){state.profileTab=pt.dataset.profileTab;const ownPreview=pt.closest('#selfProfilePublicPreview');if(ownPreview){const actor=LIVE?state.ownKey:state.demoActor;ownPreview.innerHTML=statProfile(getPlayer(actor));}else{const chosen=getPlayer(state.selectedPlayer);if($('profileContent'))$('profileContent').innerHTML=statProfile(chosen);}return;}
  const at=ev.target.closest('[data-activity-tab]');if(at){state.activityTab=at.dataset.activityTab==='all'?'all':'following';render();return;}
  const nf=ev.target.closest('[data-news-filter]');if(nf){state.newsFilter=nf.dataset.newsFilter;render();return;}
  const myFilter=ev.target.closest('[data-my-submission-filter]');if(myFilter){state.mySubmissionFilter=myFilter.dataset.mySubmissionFilter;render();return;}

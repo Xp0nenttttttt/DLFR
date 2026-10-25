@@ -1,0 +1,13 @@
+DLFR V91.2 — Boutique : wayllings dorés + descriptions badges
+
+Contenu :
+- js/app.js
+
+Installation :
+1. Remplacer js/app.js sur le site.
+2. Recharger avec Ctrl + F5.
+
+Changements :
+- suppression des descriptions sous les effets de profil dans la boutique ;
+- conservation / ajout d'une description uniquement pour les badges ;
+- remplacement de l'affichage des pièces par des wayllings dorés dans la boutique et le défi hebdomadaire.
