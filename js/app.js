@@ -578,12 +578,15 @@ function historicalArchiveWithoutPublishedLevels(archive, published){
 function nlwListCards(search=''){
  const catalogLevels=catalog();
  const official=catalogLevels.filter(d=>V2.nlwRank(d)>0);
+ const unrated=(state.data?.demons||[]).filter(d=>d.unrated===true&&d.is_public!==false&&!d.legacy);
  const historical=historicalArchiveWithoutPublishedLevels(oldArchive(),catalogLevels);
  const q=key(search);
  const valid=d=>key(d.name).includes(q);
  const officialFiltered=official.filter(valid),historicalFiltered=historical.filter(valid);
- if(!officialFiltered.length&&!historicalFiltered.length)return '<div class="paper empty">Aucun niveau NLW correspondant.</div>';
- return `${officialFiltered.length?cardsHTML(officialFiltered):''}${historicalFiltered.length?archiveCardsHTML(historicalFiltered):''}`;
+ const unratedFiltered=unrated.filter(valid).sort((a,b)=>Number(a.unrated_position||99999999)-Number(b.unrated_position||99999999));
+ if(!officialFiltered.length&&!historicalFiltered.length&&!unratedFiltered.length)return '<div class="paper empty">Aucun niveau NLW ou UNRATED correspondant.</div>';
+ const unratedCards=unratedFiltered.map(d=>{const thumb=http(d.thumbnail_url)||window.DLFR_NLW_MEDIA?.thumbnail(d.video_url||d.verifier_video_url)||'';const img=thumb?`<img class="demon-thumb" loading="lazy" src="${esc(thumb)}" alt="Miniature ${esc(d.name)}">`:`<div class="demon-thumb faux-thumb">${esc(d.name)}</div>`;return `<article class="paper list-entry v82-unrated-item"><a data-nav href="${url('demon',{id:d.id})}">${img}</a><div><h2><a data-nav href="${url('demon',{id:d.id})}">UNRATED #${esc(d.unrated_position||'?')} — ${esc(d.name)}</a></h2><p class="small muted">Classement estimé indépendant · 0 point NLW officiel</p><span class="level-badge unrated-badge">UNRATED</span></div></article>`;}).join('');
+ return `${officialFiltered.length?cardsHTML(officialFiltered):''}${historicalFiltered.length?archiveCardsHTML(historicalFiltered):''}${unratedFiltered.length?`<section class="v82-unrated-group"><h2>◈ Niveaux UNRATED <small>(${unratedFiltered.length})</small></h2><p class="small muted">Rangs estimés · séparés du classement NLW officiel.</p>${unratedCards}</section>`:''}`;
 }
 // V58 : seule la navigation Legacy est masquée ; les niveaux, records et archives restent en base.
 // V58 — aperçu public des actualités sur la liste (brouillons exclus).
@@ -663,12 +666,13 @@ async function v81RewardsRender(){
   if(sr.error)throw sr.error;if(cr.error)throw cr.error;
   if(seq!==v81Request||!area.isConnected)return;
   const status=sr.data||{},owns=new Set(status.inventory||[]),equip=status.equipped||{};
+  v82HalloweenOwned=owns.has('theme_halloween');if(equip.theme==='theme_halloween'){setTheme('halloween');}else if(document.documentElement.classList.contains('halloween')){setTheme('midnight');}
   area.innerHTML=`<div class="v81-header"><b>✦ DLFR Rewards</b><span>🪙 ${esc(status.balance??0)} pièces · 🔥 ${esc(status.streak??0)} semaine(s) de série</span></div>
   <p class="small muted">Les pièces proviennent des défis hebdomadaires. Les objets sont purement décoratifs et n'affectent jamais les points DLFR.</p>
   <details class="v81-shop"><summary>🛍️ Boutique et collection ${status.signed_in?'':'· connexion requise'}</summary><div class="v81-items">${(cr.data||[]).map(item=>{
    const owned=owns.has(item.item_key),equipped=equip[item.category]===item.item_key;
    return `<div class="v81-item"><div class="v81-item-title">${esc(item.emoji)} <strong>${esc(item.label)}</strong></div><small>${esc(item.description)}</small><div class="v81-item-action"><span>🪙 ${esc(item.price)}</span>${status.signed_in?(owned?`<button type="button" class="btn small subtle" data-v81-equip="${esc(item.item_key)}" data-v81-category="${esc(item.category)}">${equipped?'✓ Équipé':'Équiper'}</button>`:`<button type="button" class="btn small" data-v81-buy="${esc(item.item_key)}" ${Number(status.balance)<Number(item.price)?'disabled':''}>Acheter</button>`):'<span class="muted small">Se connecter</span>'}</div></div>`;
-  }).join('')}</div><p class="small muted">Une seule décoration par catégorie (cadre, badge ou bannière). Les objets achetés restent dans ta collection.</p></details>`;
+  }).join('')}</div><p class="small muted">Une décoration par catégorie (cadre, badge, bannière ou thème). Les objets achetés restent dans ta collection.</p></details>`;
  }catch(err){if(seq===v81Request&&area.isConnected)area.innerHTML='<span class="small muted">Boutique indisponible : vérifie la migration SQL V81.</span>';}
 }
 async function v81ProfileRewards(){
@@ -2429,7 +2433,8 @@ function updateNewsPreview(form){if(!form)return;const holder=$('newsDraftPrevie
  holder.innerHTML=`<div class="news-meta"><span class="news-category">${esc(form.elements.category?.value||'Annonce')}</span>${form.elements.is_pinned?.checked?'<span class="news-pin">★ À la une</span>':''}</div><h4>${esc(headline)}</h4><p class="news-body">${esc(body.slice(0,350))}</p>${media&&imageLink(media)?`<img class="news-preview-img" src="${esc(imageLink(media))}" alt="Aperçu">`:''}`;
 }
 // Import JSON de démonstration désactivé.
-function setTheme(theme){const t=['light','dark','midnight','autumn'].includes(theme)?theme:'light';document.documentElement.classList.remove('dark','midnight','autumn');if(t!=='light')document.documentElement.classList.add(t);$('themeSelect').value=t;try{localStorage.setItem('demonlist-theme',t);}catch{}}
+let v82HalloweenOwned=false;
+function setTheme(theme){const t=theme==='halloween'&&v82HalloweenOwned?'halloween':['light','dark','midnight','autumn'].includes(theme)?theme:'light';document.documentElement.classList.remove('dark','midnight','autumn','halloween');if(t!=='light')document.documentElement.classList.add(t);const sel=$('themeSelect');if(sel){let opt=sel.querySelector('option[value="halloween"]');if(v82HalloweenOwned&&!opt){opt=new Option('Halloween ✦','halloween');sel.add(opt);}if(!v82HalloweenOwned&&opt)opt.remove();sel.value=t;}try{localStorage.setItem('demonlist-theme',t);}catch{}}
 function refreshUnrated(){document.documentElement.classList.toggle('unrated-mode',state.unrated);const button=$('unratedToggle');button.textContent=state.unrated?'◈ UNRATED ON':'◈ UNRATED OFF';button.setAttribute('aria-pressed',String(state.unrated));}
 function bootEvents(){
  setupDiscordServerLink();

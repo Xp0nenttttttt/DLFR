@@ -1,0 +1,13 @@
+DLFR V82 - Halloween et affichage des niveaux UNRATED dans la NLW
+
+1. Pré-requis : avoir installé la V81, y compris sa migration SQL.
+2. Sauvegarder les fichiers et la base de production.
+3. Exécuter supabase/82_HALLOWEEN_UNRATED.sql dans SQL Editor.
+4. Remplacer js/app.js et css/style.css dans le site.
+5. Faire Ctrl+F5.
+
+Dans NLW, les niveaux UNRATED publiés apparaissent dans une section distincte, même lorsque le mode UNRATED est désactivé. Ils n'obtiennent PAS de points NLW ni de rang NLW officiel.
+Dans la boutique DLFR Rewards, le thème Halloween · Nocturne coûte 350 pièces et peut être équipé.
+
+NOTE : Le thème s'applique au navigateur quand on équipe l'objet et qu'on visite la boutique. Pour son premier chargement sur un nouvel appareil, il faut que la boutique ait synchronisé la propriété du thème.
+Pas de fichiers assets/flags/ dans ce patch. Aucun changement des records ni de leur score.

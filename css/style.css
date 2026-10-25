@@ -1049,3 +1049,25 @@ html.unrated-mode .level-badge.unrated-badge{background:#54206e;color:#fff}
 .v81-item-title{font-size:14px}.v81-item small{color:var(--muted,#aeb5cb)}.v81-item-action{display:flex;gap:10px;justify-content:space-between;align-items:center;font-size:12px}
 .v81-profile-picks{padding:12px 0;margin:12px 0;border-top:1px solid var(--line)}.v81-profile-picks>div{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
 .v81-profile-pick{display:inline-flex;padding:6px 10px;border:1px solid #8276b9;border-radius:20px;background:rgba(111,90,185,.12);font-size:12px}
+
+/* V82 — Halloween Premium: palette gothique, sans dépendance d'images externes */
+html.halloween{--bg:#110d18;--card:#211629;--ink:#efdef1;--ink2:#fff3e6;--muted:#c3a7c8;--line:#56324f;--border:#6d4161;--blue:#ed8737;--panel:#291c33;--shadow:0 8px 28px #09040f99;--focus:#ffb468;color-scheme:dark}
+html.halloween body{background:radial-gradient(ellipse at 90% 7%,#52244366,transparent 36%),radial-gradient(ellipse at 2% 75%,#6c381e44,transparent 38%),var(--bg)}
+html.halloween .site-header{background:#211629f5;border-color:#7b435f;box-shadow:0 3px 18px #07040b88}
+html.halloween .brand{color:#ffb66d;text-shadow:0 0 15px #f76e5270}
+html.halloween .nav-links>a:hover,html.halloween .nav-links>a.active{background:#46223e}
+html.halloween .list-tabs,html.halloween .list-tabs button,html.halloween .rank-item{background:var(--card);color:var(--ink);border-color:var(--line)}
+html.halloween .list-tabs button.active,html.halloween .rank-item:hover,html.halloween .rank-item.selected{background:#4f2941}
+html.halloween .statbox,html.halloween .tag{background:var(--panel);color:var(--ink);border-color:var(--border)}
+html.halloween .stat-value,html.halloween .list-entry h2,html.halloween .rank-num,html.halloween .player-title{color:var(--ink2)}
+html.halloween input,html.halloween select,html.halloween textarea{color:var(--ink);background:var(--card);border-color:var(--border)}
+html.halloween .notice{background:#36213a}
+html.halloween .btn{background:linear-gradient(115deg,#c75a31,#ee963e);color:#210d18}
+html.halloween .paper,html.halloween .info-panel,html.halloween .center-panel{border-color:#7a3c65}
+html.halloween .center-panel h1{color:#ffb369;text-shadow:0 0 18px #e5695365}
+html.halloween .v81-rewards{background:linear-gradient(125deg,#2d1b36,#3b2031);border-color:#a15b69}
+html.halloween .v81-item{background:#321d34;border-color:#79516b}
+html.halloween .profile-hero{background:linear-gradient(120deg,#21132a,#662d38,#b85c32)}
+.v82-unrated-group{margin-top:30px;padding-top:14px;border-top:2px solid var(--border)}
+.v82-unrated-group>h2{font-size:21px;margin:5px 0}.v82-unrated-group>h2 small{font-size:13px;color:var(--muted)}
+.v82-unrated-item{border-left:3px solid #a369cb}.v82-unrated-item h2{font-size:19px}
