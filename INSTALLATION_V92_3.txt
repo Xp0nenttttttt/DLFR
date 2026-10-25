@@ -1,0 +1,16 @@
+DLFR V92.3 — Rétablissement des messages de modération des soumissions
+
+Pourquoi : le fichier production-tools.js de la V92.2 avait réintroduit une version antérieure du panneau de modération, qui ne contenait plus le champ « Message au joueur » et appelait les anciennes fonctions SQL sans message.
+
+Installation :
+1. Remplacer js/production-tools.js.
+2. Remplacer index.html (version de cache mise à jour).
+3. Vérifier que la migration SQL V75_MESSAGES_MODERATION_SOUMISSIONS.sql a déjà été exécutée dans Supabase. Si elle l'a été, ne pas la réexécuter inutilement.
+4. Déployer GitHub Pages puis faire Ctrl+F5.
+
+Le patch restaure le champ de message facultatif lors de l'acceptation/refus dans les panneaux de soumission et réutilise les fonctions RPC avec message :
+- dlfr_review_existing_record_with_message
+- dlfr_review_submission_with_message
+- le panneau de file réservée contient également le champ message.
+
+Aucun nouveau SQL n'est inclus : ce patch restaure l'interface et les appels RPC. Les messages ne fonctionneront que si la migration SQL V75 a déjà été appliquée.
