@@ -715,12 +715,21 @@ async function v81ProfileRewards(){
   const {data,error}=await db.rpc('dlfr_rewards_public',{p_player_key:k});if(error)throw error;
   if(!area.isConnected||area.dataset.playerKey!==k)return;
   const badges=Array.isArray(data)?data:[];
-  // Les classes sont calculées depuis une liste fermée, jamais depuis un champ libre SQL.
   const prestige=new Set(['frame_amethyst_crown','frame_celestial','banner_bloodmoon','banner_voidwalker']);
-  area.classList.remove('v85-profile-moon','v85-profile-void');
+  const card=area.closest('.stats-profile'),community=area.closest('.dlfr20-community');
+  const classes=['v85-profile-moon','v85-profile-void','v89-effect-amethyst','v89-effect-celestial','v89-effect-bloodmoon','v89-effect-voidwalker'];
+  area.classList.remove(...classes);
+  card&&card.classList.remove(...classes);
+  community&&community.classList.remove(...classes);
+  const primary=(['banner_voidwalker','banner_bloodmoon','frame_celestial','frame_amethyst_crown'].map(key=>badges.find(x=>x.item_key===key)).find(Boolean))||null;
+  const effectClass=primary?({banner_voidwalker:'v89-effect-voidwalker',banner_bloodmoon:'v89-effect-bloodmoon',frame_celestial:'v89-effect-celestial',frame_amethyst_crown:'v89-effect-amethyst'}[primary.item_key]||''):'';
+  if(effectClass){area.classList.add(effectClass);card&&card.classList.add(effectClass);community&&community.classList.add(effectClass);}
   if(badges.some(x=>x.item_key==='banner_bloodmoon'))area.classList.add('v85-profile-moon');
   if(badges.some(x=>x.item_key==='banner_voidwalker'))area.classList.add('v85-profile-void');
-  area.innerHTML=badges.length?`<div class="v81-profile-picks v85-profile-picks"><b>✦ Récompenses exposées</b><div>${badges.map(x=>`<span class="v81-profile-pick ${prestige.has(x.item_key)?'v85-prestige':''} v85-tier-${[1,2,3].includes(Number(x.tier))?Number(x.tier):1}" data-type="${esc(x.category)}">${esc(x.emoji)} ${esc(x.label)}${prestige.has(x.item_key)?` <small>· ${esc(x.tier_label||'I')}</small>`:''}</span>`).join('')}</div></div>`:'';
+  const tierLabel=x=>prestige.has(x.item_key)?esc(x.tier_label||'I'):'Collection';
+  const tierNum=x=>[1,2,3].includes(Number(x.tier))?Number(x.tier):1;
+  const highlight=primary?`<div class="v89-reward-stage v89-stage-${esc(primary.item_key)} v89-tier-${tierNum(primary)}"><div class="v89-reward-stage-visual" aria-hidden="true"><span class="v89-orb v89-orb-a"></span><span class="v89-orb v89-orb-b"></span><span class="v89-orb v89-orb-c"></span></div><div class="v89-reward-stage-copy"><span class="kicker">Effet principal actif</span><strong>${esc(primary.emoji)} ${esc(primary.label)}</strong><p>${esc(primary.description||'Récompense cosmétique premium équipée sur la carte du joueur.')}</p><small>${prestige.has(primary.item_key)?`Palier ${esc(primary.tier_label||'I')}`:'Actif'} · Effets visuels appliqués à la fiche du joueur</small></div></div>`:'';
+  area.innerHTML=badges.length?`<div class="v81-profile-picks v85-profile-picks v89-profile-picks"><div class="row-between"><b>✦ Récompenses exposées</b><span class="small muted">${badges.length} équipée(s)</span></div>${highlight}<div class="v89-reward-grid">${badges.map(x=>`<span class="v81-profile-pick v89-reward-chip ${prestige.has(x.item_key)?'v85-prestige':''} v89-${esc(x.item_key)} v85-tier-${tierNum(x)}" data-type="${esc(x.category)}"><span class="v89-chip-emoji">${esc(x.emoji)}</span><span><b>${esc(x.label)}</b><small>${tierLabel(x)}</small></span></span>`).join('')}</div></div>`:'';
  }catch(err){area.innerHTML='';}
 }
 function listPage(){
