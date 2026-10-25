@@ -1212,3 +1212,8 @@ html.halloween .profile-hero{background:linear-gradient(120deg,#21132a,#662d38,#
  .stats-profile[class*="v89-effect-"] .player-title{padding:4px 10px}
  .stats-profile[class*="v89-effect-"] .statbox{min-height:72px}
 }
+/* Compteur de niveaux suivis par membre de l'équipe DLFR */
+.dlfr-team-member-meta{display:flex;align-items:center;gap:10px;flex:none}
+.dlfr-managed-count{display:inline-flex;align-items:baseline;gap:4px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel);white-space:nowrap;font-size:14px}
+.dlfr-managed-count small{font-size:10px;color:var(--muted);font-weight:600}
+@media(max-width:520px){.dlfr-team-member{align-items:flex-start;gap:8px}.dlfr-team-member-meta{align-items:flex-end;flex-direction:column;gap:5px}.dlfr-managed-count{font-size:12px;padding:5px 7px}}

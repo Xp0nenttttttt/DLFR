@@ -1,8 +1,15 @@
-DLFR V91.3 — Nettoyage des textes de boutique
+DLFR — Compteur de niveaux gérés par modérateur
 
-Remplacer uniquement js/app.js par le fichier fourni.
-Retire les deux paragraphes :
-- Les wayllings dorés proviennent des défis hebdomadaires...
-- Une décoration par catégorie. Les objets de prestige évoluent...
+Fichiers à remplacer :
+- js/app.js
+- css/style.css
 
-Aucune modification SQL, CSS ou des drapeaux.
+Aucune migration SQL n'est nécessaire.
+
+Dans Modération > Équipe, chaque membre affiche désormais :
+- le nombre de fiches de niveau distinctes créées ou modifiées dans les actions de modération journalisées ;
+- le détail du nombre de créations et de modifications.
+
+Limite importante : les actions antérieures qui n'ont jamais été enregistrées dans community_audit_log ne peuvent pas être comptées rétroactivement. Le compteur ne compte que les événements SCOPED_LEVEL_CREATE et SCOPED_LEVEL_EDIT journalisés.
+
+Après installation, faire Ctrl + F5.

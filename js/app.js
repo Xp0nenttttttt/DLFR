@@ -61,7 +61,7 @@ function requiredGroups(page){
  if(page==='admin'&&hasFullStaffPowers()){
   if(state.adminTab==='levels')groups.push('adminLevels');
   if(state.adminTab==='safety')groups.push('adminSafety');
-  if(state.adminTab==='audit')groups.push('adminAudit');
+  if(state.adminTab==='audit'||state.adminTab==='team'&&state.staffRole==='owner'&&!ownerPreviewActive())groups.push('adminAudit');
  }
  return groups;
 }
@@ -213,12 +213,17 @@ function staffTeamPanel(){
  const roles={owner:'Propriétaire',supermoderator:'Supermodo',editor:'Supermodo (ancien)',moderator:'Modo',nlw:'Modo NLW'};
  const members=state.teamCandidates.filter(x=>x.current_role);
  const owners=members.filter(x=>x.current_role==='owner');
+ const levelActions=(state.data.community_audit_log||[]).filter(a=>['SCOPED_LEVEL_CREATE','SCOPED_LEVEL_EDIT'].includes(String(a.action_key||'').toUpperCase()));
+ const levelCounts=new Map();
+ for(const a of levelActions){const uid=a.actor_user_id;if(!uid)continue;const entry=levelCounts.get(uid)||{targets:new Set(),created:0,edited:0};if(a.target!=null)entry.targets.add(String(a.target));if(String(a.action_key).toUpperCase()==='SCOPED_LEVEL_CREATE')entry.created++;else entry.edited++;levelCounts.set(uid,entry);}
+ const managedCount=uid=>levelCounts.get(uid)?.targets.size||0;
+ const managedDetails=uid=>{const x=levelCounts.get(uid);return x?`${x.created} création(s) · ${x.edited} modification(s)`:'Aucune action de niveau enregistrée';};
  const label=x=>`${x.display_name||'Compte DLFR'} — ${x.auth_user_id.slice(0,8)}…${x.current_role?' · '+(roles[x.current_role]||x.current_role):''}`;
  const options='<option value="">Sélectionner un compte connecté</option>'+state.teamCandidates.map(x=>`<option value="${esc(x.auth_user_id)}">${esc(label(x))}</option>`).join('');
  return `<section class="admin-card dlfr-team-panel" data-admin-section="team"><div class="dlfr-team-heading"><div><span class="kicker">GESTION PROPRIÉTAIRE</span><h3>Équipe de modération</h3><p class="muted">Attribue les accès à un compte déjà inscrit sur la DLFR. Seuls les propriétaires peuvent modifier ces droits.</p></div><button class="btn subtle small" type="button" data-refresh-team>↻ Actualiser</button></div>
  ${state.teamCandidatesError?`<div class="notice warning">Impossible de charger les comptes autorisés. Vérifie que la migration 49 est installée. <small>${esc(state.teamCandidatesError)}</small></div>`:''}
  ${!state.teamCandidatesReady?'<p class="muted">Chargement des comptes…</p>':''}
- <div class="dlfr-team-list"><h4>Équipe actuelle</h4>${members.map(x=>`<div class="dlfr-team-member"><span><b>${esc(x.display_name||'Compte DLFR')}</b><small>${esc(x.auth_user_id.slice(0,8))}…</small></span><span class="tag ${x.current_role==='owner'?'dlfr-team-owner':''}">${esc(roles[x.current_role]||x.current_role)}</span></div>`).join('')||'<p class="muted">Aucun compte retourné.</p>'}</div>
+ <div class="dlfr-team-list"><h4>Équipe actuelle</h4><p class="small muted">Niveaux gérés = fiches distinctes créées ou modifiées via les outils de modération journalisés. Les anciennes actions non enregistrées ne peuvent pas être comptées rétroactivement.</p>${members.map(x=>`<div class="dlfr-team-member"><span><b>${esc(x.display_name||'Compte DLFR')}</b><small>${esc(x.auth_user_id.slice(0,8))}…</small><small>${esc(managedDetails(x.auth_user_id))}</small></span><span class="dlfr-team-member-meta"><span class="tag ${x.current_role==='owner'?'dlfr-team-owner':''}">${esc(roles[x.current_role]||x.current_role)}</span><strong class="dlfr-managed-count">${managedCount(x.auth_user_id)} <small>niveau(x)</small></strong></span></div>`).join('')||'<p class="muted">Aucun compte retourné.</p>'}</div>
  <div class="dlfr-team-forms"><form data-form="prodManageStaff" class="dlfr-team-form"><h4>Attribuer ou retirer un rôle</h4><label class="field">Compte DLFR<select name="auth_user_id" required>${options}</select></label><label class="field">Rôle<select name="role"><option value="nlw">Modo NLW</option><option value="moderator">Modo</option><option value="supermoderator">Supermodo</option></select></label><label class="field">Action<select name="enabled"><option value="yes">Attribuer</option><option value="no">Retirer ce rôle</option></select></label><button type="submit" class="btn" ${!state.teamCandidatesReady||!!state.teamCandidatesError?'disabled':''}>Enregistrer le rôle</button><p class="small muted">Les propriétaires ne peuvent pas être rétrogradés depuis ce formulaire.</p></form>
  <form data-form="addCoowner" class="dlfr-team-form dlfr-team-form-owner"><h4>Ajouter un deuxième propriétaire</h4><p class="small muted">Accès total, y compris aux permissions et aux paramètres sensibles. Réserve cette fonction à une personne de confiance.</p><label class="field">Compte à promouvoir<select name="auth_user_id" required>${options}</select></label><label class="field">Confirmation : écrire COPROPRIETAIRE<input name="confirmation" autocomplete="off" placeholder="COPROPRIETAIRE" required></label><button type="submit" class="btn danger" ${!state.teamCandidatesReady||!!state.teamCandidatesError||owners.length>=2?'disabled':''}>Nommer copropriétaire</button><p class="small muted">${owners.length>=2?'Deux propriétaires sont déjà enregistrés.':'Cette action est irréversible depuis le site ; aucun propriétaire ne peut être retiré depuis ce panneau.'}</p></form></div></section>`;
 }
@@ -657,7 +662,7 @@ function v86AdminHTML(){
  if(state.staffRole!=='owner'||ownerPreviewActive())return '';
  const monday=new Date();const dow=(monday.getUTCDay()+6)%7;monday.setUTCDate(monday.getUTCDate()-dow);const week=monday.toISOString().slice(0,10);
  return `<section class="paper v86-owner" id="v86-owner"><h2>📅 Défis hebdomadaires</h2><p class="muted small">Programme plusieurs semaines à l'avance. La publication est automatique chaque lundi à 00:00 UTC.</p>
- <form data-form="v86Weekly" class="v86-weekly-form"><label class="field">Semaine (lundi UTC)<input name="week_start" type="date" required value="${week}"></label><label class="field">Niveau<select name="demon_id" required><option value="">Choisir un niveau public</option>${(state.data?.demons||[]).filter(d=>d.is_public!==false).sort((a,b)=>String(a.name).localeCompare(String(b.name),'fr')).map(d=>`<option value="${esc(d.id)}">${esc(d.name)} · #${esc(d.position)}</option>`).join('')}</select></label><label class="field">Wayllings dorés<input type="number" name="reward" min="1" max="500" value="50" required></label><button class="btn" type="submit">Ajouter / modifier la semaine</button></form>
+ <form data-form="v86Weekly" class="v86-weekly-form"><label class="field">Semaine (lundi UTC)<input name="week_start" type="date" required value="${week}"></label><label class="field">Niveau<select name="demon_id" required><option value="">Choisir un niveau public</option>${(state.data?.demons||[]).filter(d=>d.is_public!==false).sort((a,b)=>String(a.name).localeCompare(String(b.name),'fr')).map(d=>`<option value="${esc(d.id)}">${esc(d.name)} · #${esc(d.position)}</option>`).join('')}</select></label><label class="field">Pièces<input type="number" name="reward" min="1" max="500" value="50" required></label><button class="btn" type="submit">Ajouter / modifier la semaine</button></form>
  <div id="v86-schedule"><p class="small muted">Chargement du calendrier…</p></div><h2>🧪 Essais de la boutique</h2><p class="small muted">Accès de test réservé à ton compte. Aucun achat ni dépense : tu peux essayer les objets depuis la boutique et retirer leurs accès ici.</p><div id="v86-cosmetics"><p class="small muted">Chargement des objets…</p></div><h3>🛍️ Aperçu direct de la boutique</h3><p class="small muted">Après avoir activé un essai, utilise « Équiper » ici. Aucun achat nécessaire.</p><div id="v81-rewards" class="v81-rewards" aria-live="polite">Chargement de la boutique…</div></section>`;
 }
 async function v86AdminLoad(){
@@ -667,7 +672,7 @@ async function v86AdminLoad(){
   const {data,error}=await db.rpc('dlfr_owner_rewards_panel');if(error)throw error;
   if(seq!==v86Loading||!host.isConnected)return;
   const schedule=document.getElementById('v86-schedule');const items=document.getElementById('v86-cosmetics');const rows=data.weeks||[];
-  schedule.innerHTML=`<h3>Calendrier programmé</h3>${rows.length?`<div class="v86-rows">${rows.map(w=>`<div class="v86-row"><div><b>${esc(w.week_start)}</b> · ${esc(w.name)} <span class="muted small">+${wayllingLabel(w.reward)} ${w.locked?'· récompenses distribuées':''}</span></div>${!w.locked?`<button type="button" class="btn subtle small" data-v86-delete="${esc(w.week_start)}">Retirer</button>`:'<span class="muted small">Verrouillé</span>'}</div>`).join('')}</div>`:'<p class="muted small">Aucun défi programmé.</p>'}`;
+  schedule.innerHTML=`<h3>Calendrier programmé</h3>${rows.length?`<div class="v86-rows">${rows.map(w=>`<div class="v86-row"><div><b>${esc(w.week_start)}</b> · ${esc(w.name)} <span class="muted small">+${esc(w.reward)} 🪙 ${w.locked?'· récompenses distribuées':''}</span></div>${!w.locked?`<button type="button" class="btn subtle small" data-v86-delete="${esc(w.week_start)}">Retirer</button>`:'<span class="muted small">Verrouillé</span>'}</div>`).join('')}</div>`:'<p class="muted small">Aucun défi programmé.</p>'}`;
   items.innerHTML=`<div class="v86-rows">${(data.items||[]).map(i=>`<div class="v86-row"><div>${esc(i.emoji)} <b>${esc(i.label)}</b> <span class="muted small">${i.purchased?'· acheté':''}${i.testing?' · test actif':''}</span></div>${!i.purchased?`<button type="button" class="btn small ${i.testing?'subtle':''}" data-v86-test="${esc(i.item_key)}" data-v86-enable="${i.testing?'false':'true'}">${i.testing?'Retirer le test':'Essayer gratuitement'}</button>`:'<span class="muted small">Déjà possédé</span>'}</div>`).join('')}</div>`;
  }catch(err){if(host.isConnected)host.querySelector('#v86-schedule').textContent='Erreur de chargement : '+err.message;}
 }
@@ -684,14 +689,12 @@ async function v80WeeklyRender(){
   const challenge=data.challenge||{};
   const claimed=!!data.claimed,eligible=!!data.eligible;
   area.innerHTML=`<div class="v80-weekly-title"><span>✦ Défi de la semaine</span><span class="v80-wallet">🪙 ${esc(data.wallet??0)} pièces</span></div>
-  <p><a data-nav href="${url('demon',{id:challenge.demon_id})}"><strong>${esc(challenge.name||'Niveau hebdomadaire')}</strong></a> <span class="muted small">· +${wayllingLabel(challenge.reward||50)}</span></p>
+  <p><a data-nav href="${url('demon',{id:challenge.demon_id})}"><strong>${esc(challenge.name||'Niveau hebdomadaire')}</strong></a> <span class="muted small">· +${esc(challenge.reward||50)} pièces</span></p>
   <p class="small muted">Complète le niveau à 100 % pendant la semaine du défi, puis réclame ta récompense. Les points DLFR ne changent pas.</p>
   ${claimed?'<span class="v80-weekly-done">✓ Récompense récupérée</span>':eligible?'<button type="button" class="btn small" data-v80-claim>Récupérer mes pièces</button>':state.session?'<span class="small muted">En attente d’une complétion validée cette semaine.</span>':'<span class="small muted">Connecte-toi pour participer.</span>'}`;
  }catch(err){if(seq===v80WeeklyLoad&&area.isConnected){area.innerHTML='<span class="muted small">Défis indisponibles : la migration V80 est-elle installée ?</span>';}}
 }
 // V81 : boutique cosmétique, monnaie et équipement, sans toucher aux points DLFR.
-const wayllingLabel=n=>`${esc(n??0)} waylling${Number(n)>1?'s':''} doré${Number(n)>1?'s':''}`;
-
 let v81Request=0;
 async function v81RewardsRender(){
  const area=document.getElementById('v81-rewards');if(!area||!db)return;
@@ -702,13 +705,12 @@ async function v81RewardsRender(){
   if(seq!==v81Request||!area.isConnected)return;
   const status=sr.data||{},owns=new Set(status.inventory||[]),equip=status.equipped||{};
   v82HalloweenOwned=owns.has('theme_halloween');if(equip.theme==='theme_halloween'){setTheme('halloween');}else if(document.documentElement.classList.contains('halloween')){setTheme('midnight');}
-  area.innerHTML=`<div class="v81-header"><b>✦ DLFR Rewards</b><span>✦ ${wayllingLabel(status.balance??0)} · 🔥 ${esc(status.streak??0)} semaine(s) de série</span></div>
+  area.innerHTML=`<div class="v81-header"><b>✦ DLFR Rewards</b><span>🪙 ${esc(status.balance??0)} pièces · 🔥 ${esc(status.streak??0)} semaine(s) de série</span></div>
+  <p class="small muted">Les pièces proviennent des défis hebdomadaires. Les objets sont purement décoratifs et n'affectent jamais les points DLFR.</p>
   <details class="v81-shop" ${document.getElementById('v86-owner')?'open':''}><summary>🛍️ Boutique et collection ${status.signed_in?'':'· connexion requise'}</summary><div class="v81-items">${(cr.data||[]).map(item=>{
    const trial=(status.test_inventory||[]).includes(item.item_key),owned=owns.has(item.item_key)||trial,equipped=equip[item.category]===item.item_key;
-   const showDesc=item.category==='badge';
-   const desc=showDesc?esc(item.description||'Badge cosmétique à exposer sur ton profil.'):'';
-   return `<div class="v81-item v90-shop-item v90-item-${esc(item.item_key)}"><span class="v90-swatch" aria-hidden="true"></span><div class="v81-item-title">${esc(item.emoji)} <strong>${esc(item.label)}</strong>${trial?'<span class="muted small"> · essai propriétaire</span>':''}</div>${showDesc?`<small>${desc}</small>`:''}<div class="v81-item-action"><span>✦ ${wayllingLabel(item.price)}</span>${status.signed_in?(owned?`<button type="button" class="btn small subtle" data-v81-equip="${esc(item.item_key)}" data-v81-category="${esc(item.category)}">${equipped?'✓ Équipé':'Équiper'}</button>`:`<button type="button" class="btn small" data-v81-buy="${esc(item.item_key)}" ${Number(status.balance)<Number(item.price)?'disabled':''}>Acheter</button>`):'<span class="muted small">Se connecter</span>'}</div></div>`;
-  }).join('')}</div></details>`;
+   return `<div class="v81-item v90-shop-item v90-item-${esc(item.item_key)}"><span class="v90-swatch" aria-hidden="true"></span><div class="v81-item-title">${esc(item.emoji)} <strong>${esc(item.label)}</strong>${trial?'<span class="muted small"> · essai propriétaire</span>':''}</div><small>${esc(item.description)}</small><div class="v81-item-action"><span>🪙 ${esc(item.price)}</span>${status.signed_in?(owned?`<button type="button" class="btn small subtle" data-v81-equip="${esc(item.item_key)}" data-v81-category="${esc(item.category)}">${equipped?'✓ Équipé':'Équiper'}</button>`:`<button type="button" class="btn small" data-v81-buy="${esc(item.item_key)}" ${Number(status.balance)<Number(item.price)?'disabled':''}>Acheter</button>`):'<span class="muted small">Se connecter</span>'}</div></div>`;
+  }).join('')}</div><p class="small muted">Une décoration par catégorie. Les objets de prestige évoluent après 3 puis 8 défis hebdomadaires validés, sans nouveau paiement.</p></details>`;
  }catch(err){if(seq===v81Request&&area.isConnected)area.innerHTML='<span class="small muted">Boutique indisponible : '+esc(err.message||'Erreur Supabase')+'</span>';}
 }
 // V90 — effets animés des récompenses (profil, aperçu Statistiques, classement). Purement visuel.
