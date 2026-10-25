@@ -1080,3 +1080,6 @@ html.halloween .profile-hero{background:linear-gradient(120deg,#21132a,#662d38,#
 .v85-profile-moon .v85-profile-picks{border:1px solid #a35363;background:linear-gradient(115deg,rgba(84,22,42,.28),rgba(21,17,35,.1))}
 .v85-profile-void .v85-profile-picks{border:1px solid #694ac0;background:radial-gradient(ellipse at right,rgba(109,69,180,.3),transparent 75%)}
 @media(prefers-reduced-motion:no-preference){.v85-profile-picks .v85-tier-3{animation:v85-pulse 5s ease-in-out infinite alternate}@keyframes v85-pulse{from{box-shadow:0 0 4px rgba(172,117,238,.2)}to{box-shadow:0 0 14px rgba(172,117,238,.5)}}}
+
+/* V86 : administration hebdomadaire */
+.v86-owner{margin-bottom:1.25rem}.v86-weekly-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;align-items:end}.v86-rows{display:grid;gap:8px;margin:12px 0 20px}.v86-row{display:flex;gap:12px;justify-content:space-between;align-items:center;padding:11px 13px;border:1px solid var(--border,#5b5680);border-radius:10px;min-width:0}.v86-row>div{min-width:0;overflow-wrap:anywhere}@media(max-width:600px){.v86-row{align-items:flex-start;flex-direction:column}}

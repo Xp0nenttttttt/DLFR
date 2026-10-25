@@ -1,0 +1,16 @@
+DLFR V86 — Défis programmés et tests de boutique
+
+1. Sauvegarder le site et la base Supabase officielle.
+2. Exécuter supabase/86_DEFI_FILE_ATTENTE_TEST_BOUTIQUE.sql dans SQL Editor.
+   Requiert les migrations V80, V81, V82 et V85.
+3. Remplacer js/app.js et css/style.css par les deux fichiers fournis.
+4. Ctrl+F5 puis Modération > Défis & tests (propriétaire uniquement).
+5. Ajouter un niveau et sélectionner un lundi UTC pour le mettre en file d'attente.
+   Les semaines sont automatiquement activées via la date, sans tâche cron.
+6. Sous Essais de la boutique, sélectionner Essayer gratuitement ; aller à la boutique,
+   équiper l'objet, puis revenir à l'administration pour Retirer le test.
+
+Important: la validation de rôle est côté SQL. Les essais ne créent aucun achat,
+mais l'apparence équipée reste visible sur le profil pendant le test. Les tests
+n'augmentent pas les pièces. Un objet acheté normalement n'est pas supprimé.
+Ne pas inclure/modifier assets/flags/. Aucun autre fichier nécessaire.
