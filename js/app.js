@@ -222,7 +222,24 @@ function staffTeamPanel(){
  <div class="dlfr-team-forms"><form data-form="prodManageStaff" class="dlfr-team-form"><h4>Attribuer ou retirer un rôle</h4><label class="field">Compte DLFR<select name="auth_user_id" required>${options}</select></label><label class="field">Rôle<select name="role"><option value="nlw">Modo NLW</option><option value="moderator">Modo</option><option value="supermoderator">Supermodo</option></select></label><label class="field">Action<select name="enabled"><option value="yes">Attribuer</option><option value="no">Retirer ce rôle</option></select></label><button type="submit" class="btn" ${!state.teamCandidatesReady||!!state.teamCandidatesError?'disabled':''}>Enregistrer le rôle</button><p class="small muted">Les propriétaires ne peuvent pas être rétrogradés depuis ce formulaire.</p></form>
  <form data-form="addCoowner" class="dlfr-team-form dlfr-team-form-owner"><h4>Ajouter un deuxième propriétaire</h4><p class="small muted">Accès total, y compris aux permissions et aux paramètres sensibles. Réserve cette fonction à une personne de confiance.</p><label class="field">Compte à promouvoir<select name="auth_user_id" required>${options}</select></label><label class="field">Confirmation : écrire COPROPRIETAIRE<input name="confirmation" autocomplete="off" placeholder="COPROPRIETAIRE" required></label><button type="submit" class="btn danger" ${!state.teamCandidatesReady||!!state.teamCandidatesError||owners.length>=2?'disabled':''}>Nommer copropriétaire</button><p class="small muted">${owners.length>=2?'Deux propriétaires sont déjà enregistrés.':'Cette action est irréversible depuis le site ; aucun propriétaire ne peut être retiré depuis ce panneau.'}</p></form></div></section>`;
 }
-const catalog=()=>renderCatalogCache||(renderCatalogCache=V2.decorate(state.data.demons,state.unrated));
+// V83 — insertion directe des UNRATED aux rangs simulés, dans une seule liste.
+// Ne touche jamais aux positions SQL officielles.
+function integratedCatalog(demons,enabled){
+ const rated=demons.filter(d=>!d.unrated).map(d=>({...d,original_position:Number(d.position),position:Number(d.position)})).sort((a,b)=>a.position-b.position);
+ if(!enabled)return rated;
+ const simulated=rated.slice();
+ const extras=demons.filter(d=>d.unrated&&d.is_public!==false&&!d.legacy)
+  .map(d=>({...d,original_position:null,requested_position:Math.max(1,Number(d.unrated_position)||151)}))
+  .sort((a,b)=>a.requested_position-b.requested_position||String(a.name).localeCompare(String(b.name),'fr'));
+ for(const d of extras){
+  const rank=d.requested_position;
+  for(const row of simulated)if(row.position>=rank)row.position++;
+  d.position=rank;
+  simulated.push(d);
+ }
+ return simulated.sort((a,b)=>a.position-b.position||Number(!!b.unrated)-Number(!!a.unrated));
+}
+const catalog=()=>renderCatalogCache||(renderCatalogCache=integratedCatalog(state.data.demons,state.unrated));
 const unratedData=()=>UNRATED_STATS.calculate(V2,state.data.demons,state.data.completions,state.data.players,num(cfg().top1_points));
 const nlwPoints=(d,r=100)=>V2.nlwPoints(d,r);
 const noSqlNotice=()=>'';
@@ -555,9 +572,9 @@ function displayedLevelVerifier(d){
 }
 function cardsHTML(demons){if(!demons.length)return '<div class="paper empty">Aucun niveau dans cette catégorie.</div>';
  return demons.map(d=>{const p=num(d.position),req=+d.requirement||100,isRank=p<=cfg().extended_limit;
-   const pills=`<div class="level-status">${V2.nlwRank(d)>0?`<span class="level-badge outside">NLW #${V2.nlwRank(d)} · ${fmt(nlwPoints(d))} pts NLW</span>`:''}${d.legacy?'<span class="level-badge legacy">Legacy</span>':''}${d.unrated?'<span class="level-badge unrated-badge">UNRATED</span>':''}</div>`;
+   const pills=`<div class="level-status">${p>150&&!d.legacy?`<span class="level-badge outside">NLW #${p-150}${d.unrated?' · simulé':' · '+fmt(nlwPoints(d))+' pts NLW'}</span>`:''}${d.legacy?'<span class="level-badge legacy">Legacy</span>':''}${d.unrated?'<span class="level-badge unrated-badge">UNRATED</span>':''}</div>`;
    const thumb=http(d.thumbnail_url)||((d.video_url||d.verifier_video_url)&&window.DLFR_NLW_MEDIA?.thumbnail(d.video_url||d.verifier_video_url))||'',image=thumb?`<img loading="lazy" class="demon-thumb" src="${esc(thumb)}" onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src=this.src.replace('/maxresdefault.jpg','/hqdefault.jpg')}else{this.style.display='none'}" alt="Miniature de ${esc(d.name)}">`:(String(d.thumbnail_url||'').startsWith('assets/')?`<img class="demon-thumb" src="${esc(d.thumbnail_url)}" alt="Miniature de ${esc(d.name)}">`:`<div class="demon-thumb faux-thumb">${esc(d.name)}</div>`);
-   return `<article class="paper list-entry ${p<=75?'main-rank':''}"><a href="${url('demon',{id:d.id})}" data-nav>${image}</a><div><h2><a href="${url('demon',{id:d.id})}" data-nav style="text-decoration:none">${p<=150?'#'+p:V2.nlwRank(d)>0?'NLW #'+V2.nlwRank(d):'Hors liste'} - ${esc(d.name)}</a></h2><div class="entry-meta">publié par <b>${esc(d.publisher&&d.publisher!=='AREDL'?d.publisher:'À renseigner')}</b>, vérifié par <b>${esc(displayedLevelVerifier(d))}</b></div><div class="points ${isRank?'':'no-points'}">${isRank?`${fmt(score(d,req))} (${req}%) — ${fmt(score(d,100))} (100%) points`:V2.nlwRank(d)>0?`NLW : ${fmt(nlwPoints(d))} points NLW (0 point principal)`:'Hors classement · 0 point'}</div>${(p>cfg().extended_limit||d.legacy||d.unrated)?pills:''}</div></article>`;
+   return `<article class="paper list-entry ${p<=75?'main-rank':''}"><a href="${url('demon',{id:d.id})}" data-nav>${image}</a><div><h2><a href="${url('demon',{id:d.id})}" data-nav style="text-decoration:none">${p<=150?'#'+p:p>150&&p<100000000?'NLW #'+(p-150):'Hors liste'} - ${esc(d.name)}</a></h2><div class="entry-meta">publié par <b>${esc(d.publisher&&d.publisher!=='AREDL'?d.publisher:'À renseigner')}</b>, vérifié par <b>${esc(displayedLevelVerifier(d))}</b></div><div class="points ${isRank?'':'no-points'}">${d.unrated?(isRank?`Simulation UNRATED · ${fmt(score(d,100))} points estimés`:'Simulation UNRATED · 0 point NLW officiel'):isRank?`${fmt(score(d,req))} (${req}%) — ${fmt(score(d,100))} (100%) points`:V2.nlwRank(d)>0?`NLW : ${fmt(nlwPoints(d))} points NLW (0 point principal)`:'Hors classement · 0 point'}</div>${(p>cfg().extended_limit||d.legacy||d.unrated)?pills:''}</div></article>`;
  }).join('');}
 // Évite les doublons quand un niveau historique est publié en Main List OU en NLW.
 // L'ID GD est prioritaire ; le nom ne sert que si une des deux fiches n'a pas d'ID.
@@ -576,17 +593,13 @@ function historicalArchiveWithoutPublishedLevels(archive, published){
  });
 }
 function nlwListCards(search=''){
- const catalogLevels=catalog();
- const official=catalogLevels.filter(d=>V2.nlwRank(d)>0);
- const unrated=(state.data?.demons||[]).filter(d=>d.unrated===true&&d.is_public!==false&&!d.legacy);
- const historical=historicalArchiveWithoutPublishedLevels(oldArchive(),catalogLevels);
+ // Les UNRATED s'insèrent dans la NLW uniquement avec le toggle actif.
+ const levels=catalog().filter(d=>d.is_public!==false&&!d.legacy&&Number(d.position)>150&&Number(d.position)<100000000);
  const q=key(search);
- const valid=d=>key(d.name).includes(q);
- const officialFiltered=official.filter(valid),historicalFiltered=historical.filter(valid);
- const unratedFiltered=unrated.filter(valid).sort((a,b)=>Number(a.unrated_position||99999999)-Number(b.unrated_position||99999999));
- if(!officialFiltered.length&&!historicalFiltered.length&&!unratedFiltered.length)return '<div class="paper empty">Aucun niveau NLW ou UNRATED correspondant.</div>';
- const unratedCards=unratedFiltered.map(d=>{const thumb=http(d.thumbnail_url)||window.DLFR_NLW_MEDIA?.thumbnail(d.video_url||d.verifier_video_url)||'';const img=thumb?`<img class="demon-thumb" loading="lazy" src="${esc(thumb)}" alt="Miniature ${esc(d.name)}">`:`<div class="demon-thumb faux-thumb">${esc(d.name)}</div>`;return `<article class="paper list-entry v82-unrated-item"><a data-nav href="${url('demon',{id:d.id})}">${img}</a><div><h2><a data-nav href="${url('demon',{id:d.id})}">UNRATED #${esc(d.unrated_position||'?')} — ${esc(d.name)}</a></h2><p class="small muted">Classement estimé indépendant · 0 point NLW officiel</p><span class="level-badge unrated-badge">UNRATED</span></div></article>`;}).join('');
- return `${officialFiltered.length?cardsHTML(officialFiltered):''}${historicalFiltered.length?archiveCardsHTML(historicalFiltered):''}${unratedFiltered.length?`<section class="v82-unrated-group"><h2>◈ Niveaux UNRATED <small>(${unratedFiltered.length})</small></h2><p class="small muted">Rangs estimés · séparés du classement NLW officiel.</p>${unratedCards}</section>`:''}`;
+ const visible=levels.filter(d=>key(d.name).includes(q));
+ const historical=historicalArchiveWithoutPublishedLevels(oldArchive(),catalog()).filter(d=>key(d.name).includes(q));
+ if(!visible.length&&!historical.length)return '<div class="paper empty">Aucun niveau NLW correspondant.</div>';
+ return `${visible.length?cardsHTML(visible):''}${historical.length?archiveCardsHTML(historical):''}`;
 }
 // V58 : seule la navigation Legacy est masquée ; les niveaux, records et archives restent en base.
 // V58 — aperçu public des actualités sur la liste (brouillons exclus).
@@ -691,9 +704,9 @@ function listPage(){
  const levels=catalog().filter(x=>sLabel==='legacy'?x.legacy:sLabel==='nlw'?V2.nlwRank(x)>0:(state.unrated||!x.unrated)&&+x.position>0&&+x.position<=150);
  const top=`<div class="list-tabs">${nav.map((x,i)=>`<button type="button" class="${sLabel===x?'active':''}" data-list="${x}">${esc(labels[i])}</button>`).join('')}</div>${sLabel==='main'?'<div class="v2-legend"><span class="hist-main">Main List · #1–75</span><span>Extended List · #76–150</span></div>':''}`;
  const heading={main:'Geometry Dash Demonlist',nlw:'NLW · Non List Worthy',legacy:'Legacy List'}[sLabel];
- const description={main:'Les 150 niveaux classés de la DemonlistFrancophone.',nlw:'Les niveaux NLW publiés et les fiches historiques de l’ancien site se consultent ici. Seuls les niveaux NLW homologués donnent des points, des rangs et des badges NLW.',legacy:'Anciens niveaux de la Main List, après validation de leur statut Legacy.'}[sLabel];
+ const description={main:'Les 150 niveaux classés de la DemonlistFrancophone.',nlw:'Les niveaux NLW publiés et les archives historiques. En activant UNRATED, les niveaux non homologués s’insèrent aux rangs simulés et décalent les suivants, sans modifier les positions officielles.',legacy:'Anciens niveaux de la Main List, après validation de leur statut Legacy.'}[sLabel];
  const html=sLabel==='nlw'?nlwListCards(state.keyword):cardsHTML(levels.filter(x=>key(x.name).includes(key(state.keyword))));
- return `${templateNotice()}${sLabel==='nlw'?'<p class="notice small">Les niveaux UNRATED ont un classement séparé : <a class="link" data-nav href="'+url('stats')+'">voir l’onglet UNRATED des statistiques</a>.</p>':''}${state.unrated?callout('<b>Mode UNRATED</b> — estimation alternative des positions et points, sans modifier le classement officiel.'):''}${top}<div id="v80-weekly" class="v80-weekly" aria-live="polite"><span class="muted small">Chargement du défi hebdomadaire…</span></div><div id="v81-rewards" class="v81-rewards" aria-live="polite">Chargement des récompenses…</div><div class="page-columns"><section><div class="center-panel"><h1>${heading}</h1><p>${description}</p><label class="filterbox"><span>⌕</span><input id="demonSearch" type="search" placeholder="Filtrer les niveaux affichés..." value="${esc(state.keyword)}" autocomplete="off"></label></div><div id="demonItems">${html}</div></section><aside class="right-side"><div class="info-panel right-panel"><h2>Éditeurs de liste</h2><p>Contacter les éditeurs pour les changements de classement.</p>${staffNamesHTML("general")}<h2>Équipe NLW</h2><p>L’équipe chargée de la liste NLW.</p>${staffNamesHTML("nlw")}</div>${listNewsSidebar()}${submissionGuidelinesSidebar()}</aside></div>`;
+ return `${templateNotice()}${state.unrated?callout('<b>Mode UNRATED</b> — estimation alternative des positions et points, sans modifier le classement officiel.'):''}${top}<div id="v80-weekly" class="v80-weekly" aria-live="polite"><span class="muted small">Chargement du défi hebdomadaire…</span></div><div id="v81-rewards" class="v81-rewards" aria-live="polite">Chargement des récompenses…</div><div class="page-columns"><section><div class="center-panel"><h1>${heading}</h1><p>${description}</p><label class="filterbox"><span>⌕</span><input id="demonSearch" type="search" placeholder="Filtrer les niveaux affichés..." value="${esc(state.keyword)}" autocomplete="off"></label></div><div id="demonItems">${html}</div></section><aside class="right-side"><div class="info-panel right-panel"><h2>Éditeurs de liste</h2><p>Contacter les éditeurs pour les changements de classement.</p>${staffNamesHTML("general")}<h2>Équipe NLW</h2><p>L’équipe chargée de la liste NLW.</p>${staffNamesHTML("nlw")}</div>${listNewsSidebar()}${submissionGuidelinesSidebar()}</aside></div>`;
 }
 function completionLinks(levels){return levels.length?levels.sort((a,b)=>a.position-b.position).map(d=>`<a class="link" href="${url('demon',{id:d.id})}" data-nav>#${esc(d.position)} ${esc(d.name)}</a>`).join(' - '):'<span class="muted">Aucun</span>';}
 // V66 : le classement NLW commence à #1 pour la position globale 151.

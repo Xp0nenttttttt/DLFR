@@ -1,0 +1,9 @@
+DLFR V83 — UNRATED intégré
+
+À installer APRÈS V82.
+Remplacer uniquement js/app.js. AUCUN SQL.
+UNRATED OFF : classement officiel inchangé.
+UNRATED ON : UNRATED insérés directement dans Main et NLW ; les niveaux suivants sont décalés sur l’affichage uniquement.
+Les points NLW des UNRATED restent à zéro.
+Tester un niveau UNRATED au Top 150, un au-delà du Top 150, le retour OFF, la recherche, et la fiche niveau.
+Les autres pages de statistiques gardent leurs règles propres; ne pas utiliser ce mode comme source de positions officielles.
