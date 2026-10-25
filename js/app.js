@@ -254,18 +254,38 @@ const callout=x=>`<div class="notice">${x}</div>`;
 // Les sauvegardes fictives ont été supprimées.
 const saveDemo=()=>{}; // Compatibilité avec les anciennes branches inactives du moteur V2.
 function withTimeout(promise,ms,message){let timer;return Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error(message)),ms);})]).finally(()=>clearTimeout(timer));}
+// Pagination bornée sous le plafond PostgREST (parfois 250 lignes par réponse).
+// Important : si on demande 1000 et que le serveur n'en rend que 250, il ne
+// faut pas interpréter ces 250 lignes comme la fin de la table.
+const READ_PAGE_SIZE=200;
+const READ_SORT_KEYS=Object.freeze({
+ site_settings:['id'],players:['player_key'],demons:['id'],completions:['id'],
+ news_items:['id'],profile_titles:['id'],player_profile_titles:['player_key','title_id'],
+ player_profiles:['player_key'],hall_of_fame:['id'],
+ fr_achievements:['id'],badge_awards:['player_key','badge_id'],
+ clan_members:['player_key'],level_submissions:['id'],
+ dlfr_profile_preferences:['player_key'],dlfr_profile_showcase:['player_key','slot'],
+ dlfr_profile_follows:['follower_key','followed_key'],
+ dlfr_level_packs:['id'],dlfr_level_pack_levels:['pack_id','demon_id'],
+ dlfr_level_pack_claims:['pack_id','player_key'],
+ dlfr_reactions:['auth_user_id','target_key','emoji']
+});
 async function readAll(name){return withReadSlot(async()=>{
  const start=perfNow();let out=[],from=0;
  while(true){
   const query=db.from(name).select('*');
+  // Ordre stable entre les pages (évite de perdre ou dupliquer des niveaux).
+  for(const column of READ_SORT_KEYS[name]||[])query.order(column,{ascending:true});
   // Conserver la RLS serveur et réduire les lignes inutiles pour les visiteurs.
   if(name==='demons'&&!state.staff)query.or('is_public.eq.true,is_public.is.null');
   if(name==='level_submissions'&&!state.staff&&state.session?.user?.id)query.eq('auth_user_id',state.session.user.id);
-  const {data,error}=await query.range(from,from+999);
+  const {data,error}=await query.range(from,from+READ_PAGE_SIZE-1);
   if(error)throw Error(`${name} : ${error.message}`);
-  out.push(...data);if(data.length<1000)break;
-  from+=1000;
-  if(from>=60000)throw Error(`Limite de lecture atteinte pour ${name}; pagination serveur à prévoir`);
+  if(!Array.isArray(data))throw Error(`${name} : réponse invalide`);
+  out.push(...data);
+  if(data.length<READ_PAGE_SIZE)break;
+  from+=READ_PAGE_SIZE;
+  if(from>=60000)throw Error(`Limite de lecture atteinte pour ${name}; contacter la modération`);
  }
  if(PERF_DEBUG)console.info('[DLFR perf] Lecture',name,out.length+' lignes',Math.round(perfNow()-start)+' ms');
  return out;
@@ -662,7 +682,7 @@ function v86AdminHTML(){
  if(state.staffRole!=='owner'||ownerPreviewActive())return '';
  const monday=new Date();const dow=(monday.getUTCDay()+6)%7;monday.setUTCDate(monday.getUTCDate()-dow);const week=monday.toISOString().slice(0,10);
  return `<section class="paper v86-owner" id="v86-owner"><h2>📅 Défis hebdomadaires</h2><p class="muted small">Programme plusieurs semaines à l'avance. La publication est automatique chaque lundi à 00:00 UTC.</p>
- <form data-form="v86Weekly" class="v86-weekly-form"><label class="field">Semaine (lundi UTC)<input name="week_start" type="date" required value="${week}"></label><label class="field">Niveau<select name="demon_id" required><option value="">Choisir un niveau public</option>${(state.data?.demons||[]).filter(d=>d.is_public!==false).sort((a,b)=>String(a.name).localeCompare(String(b.name),'fr')).map(d=>`<option value="${esc(d.id)}">${esc(d.name)} · #${esc(d.position)}</option>`).join('')}</select></label><label class="field">Pièces<input type="number" name="reward" min="1" max="500" value="50" required></label><button class="btn" type="submit">Ajouter / modifier la semaine</button></form>
+ <form data-form="v86Weekly" class="v86-weekly-form"><label class="field">Semaine (lundi UTC)<input name="week_start" type="date" required value="${week}"></label><label class="field">Niveau<select name="demon_id" required><option value="">Choisir un niveau public</option>${(state.data?.demons||[]).filter(d=>d.is_public!==false).sort((a,b)=>String(a.name).localeCompare(String(b.name),'fr')).map(d=>`<option value="${esc(d.id)}">${esc(d.name)} · #${esc(d.position)}</option>`).join('')}</select></label><label class="field">Wayllings dorés<input type="number" name="reward" min="1" max="500" value="50" required></label><button class="btn" type="submit">Ajouter / modifier la semaine</button></form>
  <div id="v86-schedule"><p class="small muted">Chargement du calendrier…</p></div><h2>🧪 Essais de la boutique</h2><p class="small muted">Accès de test réservé à ton compte. Aucun achat ni dépense : tu peux essayer les objets depuis la boutique et retirer leurs accès ici.</p><div id="v86-cosmetics"><p class="small muted">Chargement des objets…</p></div><h3>🛍️ Aperçu direct de la boutique</h3><p class="small muted">Après avoir activé un essai, utilise « Équiper » ici. Aucun achat nécessaire.</p><div id="v81-rewards" class="v81-rewards" aria-live="polite">Chargement de la boutique…</div></section>`;
 }
 async function v86AdminLoad(){
@@ -672,7 +692,7 @@ async function v86AdminLoad(){
   const {data,error}=await db.rpc('dlfr_owner_rewards_panel');if(error)throw error;
   if(seq!==v86Loading||!host.isConnected)return;
   const schedule=document.getElementById('v86-schedule');const items=document.getElementById('v86-cosmetics');const rows=data.weeks||[];
-  schedule.innerHTML=`<h3>Calendrier programmé</h3>${rows.length?`<div class="v86-rows">${rows.map(w=>`<div class="v86-row"><div><b>${esc(w.week_start)}</b> · ${esc(w.name)} <span class="muted small">+${esc(w.reward)} 🪙 ${w.locked?'· récompenses distribuées':''}</span></div>${!w.locked?`<button type="button" class="btn subtle small" data-v86-delete="${esc(w.week_start)}">Retirer</button>`:'<span class="muted small">Verrouillé</span>'}</div>`).join('')}</div>`:'<p class="muted small">Aucun défi programmé.</p>'}`;
+  schedule.innerHTML=`<h3>Calendrier programmé</h3>${rows.length?`<div class="v86-rows">${rows.map(w=>`<div class="v86-row"><div><b>${esc(w.week_start)}</b> · ${esc(w.name)} <span class="muted small">+${wayllingLabel(w.reward)} ${w.locked?'· récompenses distribuées':''}</span></div>${!w.locked?`<button type="button" class="btn subtle small" data-v86-delete="${esc(w.week_start)}">Retirer</button>`:'<span class="muted small">Verrouillé</span>'}</div>`).join('')}</div>`:'<p class="muted small">Aucun défi programmé.</p>'}`;
   items.innerHTML=`<div class="v86-rows">${(data.items||[]).map(i=>`<div class="v86-row"><div>${esc(i.emoji)} <b>${esc(i.label)}</b> <span class="muted small">${i.purchased?'· acheté':''}${i.testing?' · test actif':''}</span></div>${!i.purchased?`<button type="button" class="btn small ${i.testing?'subtle':''}" data-v86-test="${esc(i.item_key)}" data-v86-enable="${i.testing?'false':'true'}">${i.testing?'Retirer le test':'Essayer gratuitement'}</button>`:'<span class="muted small">Déjà possédé</span>'}</div>`).join('')}</div>`;
  }catch(err){if(host.isConnected)host.querySelector('#v86-schedule').textContent='Erreur de chargement : '+err.message;}
 }
@@ -689,12 +709,14 @@ async function v80WeeklyRender(){
   const challenge=data.challenge||{};
   const claimed=!!data.claimed,eligible=!!data.eligible;
   area.innerHTML=`<div class="v80-weekly-title"><span>✦ Défi de la semaine</span><span class="v80-wallet">🪙 ${esc(data.wallet??0)} pièces</span></div>
-  <p><a data-nav href="${url('demon',{id:challenge.demon_id})}"><strong>${esc(challenge.name||'Niveau hebdomadaire')}</strong></a> <span class="muted small">· +${esc(challenge.reward||50)} pièces</span></p>
+  <p><a data-nav href="${url('demon',{id:challenge.demon_id})}"><strong>${esc(challenge.name||'Niveau hebdomadaire')}</strong></a> <span class="muted small">· +${wayllingLabel(challenge.reward||50)}</span></p>
   <p class="small muted">Complète le niveau à 100 % pendant la semaine du défi, puis réclame ta récompense. Les points DLFR ne changent pas.</p>
   ${claimed?'<span class="v80-weekly-done">✓ Récompense récupérée</span>':eligible?'<button type="button" class="btn small" data-v80-claim>Récupérer mes pièces</button>':state.session?'<span class="small muted">En attente d’une complétion validée cette semaine.</span>':'<span class="small muted">Connecte-toi pour participer.</span>'}`;
  }catch(err){if(seq===v80WeeklyLoad&&area.isConnected){area.innerHTML='<span class="muted small">Défis indisponibles : la migration V80 est-elle installée ?</span>';}}
 }
 // V81 : boutique cosmétique, monnaie et équipement, sans toucher aux points DLFR.
+const wayllingLabel=n=>`${esc(n??0)} waylling${Number(n)>1?'s':''} doré${Number(n)>1?'s':''}`;
+
 let v81Request=0;
 async function v81RewardsRender(){
  const area=document.getElementById('v81-rewards');if(!area||!db)return;
@@ -705,12 +727,13 @@ async function v81RewardsRender(){
   if(seq!==v81Request||!area.isConnected)return;
   const status=sr.data||{},owns=new Set(status.inventory||[]),equip=status.equipped||{};
   v82HalloweenOwned=owns.has('theme_halloween');if(equip.theme==='theme_halloween'){setTheme('halloween');}else if(document.documentElement.classList.contains('halloween')){setTheme('midnight');}
-  area.innerHTML=`<div class="v81-header"><b>✦ DLFR Rewards</b><span>🪙 ${esc(status.balance??0)} pièces · 🔥 ${esc(status.streak??0)} semaine(s) de série</span></div>
-  <p class="small muted">Les pièces proviennent des défis hebdomadaires. Les objets sont purement décoratifs et n'affectent jamais les points DLFR.</p>
+  area.innerHTML=`<div class="v81-header"><b>✦ DLFR Rewards</b><span>✦ ${wayllingLabel(status.balance??0)} · 🔥 ${esc(status.streak??0)} semaine(s) de série</span></div>
   <details class="v81-shop" ${document.getElementById('v86-owner')?'open':''}><summary>🛍️ Boutique et collection ${status.signed_in?'':'· connexion requise'}</summary><div class="v81-items">${(cr.data||[]).map(item=>{
    const trial=(status.test_inventory||[]).includes(item.item_key),owned=owns.has(item.item_key)||trial,equipped=equip[item.category]===item.item_key;
-   return `<div class="v81-item v90-shop-item v90-item-${esc(item.item_key)}"><span class="v90-swatch" aria-hidden="true"></span><div class="v81-item-title">${esc(item.emoji)} <strong>${esc(item.label)}</strong>${trial?'<span class="muted small"> · essai propriétaire</span>':''}</div><small>${esc(item.description)}</small><div class="v81-item-action"><span>🪙 ${esc(item.price)}</span>${status.signed_in?(owned?`<button type="button" class="btn small subtle" data-v81-equip="${esc(item.item_key)}" data-v81-category="${esc(item.category)}">${equipped?'✓ Équipé':'Équiper'}</button>`:`<button type="button" class="btn small" data-v81-buy="${esc(item.item_key)}" ${Number(status.balance)<Number(item.price)?'disabled':''}>Acheter</button>`):'<span class="muted small">Se connecter</span>'}</div></div>`;
-  }).join('')}</div><p class="small muted">Une décoration par catégorie. Les objets de prestige évoluent après 3 puis 8 défis hebdomadaires validés, sans nouveau paiement.</p></details>`;
+   const showDesc=item.category==='badge';
+   const desc=showDesc?esc(item.description||'Badge cosmétique à exposer sur ton profil.'):'';
+   return `<div class="v81-item v90-shop-item v90-item-${esc(item.item_key)}"><span class="v90-swatch" aria-hidden="true"></span><div class="v81-item-title">${esc(item.emoji)} <strong>${esc(item.label)}</strong>${trial?'<span class="muted small"> · essai propriétaire</span>':''}</div>${showDesc?`<small>${desc}</small>`:''}<div class="v81-item-action"><span>✦ ${wayllingLabel(item.price)}</span>${status.signed_in?(owned?`<button type="button" class="btn small subtle" data-v81-equip="${esc(item.item_key)}" data-v81-category="${esc(item.category)}">${equipped?'✓ Équipé':'Équiper'}</button>`:`<button type="button" class="btn small" data-v81-buy="${esc(item.item_key)}" ${Number(status.balance)<Number(item.price)?'disabled':''}>Acheter</button>`):'<span class="muted small">Se connecter</span>'}</div></div>`;
+  }).join('')}</div></details>`;
  }catch(err){if(seq===v81Request&&area.isConnected)area.innerHTML='<span class="small muted">Boutique indisponible : '+esc(err.message||'Erreur Supabase')+'</span>';}
 }
 // V90 — effets animés des récompenses (profil, aperçu Statistiques, classement). Purement visuel.
@@ -1492,7 +1515,7 @@ function submitRecordPage(){
  <label class="dlfr-submit-mode-card"><input type="radio" name="submission_mode" value="new" ${hasExisting?'':'checked'}><span><strong>Non, proposer un niveau</strong><small>Le niveau n’a pas encore de fiche sur la DLFR.</small></span></label></div></fieldset>
  <div id="submitExistingFields" class="dlfr-submit-fields submission-wide" ${hasExisting?'':'hidden'}>
  <div class="field"><label for="submitLevelSearch">2 · Choisis le niveau de ta complétion</label><input id="submitLevelSearch" type="search" placeholder="Rechercher par nom ou ID Geometry Dash…" autocomplete="off">
- <p class="small muted">Clique sur le niveau dans les résultats pour le sélectionner.</p>
+ <p class="small muted">${levels.length} niveaux disponibles, y compris les NLW après le rang 250. Recherche par nom ou ID Geometry Dash, puis sélectionne le résultat.</p>
  <select id="submitLevelSelect" name="demon_id" aria-label="Résultats de niveaux" ${hasExisting?'required':''} size="8"><option value="" selected disabled>— Choisir un niveau dans la liste —</option>${levels.map(d=>`<option value="${esc(d.id)}" data-pos="${esc(d.unrated?0:num(d.position))}" data-req="${esc(Math.max(1,Math.min(100,num(d.requirement||100))))}" data-search="${esc(key(d.name)+' '+plain(d.level_id))}">${esc(submitLevelLabel(d))} — ${esc(d.name)}</option>`).join('')}</select><div id="submitSelectedLevel" class="dlfr-submit-selected" role="status" aria-live="polite"><span>◌</span> Aucun niveau sélectionné</div></div></div>
  <div id="submitNewFields" class="dlfr-submit-fields submission-wide" ${hasExisting?'hidden':''}>
  <div class="notice small">Ce niveau n'est pas encore publié. La modération examinera sa fiche et décidera du classement avant toute publication.</div>

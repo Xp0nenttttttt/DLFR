@@ -1,0 +1,17 @@
+DLFR V94 — Correctif ciblé Soumissions > 250 + Boutique et personnalisations
+
+Fichiers inclus : index.html, js/app.js
+
+INSTALLATION :
+1. Sauvegarder les fichiers actuels du site.
+2. Remplacer UNIQUEMENT index.html et js/app.js sur GitHub Pages.
+3. Ne pas supprimer les autres fichiers du dépôt et ne pas toucher à assets/flags/.
+4. Publier les changements, puis recharger le site avec Ctrl+F5.
+5. Ouvrir « Soumettre un record » : la zone de sélection affiche le nombre de niveaux chargés. Les niveaux au-delà du #250 doivent être recherchables.
+6. Ouvrir la boutique sur la page de liste et vérifier les prix « wayllings dorés », les descriptions uniquement pour badges, et les boutons de personnalisation.
+
+CAUSE TECHNIQUE : readAll() demandait 1000 lignes par page et s'arrêtait si le serveur renvoyait moins de 1000 ; avec un plafond de 250 lignes / réponse, la suite n'était jamais récupérée. V94 pagine par 200 et ordonne les données.
+Le rendu de la boutique provient de V91.3, tout en conservant les formulaires de gestion de compte V93 et le reste de la version actuelle.
+
+Ce patch ne modifie pas Supabase, aucun record/badge/achat/compte n'est supprimé ou réattribué.
+ATTENTION : si la personnalisation ne s'affiche toujours pas, vérifier séparément les droits d'essai et les effets effectivement équipés en base. Aucun achat n'est créé artificiellement.
