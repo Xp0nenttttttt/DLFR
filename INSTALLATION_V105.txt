@@ -1,0 +1,49 @@
+DLFR V105 — Annuler une soumission acceptée par erreur
+=======================================================
+Base : V104 (Solo / 2P). Correctif ciblé, sans effacer les autres fichiers.
+
+FICHIERS À DÉPLOYER SUR GITHUB PAGES
+-----------------------------------
+1. Remplacer index.html par le fichier fourni.
+2. Remplacer js/app.js par le fichier fourni.
+3. Ajouter css/v105-reverse-approval.css (nouveau fichier).
+4. Publier puis recharger avec Ctrl + F5.
+Ne PAS remplacer le répertoire assets/flags/. Ne pas supprimer les autres CSS/JS.
+
+SUPABASE
+--------
+Les migrations V105 ont déjà été appliquées au projet DLFR de production :
+- table privée dlfr_submission_revocations, avec sauvegarde de l'ancien état;
+- lecture des validations éligibles, aperçu des conséquences;
+- RPC d'annulation sécurisée, vérification des autorisations et du record;
+- exclusion des annulations du classement des modérateurs.
+Aucun SQL supplémentaire n'est requis pour cette production.
+
+UTILISATION
+-----------
+Modération > Demandes > « Annuler une validation acceptée ».
+Rechercher par pseudo, titre de niveau ou ID de soumission.
+Choisir « Examiner » avant d'annuler.
+Indiquer un motif (10 à 500 caractères), écrire ANNULER, confirmer.
+
+Deux situations :
+- Record identifié comme créé par CETTE validation : option facultative
+  « Retirer le record » ; une sauvegarde JSON est conservée en base.
+- Record déjà existant, mis à jour ou ambigu : seul le statut est annulé.
+  Le record est CONSERVÉ, avec un avertissement explicite ; il doit être
+  inspecté séparément par un responsable pour éviter la perte de données.
+
+Permissions : propriétaires/supermodos pour les validations éligibles;
+modos pour leurs propres décisions des 7 derniers jours seulement ;
+modos NLW pour leurs propres décisions NLW des 7 derniers jours.
+Les annulations sont journalisées; un joueur voit le motif dans « Mes soumissions ».
+Le niveau (la fiche démon) n'est pas supprimé automatiquement, même si une
+validation avait créé une nouvelle fiche.
+
+VALIDATION
+----------
+Node.js : syntaxe de js/app.js vérifiée.
+Supabase : recherche + aperçu testés avec comptes autorisés; accès non-modo
+refusé. Les deux types d'annulation ont été testés dans des transactions
+ROLLBACK, puis la soumission et le record de test ont été vérifiés intacts.
+Affichage réel GitHub Pages non testé avant déploiement.

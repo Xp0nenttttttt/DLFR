@@ -1,0 +1,24 @@
+/* DLFR V105 — annulation encadrée d'une validation acceptée */
+.v105-reversal-panel{margin-top:1.3rem;max-width:100%;}
+.v105-reversal-panel h3{margin:0 0 .35rem;}
+.v105-reversal-panel p{line-height:1.5;}
+.v105-reversal-search{display:flex;flex-wrap:wrap;align-items:flex-end;gap:.7rem;margin:1rem 0;}
+.v105-reversal-search .field{flex:1 1 250px;min-width:190px;}
+.v105-reversal-search input{width:100%;}
+.v105-reversal-list{max-height:340px;overflow-y:auto;border:1px solid var(--border,rgba(128,128,128,.25));border-radius:12px;}
+.v105-reversal-row{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.85rem 1rem;border-bottom:1px solid var(--border,rgba(128,128,128,.2));}
+.v105-reversal-row:last-child{border-bottom:0;}
+.v105-reversal-row>div{min-width:0;overflow-wrap:anywhere;}
+.v105-reversal-row strong{font-size:.95rem;}
+.v105-reversal-row p{margin:.28rem 0 0;}
+.v105-reversal-row button{flex:0 0 auto;}
+.v105-reversal-preview{padding:1.1rem;margin-top:1rem;border:1px solid var(--border,rgba(128,128,128,.35));border-radius:12px;background:rgba(128,128,128,.055);}
+.v105-reversal-preview h4{margin:0 0 .5rem;}
+.v105-reversal-confirm{display:grid;gap:1rem;margin-top:1rem;max-width:720px;}
+.v105-reversal-confirm textarea,.v105-reversal-confirm input:not([type="checkbox"]){width:100%;max-width:100%;}
+.v105-reversal-option{display:flex;align-items:flex-start;gap:.7rem;line-height:1.4;cursor:pointer;}
+.v105-reversal-option input{margin-top:.2rem;accent-color:#ef8b72;}
+.v105-reversal-option small{display:block;margin-top:.25rem;color:var(--muted,#9294ac);}
+.v105-reversal-confirm .btn.danger{justify-self:start;}
+.v105-reversal-panel .notice.warning{padding:.8rem;overflow-wrap:anywhere;}
+@media(max-width:700px){.v105-reversal-row{align-items:flex-start;flex-direction:column;}.v105-reversal-confirm .btn.danger{width:100%;}.v105-reversal-search .btn{width:100%;}}

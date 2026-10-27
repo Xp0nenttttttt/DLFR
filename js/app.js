@@ -121,6 +121,12 @@ Object.assign(state,{
 // les ~38 000 lignes du journal d'audit pour l'onglet Équipe.
 state.teamLevelCounts=Object.create(null);
 state.teamCountsError='';
+// V105 — annulation sécurisée d'une soumission acceptée par erreur.
+Object.assign(state,{
+ reversalRows:[],reversalSearch:'',reversalLoading:false,reversalReady:false,
+ reversalError:'',reversalPreview:null,reversalPreviewLoading:false,reversalSaving:false
+});
+
 let modLeaderboardSequence=0;
 // V101 — noms publics des auteurs des messages de modération (soumissions du compte uniquement).
 state.mySubmissionReviewAuthors=Object.create(null);
@@ -304,6 +310,97 @@ function moderationLeaderboardPage(){
  const podium=[1,0,2].filter(i=>played[i]).map(i=>{const r=played[i];return `<div class="dlfr-v100-podium-card dlfr-v100-place-${i+1} ${r.is_self?'is-self':''}"><div class="dlfr-v100-medal" aria-hidden="true">${medal[i]}</div><div class="dlfr-v100-podium-name">${displayName(r)}</div><span class="dlfr-v100-podium-role">${esc(roleName[r.moderation_role]||'Modo')}</span><strong>${Number(r.total)||0}</strong><span class="small muted">soumissions traitées</span></div>`;}).join('');
  const cards=rows.map((r,i)=>{const total=Number(r.total)||0,accept=Number(r.accepted)||0,deny=Number(r.rejected)||0;return `<div class="dlfr-v100-rank-row ${r.is_self?'is-self':''}"><div class="dlfr-v100-rank-position">${total>0&&i<3?medal[i]:`#${i+1}`}</div><div class="dlfr-v100-rank-body"><div class="dlfr-v100-rank-name">${r.country_code?flag(r.country_code)+' ':''}${displayName(r)}${r.is_self?'<span class="dlfr-v100-you">Toi</span>':''}<small>${esc(roleName[r.moderation_role]||'Modo')}</small></div><div class="dlfr-v100-progress" role="img" aria-label="${total} soumissions traitées"><span style="width:${total?Math.max(1,Math.round(total/max*100)):0}%"></span></div></div><div class="dlfr-v100-rank-split"><span><b>${accept}</b> acceptée(s)</span><span><b>${deny}</b> refusée(s)</span></div><div class="dlfr-v100-total"><strong>${total}</strong><small>total</small></div></div>`;}).join('');
  return `<section class="dlfr-v100-board"><div class="dlfr-v100-head"><div><span class="kicker">ÉQUIPE DLFR · SOUMISSIONS</span><h2>Classement des modérateurs</h2><p class="muted small">Chaque soumission de niveau acceptée ou refusée compte une fois, au nom du compte ayant pris la décision. Les demandes en attente ne comptent pas.</p></div><button type="button" class="btn subtle small" data-mod-leaderboard-refresh ${state.modLeaderboardLoading?'disabled':''}>↻ Actualiser</button></div><div class="dlfr-v100-controls">${periodButtons}</div>${state.modLeaderboardLoading?'<p class="notice" aria-live="polite">Chargement du classement…</p>':state.modLeaderboardError?`<div class="notice warning">Classement indisponible. ${esc(state.modLeaderboardError)}</div>`:`<div class="dlfr-v100-summary"><div><strong>${overall}</strong><span>Soumissions traitées</span></div><div><strong>${approved}</strong><span>Acceptées</span></div><div><strong>${rejected}</strong><span>Refusées</span></div><div><strong>${played.length}</strong><span>Modos ayant traité une demande</span></div></div>${podium?`<div class="dlfr-v100-podium">${podium}</div>`:''}<div class="dlfr-v100-rank-list">${cards||'<p class="muted">Aucune soumission modérée sur cette période.</p>'}</div><p class="small muted">${state.modLeaderboardUpdatedAt?'Mis à jour à '+esc(state.modLeaderboardUpdatedAt)+' · ':''}Les anciens membres ayant un historique apparaissent également. Les actions anciennes non attribuées à un modérateur ne sont pas comptabilisées.</p>`}</section>`;
+}
+// V105 — la base applique tous les contrôles d'autorisation et de sécurité.
+async function loadReversalList(){
+ if(!LIVE||!db||!state.session?.user||!state.staff||state.reversalLoading)return;
+ const uid=state.session.user.id;
+ state.reversalLoading=true;
+ state.reversalError='';
+ try{
+  const {data,error}=await db.rpc('dlfr_accepted_submissions_to_revoke',{p_search:state.reversalSearch,p_limit:40});
+  if(error)throw Error(error.message);
+  if(state.session?.user?.id!==uid)return;
+  state.reversalRows=Array.isArray(data)?data:[];
+  state.reversalReady=true;
+ }catch(err){
+  if(state.session?.user?.id!==uid)return;
+  state.reversalRows=[];state.reversalError=err.message||String(err);
+  state.reversalReady=true;
+ }finally{
+  state.reversalLoading=false;
+  if(nav()==='admin'&&state.adminTab==='requests')render();
+ }
+}
+async function previewApprovedReversal(id){
+ if(!LIVE||!db||ownerPreviewActive()||state.reversalPreviewLoading)return;
+ state.reversalPreviewLoading=true;
+ state.reversalPreview=null;
+ try{
+  const {data,error}=await db.rpc('dlfr_approved_submission_reversal_preview',{p_submission_id:id});
+  if(error)throw Error(error.message);
+  state.reversalPreview=data;
+  render();
+ }catch(err){toast('Impossible de prévisualiser : '+(err.message||err));}
+ finally{state.reversalPreviewLoading=false;}
+}
+async function commitApprovedReversal(form){
+ if(!LIVE||!db||ownerPreviewActive()||!state.staff||state.reversalSaving)return;
+ const f=Object.fromEntries(new FormData(form).entries());
+ const id=Number(f.submission_id),reason=String(f.reason||'').trim();
+ if(!Number.isSafeInteger(id)||id<1||state.reversalPreview?.submission_id!=id){toast('Sélectionne à nouveau la soumission.');return;}
+ if(reason.length<10||reason.length>500){toast('Motif obligatoire, entre 10 et 500 caractères.');return;}
+ if(f.confirmation!=='ANNULER'){toast('Écris exactement ANNULER pour confirmer.');return;}
+ const removeRecord=f.remove_record==='on';
+ if(removeRecord&&!state.reversalPreview.can_remove_record){toast('Ce record nécessite une vérification manuelle.');return;}
+ const question=removeRecord
+   ?`Annuler la validation #${id} et supprimer UNIQUEMENT le record dont la création a été confirmée ?`
+   :`Refuser rétroactivement la soumission #${id} ? ATTENTION : le record restera présent et devra être contrôlé séparément.`;
+ if(!window.confirm(question))return;
+ state.reversalSaving=true;
+ try{
+  const {data,error}=await db.rpc('dlfr_revoke_approved_submission',{
+   p_submission_id:id,p_reason:reason,p_remove_record:removeRecord,p_confirmation:'ANNULER'
+  });
+  if(error)throw Error(error.message);
+  // La base a répondu : l'annulation est COMMISE. Une erreur de rafraîchissement
+  // ne doit jamais être présentée comme un échec de l'opération SQL.
+  state.reversalPreview=null;state.reversalReady=false;state.modLeaderboardReady=false;
+  toast(data?.record_removed?'Validation annulée : record retiré et sauvegardé dans le journal.':
+   'Validation annulée. Le record reste à vérifier manuellement.');
+  try{await refreshLiveData();}catch(refreshError){
+   console.warn('[DLFR V105] Mise à jour locale après annulation',refreshError);
+   toast('Annulation enregistrée. Recharge la page pour actualiser les statistiques.');
+  }
+  await loadReversalList();
+  render();
+ }catch(err){
+  // Si le serveur a déjà confirmé l'opération, l'historique permet de la vérifier.
+  toast('Erreur pendant la correction ou l’actualisation : '+(err.message||err));
+  state.reversalReady=false;
+ }finally{state.reversalSaving=false;}
+}
+function approvedReversalPanel(){
+ if(!state.staff||ownerPreviewActive())return '';
+ const data=(state.reversalRows||[]);
+ const selected=state.reversalPreview;
+ const list=data.map(r=>`<div class="v105-reversal-row"><div><strong>#${esc(r.id)} · ${esc(r.level_name)}</strong><p class="small muted">${esc(r.player)} · ${esc(r.progress)} % · Acceptée ${r.reviewed_at?date(r.reviewed_at):'sans date'}</p></div><button type="button" class="btn subtle small" data-v105-preview="${esc(r.id)}" ${state.reversalPreviewLoading?'disabled':''}>Examiner</button></div>`).join('');
+ const preview=selected?`<div class="v105-reversal-preview"><h4>Correction de la soumission #${esc(selected.submission_id)}</h4><p><b>${esc(selected.level_name)}</b> · ${esc(selected.player)} · ${esc(selected.progress)} %</p>
+  <p class="${selected.can_remove_record?'notice':'notice warning'}">${esc(selected.explanation)}</p>
+  <form data-form="v105RevokeSubmission" class="v105-reversal-confirm">
+   <input name="submission_id" type="hidden" value="${esc(selected.submission_id)}">
+   <label class="field">Motif transmis au joueur (obligatoire)<textarea name="reason" minlength="10" maxlength="500" rows="3" required placeholder="Ex. Vidéo non conforme aux règles de vérification."></textarea></label>
+   <label class="v105-reversal-option"><input type="checkbox" name="remove_record" ${selected.can_remove_record?'checked':'disabled'}><span><b>Retirer le record associé</b> <small>${selected.can_remove_record?'La création de ce record est vérifiée. Une sauvegarde sera conservée.':'Impossible automatiquement : origine du record incertaine ou historique lié.'}</small></span></label>
+   <p class="small muted">${selected.can_remove_record?'Tu peux décocher cette option si tu souhaites conserver le record pour examen.':'L’annulation changera uniquement le statut ; le record ne sera PAS effacé automatiquement.'} Aucun niveau, autre record ou récompense ne sera modifié automatiquement.</p>
+   <label class="field">Confirmation : écrire ANNULER<input name="confirmation" autocomplete="off" pattern="ANNULER" required placeholder="ANNULER"></label>
+   <button type="submit" class="btn danger" ${state.reversalSaving?'disabled':''}>Confirmer l’annulation</button>
+  </form></div>`:'';
+ return `<section class="prod-panel v105-reversal-panel"><div class="row-between"><div><h3>↶ Annuler une validation acceptée</h3><p class="small muted">Rattrapage des erreurs de modération. Seuls les propriétaires/supermodos, ou un modo pour ses propres décisions récentes, peuvent corriger une validation.</p></div><button type="button" class="btn subtle small" data-v105-refresh>↻ Actualiser</button></div>
+ <form data-form="v105ReversalSearch" class="v105-reversal-search"><label class="field">Rechercher par pseudo, niveau ou numéro de soumission<input name="search" maxlength="80" value="${esc(state.reversalSearch)}" placeholder="Ex. 1056 ou nom du niveau"></label><button type="submit" class="btn">Rechercher</button></form>
+ ${state.reversalLoading?'<p class="muted small">Chargement des validations…</p>':''}
+ ${state.reversalError?`<div class="notice warning">${esc(state.reversalError)}</div>`:''}
+ ${state.reversalReady&&!state.reversalLoading?`<div class="v105-reversal-list">${list||'<p class="small muted">Aucune validation éligible ne correspond à la recherche.</p>'}</div>`:''}
+ ${preview}</section>`;
 }
 function staffTeamPanel(){
  if(state.staffRole!=='owner'||ownerPreviewActive())return '';
@@ -2051,9 +2148,9 @@ function adminPage(){if(LIVE&&!state.staff){
  if(LIVE&&(['nlw','moderator'].includes(state.staffRole)||ownerPreviewActive()&&['nlw','moderator'].includes(state.ownerPreview))){
    const role=ownerPreviewActive()?state.ownerPreview:state.staffRole;
    const view=ownerPreviewActive()?{...state,staffRole:role,scopedQueue:state.ownerPreviewQueue.filter(x=>role==='moderator'||Number(x.position)>150),scopedQueueError:state.ownerPreviewError}:state;
-   return `${templateNotice()}<div class="paper"><div class="admin-mode">Modération · ${role==='nlw'?'NLW':'Top 150 + NLW'}</div><div class="row-between"><h1>Modération</h1><button class="btn subtle small" data-action="logout">Déconnexion</button></div><div class="dlfr-v60-tabs"><button type="button" data-admin-tab="requests" class="${state.adminTab!=='levels'?'active':''}">Soumissions</button><button type="button" data-admin-tab="levels" class="${state.adminTab==='levels'?'active':''}">Niveaux</button><button type="button" data-admin-tab="leaderboard" class="${state.adminTab==='leaderboard'?'active':''}">🏆 Classement</button></div><p class="small muted">Les permissions de création et de modification sont vérifiées par Supabase selon ton rôle.</p></div>${state.adminTab==='leaderboard'?moderationLeaderboardPage():state.adminTab==='levels'?scopedLevelsPanel(role):`${PROD.scopedReview(view)}${window.DLFR_CLAIMS.moderation(state)}<div class="paper dlfr27-scoped-packs">${state.adminTab==='packs'?packModerationEditor():''}</div>`}`;
+   return `${templateNotice()}<div class="paper"><div class="admin-mode">Modération · ${role==='nlw'?'NLW':'Top 150 + NLW'}</div><div class="row-between"><h1>Modération</h1><button class="btn subtle small" data-action="logout">Déconnexion</button></div><div class="dlfr-v60-tabs"><button type="button" data-admin-tab="requests" class="${state.adminTab!=='levels'?'active':''}">Soumissions</button><button type="button" data-admin-tab="levels" class="${state.adminTab==='levels'?'active':''}">Niveaux</button><button type="button" data-admin-tab="leaderboard" class="${state.adminTab==='leaderboard'?'active':''}">🏆 Classement</button></div><p class="small muted">Les permissions de création et de modification sont vérifiées par Supabase selon ton rôle.</p></div>${state.adminTab==='leaderboard'?moderationLeaderboardPage():state.adminTab==='levels'?scopedLevelsPanel(role):`${PROD.scopedReview(view)}${approvedReversalPanel()}${window.DLFR_CLAIMS.moderation(state)}<div class="paper dlfr27-scoped-packs">${state.adminTab==='packs'?packModerationEditor():''}</div>`}`;
  }
- const mergePlayers=state.adminTab==='profiles'?mergePlayerOptions():''; const players=['profiles','awards','achievements','safety','nlw'].includes(state.adminTab)?playerOptions():'';return `${templateNotice()}<div class="paper"><div class="admin-mode">Espace privé · équipe de modération</div><div class="row-between"><h1>Modération</h1><div><button class="btn subtle small" data-action="logout">Déconnexion</button></div></div><p class="muted">Choisis une action ci-dessous. Les modifications sont enregistrées et contrôlées automatiquement.</p></div><div class="admin-workspace" data-role="${state.demoRole}"><div class="admin-nav" role="tablist" aria-label="Sections de modération">${[['overview','Accueil'],['requests','Demandes'+((state.mergeRequests||[]).filter(x=>x.status==='pending').length?' · '+(state.mergeRequests||[]).filter(x=>x.status==='pending').length+' fusion(s)':'')],['levels','Niveaux'],['leaderboard','🏆 Classement modos'],['packs','Level Packs'],...(state.staffRole==='owner'&&!ownerPreviewActive()?[['weekly','Défis & tests']]:[]),['news','Actualités'],['profiles','Profils'],['awards','Badges & Palmarès'],['achievements','Achievements FR'],['clans','Clans'],['safety','Sanctions'],['audit','Journal'],...(state.staffRole==='owner'&&!ownerPreviewActive()?[['team','Équipe']]:[])].map(([id,label])=>`<button type="button" role="tab" aria-selected="${state.adminTab===id}" class="${state.adminTab===id?'active':''}" data-admin-tab="${id}">${label}</button>`).join('')}</div><div class="admin-content">${state.adminTab==='weekly'?v86AdminHTML():''}${state.adminTab==='weekly'?'':adminGuideHtml()}<div class="dlfr29-requests" ${state.adminTab==='requests'?'':'hidden'}>${state.adminTab==='requests'?(LIVE?PROD.scopedReview(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state)+PROD.moderation(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state):'')+window.DLFR_CLAIMS.moderation(state)+mergeRequestsModeratorPanel():''}</div><div class="admin-intro ${state.adminTab==='overview'?'':'is-hidden'}"><h2>Tableau de bord</h2>${state.adminTab==='overview'?statsOverview():''}<p class="muted">Choisis une action dans les raccourcis ou une rubrique dans le menu. Chaque modification est contrôlée avant son enregistrement.</p>${(state.mergeRequests||[]).some(r=>r.status==='pending')?`<p class="notice">⇄ ${(state.mergeRequests||[]).filter(r=>r.status==='pending').length} demande(s) de fusion de fiches en attente. <button type="button" class="btn subtle small" data-admin-tab="requests">Ouvrir les demandes</button></p>`:''}</div><div class="moderation-sections" data-active-admin="${state.adminTab}">
+ const mergePlayers=state.adminTab==='profiles'?mergePlayerOptions():''; const players=['profiles','awards','achievements','safety','nlw'].includes(state.adminTab)?playerOptions():'';return `${templateNotice()}<div class="paper"><div class="admin-mode">Espace privé · équipe de modération</div><div class="row-between"><h1>Modération</h1><div><button class="btn subtle small" data-action="logout">Déconnexion</button></div></div><p class="muted">Choisis une action ci-dessous. Les modifications sont enregistrées et contrôlées automatiquement.</p></div><div class="admin-workspace" data-role="${state.demoRole}"><div class="admin-nav" role="tablist" aria-label="Sections de modération">${[['overview','Accueil'],['requests','Demandes'+((state.mergeRequests||[]).filter(x=>x.status==='pending').length?' · '+(state.mergeRequests||[]).filter(x=>x.status==='pending').length+' fusion(s)':'')],['levels','Niveaux'],['leaderboard','🏆 Classement modos'],['packs','Level Packs'],...(state.staffRole==='owner'&&!ownerPreviewActive()?[['weekly','Défis & tests']]:[]),['news','Actualités'],['profiles','Profils'],['awards','Badges & Palmarès'],['achievements','Achievements FR'],['clans','Clans'],['safety','Sanctions'],['audit','Journal'],...(state.staffRole==='owner'&&!ownerPreviewActive()?[['team','Équipe']]:[])].map(([id,label])=>`<button type="button" role="tab" aria-selected="${state.adminTab===id}" class="${state.adminTab===id?'active':''}" data-admin-tab="${id}">${label}</button>`).join('')}</div><div class="admin-content">${state.adminTab==='weekly'?v86AdminHTML():''}${state.adminTab==='weekly'?'':adminGuideHtml()}<div class="dlfr29-requests" ${state.adminTab==='requests'?'':'hidden'}>${state.adminTab==='requests'?(LIVE?PROD.scopedReview(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state)+PROD.moderation(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state):'')+window.DLFR_CLAIMS.moderation(state)+mergeRequestsModeratorPanel()+approvedReversalPanel():''}</div><div class="admin-intro ${state.adminTab==='overview'?'':'is-hidden'}"><h2>Tableau de bord</h2>${state.adminTab==='overview'?statsOverview():''}<p class="muted">Choisis une action dans les raccourcis ou une rubrique dans le menu. Chaque modification est contrôlée avant son enregistrement.</p>${(state.mergeRequests||[]).some(r=>r.status==='pending')?`<p class="notice">⇄ ${(state.mergeRequests||[]).filter(r=>r.status==='pending').length} demande(s) de fusion de fiches en attente. <button type="button" class="btn subtle small" data-admin-tab="requests">Ouvrir les demandes</button></p>`:''}</div><div class="moderation-sections" data-active-admin="${state.adminTab}">
  ${state.adminTab==='leaderboard'?moderationLeaderboardPage():''}${state.adminTab==='team'?staffTeamPanel():''}
  ${state.adminTab==='audit'&&optionalStatus.adminAudit==='loading'||state.adminTab==='levels'&&optionalStatus.adminLevels==='loading'||state.adminTab==='safety'&&optionalStatus.adminSafety==='loading'?'<p class="small muted" aria-live="polite">Chargement des données de cette rubrique…</p>':''}
  ${state.adminTab==='levels'&&activeLevelPanel==='edit'?levelCreditsEditor():''}${state.adminTab==='levels'&&activeLevelPanel==='review'?historicNlwPublisher():''}${state.adminTab==='packs'?packModerationEditor():''}
@@ -2352,6 +2449,7 @@ function render(){
   return;
  }
  if(page==='admin'&&state.adminTab==='leaderboard'&&!state.modLeaderboardReady&&!state.modLeaderboardLoading)void loadModeratorLeaderboard();
+ if(page==='admin'&&state.adminTab==='requests'&&state.staff&&state.session?.user?.id&&!ownerPreviewActive()&&!state.reversalReady&&!state.reversalLoading)void loadReversalList();
  const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='player'?playerPage():page==='players'?playersPage():page==='my-profile'?selfProfilePage():page==='my-submissions'?mySubmissionsPage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():page==='packs'?packPage():page==='regions'?regionsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;
  // Donner un accès clair à l'inscription et à la connexion, sans modifier la navigation existante.
  const accountNavLink=document.querySelector('a[data-link="my-profile"]');
@@ -3028,6 +3126,10 @@ function bootEvents(){
  const levelGroupButton=ev.target.closest('.level-tools-tabs button[data-level-group]');if(levelGroupButton){activeLevelPanel=levelGroupButton.dataset.levelGroup;render();return;}
  const it=ev.target.closest('[data-identity-tab]');if(it){document.querySelectorAll('[data-identity-section]').forEach(e=>e.hidden=e.dataset.identitySection!==it.dataset.identityTab);return;}
  const loadV=ev.target.closest('[data-load-verifiers]');if(loadV){try{loadV.disabled=true;const {data,error}=await db.rpc('dlfr_unlinked_verifiers');if(error)throw Error(error.message);const names=Array.isArray(data)?data:[];window.__dlfrVerifierUnlinked=names;const sel=document.querySelector('[data-form="linkVerifier"] [name="verifier_name"]');if(sel){sel.innerHTML='<option value="">Sélectionner…</option>'+names.map((n,i)=>'<option value="'+i+'">'+esc(n.verifier_name)+' ('+n.count+' niveaux)</option>').join('');}const prev=document.getElementById('verifierLinkPreview');if(prev)prev.textContent=names.length+' crédits non liés. Sélectionne une entrée pour voir les niveaux.';}catch(e){toast(e.message||String(e));}finally{loadV.disabled=false;}return;}
+ const reversePreview=ev.target.closest('[data-v105-preview]');
+ if(reversePreview){await previewApprovedReversal(Number(reversePreview.dataset.v105Preview));return;}
+ const reverseRefresh=ev.target.closest('[data-v105-refresh]');
+ if(reverseRefresh){state.reversalReady=false;state.reversalPreview=null;void loadReversalList();render();return;}
  const refreshMerges=ev.target.closest('[data-refresh-merges]');if(refreshMerges){
   if(!LIVE||!hasFullStaffPowers()||ownerPreviewActive())return;
   refreshMerges.disabled=true;
@@ -3202,6 +3304,20 @@ function bootEvents(){
  });
  document.addEventListener('input',ev=>{if(ev.target.closest?.('#submitNewFields')&&ev.target.name==='level_id')submitSyncForm();if(ev.target.id!=='submitLevelSearch')return;const sel=document.getElementById('submitLevelSelect');if(!sel)return;const q=key(ev.target.value);for(const o of sel.options){if(!o.value)continue;o.hidden=!key(o.textContent+' '+o.dataset.search).includes(q);}if(sel.value&&sel.selectedOptions[0]?.hidden)sel.value='';submitSyncForm();});
  document.addEventListener('change',ev=>{if(ev.target.id==='submitLevelSelect'||ev.target.name==='submission_mode'||ev.target.name==='progress'||ev.target.name==='proposed_unrated'||ev.target.name==='requested_completion_mode')submitSyncForm();});
+ document.addEventListener('submit',ev=>{
+  const form=ev.target;
+  if(form?.dataset?.form==='v105ReversalSearch'){
+   ev.preventDefault();ev.stopImmediatePropagation();
+   if(ownerPreviewActive())return;
+   state.reversalSearch=String(new FormData(form).get('search')||'').trim().slice(0,80);
+   state.reversalReady=false;state.reversalPreview=null;
+   void loadReversalList();render();return;
+  }
+  if(form?.dataset?.form==='v105RevokeSubmission'){
+   ev.preventDefault();ev.stopImmediatePropagation();
+   void commitApprovedReversal(form);
+  }
+ },true);
  document.addEventListener('submit',ev=>{if(ownerPreviewActive()&&new URLSearchParams(location.search).get('page')==='admin'){ev.preventDefault();ev.stopImmediatePropagation();toast('Aperçu en lecture seule.');}},true);
  document.addEventListener('submit',ev=>{if(ev.target.matches('[data-form="clanCreate"], [data-form="clanInvite"], [data-form="clanRequest"], [data-form="clanEdit"]')){ev.preventDefault();handleClanForm(ev.target);return;}if(ev.target.matches('[data-form]')){ev.preventDefault();handleForm(ev.target,ev.submitter||null);}});
  document.querySelectorAll('.nav-links a,.brand').forEach(a=>a.addEventListener('click',ev=>{ev.preventDefault();go(a.dataset.link||'list');}));
