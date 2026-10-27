@@ -1,0 +1,37 @@
+DLFR V103 — Page « Équipe » et « Journal » plus rapides
+====================================================
+
+BASE : V102 messages joueurs / rangs UNRATED.
+Le patch ne change pas les fonctionnalités V99 à V102.
+
+INSTALLATION GITHUB PAGES
+  1. Remplacer index.html par celui de ce ZIP.
+  2. Remplacer js/app.js par celui de ce ZIP.
+  3. Publier / attendre la publication GitHub Pages, puis Ctrl + F5.
+
+SUPABASE
+  - Fonction dlfr_team_level_counts() DÉJÀ INSTALLÉE ET TESTÉE sur le projet
+    DLFR de production (mcoaeocsthivggyspykf).
+  - AUCUN SQL À EXÉCUTER EN PRODUCTION.
+  - Le fichier supabase/103_team_level_counts.sql est une copie de référence
+    pour une éventuelle installation ultérieure sur un autre projet.
+
+CORRECTIONS
+  - L'onglet Équipe ne télécharge plus community_audit_log (plus de 38 000
+    événements ; anciennement plus de 190 requêtes réseau de 200 lignes).
+  - Une RPC agrégée ne retourne que les compteurs de fiches gérées par modo.
+  - La liste des comptes et les compteurs arrivent en parallèle.
+  - Le journal de modération ne charge que les 20 derniers événements.
+  - Les autres fonctions, les rôles, les clans, les récompenses, le thème
+    Halloween, les soumissions et les fichiers assets/flags restent intacts.
+
+TESTS
+  - Syntaxe JS vérifiée via node --check.
+  - Fonction SQL testée avec un propriétaire ; renvoie 4 lignes agrégées.
+  - Testée avec un modo NLW : ne renvoie aucune ligne.
+  - Auth anonyme : pas de permission EXECUTE.
+  - Lecture limitée du journal testée sur 20 lignes.
+
+LIMITES
+  - La page Équipe n'est pas encore testée visuellement dans ton navigateur.
+  - Le chargement global initial du site reste dépendant des autres tables.

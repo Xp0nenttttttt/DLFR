@@ -61,7 +61,7 @@ function requiredGroups(page){
  if(page==='admin'&&hasFullStaffPowers()){
   if(state.adminTab==='levels')groups.push('adminLevels');
   if(state.adminTab==='safety')groups.push('adminSafety');
-  if(state.adminTab==='audit'||state.adminTab==='team'&&state.staffRole==='owner'&&!ownerPreviewActive())groups.push('adminAudit');
+  if(state.adminTab==='audit')groups.push('adminAudit');
  }
  return groups;
 }
@@ -76,12 +76,24 @@ async function withReadSlot(fn){
  try{return await fn();}
  finally{activeReads--;const next=readWaiters.shift();if(next)next();}
 }
+// Le journal complet compte des dizaines de milliers d'événements : l'onglet
+// Journal n'affiche que les 20 plus récents. Ne jamais le lire en entier.
+async function readOptionalTable(table){
+ if(table!=='community_audit_log')return readAll(table);
+ return withReadSlot(async()=>{
+  const {data,error}=await db.from('community_audit_log')
+   .select('id,action_key,target,created_at')
+   .order('id',{ascending:false}).limit(20);
+  if(error)throw Error('community_audit_log : '+error.message);
+  return Array.isArray(data)?data.slice().reverse():[];
+ });
+}
 function startOptionalGroup(name){
  if(optionalStatus[name]!=='idle'||!state.data)return;
  const generation=dataGeneration;
  optionalStatus[name]='loading';
  Promise.all(optionalGroups[name].map(async t=>{
-   try{return await readAll(t);}catch(error){console.warn('[DLFR V61] Groupe',name,t,error);throw error;}
+   try{return await readOptionalTable(t);}catch(error){console.warn('[DLFR V61] Groupe',name,t,error);throw error;}
  })).then(results=>{
    if(generation!==dataGeneration)return;
    optionalGroups[name].forEach((t,i)=>{state.data[t]=results[i];});
@@ -105,6 +117,10 @@ Object.assign(state,{
  moderationLeaderboard:[],modLeaderboardPeriod:0,modLeaderboardLoading:false,
  modLeaderboardReady:false,modLeaderboardError:'',modLeaderboardUpdatedAt:''
 });
+// V103 : synthèse des interventions sur les niveaux, sans télécharger
+// les ~38 000 lignes du journal d'audit pour l'onglet Équipe.
+state.teamLevelCounts=Object.create(null);
+state.teamCountsError='';
 let modLeaderboardSequence=0;
 // V101 — noms publics des auteurs des messages de modération (soumissions du compte uniquement).
 state.mySubmissionReviewAuthors=Object.create(null);
@@ -231,10 +247,24 @@ const profileByKey=()=>renderProfilesCache||(renderProfilesCache=new Map((state.
 function resetRenderCalculations(){renderCatalogCache=null;renderRankingCache=null;renderProfilesCache=null;}
 async function loadStaffCandidates(){
  if(!LIVE||state.staffRole!=='owner'||ownerPreviewActive()||!db)return;
- const {data,error}=await db.rpc('dlfr_staff_candidates');
+ state.teamCandidatesReady=false;
+ // Deux réponses légères en parallèle : comptes candidats + compteurs agrégés.
+ // L'échec d'un compteur ne doit pas bloquer l'attribution des rôles.
+ const [candidates,counts]=await Promise.all([
+  db.rpc('dlfr_staff_candidates'),db.rpc('dlfr_team_level_counts')
+ ]);
+ state.teamCandidatesError=candidates.error?.message||'';
+ state.teamCandidates=candidates.error?[]:(Array.isArray(candidates.data)?candidates.data:[]);
+ state.teamCountsError=counts.error?.message||'';
+ state.teamLevelCounts=Object.create(null);
+ if(!counts.error&&Array.isArray(counts.data))for(const row of counts.data){
+  if(row?.actor_user_id)state.teamLevelCounts[row.actor_user_id]={
+   targets:Number(row.managed_levels)||0,
+   created:Number(row.created)||0,
+   edited:Number(row.edited)||0
+  };
+ }
  state.teamCandidatesReady=true;
- state.teamCandidatesError=error?.message||'';
- state.teamCandidates=error?[]:(Array.isArray(data)?data:[]);
 }
 async function loadModeratorLeaderboard(){
  if(!LIVE||!db||!state.session||!state.staff)return;
@@ -280,15 +310,18 @@ function staffTeamPanel(){
  const roles={owner:'Propriétaire',supermoderator:'Supermodo',editor:'Supermodo (ancien)',moderator:'Modo',nlw:'Modo NLW'};
  const members=state.teamCandidates.filter(x=>x.current_role);
  const owners=members.filter(x=>x.current_role==='owner');
- const levelActions=(state.data.community_audit_log||[]).filter(a=>['SCOPED_LEVEL_CREATE','SCOPED_LEVEL_EDIT'].includes(String(a.action_key||'').toUpperCase()));
- const levelCounts=new Map();
- for(const a of levelActions){const uid=a.actor_user_id;if(!uid)continue;const entry=levelCounts.get(uid)||{targets:new Set(),created:0,edited:0};if(a.target!=null)entry.targets.add(String(a.target));if(String(a.action_key).toUpperCase()==='SCOPED_LEVEL_CREATE')entry.created++;else entry.edited++;levelCounts.set(uid,entry);}
- const managedCount=uid=>levelCounts.get(uid)?.targets.size||0;
- const managedDetails=uid=>{const x=levelCounts.get(uid);return x?`${x.created} création(s) · ${x.edited} modification(s)`:'Aucune action de niveau enregistrée';};
+ const levelCounts=state.teamLevelCounts||{};
+ const managedCount=uid=>state.teamCountsError?'—':Number(levelCounts[uid]?.targets||0).toLocaleString('fr-FR');
+ const managedDetails=uid=>{
+  if(state.teamCountsError)return 'Compteurs momentanément indisponibles';
+  const x=levelCounts[uid];
+  return x?`${x.created} création(s) · ${x.edited} modification(s)`:'Aucune action de niveau enregistrée';
+ };
  const label=x=>`${x.display_name||'Compte DLFR'} — ${x.auth_user_id.slice(0,8)}…${x.current_role?' · '+(roles[x.current_role]||x.current_role):''}`;
  const options='<option value="">Sélectionner un compte connecté</option>'+state.teamCandidates.map(x=>`<option value="${esc(x.auth_user_id)}">${esc(label(x))}</option>`).join('');
  return `<section class="admin-card dlfr-team-panel" data-admin-section="team"><div class="dlfr-team-heading"><div><span class="kicker">GESTION PROPRIÉTAIRE</span><h3>Équipe de modération</h3><p class="muted">Attribue les accès à un compte déjà inscrit sur la DLFR. Seuls les propriétaires peuvent modifier ces droits.</p></div><button class="btn subtle small" type="button" data-refresh-team>↻ Actualiser</button></div>
  ${state.teamCandidatesError?`<div class="notice warning">Impossible de charger les comptes autorisés. Vérifie que la migration 49 est installée. <small>${esc(state.teamCandidatesError)}</small></div>`:''}
+ ${state.teamCountsError?`<div class="notice warning">Les compteurs de niveaux sont indisponibles, mais tu peux toujours gérer les rôles. <small>${esc(state.teamCountsError)}</small></div>`:''}
  ${!state.teamCandidatesReady?'<p class="muted">Chargement des comptes…</p>':''}
  <div class="dlfr-team-list"><h4>Équipe actuelle</h4><p class="small muted">Niveaux gérés = fiches distinctes créées ou modifiées via les outils de modération journalisés. Les anciennes actions non enregistrées ne peuvent pas être comptées rétroactivement.</p>${members.map(x=>`<div class="dlfr-team-member"><span><b>${esc(x.display_name||'Compte DLFR')}</b><small>${esc(x.auth_user_id.slice(0,8))}…</small><small>${esc(managedDetails(x.auth_user_id))}</small></span><span class="dlfr-team-member-meta"><span class="tag ${x.current_role==='owner'?'dlfr-team-owner':''}">${esc(roles[x.current_role]||x.current_role)}</span><strong class="dlfr-managed-count">${managedCount(x.auth_user_id)} <small>niveau(x)</small></strong></span></div>`).join('')||'<p class="muted">Aucun compte retourné.</p>'}</div>
  <div class="dlfr-team-forms"><form data-form="prodManageStaff" class="dlfr-team-form"><h4>Attribuer ou retirer un rôle</h4><label class="field">Compte DLFR<select name="auth_user_id" required>${options}</select></label><label class="field">Rôle<select name="role"><option value="nlw">Modo NLW</option><option value="moderator">Modo</option><option value="supermoderator">Supermodo</option></select></label><label class="field">Action<select name="enabled"><option value="yes">Attribuer</option><option value="no">Retirer ce rôle</option></select></label><button type="submit" class="btn" ${!state.teamCandidatesReady||!!state.teamCandidatesError?'disabled':''}>Enregistrer le rôle</button><p class="small muted">Les propriétaires ne peuvent pas être rétrogradés depuis ce formulaire.</p></form>
@@ -357,6 +390,13 @@ async function readAll(name){return withReadSlot(async()=>{
  if(PERF_DEBUG)console.info('[DLFR perf] Lecture',name,out.length+' lignes',Math.round(perfNow()-start)+' ms');
  return out;
 });}
+async function refreshPendingPlayerNotes(){
+ state.pendingPlayerNotes=Object.create(null);
+ if(!LIVE||!state.staff||!state.session)return;
+ const {data,error}=await db.rpc('dlfr_pending_submission_context');
+ if(error){console.warn('[DLFR] Notes des soumissions non disponibles :',error.message);return;}
+ for(const entry of data||[])if(entry?.id!=null)state.pendingPlayerNotes[String(entry.id)]=entry;
+}
 async function refreshLiveData(){
  state.modLeaderboardReady=false;
  ++dataGeneration; // Invalider les chargements optionnels antérieurs à une modification.
@@ -422,6 +462,7 @@ async function refreshLiveData(){
    const queue=await db.rpc('dlfr_review_queue_status');
    if(queue.error)state.scopedQueueError=queue.error.message;
    else state.scopedQueue=queue.data||[];
+   await refreshPendingPlayerNotes();
  }
  if(state.staff){
   await Promise.all(['staff_roles','nlw_staff_roles'].map(async t=>{
@@ -1553,6 +1594,8 @@ function mySubmissionsPage(){
   return `<article class="v59-submission-card v59-${meta.cls}">
    <div class="v59-submission-top"><div><h3>${esc(title)}</h3><p class="small muted">Soumission n°${esc(r.id)} · ${esc(date(r.created_at)||'Date inconnue')}${statusDate}</p></div><span class="v59-status v59-status-${meta.cls}">${esc(meta.label)}</span></div>
    <p class="v59-submission-details"><span>${esc(r.progress||100)} %</span>${r.level_id?`<span>ID GD : ${esc(r.level_id)}</span>`:''}<span>${esc(meta.description)}</span></p>
+   ${r.player_message?`<div class="v102-player-note"><strong>Ton message aux modérateurs</strong><p>${esc(r.player_message)}</p></div>`:''}
+   ${Number(r.suggested_unrated_rank)>0?`<p class="v102-rank-detail">Rang UNRATED proposé : <b>#${esc(r.suggested_unrated_rank)}</b> <span class="muted small">(indicatif)</span></p>`:''}
    ${r.review_message&&meta.cls!=='pending'?`<div class="dlfr-review-message"><strong>${reviewTitle}</strong><p>${esc(r.review_message)}</p></div>`:''}
    <div class="v59-submission-links">${http(r.video_url)?`<a class="link" href="${esc(http(r.video_url))}" target="_blank" rel="noopener noreferrer">Vidéo de preuve ↗</a>`:''}${levelLink}</div>
   </article>`;
@@ -1598,11 +1641,14 @@ function submitRecordPage(){
  <div class="notice small">Ce niveau n'est pas encore publié. La modération examinera sa fiche et décidera du classement avant toute publication.</div>
  <label class="field">Nom du niveau<input name="level_name" maxlength="120" minlength="2" ${hasExisting?'':'required'} placeholder="Ex. Nouveau Extreme Demon"></label>
  <label class="field">ID Geometry Dash<input name="level_id" inputmode="numeric" pattern="[0-9]+" maxlength="18" ${hasExisting?'':'required'} placeholder="ID du niveau en jeu"></label>
+ <label class="v102-unrated-choice"><input id="submitProposedUnrated" type="checkbox" name="proposed_unrated" value="on"> <span>Je propose ce niveau comme <b>UNRATED</b></span></label>
  <p class="small muted">Tu n'as pas besoin de renseigner le créateur, l'éditeur ou le vérificateur : les modérateurs compléteront la fiche.</p></div>
  <div class="notice warning submission-wide" id="submitDuplicateWarning" role="status" hidden></div>
  <p class="small muted submission-wide" id="submitLevelHint">Sélectionne un niveau pour voir les preuves requises.</p>
  <label class="field submission-wide">Vidéo YouTube de ta complétion<input name="video_url" type="url" required maxlength="1000" placeholder="https://youtu.be/…"></label>
  <label class="field submission-wide" id="submitRawField" hidden>Raw footage <span id="submitRawOptional">(obligatoire pour le Top 150)</span><input name="raw_footage_url" type="url" maxlength="1000" placeholder="Lien Drive, YouTube non répertorié…"></label>
+ <label class="field submission-wide" id="submitUnratedRankField" hidden>Rang UNRATED estimé (facultatif)<input name="suggested_unrated_rank" type="number" min="1" max="99999998" step="1" inputmode="numeric" placeholder="Ex. 20"><small class="muted">Ta proposition est indicative : la modération choisit le rang définitif.</small></label>
+ <label class="field submission-wide v102-submit-message">Message aux modérateurs (facultatif)<textarea name="player_message" maxlength="1000" rows="4" placeholder="Contexte, précision sur la vidéo, comparaison avec d'autres niveaux…"></textarea><small class="muted">1 000 caractères maximum. Ton message accompagnera la soumission.</small></label>
  <label class="field" id="submitProgressField" hidden>Pourcentage de complétion (%)<input name="progress" type="number" min="1" max="100" value="100"></label>
  <button type="submit" class="btn">Envoyer en modération</button></form>`}${mySubmissionsTeaser()}</section>`;
 }
@@ -1613,7 +1659,7 @@ function submitSyncForm(){
  if(existing)existing.hidden=isNew;
  if(newFields)newFields.hidden=!isNew;
  sel.required=!isNew;
- for(const inp of newFields?.querySelectorAll('input')||[])inp.required=isNew;
+ for(const inp of newFields?.querySelectorAll('input[name="level_name"],input[name="level_id"]')||[])inp.required=isNew;
  const opt=sel.value?sel.selectedOptions[0]:null,hint=document.getElementById('submitLevelHint'),raw=document.getElementById('submitRawField'),prog=document.getElementById('submitProgressField');
  const chosen=document.getElementById('submitSelectedLevel');if(chosen){chosen.classList.toggle('is-selected',!!opt&&!isNew);chosen.textContent=isNew?'Nouveau niveau à proposer':opt?'✓ Niveau sélectionné : '+opt.textContent.trim():'◌ Aucun niveau sélectionné';}
  const pos=opt?num(opt.dataset.pos):0,req=opt?num(opt.dataset.req):100;
@@ -1622,6 +1668,11 @@ function submitSyncForm(){
  raw.hidden=!(isNew||top150);raw.querySelector('input').required=top150;
  const pct=top75&&req<100;prog.hidden=!pct;const pi=prog.querySelector('input');pi.required=pct;pi.min=String(req);if(!pct)pi.value='100';else if(num(pi.value)<req)pi.value=String(req);
  const selectedDemon=!isNew&&opt?(state.data?.demons||[]).find(d=>String(d.id)===String(opt.value)):null;
+ const unratedCheckbox=document.getElementById('submitProposedUnrated');
+ const wantsUnrated=isNew?!!unratedCheckbox?.checked:!!selectedDemon?.unrated;
+ const rankField=document.getElementById('submitUnratedRankField');
+ if(rankField){rankField.hidden=!wantsUnrated;const rankInput=rankField.querySelector('input');rankInput.disabled=!wantsUnrated;if(!wantsUnrated)rankInput.value='';}
+
  const requestedProgress=top75&&req<100?Number(pi.value||100):100;
  const warning=document.getElementById('submitDuplicateWarning');
  if(warning){const msg=submissionPriorWarning(selectedDemon,requestedProgress);warning.hidden=!msg;warning.textContent=msg;}
@@ -2535,7 +2586,7 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   if(!Number.isInteger(progress)||progress<req||progress>100)throw Error('Pourcentage invalide (minimum '+req+' %).');
   const rows=state.data.level_submissions||[];
   if(rows.some(x=>x.status==='pending'&&(level_id&&String(x.level_id)===level_id||SUBMISSIONS.norm(x.level_name)===SUBMISSIONS.norm(level_name))&&SUBMISSIONS.norm(x.player)===SUBMISSIONS.norm(player)))throw Error('Une soumission identique attend déjà validation.');
-  rows.push({id:Math.max(0,...rows.map(x=>Number(x.id)||0))+1,status:'pending',level_name,level_id,player,progress,video_url,raw_footage_url,publisher:isNew?'À renseigner':plain(demon.publisher),creator:isNew?'':plain(demon.creator),verifier:isNew?'':plain(demon.verifier),suggested_position:null,submitted_at:new Date().toISOString()});
+  rows.push({id:Math.max(0,...rows.map(x=>Number(x.id)||0))+1,status:'pending',level_name,level_id,player,progress,video_url,raw_footage_url,publisher:isNew?'À renseigner':plain(demon.publisher),creator:isNew?'':plain(demon.creator),verifier:isNew?'':plain(demon.verifier),suggested_position:null,player_message:plain(f.player_message).slice(0,1000),suggested_unrated_rank:((isNew&&f.proposed_unrated==='on')||!!demon?.unrated)?(Number(f.suggested_unrated_rank)||null):null,proposed_unrated:isNew&&f.proposed_unrated==='on',submitted_at:new Date().toISOString()});
   state.data.level_submissions=rows;saveDemo();toast('Soumission envoyée en modération (démo).');render();return;
  }
  if(type==='reviewSubmission'){
@@ -2938,6 +2989,7 @@ function bootEvents(){
      const {data,error}=await db.rpc('dlfr_review_queue_status');
      if(error)throw Error(error.message);
      state.scopedQueue=data||[];state.scopedQueueError='';
+     await refreshPendingPlayerNotes();
      if(state.adminTab==='requests'&&state.data.level_submissions?.length)state.data.level_submissions=await readAll('level_submissions');
      render();
    }catch(error){toast('File de modération : '+error.message);button.disabled=false;}
@@ -3134,7 +3186,7 @@ function bootEvents(){
   root.replaceChildren(...Array.from(doc.querySelectorAll('#mySubmissionResults > *')));
  });
  document.addEventListener('input',ev=>{if(ev.target.id!=='submitLevelSearch')return;const sel=document.getElementById('submitLevelSelect');if(!sel)return;const q=key(ev.target.value);for(const o of sel.options){if(!o.value)continue;o.hidden=!key(o.textContent+' '+o.dataset.search).includes(q);}if(sel.value&&sel.selectedOptions[0]?.hidden)sel.value='';submitSyncForm();});
- document.addEventListener('change',ev=>{if(ev.target.id==='submitLevelSelect'||ev.target.name==='submission_mode'||ev.target.name==='progress')submitSyncForm();});
+ document.addEventListener('change',ev=>{if(ev.target.id==='submitLevelSelect'||ev.target.name==='submission_mode'||ev.target.name==='progress'||ev.target.name==='proposed_unrated')submitSyncForm();});
  document.addEventListener('submit',ev=>{if(ownerPreviewActive()&&new URLSearchParams(location.search).get('page')==='admin'){ev.preventDefault();ev.stopImmediatePropagation();toast('Aperçu en lecture seule.');}},true);
  document.addEventListener('submit',ev=>{if(ev.target.matches('[data-form="clanCreate"], [data-form="clanInvite"], [data-form="clanRequest"], [data-form="clanEdit"]')){ev.preventDefault();handleClanForm(ev.target);return;}if(ev.target.matches('[data-form]')){ev.preventDefault();handleForm(ev.target,ev.submitter||null);}});
  document.querySelectorAll('.nav-links a,.brand').forEach(a=>a.addEventListener('click',ev=>{ev.preventDefault();go(a.dataset.link||'list');}));
