@@ -7,6 +7,12 @@ const safeUrl=v=>/^https:\/\//i.test(trim(v))?esc(trim(v)):'#';
 const slug=v=>trim(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,70);
 const row=(label,value)=>`<label class="field">${label}${value}</label>`;
 const button=(text)=>`<button class="btn" type="submit">${text}</button>`;
+const playerNoteHTML=(s,x)=>{
+ const detail=s.pendingPlayerNotes?.[String(x.id)]||x||{};
+ const msg=trim(detail.player_message);
+ const rank=Number(detail.suggested_unrated_rank);
+ return `${msg?`<div class="v102-player-note"><strong>💬 Message du joueur</strong><p>${esc(msg)}</p></div>`:''}${Number.isSafeInteger(rank)&&rank>0?`<p class="v102-rank-detail"><strong>Rang UNRATED suggéré par le joueur :</strong> #${esc(rank)} <small class="muted">(estimation non officielle)</small></p>`:''}${detail.proposed_unrated?'<p class="v102-proposal-tag">Proposition de niveau UNRATED</p>':''}`;
+};
 const handles=t=>['prodScopedReview','prodPlayer','prodCompletion','prodClaim','prodClaimReview','selfCreatePlayer','submitRecord','prodReviewSubmission','prodBadgeManual','prodManageStaff','prodPublishAccepted','prodArchiveLevel','prodRestoreLevel'].includes(t);
 const errorOf=r=>{if(r.error)throw Error(r.error.message);return r.data;};
 function claimSection(s){
@@ -103,7 +109,7 @@ function moderation(s){if(!s.staff)return '';
  <div class="prod-grid"><form data-form="prodPlayer"><h3>Créer une fiche joueur</h3>${row('Pseudo Geometry Dash','<input name="username" required minlength="2" maxlength="70">')}${row('Nom affiché (facultatif)','<input name="display_name" maxlength="80">')}${row('Pays','<select name="country_code"><option value="">Inconnu</option><option value="FR">France</option><option value="BE">Belgique</option><option value="CH">Suisse</option><option value="CA">Canada</option></select>')}${button('Créer la fiche')}</form>
  </div>
  <h3>Demandes de liaison Discord / Geometry Dash (${claims.length})</h3>${claims.length?claims.map(x=>`<article class="prod-review"><strong>${esc(x.player_key)}</strong><p class="small">Utilisateur Auth : ${esc(x.auth_user_id)}</p><p class="small">${esc(x.note)}</p><a href="${safeUrl(x.proof_url)}" target="_blank" rel="noopener noreferrer">Examiner la preuve ↗</a><form data-form="prodClaimReview"><input type="hidden" name="request_id" value="${esc(x.id)}"><button class="btn" name="approve" value="yes">Approuver</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form></article>`).join(''):'<p class="muted">Aucune demande.</p>'}
- <h3>Autres demandes / cas particuliers (${subs.length})</h3><p class="small muted">Les niveaux déjà publiés passent par la file de réservation ci-dessus.</p>${subs.length?subs.map(x=>{const existing=demons.find(d=>x.level_id&&String(d.level_id)===String(x.level_id))||demons.find(d=>d.name.toLowerCase()===x.level_name.toLowerCase());return `<article class="prod-review"><strong>${esc(x.level_name)}</strong> · ${esc(x.player)} (${esc(x.progress)} %)<p><a href="${safeUrl(x.video_url)}" target="_blank" rel="noopener noreferrer">Vidéo ↗</a>${x.raw_footage_url?` · <a href="${safeUrl(x.raw_footage_url)}" target="_blank" rel="noopener noreferrer">Raw footage ↗</a>`:''}${existing?' · Fiche existante #'+esc(existing.id):' · Nouveau niveau'}</p><form data-form="prodReviewSubmission"><input type="hidden" name="request_id" value="${esc(x.id)}">${existing?'':row('Statut du niveau','<select name="rating"><option value="rated">Rated</option><option value="unrated">UNRATED</option></select>')}${existing?'':row('Position choisie (Rated : décalage des suivants) / position estimée (UNRATED)','<input name="position" type="number" min="1" required>')}<label class="field">Message au joueur (facultatif)<textarea name="review_message" maxlength="1000" rows="3" placeholder="Une explication, un conseil ou un petit mot…"></textarea></label><button class="btn" name="approve" value="yes">Valider</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form></article>`;}).join(''):'<p class="muted">Aucune soumission.</p>'}
+ <h3>Autres demandes / cas particuliers (${subs.length})</h3><p class="small muted">Les niveaux déjà publiés passent par la file de réservation ci-dessus.</p>${subs.length?subs.map(x=>{const requestedMode=x.requested_completion_mode||null;const existing=demons.find(d=>x.level_id&&String(d.level_id)===String(x.level_id)&&String(d.name||'').toLowerCase()===String(x.level_name||'').toLowerCase())||(requestedMode?demons.find(d=>x.level_id&&String(d.level_id)===String(x.level_id)&&String(d.completion_mode||'standard')===requestedMode):null)||demons.find(d=>String(d.name||'').toLowerCase()===String(x.level_name||'').toLowerCase());const published=!!existing&&existing.is_public!==false;const proposedUnrated=!!(s.pendingPlayerNotes?.[String(x.id)]?.proposed_unrated||x.proposed_unrated);return `<article class="prod-review"><strong>${esc(x.level_name)}</strong> · ${esc(x.player)} (${esc(x.progress)} %)<p><a href="${safeUrl(x.video_url)}" target="_blank" rel="noopener noreferrer">Vidéo ↗</a>${x.raw_footage_url?` · <a href="${safeUrl(x.raw_footage_url)}" target="_blank" rel="noopener noreferrer">Raw footage ↗</a>`:''}${published?' · Fiche existante #'+esc(existing.id):existing?' · Variante importée et masquée #'+esc(existing.id):' · Nouvelle variante'}${requestedMode?' · Mode : '+esc(requestedMode==='two_player'?'2P':requestedMode==='solo'?'Solo (1P)':'Standard'):''}</p>${playerNoteHTML(s,x)}<form data-form="prodReviewSubmission"><input type="hidden" name="request_id" value="${esc(x.id)}">${published?'':row('Statut du niveau',`<select name="rating"><option value="rated" ${proposedUnrated?'':'selected'}>Rated</option><option value="unrated" ${proposedUnrated?'selected':''}>UNRATED</option></select>`)}${published?'':row('Position choisie (Rated : décalage des suivants) / position estimée (UNRATED)','<input name="position" type="number" min="1" required>')}<label class="field">Message au joueur (facultatif)<textarea name="review_message" maxlength="1000" rows="3" placeholder="Une explication, un conseil ou un petit mot…"></textarea></label><button class="btn" name="approve" value="yes">Valider</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form></article>`;}).join(''):'<p class="muted">Aucune soumission.</p>'}
  <h3>Validations acceptées mais non visibles (${hiddenApproved.length})</h3>
  <p class="small muted">Rattrapage des anciennes soumissions : aucun niveau n'est publié automatiquement. Choisis la position DLFR avant de confirmer.</p>
  ${hiddenApproved.length?hiddenApproved.map(x=>{
@@ -134,6 +140,7 @@ function scopedReview(s){
  const time=x=>x.claim_expires_at?new Date(x.claim_expires_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'';
  const item=x=>`<article class="prod-review dlfr30-review-card"><div class="row-between"><strong>${esc(x.level_name)}</strong><span class="small muted">${Number(x.position)>150?'NLW #'+esc(Number(x.position)-150):'Top #'+esc(x.position)}</span></div><p class="small">${esc(x.player)} · ${esc(x.progress)} %</p>
  <p><a href="${safeUrl(x.video_url)}" rel="noopener noreferrer" target="_blank">Vidéo ↗</a>${x.raw_footage_url?' · <a href="'+safeUrl(x.raw_footage_url)+'" rel="noopener noreferrer" target="_blank">Raw footage ↗</a>':''}</p>
+ ${playerNoteHTML(s,x)}
  ${x.claim_status==='mine'?`<span class="notice small">Réservée pour toi jusqu'à ${esc(time(x))}</span><form data-form="prodScopedReview"><input type="hidden" name="request_id" value="${esc(x.id)}"><label class="field">Message au joueur (facultatif)<textarea name="review_message" maxlength="1000" rows="3" placeholder="Explique la décision ou encourage le joueur…"></textarea></label><button class="btn" name="approve" value="yes">Accepter</button> <button class="btn subtle" name="approve" value="no">Refuser</button></form><div class="dlfr30-actions"><button class="btn subtle small" type="button" data-review-manage="renew" data-review-id="${esc(x.id)}">+20 min</button><button class="btn subtle small" type="button" data-review-manage="release" data-review-id="${esc(x.id)}">Libérer</button></div>`:
  x.claim_status==='other'?'<p class="muted small">Déjà prise en charge par un autre modérateur.</p>':`<button class="btn subtle small" type="button" data-review-claim="${esc(x.id)}">Prendre en charge</button>`}</article>`;
  return `<section class="prod-panel dlfr30-queue"><div class="row-between"><div><h2>File de modération · ${esc(role)}</h2><p class="small muted">Choisis une demande ou laisse le site t’en attribuer une au hasard. La réservation dure 20 minutes.</p></div><button class="btn" type="button" data-review-claim="random">🎲 Tirer au hasard</button></div>
@@ -228,15 +235,24 @@ async function send(db,type,f,submitter){
   if(raw&&!/^https:\/\//i.test(raw))throw Error('Le raw footage doit être un lien https.');
   const progress=top75?Number(f.progress||100):100;
   if(!Number.isInteger(progress)||progress<req||progress>100)throw Error('Pourcentage invalide (minimum '+req+' %).');
+  const playerMessage=trim(f.player_message);
+  if(playerMessage.length>1000)throw Error('Le message est limité à 1 000 caractères.');
+  const wantsUnrated=isNew?f.proposed_unrated==='on':!!demon?.unrated;
+  const estimateRaw=trim(f.suggested_unrated_rank);
+  const estimatedRank=wantsUnrated&&estimateRaw!==''?Number(estimateRaw):null;
+  if(estimatedRank!==null&&(!Number.isSafeInteger(estimatedRank)||estimatedRank<1||estimatedRank>=99999999))throw Error('Rang UNRATED estimé invalide.');
   const level_name=isNew?trim(f.level_name):trim(demon.name);
   const level_id=isNew?trim(f.level_id):trim(demon.level_id);
+  const variant=isNew?trim(f.requested_completion_mode||'standard'):null;
+  if(isNew&&!['standard','solo','two_player'].includes(variant))throw Error('Choisis le mode de complétion du niveau.');
   if(isNew){
    if(level_name.length<2||level_name.length>120)throw Error('Indique le nom du niveau (2 à 120 caractères).');
    if(!/^\d{1,18}$/.test(level_id))throw Error('Indique un ID Geometry Dash numérique valide.');
    // Ne pas créer un doublon d'une fiche publique existante.
-   const {data:published,error:checkError}=await db.from('demons').select('id').eq('level_id',level_id).eq('is_public',true).limit(1);
+   const {data:published,error:checkError}=await db.from('demons').select('id,name,completion_mode').eq('level_id',level_id).eq('is_public',true).limit(20);
    if(checkError)throw Error('Impossible de vérifier le niveau. Réessaie.');
-   if(published?.length)throw Error('Ce niveau est déjà publié : sélectionne-le dans la liste.');
+   if((published||[]).some(d=>String(d.completion_mode||'standard')===variant))throw Error('Cette variante est déjà publiée : sélectionne-la dans la liste.');
+   if((published||[]).length&&(!(variant==='solo'||variant==='two_player')||(published||[]).some(d=>!['solo','two_player'].includes(String(d.completion_mode||'standard')))))throw Error('ID GD déjà utilisé : choisis la variante Solo (1P) ou 2P appropriée.');
   }
   const {data:{user:who},error:whoError}=await db.auth.getUser();
   if(whoError||!who)throw Error('Connecte-toi pour envoyer ta soumission.');
@@ -244,7 +260,7 @@ async function send(db,type,f,submitter){
   if(ownerError)throw Error(ownerError.message);
   const nickname=trim(ownership?.players?.username);
   if(!nickname)throw Error('Relie ou crée une fiche DLFR avant de soumettre.');
-  return errorOf(await db.from('level_submissions').insert({auth_user_id:who.id,level_name,level_id:level_id||null,player:nickname,progress,video_url:trim(f.video_url),raw_footage_url:raw||null,publisher:isNew?'À renseigner':trim(demon.publisher),creator:isNew?null:trim(demon.creator)||null,verifier:isNew?null:trim(demon.verifier)||null}));
+  return errorOf(await db.from('level_submissions').insert({auth_user_id:who.id,level_name,level_id:level_id||null,requested_completion_mode:variant,player:nickname,progress,video_url:trim(f.video_url),raw_footage_url:raw||null,publisher:isNew?'À renseigner':trim(demon.publisher),creator:isNew?null:trim(demon.creator)||null,verifier:isNew?null:trim(demon.verifier)||null,player_message:playerMessage||null,suggested_unrated_rank:estimatedRank,proposed_unrated:isNew&&wantsUnrated}));
  }
  throw Error('Action inconnue');
 }

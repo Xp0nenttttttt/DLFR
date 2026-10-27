@@ -1,0 +1,24 @@
+DLFR V104 — Variantes SOLO / 2P (ID GD partagé)
+
+INSTALLATION (sur la version V103 du site)
+1. Remplacer index.html à la racine.
+2. Remplacer js/app.js et js/production-tools.js.
+3. Ne pas remplacer les autres scripts, CSS, drapeaux ou personnalisations.
+4. Publier sur GitHub Pages puis forcer Ctrl+F5.
+
+La base DLFR de production a déjà été mise à jour :
+- niveau unique par (ID Geometry Dash, mode de complétion), au lieu d'ID seul ;
+- champ requested_completion_mode ajouté à level_submissions ;
+- contrôles anti-doublons des soumissions séparant les variantes Solo / 2P ;
+- fonction de validation utilisant la variante explicite et réutilisant une fiche AREDL masquée du même mode.
+Aucun SQL supplémentaire n'est nécessaire.
+
+CAS SIDES OF MY MIND (GD 91042484)
+La variante 2P (id interne 1164) est publique.
+La variante Solo (id interne 229) existe en base mais est MASQUÉE.
+La soumission Solo peut maintenant utiliser le même ID. Lors de l'acceptation, la modération doit choisir un rang valide pour publier la variante masquée ; aucune publication automatique par le correctif.
+Les records Solo/2P restent isolés par demon_id.
+
+Attention : une victoire et une revendication de vérification sont deux actions différentes. Le correctif permet l'enregistrement des soumissions Solo ; après publication, les revendications de vérification passent par la procédure habituelle de modération.
+
+Vérifié : node --check pour JS, et test Supabase en transaction annulée (une soumission Solo avec ID commun a franchi les contrôles). À tester ensuite sur GitHub Pages après déploiement.

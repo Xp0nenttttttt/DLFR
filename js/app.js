@@ -1641,6 +1641,7 @@ function submitRecordPage(){
  <div class="notice small">Ce niveau n'est pas encore publié. La modération examinera sa fiche et décidera du classement avant toute publication.</div>
  <label class="field">Nom du niveau<input name="level_name" maxlength="120" minlength="2" ${hasExisting?'':'required'} placeholder="Ex. Nouveau Extreme Demon"></label>
  <label class="field">ID Geometry Dash<input name="level_id" inputmode="numeric" pattern="[0-9]+" maxlength="18" ${hasExisting?'':'required'} placeholder="ID du niveau en jeu"></label>
+ <label class="field">Mode de complétion<select name="requested_completion_mode" id="submitNewVariantMode"><option value="standard">Standard</option><option value="solo">Solo (1P, y compris un niveau 2P joué seul)</option><option value="two_player">2 joueurs (2P)</option></select><small class="muted">Les variantes Solo et 2P peuvent partager le même ID Geometry Dash : elles possèdent des records distincts.</small></label>
  <label class="v102-unrated-choice"><input id="submitProposedUnrated" type="checkbox" name="proposed_unrated" value="on"> <span>Je propose ce niveau comme <b>UNRATED</b></span></label>
  <p class="small muted">Tu n'as pas besoin de renseigner le créateur, l'éditeur ou le vérificateur : les modérateurs compléteront la fiche.</p></div>
  <div class="notice warning submission-wide" id="submitDuplicateWarning" role="status" hidden></div>
@@ -1675,8 +1676,22 @@ function submitSyncForm(){
 
  const requestedProgress=top75&&req<100?Number(pi.value||100):100;
  const warning=document.getElementById('submitDuplicateWarning');
- if(warning){const msg=submissionPriorWarning(selectedDemon,requestedProgress);warning.hidden=!msg;warning.textContent=msg;}
- hint.textContent=isNew?'Nouvelle proposition : ajoute une preuve YouTube à 100 %. Le raw footage pourra être demandé si le niveau rejoint le Top 150.':!opt?'Sélectionne un niveau pour voir ce qui est demandé.':top75?(req<100?`Top 75 : indique ton pourcentage (minimum ${req} %). Raw footage obligatoire.`:'Top 75 : complétion à 100 %. Raw footage obligatoire.'):top150?'Top 150 : complétion à 100 %. Raw footage obligatoire.':'Seule la vidéo YouTube est demandée (complétion à 100 %).';
+ if(warning){
+  let msg=submissionPriorWarning(selectedDemon,requestedProgress);
+  if(isNew){
+   const gid=String(form?.querySelector('#submitNewFields input[name="level_id"]')?.value||'').trim();
+   const cm=String(form?.querySelector('[name="requested_completion_mode"]')?.value||'standard');
+   const same=(state.data?.demons||[]).filter(d=>gid&&String(d.level_id||'').trim()===gid);
+   const sameVariant=same.find(d=>String(d.completion_mode||'standard')===cm);
+   if(sameVariant?.is_public!==false){
+     if(sameVariant)msg='Cette variante est déjà publiée : sélectionne la fiche '+sameVariant.name+' dans la liste.';
+   }else if(same.length && !(cm==='solo'||cm==='two_player') ){
+     msg='Cet ID GD est déjà utilisé. Pour une complétion Solo d’un niveau 2P, choisis « Solo (1P) ».';
+   }
+  }
+  warning.hidden=!msg;warning.textContent=msg;
+ }
+ hint.textContent=isNew?'Nouvelle proposition : précise Standard / Solo (1P) / 2P. Deux variantes du même ID GD peuvent avoir leurs propres records. Le raw footage pourra être demandé pour le Top 150.':!opt?'Sélectionne un niveau pour voir ce qui est demandé.':top75?(req<100?`Top 75 : indique ton pourcentage (minimum ${req} %). Raw footage obligatoire.`:'Top 75 : complétion à 100 %. Raw footage obligatoire.'):top150?'Top 150 : complétion à 100 %. Raw footage obligatoire.':'Seule la vidéo YouTube est demandée (complétion à 100 %).';
 }
 function levelCreditsEditor(){
  const levels=(state.data.demons||[]).slice().sort((a,b)=>num(a.position)-num(b.position));
@@ -2577,7 +2592,7 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   const player=plain(owner.username),level_name=isNew?plain(f.level_name):plain(demon.name),video_url=http(f.video_url),raw_footage_url=http(f.raw_footage_url);
   const level_id=isNew?plain(f.level_id):plain(demon.level_id);
   if(isNew&&(!/^\d{1,18}$/.test(level_id)||level_name.length<2||level_name.length>120))throw Error('Nom ou ID Geometry Dash invalide.');
-  if(isNew&&(state.data.demons||[]).some(d=>d.is_public!==false&&String(d.level_id||'')===level_id))throw Error('Ce niveau existe déjà : sélectionne-le dans la liste.');
+  if(isNew&&(state.data.demons||[]).some(d=>d.is_public!==false&&String(d.level_id||'')===level_id&&String(d.completion_mode||'standard')===String(f.requested_completion_mode||'standard')))throw Error('Cette variante est déjà publiée : sélectionne-la dans la liste.');
   const pos=demon&&!demon.unrated?num(demon.position):0,req=demon?Math.max(1,Math.min(100,num(demon.requirement||100))):100;
   const top150=!isNew&&pos>=1&&pos<=num(cfg().extended_limit),top75=!isNew&&pos>=1&&pos<=num(cfg().main_limit);
   const progress=top75?Number(f.progress||100):100;
@@ -2586,7 +2601,7 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   if(!Number.isInteger(progress)||progress<req||progress>100)throw Error('Pourcentage invalide (minimum '+req+' %).');
   const rows=state.data.level_submissions||[];
   if(rows.some(x=>x.status==='pending'&&(level_id&&String(x.level_id)===level_id||SUBMISSIONS.norm(x.level_name)===SUBMISSIONS.norm(level_name))&&SUBMISSIONS.norm(x.player)===SUBMISSIONS.norm(player)))throw Error('Une soumission identique attend déjà validation.');
-  rows.push({id:Math.max(0,...rows.map(x=>Number(x.id)||0))+1,status:'pending',level_name,level_id,player,progress,video_url,raw_footage_url,publisher:isNew?'À renseigner':plain(demon.publisher),creator:isNew?'':plain(demon.creator),verifier:isNew?'':plain(demon.verifier),suggested_position:null,player_message:plain(f.player_message).slice(0,1000),suggested_unrated_rank:((isNew&&f.proposed_unrated==='on')||!!demon?.unrated)?(Number(f.suggested_unrated_rank)||null):null,proposed_unrated:isNew&&f.proposed_unrated==='on',submitted_at:new Date().toISOString()});
+  rows.push({id:Math.max(0,...rows.map(x=>Number(x.id)||0))+1,status:'pending',level_name,level_id,requested_completion_mode:isNew?(f.requested_completion_mode||'standard'):null,player,progress,video_url,raw_footage_url,publisher:isNew?'À renseigner':plain(demon.publisher),creator:isNew?'':plain(demon.creator),verifier:isNew?'':plain(demon.verifier),suggested_position:null,player_message:plain(f.player_message).slice(0,1000),suggested_unrated_rank:((isNew&&f.proposed_unrated==='on')||!!demon?.unrated)?(Number(f.suggested_unrated_rank)||null):null,proposed_unrated:isNew&&f.proposed_unrated==='on',submitted_at:new Date().toISOString()});
   state.data.level_submissions=rows;saveDemo();toast('Soumission envoyée en modération (démo).');render();return;
  }
  if(type==='reviewSubmission'){
@@ -3185,8 +3200,8 @@ function bootEvents(){
   const doc=new DOMParser().parseFromString(mySubmissionsPage(),'text/html');
   root.replaceChildren(...Array.from(doc.querySelectorAll('#mySubmissionResults > *')));
  });
- document.addEventListener('input',ev=>{if(ev.target.id!=='submitLevelSearch')return;const sel=document.getElementById('submitLevelSelect');if(!sel)return;const q=key(ev.target.value);for(const o of sel.options){if(!o.value)continue;o.hidden=!key(o.textContent+' '+o.dataset.search).includes(q);}if(sel.value&&sel.selectedOptions[0]?.hidden)sel.value='';submitSyncForm();});
- document.addEventListener('change',ev=>{if(ev.target.id==='submitLevelSelect'||ev.target.name==='submission_mode'||ev.target.name==='progress'||ev.target.name==='proposed_unrated')submitSyncForm();});
+ document.addEventListener('input',ev=>{if(ev.target.closest?.('#submitNewFields')&&ev.target.name==='level_id')submitSyncForm();if(ev.target.id!=='submitLevelSearch')return;const sel=document.getElementById('submitLevelSelect');if(!sel)return;const q=key(ev.target.value);for(const o of sel.options){if(!o.value)continue;o.hidden=!key(o.textContent+' '+o.dataset.search).includes(q);}if(sel.value&&sel.selectedOptions[0]?.hidden)sel.value='';submitSyncForm();});
+ document.addEventListener('change',ev=>{if(ev.target.id==='submitLevelSelect'||ev.target.name==='submission_mode'||ev.target.name==='progress'||ev.target.name==='proposed_unrated'||ev.target.name==='requested_completion_mode')submitSyncForm();});
  document.addEventListener('submit',ev=>{if(ownerPreviewActive()&&new URLSearchParams(location.search).get('page')==='admin'){ev.preventDefault();ev.stopImmediatePropagation();toast('Aperçu en lecture seule.');}},true);
  document.addEventListener('submit',ev=>{if(ev.target.matches('[data-form="clanCreate"], [data-form="clanInvite"], [data-form="clanRequest"], [data-form="clanEdit"]')){ev.preventDefault();handleClanForm(ev.target);return;}if(ev.target.matches('[data-form]')){ev.preventDefault();handleForm(ev.target,ev.submitter||null);}});
  document.querySelectorAll('.nav-links a,.brand').forEach(a=>a.addEventListener('click',ev=>{ev.preventDefault();go(a.dataset.link||'list');}));
