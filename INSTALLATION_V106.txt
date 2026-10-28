@@ -1,0 +1,9 @@
+DLFR V106 — Crédit graphiste Léon X
+
+Base : V105. Patch ciblé (un seul fichier).
+
+Installation : remplacer UNIQUEMENT index.html à la racine du site GitHub Pages par celui du ZIP. Publier, puis Ctrl + F5.
+
+Modifications : ajout de « Graphiste : Léon X » dans le pied de page, après l’indicateur de source.
+
+Aucun changement aux données Supabase, au JavaScript, au CSS, aux personnalisations ou aux drapeaux.
