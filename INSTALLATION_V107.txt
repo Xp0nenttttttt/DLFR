@@ -1,0 +1,22 @@
+DLFR V107 — Logos et bannières de clans (correctif liens Discord expirés)
+
+CAUSE
+Les deux logos actifs (White society et Team Orion) sont des pièces jointes Discord avec URL signée, qui expirent après quelques jours. Les fichiers n'ont pas été effacés par le site, mais leurs liens d'accès ont cessé de fonctionner.
+
+CHANGEMENTS
+- Supabase: bucket public dlfr-clan-media, limité aux images JPEG/PNG/WebP/GIF de 8 Mo. Upload autorisé uniquement au chef du clan vers son propre dossier. Déjà configuré sur le projet DLFR de production.
+- Interface: deux champs d'import dans Clans > Profil du clan > Personnaliser mon clan, pour logo et bannière. Une importation remplace l'ancienne URL une fois la fiche enregistrée.
+- Affichage: remplacement de l'icône d'image cassée par le tag du clan pour les anciennes URL Discord expirées, ou après erreur de chargement.
+- Aucun enregistrement de clan n'a été modifié. Les images expirées devront être RÉIMPORTÉES à partir des originaux par le chef de clan, car un ancien lien Discord signé ne permet pas de reconstituer le fichier.
+
+INSTALLATION SUR GITHUB PAGES
+1. Remplacer index.html et js/app.js avec ceux du ZIP.
+2. Ajouter css/v107-clan-media.css (nouveau).
+3. Laisser intacts les autres CSS, js/clan-core.js, js/clan-plus.js et assets/flags/.
+4. Publier, puis Ctrl+F5.
+5. Un chef de clan ouvre Clans > son clan > 🎨 Personnaliser mon clan, choisit ses fichiers et clique Enregistrer ma personnalisation.
+
+NOTES
+- Le bucket et la politique ont été créés et vérifiés par lecture dans Supabase; l'upload effectif depuis un vrai compte connecté nécessite un essai sur le site.
+- Les anciennes images (White society / Team Orion) ne sont pas récupérables depuis leurs liens expirés. Aucune réécriture automatique des URL existantes.
+- Basé sur le code applicatif V105 et le pied de page V106 (« Graphiste : Léon X »). Ne supprime pas les fonctionnalités V105.

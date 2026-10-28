@@ -2273,12 +2273,41 @@ async function loadCommunityExcel(){
 }
 const CLAN_STYLE_OPTIONS=[['classic','Classique'],['aurora','Aurore'],['neon','Néon'],['minimal','Minimaliste']];
 function clanStyle(value){return ['classic','aurora','neon','minimal'].includes(value)?value:'classic';}
+// Les pièces jointes Discord expirent (paramètre ex signé). Ne pas afficher un <img> cassé.
+function clanImageLink(value){
+ const src=imageLink(value);if(!src)return '';
+ try{
+  const u=new URL(src,location.href);
+  if(['cdn.discordapp.com','media.discordapp.net'].includes(u.hostname.toLowerCase())){
+   const exp=u.searchParams.get('ex');
+   if(exp && /^[0-9a-f]+$/i.test(exp) && parseInt(exp,16)*1000<=Date.now())return '';
+  }
+ }catch{return '';}
+ return src;
+}
+async function uploadClanImage(file,clanId,kind){
+ if(!file)return '';
+ if(!LIVE)throw Error('Import de fichiers disponible uniquement sur le site connecté.');
+ if(!Number.isSafeInteger(Number(clanId))||Number(clanId)<1||!['logo','banner'].includes(kind))throw Error('Clan ou média invalide.');
+ const extensions={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'};
+ const ext=extensions[file.type];
+ if(!ext)throw Error('Pour le clan, utilise une image PNG, JPG, WebP ou GIF.');
+ if(file.size>8*1024*1024)throw Error('Image trop volumineuse : 8 Mo maximum.');
+ if(file.size<1)throw Error('Ce fichier semble vide.');
+ const path=`${Number(clanId)}/${kind}/${crypto.randomUUID()}.${ext}`;
+ const bucket=db.storage.from('dlfr-clan-media');
+ const {error}=await bucket.upload(path,file,{contentType:file.type,upsert:false,cacheControl:'31536000'});
+ if(error)throw Error('Import impossible : '+(error.message||'vérifie tes droits de chef de clan.'));
+ const {data}=bucket.getPublicUrl(path);
+ if(!data?.publicUrl)throw Error('Import effectué, mais l’URL publique est indisponible.');
+ return data.publicUrl;
+}
 function clanPreviewCard(c){
  const col=CLAN_PLUS.hex(c?.color),name=String(c?.name||'Nouveau clan'),tag=String(c?.tag||'CLAN').toUpperCase();
- const image=src=>{const u=imageLink(src);return u?`<img src="${esc(u)}" alt="" loading="lazy">`:'';};
+ const image=(src,fallback='')=>{const u=clanImageLink(src);return u?`<img src="${esc(u)}" alt="" loading="lazy" data-clan-image data-clan-fallback="${esc(fallback)}">`:'';};
  return `<div class="clan-v99-preview clan-v99-style-${clanStyle(c?.card_style)}" data-clan-preview style="--clan-accent:${esc(col)}">
    <div class="clan-v99-preview-cover" data-clan-preview-cover>${image(c?.banner_url)}</div>
-   <div class="clan-v99-preview-content"><span class="clan-v99-preview-logo" data-clan-preview-logo>${image(c?.logo_url)||esc(tag)}</span>
+   <div class="clan-v99-preview-content"><span class="clan-v99-preview-logo" data-clan-preview-logo>${image(c?.logo_url,tag)||esc(tag)}</span>
    <div class="clan-v99-preview-identity"><small data-clan-preview-tag>[${esc(tag)}]</small><strong data-clan-preview-name>${esc(name)}</strong><em data-clan-preview-motto>${esc(c?.motto||'Votre devise ici…')}</em></div></div>
   </div>`;
 }
@@ -2293,9 +2322,15 @@ function syncClanPreview(form){
  text('motto',val('motto')||'Votre devise ici…');
  for(const part of ['logo','banner']){
    const root=panel.querySelector(`[data-clan-preview-${part==='banner'?'cover':'logo'}]`);if(!root)continue;
-   const raw=val(part+'_url'),safe=raw.startsWith('https://')?imageLink(raw):'';
+   const raw=val(part+'_url');
+   const file=form.querySelector(`[name="${part}_file"]`)?.files?.[0];
+   const savedUrl=form['_clanLocalPreview_'+part];
+   if(savedUrl)URL.revokeObjectURL(savedUrl);
+   const localUrl=file?URL.createObjectURL(file):'';
+   form['_clanLocalPreview_'+part]=localUrl;
+   const safe=localUrl||clanImageLink(raw);
    root.replaceChildren();
-   if(safe){const img=document.createElement('img');img.src=safe;img.alt='';img.loading='lazy';root.appendChild(img);}
+   if(safe){const img=document.createElement('img');img.src=safe;img.alt='';img.loading='lazy';img.dataset.clanImage='';img.dataset.clanFallback=part==='logo'?(val('tag')||form.dataset.tag||'CLAN').toUpperCase():'';root.appendChild(img);}
    else if(part==='logo')root.textContent=(val('tag')||form.dataset.tag||'CLAN').toUpperCase();
  }
 }
@@ -2316,13 +2351,24 @@ async function updateClanDemo(command){
   toast('Clan mis à jour en démo locale');render();
  }catch(error){toast('Clan : '+error.message);}
 }
-function handleClanForm(form){try{
+async function handleClanForm(form){try{
  const f=Object.fromEntries(new FormData(form));
  const type=form.dataset.form;
- if(type==='clanCreate')updateClanDemo({type:'create',name:f.name,tag:f.tag,description:f.description,color:f.color,motto:f.motto,card_style:f.card_style,banner_url:f.banner_url,logo_url:f.logo_url,recruiting:!!form.querySelector('[name="recruiting"]:checked')});
- else if(type==='clanRequest')updateClanDemo({type:'request',clan_id:Number(f.clan_id),message:f.message});
- else if(type==='clanEdit')updateClanDemo({type:'update',clan_id:Number(f.clan_id),name:f.name,description:f.description,banner_url:f.banner_url,logo_url:f.logo_url,color:f.color,recruiting:!!form.querySelector('[name="recruiting"]:checked'),motto:f.motto,card_style:f.card_style});
- else {const mine=CLANS.member(state.data,LIVE?state.ownKey:state.demoActor);if(!mine)throw Error('Rejoins un clan pour inviter.');updateClanDemo({type:'invite',clan_id:mine.clan_id,target:f.target});}
+ if(type==='clanCreate')await updateClanDemo({type:'create',name:f.name,tag:f.tag,description:f.description,color:f.color,motto:f.motto,card_style:f.card_style,banner_url:f.banner_url,logo_url:f.logo_url,recruiting:!!form.querySelector('[name="recruiting"]:checked')});
+ else if(type==='clanRequest')await updateClanDemo({type:'request',clan_id:Number(f.clan_id),message:f.message});
+ else if(type==='clanEdit'){
+  let banner_url=f.banner_url,logo_url=f.logo_url;
+  const bannerFile=form.querySelector('[name="banner_file"]')?.files?.[0];
+  const logoFile=form.querySelector('[name="logo_file"]')?.files?.[0];
+  const button=form.querySelector('button[type="submit"]');
+  if(button)button.disabled=true;
+  try{
+   if(bannerFile)banner_url=await uploadClanImage(bannerFile,f.clan_id,'banner');
+   if(logoFile)logo_url=await uploadClanImage(logoFile,f.clan_id,'logo');
+   await updateClanDemo({type:'update',clan_id:Number(f.clan_id),name:f.name,description:f.description,banner_url,logo_url,color:f.color,recruiting:!!form.querySelector('[name="recruiting"]:checked'),motto:f.motto,card_style:f.card_style});
+  }finally{if(button?.isConnected)button.disabled=false;}
+ }
+ else {const mine=CLANS.member(state.data,LIVE?state.ownKey:state.demoActor);if(!mine)throw Error('Rejoins un clan pour inviter.');await updateClanDemo({type:'invite',clan_id:mine.clan_id,target:f.target});}
  }catch(error){toast('Clan : '+error.message);}
 }
 function handleClanAction(btn){try{
@@ -2338,7 +2384,7 @@ function clansPage(){
  const isLeader=myMembership?.role==='leader',isManager=['leader','officer'].includes(myMembership?.role);
  const players=data.players.filter(p=>!p.hidden_from_stats);
  const who=k=>{const p=players.find(x=>key(x.player_key)===key(k));return p?fullName(p):k;};
- const showPicture=(value,kind)=>{const source=imageLink(value);return source?`<img class="${kind}" loading="lazy" src="${esc(source)}" alt="">`:'';};
+ const showPicture=(value,kind,fallback='')=>{const source=clanImageLink(value);return source?`<img class="${kind}" loading="lazy" src="${esc(source)}" alt="" data-clan-image data-clan-fallback="${esc(fallback)}">`:'';};
  const actorSelect=!LIVE?`<div class="clan-player-simulator"><div><strong>Simulation de compte</strong><p class="small muted">La sélection d’un joueur est réservée à ce mode de démonstration.</p></div><label class="field">Jouer en tant que<select id="clanDemoActor">${players.map(p=>`<option value="${esc(p.player_key)}" ${key(p.player_key)===key(actor)?'selected':''}>${esc(fullName(p))}</option>`).join('')}</select></label></div>`:(state.ownKey?'':'<div class="notice warning">Pour rejoindre un clan, connecte ton compte Discord et revendique un profil approuvé.</div>');
  const selectedId=Number(new URLSearchParams(location.search).get('id'));
  const selected=leaderBoard.find(c=>c.clan.id===selectedId);
@@ -2359,12 +2405,16 @@ function clansPage(){
    const invitesList=manager?`<h4>Invitations en attente</h4>${pending.map(i=>`<div class="clan-v22-queue"><span>${esc(who(i.invitee_key))}</span><button class="btn subtle small" data-clan-action="cancel" data-invite-id="${i.id}">Annuler</button></div>`).join('')||'<p class="muted small">Aucune invitation en attente.</p>'}`:'';
    const requestsList=manager?`<h4>Candidatures reçues · ${applicants.length}</h4>${applicants.map(r=>`<div class="clan-v22-queue"><div><b>${esc(who(r.player_key))}</b> <span class="muted">${esc(r.message||'Sans message')}</span></div><div class="clan-actions"><button class="btn small" data-clan-action="approve" data-request-id="${r.id}">Accepter</button><button class="btn subtle small" data-clan-action="reject" data-request-id="${r.id}">Refuser</button></div></div>`).join('')||'<p class="muted small">Aucune candidature en attente.</p>'}`:'';
    const editForm=chief?`<details class="clan-v22-edit clan-v99-editor"><summary>🎨 Personnaliser mon clan</summary><p class="small muted">Le nom, la bannière, le logo, la devise et le style sont visibles par tous. Les changements sont enregistrés par le chef du clan.</p>
+   ${(c.logo_url&&!clanImageLink(c.logo_url)||c.banner_url&&!clanImageLink(c.banner_url))?'<p class="notice warning small">Une ancienne image Discord a expiré. Réimporte le logo ou la bannière depuis ton appareil pour la restaurer.</p>':''}
    <form data-form="clanEdit" class="clan-v22-form" data-tag="${esc(c.tag)}"><input name="clan_id" type="hidden" value="${c.id}">
    <label class="field">Nom du clan<input name="name" maxlength="45" minlength="3" required value="${esc(c.name)}"></label>
    <label class="field">Devise du clan<input name="motto" maxlength="110" value="${esc(c.motto||'')}" placeholder="Une phrase pour représenter ton équipe"></label>
    <label class="field clan-v99-field-wide">Description<textarea name="description" rows="3" maxlength="500">${esc(c.description||'')}</textarea></label>
    <label class="field">Bannière (URL HTTPS)<input name="banner_url" type="url" value="${esc(c.banner_url||'')}" placeholder="https://…"></label>
    <label class="field">Logo carré (URL HTTPS)<input name="logo_url" type="url" value="${esc(c.logo_url||'')}" placeholder="https://…"></label>
+   <div class="clan-v107-files clan-v99-field-wide"><label class="field">Ou importer ta bannière (PNG / JPG / WebP / GIF · 8 Mo max.)<input name="banner_file" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
+   <label class="field">Ou importer ton logo (PNG / JPG / WebP / GIF · 8 Mo max.)<input name="logo_file" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
+   <p class="small muted clan-v107-info">L’import conserve tes images sur la DLFR sans expiration. Le fichier choisi remplace l’URL du champ correspondant après enregistrement. Les anciennes URL Discord signées expirent et doivent être remplacées.</p></div>
    <label class="field">Couleur d'accent<input name="color" type="color" value="${esc(CLAN_PLUS.hex(c.color))}"></label>
    ${clanStyleChoice(c.card_style)}
    <label class="clan-v22-check clan-v99-field-wide"><input name="recruiting" type="checkbox" ${c.recruiting?'checked':''}> Autoriser les candidatures de nouveaux membres</label>
@@ -2386,7 +2436,7 @@ function clansPage(){
   const finished=[...selected.entries].sort((a,b)=>Number(a.demon.position)-Number(b.demon.position));
   const completedHtml=finished.slice(0,100).map(e=>`<div class="clan-v22-level"><span class="clan-v22-position">#${esc(e.demon.position||'—')}</span><div><a class="link" data-nav href="${url('demon',{id:e.demon.id})}"><b>${esc(e.demon.name)}</b></a><div class="small muted">Terminé par ${[...e.players].map(who).map(esc).join(', ')}</div></div><span>${Number(e.demon.position)<=150?fmt(score(e.demon,100))+' pts':'NLW'}</span></div>`).join('');
   const latest=[...selected.completions].sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||''))).slice(0,8);
-  return v2Header('Profil de clan · '+esc(c.name),'Classement, membres, accomplissements et gestion communautaire.')+actorSelect+clanInvitationsHtml(actor,data)+`<a data-nav class="clan-v22-back" href="${url('clans')}">← Retour au classement des clans</a><div class="clan-v22-hero clan-v99-style-${clanStyle(c.card_style)}" style="--clan-accent:${esc(CLAN_PLUS.hex(c.color))}">${showPicture(c.banner_url,'clan-v22-banner')}<div class="clan-v22-hero-body"><div class="clan-v22-logo">${showPicture(c.logo_url,'clan-v22-logo-image')||esc(c.tag)}</div><div><span class="clan-v22-eyebrow">[${esc(c.tag)}] · ${c.recruiting?'Recrutement ouvert':'Sur invitation'}</span><h2>${esc(c.name)}</h2>${c.motto?`<div class="clan-v99-hero-motto">${esc(c.motto)}</div>`:''}<p>${esc(c.description||'')}</p></div></div></div>${rankBlock(selected)}${metrics(selected)}<div class="clan-v22-tabs">${[['overview','Présentation'],['members','Membres'],['levels','Démons complétés'],['created','Créations']].map(([id,label])=>`<button class="${tab===id?'active':''}" data-clan-tab="${id}" type="button">${label}</button>`).join('')}</div>${tab==='members'?`<section class="clan-section"><h2>Membres du clan (${selected.members.length})</h2>${membersHtml||'<p class="muted">Aucun membre.</p>'}</section>`:tab==='levels'?`<section class="clan-section"><h2>Collection de démons du clan</h2><p class="small muted">Chaque niveau est compté une seule fois, même si plusieurs membres l'ont terminé. Les points principaux cumulés, eux, sont la somme des points individuels.</p><div class="clan-v22-split"><span>Main : ${selected.mainCount}</span><span>Extended : ${selected.extendedCount}</span><span>NLW : ${selected.nlw.length}</span><span>Créés ou publiés : ${selected.created.length}</span></div><div class="clan-v22-levels">${completedHtml||'<p class="muted">Aucune complétion.</p>'}</div>${finished.length>100?'<p class="small muted">Seuls les 100 premiers niveaux sont affichés pour garder la page rapide.</p>':''}</section>`:tab==='created'?`<section class="clan-section"><h2>Niveaux créés ou publiés</h2><p class="muted small">Niveaux dont un membre est crédité comme créateur ou éditeur. Les crédits ne rapportent pas automatiquement des points de clan.</p><div class="clan-v22-levels">${selected.created.map(d=>`<div class="clan-v22-level"><span class="clan-v22-position">#${esc(d.position||'—')}</span><a data-nav class="link" href="${url('demon',{id:d.id})}">${esc(d.name)}</a><span>${Number(d.position)<=150?'Top 150':'NLW'}</span></div>`).join('')||'<p class="muted">Aucun niveau créé ou publié connu.</p>'}</div></section>`:`<section class="clan-section"><h2>Vue d'ensemble</h2><div class="clan-v22-split"><span>Points de niveaux distincts : ${fmt(selected.levelPoints)}</span><span>Top 150 : ${selected.topCount}</span><span>Main : ${selected.mainCount}</span><span>Extended : ${selected.extendedCount}</span></div><h3>Dernières complétions des membres</h3>${latest.map(r=>`<div class="clan-v22-recent"><span>${esc(date(r.created_at)||'Date inconnue')}</span><a data-nav class="link" href="${url('player',{player:key(r.player)})}">${esc(who(r.player))}</a><span>→</span><a data-nav class="link" href="${url('demon',{id:r.demon.id})}">${esc(r.demon.name)}</a></div>`).join('')||'<p class="muted">Aucune complétion.</p>'}</section>`}${actions(c)}</section>`;
+  return v2Header('Profil de clan · '+esc(c.name),'Classement, membres, accomplissements et gestion communautaire.')+actorSelect+clanInvitationsHtml(actor,data)+`<a data-nav class="clan-v22-back" href="${url('clans')}">← Retour au classement des clans</a><div class="clan-v22-hero clan-v99-style-${clanStyle(c.card_style)}" style="--clan-accent:${esc(CLAN_PLUS.hex(c.color))}">${showPicture(c.banner_url,'clan-v22-banner')}<div class="clan-v22-hero-body"><div class="clan-v22-logo">${showPicture(c.logo_url,'clan-v22-logo-image',c.tag)||esc(c.tag)}</div><div><span class="clan-v22-eyebrow">[${esc(c.tag)}] · ${c.recruiting?'Recrutement ouvert':'Sur invitation'}</span><h2>${esc(c.name)}</h2>${c.motto?`<div class="clan-v99-hero-motto">${esc(c.motto)}</div>`:''}<p>${esc(c.description||'')}</p></div></div></div>${rankBlock(selected)}${metrics(selected)}<div class="clan-v22-tabs">${[['overview','Présentation'],['members','Membres'],['levels','Démons complétés'],['created','Créations']].map(([id,label])=>`<button class="${tab===id?'active':''}" data-clan-tab="${id}" type="button">${label}</button>`).join('')}</div>${tab==='members'?`<section class="clan-section"><h2>Membres du clan (${selected.members.length})</h2>${membersHtml||'<p class="muted">Aucun membre.</p>'}</section>`:tab==='levels'?`<section class="clan-section"><h2>Collection de démons du clan</h2><p class="small muted">Chaque niveau est compté une seule fois, même si plusieurs membres l'ont terminé. Les points principaux cumulés, eux, sont la somme des points individuels.</p><div class="clan-v22-split"><span>Main : ${selected.mainCount}</span><span>Extended : ${selected.extendedCount}</span><span>NLW : ${selected.nlw.length}</span><span>Créés ou publiés : ${selected.created.length}</span></div><div class="clan-v22-levels">${completedHtml||'<p class="muted">Aucune complétion.</p>'}</div>${finished.length>100?'<p class="small muted">Seuls les 100 premiers niveaux sont affichés pour garder la page rapide.</p>':''}</section>`:tab==='created'?`<section class="clan-section"><h2>Niveaux créés ou publiés</h2><p class="muted small">Niveaux dont un membre est crédité comme créateur ou éditeur. Les crédits ne rapportent pas automatiquement des points de clan.</p><div class="clan-v22-levels">${selected.created.map(d=>`<div class="clan-v22-level"><span class="clan-v22-position">#${esc(d.position||'—')}</span><a data-nav class="link" href="${url('demon',{id:d.id})}">${esc(d.name)}</a><span>${Number(d.position)<=150?'Top 150':'NLW'}</span></div>`).join('')||'<p class="muted">Aucun niveau créé ou publié connu.</p>'}</div></section>`:`<section class="clan-section"><h2>Vue d'ensemble</h2><div class="clan-v22-split"><span>Points de niveaux distincts : ${fmt(selected.levelPoints)}</span><span>Top 150 : ${selected.topCount}</span><span>Main : ${selected.mainCount}</span><span>Extended : ${selected.extendedCount}</span></div><h3>Dernières complétions des membres</h3>${latest.map(r=>`<div class="clan-v22-recent"><span>${esc(date(r.created_at)||'Date inconnue')}</span><a data-nav class="link" href="${url('player',{player:key(r.player)})}">${esc(who(r.player))}</a><span>→</span><a data-nav class="link" href="${url('demon',{id:r.demon.id})}">${esc(r.demon.name)}</a></div>`).join('')||'<p class="muted">Aucune complétion.</p>'}</section>`}${actions(c)}</section>`;
  }
  const invitations=clanInvitationsHtml(actor,data);
  const formCreate=!!actor&&!myClan?`<details class="clan-v22-create clan-v99-editor"><summary>+ Créer un clan</summary><form data-form="clanCreate" class="clan-v22-form" data-tag="CLAN">
@@ -2403,7 +2453,7 @@ function clansPage(){
  <button class="btn">Créer mon clan</button></form></details>`:'';
  const sort=state.clanSort||'points';const sorter={points:(a,b)=>b.totalPoints-a.totalPoints,extremes:(a,b)=>b.topCount-a.topCount,hardest:(a,b)=>a.hardestPosition-b.hardestPosition,nlw:(a,b)=>b.nlwPoints-a.nlwPoints};
  const order=[...leaderBoard].sort((a,b)=>sorter[sort](a,b)||a.clan.id-b.clan.id).filter(x=>key(x.clan.name+' '+x.clan.tag+' '+x.clan.description).includes(key(state.clanSearch)));
- const cards=order.map((item,index)=>{const c=item.clan;return `<a data-nav class="clan-v22-rank-row clan-v99-style-${clanStyle(c.card_style)}" href="${url('clans',{id:c.id})}" data-clan-searchable="${esc(key(c.name+' '+c.tag+' '+c.description))}" style="--clan-accent:${esc(CLAN_PLUS.hex(c.color))}"><span class="clan-v22-rank">#${index+1}</span><span class="clan-v22-mark">${showPicture(c.logo_url,'clan-v22-tiny-logo')||esc(c.tag)}</span><span class="clan-v22-name"><strong>[${esc(c.tag)}] ${esc(c.name)}</strong><small>${item.members.length} membres · ${c.recruiting?'Candidatures ouvertes':'Sur invitation'}${c.motto?' · '+esc(c.motto):''}</small></span><span class="clan-v22-rank-metric">${sort==='points'?fmt(item.totalPoints)+' pts':sort==='nlw'?fmt(item.nlwPoints)+' NLW':sort==='extremes'?item.topCount+' démons':item.hardest?'#'+item.hardest.position:'—'}</span><span aria-hidden="true">→</span></a>`;}).join('');
+ const cards=order.map((item,index)=>{const c=item.clan;return `<a data-nav class="clan-v22-rank-row clan-v99-style-${clanStyle(c.card_style)}" href="${url('clans',{id:c.id})}" data-clan-searchable="${esc(key(c.name+' '+c.tag+' '+c.description))}" style="--clan-accent:${esc(CLAN_PLUS.hex(c.color))}"><span class="clan-v22-rank">#${index+1}</span><span class="clan-v22-mark">${showPicture(c.logo_url,'clan-v22-tiny-logo',c.tag)||esc(c.tag)}</span><span class="clan-v22-name"><strong>[${esc(c.tag)}] ${esc(c.name)}</strong><small>${item.members.length} membres · ${c.recruiting?'Candidatures ouvertes':'Sur invitation'}${c.motto?' · '+esc(c.motto):''}</small></span><span class="clan-v22-rank-metric">${sort==='points'?fmt(item.totalPoints)+' pts':sort==='nlw'?fmt(item.nlwPoints)+' NLW':sort==='extremes'?item.topCount+' démons':item.hardest?'#'+item.hardest.position:'—'}</span><span aria-hidden="true">→</span></a>`;}).join('');
  return v2Header('Classement des clans','Inspiré de l’AREDL : points cumulés, démons distincts, hardest, équipe et accomplissements.')+actorSelect+invitations+(myClan?`<div class="clan-v22-myclan">Mon clan : <a data-nav class="link" href="${url('clans',{id:myClan.id})}"><b>[${esc(myClan.tag)}] ${esc(myClan.name)}</b></a> <span class="tag">${roleTag(myMembership.role)}</span></div>`:'')+formCreate+`<section class="clan-section clan-v22-board"><div class="clan-v22-boardhead"><h2>Classement des clans · ${leaderBoard.length}</h2><label class="field">Rechercher<input id="clanSearch" placeholder="Nom ou tag…" value="${esc(state.clanSearch||'')}"></label></div><div class="clan-v22-sort">${[['points','Points Top 150'],['extremes','Démons complétés'],['hardest','Hardest'],['nlw','Points NLW']].map(([id,label])=>`<button class="${sort===id?'active':''}" data-clan-sort="${id}" type="button">${label}</button>`).join('')}</div><div id="clanRanking">${cards||'<p class="muted">Aucun clan.</p>'}</div><p class="small muted">${LIVE?'Classements calculés à partir des données Supabase des membres.':'Classements calculés depuis les données Supabase.'}</p></section></section>`;
 }
 function historyPage(){const lookup=new Map(catalog().map(d=>[Number(d.id),d]));const records=state.data.completions.map(r=>({...r,demon:lookup.get(Number(r.demon_id))})).filter(r=>r.demon&&r.demon.position<=150&&Number(r.progress)>=100).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));return v2Header('Historique des complétions · Top 150','Un flux chronologique des complétions, avec mise en valeur uniforme de la Main List (#1–75).')+`<div class="v2-legend"><span class="hist-main">Main List · #1–75</span><span>Extended List · #76–150</span></div><div class="v2-timeline">${records.map(r=>`<article class="timeline-record ${r.demon.position<=75?'main-rank':''}"><time>${date(r.created_at)}</time><div><a class="link" data-nav href="${url('player',{player:key(r.player)})}">${esc(r.player)}</a> a terminé <a class="link" data-nav href="${url('demon',{id:r.demon.id})}"><b>#${r.demon.position} ${esc(r.demon.name)}</b></a>${r.demon.unrated?' <span class="tag">UNRATED</span>':''}</div>${http(r.video_url)?`<a href="${esc(http(r.video_url))}" rel="noopener noreferrer" target="_blank">Preuve ↗</a>`:''}</article>`).join('')||'<p class="empty">Aucune complétion Top 150.</p>'}</div></section>`;}
@@ -3319,6 +3369,13 @@ function bootEvents(){
   }
  },true);
  document.addEventListener('submit',ev=>{if(ownerPreviewActive()&&new URLSearchParams(location.search).get('page')==='admin'){ev.preventDefault();ev.stopImmediatePropagation();toast('Aperçu en lecture seule.');}},true);
+ // Capturer les erreurs de chargement des logos : ne pas afficher l’icône d’image cassée.
+ document.addEventListener('error',ev=>{
+  const img=ev.target;
+  if(!(img instanceof HTMLImageElement)||!img.hasAttribute('data-clan-image'))return;
+  const fallback=img.dataset.clanFallback||'';
+  if(fallback)img.replaceWith(document.createTextNode(fallback));else img.remove();
+ },true);
  document.addEventListener('submit',ev=>{if(ev.target.matches('[data-form="clanCreate"], [data-form="clanInvite"], [data-form="clanRequest"], [data-form="clanEdit"]')){ev.preventDefault();handleClanForm(ev.target);return;}if(ev.target.matches('[data-form]')){ev.preventDefault();handleForm(ev.target,ev.submitter||null);}});
  document.querySelectorAll('.nav-links a,.brand').forEach(a=>a.addEventListener('click',ev=>{ev.preventDefault();go(a.dataset.link||'list');}));
  $('themeSelect').addEventListener('change',e=>setTheme(e.target.value));
