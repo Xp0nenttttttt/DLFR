@@ -1,0 +1,28 @@
+DLFR V108 — Rétablissement des cartes de complétions sur les profils
+
+PROBLÈME
+Les sections « Top 75 complété », « 76–150 complété » et « NLW »
+affichaient des liens collés, débordant de la page. Le composant JavaScript
+utilise .v80-level-list / .v80-level-row, mais les styles de ces classes
+n'étaient pas présents dans la feuille de style effectivement chargée.
+
+CORRECTIF
+Ajout d'une feuille CSS indépendante qui restaure le rendu sous forme
+de cartes compactes, avec rang, nom et lien, et grille responsive.
+Les classes sont ciblées uniquement dans les profils joueurs.
+
+INSTALLATION GITHUB PAGES (BASE V107)
+1. Remplacer index.html par celui du ZIP.
+2. Ajouter css/v108-profile-levels.css.
+3. Conserver tous les autres CSS et fichiers JavaScript.
+4. Publier et actualiser avec Ctrl+F5.
+5. Ouvrir une fiche joueur avec plusieurs niveaux Top 75 / Extended / NLW.
+
+La V108 conserve les modifications de la V107, dont les imports de
+logos de clan, ainsi que « Graphiste : Léon X ».
+
+AUCUN SQL. Aucune modification des complétions, rangs, profils ou récompenses.
+Ne pas inclure ni toucher au dossier assets/flags/.
+
+TESTS : présence de la feuille CSS dans le HTML et conformité de la
+syntaxe CSS. Le déploiement GitHub Pages n'a pas été vérifié en direct.

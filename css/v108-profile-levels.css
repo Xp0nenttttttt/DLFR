@@ -1,0 +1,92 @@
+/* DLFR V108 — Galerie des complétions des profils
+   Le composant JS v79LevelGallery() renvoie des éléments .v80-level-*.
+   Cette feuille est autonome : ne dépend pas de la version de css/style.css.
+   Aucun impact sur les données, les listes de modération ou les cosmétiques. */
+
+.stats-profile .profile-section,
+.dlfr20-profile .profile-section {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.stats-profile .v80-level-list,
+.dlfr20-profile .v80-level-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 12px 0 10px;
+  text-align: left;
+}
+
+.stats-profile .v80-level-row,
+.dlfr20-profile .v80-level-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 9px 11px;
+  border: 1px solid rgba(160, 154, 210, .27);
+  border-radius: 9px;
+  background: rgba(130, 122, 192, .09);
+  color: inherit;
+  text-decoration: none;
+  line-height: 1.35;
+  font-size: 12px;
+  transition: background-color .15s ease, border-color .15s ease;
+  overflow: hidden;
+}
+
+.stats-profile .v80-level-row:hover,
+.dlfr20-profile .v80-level-row:hover,
+.stats-profile .v80-level-row:focus-visible,
+.dlfr20-profile .v80-level-row:focus-visible {
+  border-color: #a894ed;
+  background: rgba(130, 112, 210, .18);
+}
+
+.stats-profile .v80-level-row:focus-visible,
+.dlfr20-profile .v80-level-row:focus-visible {
+  outline: 2px solid #a894ed;
+  outline-offset: 2px;
+}
+
+.stats-profile .v80-level-rank,
+.dlfr20-profile .v80-level-rank {
+  display: inline-block;
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 800;
+  color: #b9a9ff;
+  white-space: nowrap;
+}
+
+.stats-profile .v80-level-row strong,
+.dlfr20-profile .v80-level-row strong {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.stats-profile .v80-level-arrow,
+.dlfr20-profile .v80-level-arrow {
+  display: inline-block;
+  margin-left: auto;
+  flex: 0 0 auto;
+  opacity: .65;
+}
+
+@media (max-width: 550px) {
+  .stats-profile .v80-level-list,
+  .dlfr20-profile .v80-level-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
