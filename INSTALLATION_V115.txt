@@ -1,0 +1,30 @@
+DLFR V115 — OUVERTURE CINEMATIQUE ET COOLDOWN DES EXPEDITIONS
+=========================================================
+BASE : V114 déjà installée (et les versions antérieures V112–V113).
+
+INSTALLATION :
+  1. Remplacer index.html à la racine par ce fichier.
+  2. Ajouter js/v115-cards-lab.js.
+  3. Ajouter css/v115-cards-lab.css.
+  4. Publier sur GitHub Pages ; forcer l'actualisation (Ctrl + F5).
+
+Ne pas remplacer js/app.js. Ne pas toucher à Supabase ni assets/flags/.
+
+NOUVEAUTES :
+- Ouverture cinématique d'un paquet : illustration du booster, carte face cachée,
+  retournement, annonce de rareté et de carte nouvelle/doublon, bilan final.
+- Contrôles « Carte suivante », « Tout révéler » et Échap ; accès clavier.
+- Attribution des cartes au moment de l'ouverture, jamais à chaque clic de l'animation.
+- Cooldown de 2 minutes après chaque expédition avec compte à rebours visible.
+- La console de test « Pouvoirs admin » peut ignorer ce cooldown.
+- Sessions JSON exportées conservent aussi la date de prochaine expédition.
+  Les exports V114 sont acceptés avec cooldown à zéro.
+
+LABORATOIRE UNIQUEMENT :
+Aucune transaction en monnaie réelle, aucun Waylling, aucun stockage automatique.
+Le cooldown est contrôlé localement et saute si la page est rechargée sans import :
+la V115 est toujours un prototype non persistant. Pour une vraie sortie publique,
+il faudra un cooldown appliqué côté serveur afin de garantir l'équité.
+
+REMARQUE : design original inspiré du principe de révélation séquentielle du genre TCG,
+mais sans recopier les éléments graphiques de WikiMasters.
