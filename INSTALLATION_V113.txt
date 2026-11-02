@@ -1,0 +1,49 @@
+DLFR V113 — CRÉATEUR DE CARTES (LABORATOIRE PRIVÉ)
+================================================
+Base : DLFR V112 (garde l'architecture et le contrôle d'accès privé).
+
+À PUBLIER SUR GITHUB PAGES :
+  1) Remplacer index.html
+  2) Remplacer js/app.js
+  3) Ajouter js/v113-cards-lab.js
+  4) Ajouter css/v113-cards-lab.css
+
+Si tu as installé V112, tu peux laisser les fichiers v112 dans le dépôt,
+mais ils ne sont plus chargés par la nouvelle page.
+Si tu as des modifications personnelles de index.html ou js/app.js faites
+après V112, fais une fusion plutôt que d'écraser ces changements.
+
+UTILISATION :
+  - Connecte-toi avec le compte propriétaire historique ayant accès à
+    « Mon espace > DLFR Cards · Laboratoire privé ».
+  - Onglet « Créer des cartes » : saisis nom, catégorie, rareté, série,
+    description et une URL HTTPS ou image locale (PNG/JPG/WebP/GIF, max 2 Mo).
+  - Clique « Créer la carte ». La carte apparaît immédiatement dans l'album
+    et peut être reçue/retirée comme une carte existante.
+  - Pour la modifier, clique sur elle dans « Mes créations », ou sur
+    « Modifier cette carte » depuis l'album.
+  - Pour conserver ton catalogue : clique « Exporter mes cartes (JSON) ».
+    Enregistre ce fichier dans un endroit sûr.
+  - À la prochaine visite, « Importer un catalogue (JSON) » restaurera
+    tes créations. L'import remplace les cartes personnalisées de la session
+    courante, mais conserve les 50 cartes ORIGINS.
+
+IMPORTANT :
+  - Aucun INSERT/UPDATE/DELETE ni stockage local n'est effectué pour le TCG.
+  - Recharger/fermer l'onglet efface cartes ajoutées, modifications et
+    collection de test en mémoire, sauf si TU as exporté un JSON.
+  - L'export JSON contient tes images importées depuis l'ordinateur sous forme
+    base64, donc il peut être volumineux (import JSON jusqu'à 20 Mo).
+  - Les images fournies par URL doivent rester disponibles sur leur hébergeur.
+  - Les actions de cette page n'affectent pas les Wayllings, les vrais
+    profils, les records, ni les futurs inventaires du TCG.
+  - L'accès reste celui de V112, vérifié par RPC dlfr_cards_lab_access.
+  - Le catalogue n'est PAS public : un vrai catalogue de production, séparé
+    des inventaires de jeu, sera une étape ultérieure.
+
+TESTS :
+  - Syntaxe JavaScript vérifiée (node --check).
+  - Scénarios navigateur : création, aperçu live, import image locale,
+    édition, suppression, export/import JSON, ajout en album.
+  - Largeur mobile testée à 390 px sans défilement horizontal.
+  - Aucun SQL supplémentaire.
