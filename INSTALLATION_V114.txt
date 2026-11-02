@@ -1,0 +1,40 @@
+DLFR V114 — PAQUETS & PROGRESSION (laboratoire prive)
+======================================================
+BASE : V113 correctement installee sur GitHub Pages.
+
+INSTALLATION :
+  1. Remplacer uniquement index.html a la racine.
+  2. Ajouter js/v114-cards-lab.js.
+  3. Ajouter css/v114-cards-lab.css.
+  4. Publier sur GitHub Pages et actualiser avec Ctrl + F5.
+
+NE PAS remplacer js/app.js : version V113 conservee.
+NE PAS ecraser assets/flags/ ni les images existantes.
+NE PAS supprimer js/v113-cards-lab.js / css/v113-cards-lab.css tant que d'autres scripts pourraient en dependre.
+
+OUVRIR : Mon espace > DLFR Cards · Laboratoire prive (compte Spleen autorise).
+NOUVEL ONGLET : "Paquets & Progression".
+
+DANS LE LABORATOIRE :
+- Expedition manuelle : +10 eclats, +12 XP de base.
+- Arbre d'ameliorations : Chance (max 5), Exploration (max 4), Experience (max 4).
+- Niveau 1 : Paquet Decouverte (3 cartes, 18 eclats).
+- Niveau 3 : Paquet Explorateur (5 cartes, 55 eclats, au moins Rare).
+- Niveau 6 : Paquet Prestige (5 cartes, 110 eclats, au moins Epique).
+- Bonus premier exemplaire +6 eclats, doublon +2 eclats.
+- Les cartes creees via l'atelier V113 sont incluses automatiquement dans les paquets.
+- Probabilites affichees et mises a jour apres amelioration de Chance.
+- Exporter / Importer session de test (JSON, catalogue + inventaire + progression).
+- Le JSON "mes creations" de V113 fonctionne toujours pour le catalogue seul.
+
+SECURITE : Aucune commande d'achat, de monnaie reelle, de Wayllings,
+ni aucune ecriture Supabase dans ce nouveau module.
+Seul le controle d'acces Supabase prive deja installe en V112 est utilise.
+Les essais ne donnent aucune carte ni XP au futur compte joueur.
+Les donnees de test ne sont jamais sauvees automatiquement.
+
+TESTS EFFECTUES :
+Syntaxe JS, ouverture de paquets, ameliorations, progression,
+creation de cartes V113, sauvegarde/restauration JSON,
+compatibilite mobile 390 px et absence d'erreurs JS sur les parcours testes.
+Le fonctionnement sur GitHub Pages apres deploiement reste a confirmer.
