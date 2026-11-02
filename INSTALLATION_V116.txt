@@ -1,0 +1,38 @@
+DLFR V116 — BOOSTERS ANIMÉS & ARBRE DE COMPÉTENCES
+=================================================
+BASE : V115 installée (incluant les versions antérieures V112 à V114).
+
+INSTALLATION GITHUB PAGES :
+  1. Remplacer index.html à la racine par celui de ce ZIP.
+  2. Ajouter js/v116-cards-lab.js.
+  3. Ajouter css/v116-cards-lab.css.
+  4. Publier, puis actualiser avec Ctrl + F5.
+
+Ne pas remplacer js/app.js. Ne pas exécuter de SQL.
+Ne pas écraser assets/flags/ ni d'autres fichiers/images personnalisés.
+Les fichiers v115 peuvent rester : l'index v116 charge les nouveaux fichiers.
+
+NOUVEAUTÉS :
+- Booster animé : paquet fermé avec reflet, déchirure visuelle, carte qui arrive,
+  retournement 3D, particules, rareté mise en valeur et bilan progressif.
+- Chaque carte est créditée UNE SEULE FOIS lors du tirage, indépendamment des clics.
+- Contrôles « Tout révéler », Échap, Espace ; mode réduction des animations.
+- Un véritable arbre de 3 branches : Fortune / Exploration / Maîtrise,
+  4 nœuds par branche, prérequis et niveaux minimum, plus 1 compétence ultime.
+- +1 point de talent par niveau (1 au départ), coûts en éclats fictifs.
+- Effets réels sur chances, éclats, XP, cooldown, garanties et doublons.
+- Console admin : réinitialiser les talents et rembourser les investissements,
+  ou passer le cooldown pour les essais.
+- Imports de sessions V114 / V115 acceptés. Anciens bonus conservés.
+- Export JSON des sessions V116 ; incluant progression et compétences.
+
+IMPORTANT :
+- Le laboratoire n'enregistre PAS automatiquement les cartes/progressions
+  dans Supabase ni dans localStorage. Exportez une session avant d'actualiser.
+- Le cooldown est local, non opposable à des joueurs extérieurs. N'utilisez
+  pas ce prototype comme système de récompenses public tant que les tirages,
+  cooldowns, catalogues et inventaires ne sont pas sécurisés côté serveur.
+- Aucun paquet payant, aucune monnaie réelle ; les éclats sont fictifs.
+- L'accès habituel au laboratoire est soumis au contrôle Supabase déjà en place.
+
+Les aperçus PNG et les tests locaux ne sont pas nécessaires à l'installation.
