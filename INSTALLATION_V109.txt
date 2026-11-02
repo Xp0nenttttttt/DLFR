@@ -1,0 +1,32 @@
+DEMONLIST FRANCOPHONE — V109
+Boutique séparée et épurée (basée sur V108 + JS V107)
+
+INSTALLATION SUR TON REPO GITHUB PAGES
+1. Conserver ton projet actuel et sauvegarder index.html et js/app.js.
+2. Copier UNIQUEMENT les trois fichiers suivants en respectant les chemins :
+   - index.html
+   - js/app.js
+   - css/v109-shop.css  (nouveau fichier)
+3. Déployer sur GitHub Pages, puis Ctrl+F5.
+4. Accéder à ?page=shop, ou cliquer sur « ✦ Boutique ».
+   - Grand écran : entrée principale dans la navigation.
+   - Petit écran : sous « Mon espace ».
+
+CHANGEMENTS
+- Page boutique entièrement distincte de la Demonlist.
+- Présentation en cartes avec aperçus CSS et texte de contexte.
+- Wayllings dorés, objets possédés, objets équipés et série hebdomadaire.
+- Filtrage par catégorie, recherche et « Ma collection ».
+- Achats / équipement / retrait : appels Supabase existants conservés.
+- L'ancien aperçu de boutique du panneau propriétaire devient un lien ; les
+  essais gratuits du propriétaire restent administrables au même endroit.
+- Aucun changement SQL ni mise à jour Supabase nécessaire.
+
+IMPORTANT
+- Ce patch SUPPOSE que les fichiers déjà installés des versions V90/V95,
+  V96, V99, V100, V102, V105, V107 et V108 restent en place.
+- NE PAS écraser les images et drapeaux personnalisés, notamment assets/flags/.
+- Ce patch n'inclut aucun fichier css/style.css ni les images des clans.
+- Les aperçus ont été testés localement avec des objets fictifs ; les opérations
+  réelles d'achat/équipement et l'affichage sur ton site publié ne sont pas
+  testés dans cette archive.

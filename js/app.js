@@ -890,7 +890,7 @@ function v86AdminHTML(){
  const monday=new Date();const dow=(monday.getUTCDay()+6)%7;monday.setUTCDate(monday.getUTCDate()-dow);const week=monday.toISOString().slice(0,10);
  return `<section class="paper v86-owner" id="v86-owner"><h2>📅 Défis hebdomadaires</h2><p class="muted small">Programme plusieurs semaines à l'avance. La publication est automatique chaque lundi à 00:00 UTC.</p>
  <form data-form="v86Weekly" class="v86-weekly-form"><label class="field">Semaine (lundi UTC)<input name="week_start" type="date" required value="${week}"></label><label class="field">Niveau<select name="demon_id" required><option value="">Choisir un niveau public</option>${(state.data?.demons||[]).filter(d=>d.is_public!==false).sort((a,b)=>String(a.name).localeCompare(String(b.name),'fr')).map(d=>`<option value="${esc(d.id)}">${esc(d.name)} · #${esc(d.position)}</option>`).join('')}</select></label><label class="field">Wayllings dorés<input type="number" name="reward" min="1" max="500" value="50" required></label><button class="btn" type="submit">Ajouter / modifier la semaine</button></form>
- <div id="v86-schedule"><p class="small muted">Chargement du calendrier…</p></div><h2>🧪 Essais de la boutique</h2><p class="small muted">Accès de test réservé à ton compte. Aucun achat ni dépense : tu peux essayer les objets depuis la boutique et retirer leurs accès ici.</p><div id="v86-cosmetics"><p class="small muted">Chargement des objets…</p></div><h3>🛍️ Aperçu direct de la boutique</h3><p class="small muted">Après avoir activé un essai, utilise « Équiper » ici. Aucun achat nécessaire.</p><div id="v81-rewards" class="v81-rewards" aria-live="polite">Chargement de la boutique…</div></section>`;
+ <div id="v86-schedule"><p class="small muted">Chargement du calendrier…</p></div><h2>🧪 Essais de la boutique</h2><p class="small muted">Accès de test réservé à ton compte. Aucun achat ni dépense : tu peux essayer les objets depuis la boutique et retirer leurs accès ici.</p><div id="v86-cosmetics"><p class="small muted">Chargement des objets…</p></div><p class="small muted">Après avoir activé un essai, retrouve ton objet dans l’espace Boutique et équipe-le sans aucun achat.</p><a class="btn small" data-nav href="${url('shop')}">✦ Ouvrir la boutique ↗</a></section>`;
 }
 async function v86AdminLoad(){
  const host=document.getElementById('v86-owner');if(!host||!db)return;
@@ -934,6 +934,11 @@ async function v81RewardsRender(){
   if(seq!==v81Request||!area.isConnected)return;
   const status=sr.data||{},owns=new Set(status.inventory||[]),equip=status.equipped||{};
   v96ApplyHalloweenStatus(status);
+  if(area.closest('.dlfr109-shop')){
+   area.innerHTML=dlfr109ShopContent(status,cr.data||[],owns,equip);
+   dlfr109ApplyFilters();
+   return;
+  }
   area.innerHTML=`<div class="v81-header"><b>✦ DLFR Rewards</b><span>✦ ${wayllingLabel(status.balance??0)} · 🔥 ${esc(status.streak??0)} semaine(s) de série</span></div>
   <details class="v81-shop" ${document.getElementById('v86-owner')?'open':''}><summary>🛍️ Boutique et collection ${status.signed_in?'':'· connexion requise'}</summary><div class="v81-items">${(cr.data||[]).map(item=>{
    const trial=(status.test_inventory||[]).includes(item.item_key),owned=owns.has(item.item_key)||trial,equipped=equip[item.category]===item.item_key;
@@ -942,6 +947,88 @@ async function v81RewardsRender(){
    return `<div class="v81-item v90-shop-item v90-item-${esc(item.item_key)}"><span class="v90-swatch" aria-hidden="true"></span><div class="v81-item-title">${esc(item.emoji)} <strong>${esc(item.label)}</strong>${trial?'<span class="muted small"> · essai propriétaire</span>':''}</div>${showDesc?`<small>${desc}</small>`:''}<div class="v81-item-action"><span>✦ ${wayllingLabel(item.price)}</span>${status.signed_in?(owned?`<button type="button" class="btn small subtle" data-v81-equip="${esc(item.item_key)}" data-v81-category="${esc(item.category)}">${equipped?'✓ Équipé':'Équiper'}</button>`:`<button type="button" class="btn small" data-v81-buy="${esc(item.item_key)}" ${Number(status.balance)<Number(item.price)?'disabled':''}>Acheter</button>`):'<span class="muted small">Se connecter</span>'}</div></div>`;
   }).join('')}</div></details>`;
  }catch(err){if(seq===v81Request&&area.isConnected)area.innerHTML='<span class="small muted">Boutique indisponible : '+esc(err.message||'Erreur Supabase')+'</span>';}
+}
+// V109 — Boutique autonome. Les filtres sont purement locaux : aucune écriture Supabase.
+let dlfr109Category='all';
+let dlfr109Collection=false;
+let dlfr109Search='';
+const dlfr109Cats={all:'Tous les objets',frame:'Cadres',banner:'Bannières',badge:'Badges',theme:'Thèmes'};
+function dlfr109ApplyFilters(){
+ const root=document.querySelector('.dlfr109-shop');
+ if(!root)return;
+ let visible=0;
+ for(const card of root.querySelectorAll('[data-shop-item]')){
+  const matchCategory=dlfr109Category==='all'||card.dataset.shopCategory===dlfr109Category;
+  const matchOwned=!dlfr109Collection||card.dataset.shopOwned==='true';
+  const matchText=!dlfr109Search||String(card.dataset.shopSearch||'').includes(dlfr109Search);
+  card.hidden=!(matchCategory&&matchOwned&&matchText);
+  if(!card.hidden)visible++;
+ }
+ root.querySelectorAll('[data-shop-filter]').forEach(btn=>{
+   const active=btn.dataset.shopFilter===dlfr109Category;
+   btn.classList.toggle('active',active);
+   btn.setAttribute('aria-pressed',String(active));
+ });
+ const own=root.querySelector('[data-shop-owned]');if(own){own.classList.toggle('active',dlfr109Collection);own.setAttribute('aria-pressed',String(dlfr109Collection));}
+ const empty=root.querySelector('#dlfr109-empty');if(empty)empty.hidden=visible>0;
+ const count=root.querySelector('#dlfr109-visible');if(count)count.textContent=String(visible);
+}
+function shopPage(){
+ return `<section class="dlfr109-shop" aria-labelledby="dlfr109-title">
+ <header class="dlfr109-shop-hero">
+  <div class="dlfr109-hero-copy"><span class="kicker">✦ Cosmétique DLFR</span>
+   <h1 id="dlfr109-title">La boutique</h1>
+   <p>Personnalise ta fiche avec des cadres, des bannières, des badges et des thèmes. Tes points de classement ne changent pas.</p>
+  </div>
+  <div class="dlfr109-hero-art" aria-hidden="true"><span class="dlfr109-hero-orb"></span><span class="dlfr109-hero-spark">✦</span><span class="dlfr109-hero-ring"></span></div>
+ </header>
+ <div id="v81-rewards" class="v81-rewards dlfr109-shop-root" aria-live="polite"><div class="dlfr109-loading">Chargement de la boutique…</div></div>
+ <p class="dlfr109-shop-footnote">Les achats et équipements sont enregistrés sur ton compte DLFR. Les objets d'essai du propriétaire ne coûtent aucun Waylling doré.</p>
+ </section>`;
+}
+function dlfr109ShopContent(status,items,owns,equip){
+ const inventory=new Set([...(status.inventory||[]),...(status.test_inventory||[])]);
+ const signed=!!status.signed_in;
+ const all=Array.isArray(items)?items:[];
+ const ownedCount=all.filter(item=>inventory.has(item.item_key)).length;
+ const equippedCount=all.filter(item=>equip[item.category]===item.item_key).length;
+ const filters=Object.entries(dlfr109Cats).map(([id,label])=>{
+   const n=id==='all'?all.length:all.filter(item=>item.category===id).length;
+   return `<button type="button" data-shop-filter="${id}" class="dlfr109-filter" aria-pressed="false">${label}<span>${n}</span></button>`;
+ }).join('');
+ const cards=all.map(item=>{
+   const test=(status.test_inventory||[]).includes(item.item_key);
+   const owned=owns.has(item.item_key)||test;
+   const equipped=equip[item.category]===item.item_key;
+   const price=Number(item.price)||0;
+   const category=dlfr109Cats[item.category]||'Cosmétique';
+   const desc=item.category==='badge'?esc(item.description||'Un badge décoratif à exposer sur ton profil.'):
+     item.category==='theme'?'Change les couleurs et l’ambiance de ton site.':
+     item.category==='frame'?'Un cadre à mettre en valeur sur ta fiche.':'Une bannière pour personnaliser ton profil.';
+   let action='';
+   if(!signed)action=`<a data-nav class="btn small" href="${url('my-profile')}">Se connecter</a>`;
+   else if(owned)action=`<button type="button" class="btn small ${equipped?'subtle':''}" data-v81-equip="${esc(item.item_key)}" data-v81-category="${esc(item.category)}" data-v81-unequip="${equipped}">${equipped?'Retirer':'Équiper'}</button>`;
+   else action=`<button type="button" class="btn small" data-v81-buy="${esc(item.item_key)}" ${Number(status.balance)<price?'disabled title="Solde insuffisant"':''}>Acheter</button>`;
+   const catClass=/^(frame|banner|badge|theme)$/.test(item.category)?item.category:'other';
+   return `<article class="dlfr109-item v81-item v90-shop-item v90-item-${esc(item.item_key)}" data-shop-item data-shop-category="${esc(item.category)}" data-shop-owned="${owned}" data-shop-search="${esc(String(item.label||'').toLocaleLowerCase('fr'))}">
+    <div class="dlfr109-item-art dlfr109-category-${catClass}"><span class="v90-swatch" aria-hidden="true"></span><span class="dlfr109-art-emoji" aria-hidden="true">${esc(item.emoji||'✦')}</span></div>
+    <div class="dlfr109-item-content"><div class="dlfr109-item-label"><span class="dlfr109-category">${esc(category)}</span>${equipped?'<span class="dlfr109-pill dlfr109-equipped">✓ Équipé</span>':owned?'<span class="dlfr109-pill">Possédé</span>':''}</div>
+    <h3>${esc(item.label)}</h3><p>${desc}</p>
+    ${test?'<span class="dlfr109-test-note">Essai propriétaire actif</span>':''}</div>
+    <div class="dlfr109-item-bottom"><strong class="dlfr109-price">✦ ${owned?'Dans ta collection':wayllingLabel(price)}</strong>${action}</div>
+   </article>`;
+ }).join('');
+ return `<div class="dlfr109-wallet" role="group" aria-label="Ma collection et ma monnaie">
+  <div class="dlfr109-wallet-primary"><span class="dlfr109-wallet-icon">✦</span><div><span>Mes Wayllings dorés</span><strong>${signed?esc(status.balance??0):'—'}</strong></div></div>
+  <div class="dlfr109-wallet-stat"><span>Objets possédés</span><strong>${signed?ownedCount:'—'} <small>/ ${all.length}</small></strong></div>
+  <div class="dlfr109-wallet-stat"><span>Équipés</span><strong>${signed?equippedCount:'—'}</strong></div>
+  <div class="dlfr109-wallet-stat"><span>Série hebdomadaire</span><strong>🔥 ${signed?esc(status.streak??0):'—'}</strong></div>
+ </div>
+ ${!signed?`<div class="dlfr109-guest-note"><span>Connecte-toi pour acheter des objets et afficher ta collection.</span><a data-nav class="btn small" href="${url('my-profile')}">Accéder à mon compte</a></div>`:''}
+ <div class="dlfr109-shop-heading"><div><span class="kicker">Collection cosmétique</span><h2>Découvre les objets</h2></div><span class="dlfr109-product-count"><b id="dlfr109-visible">${all.length}</b> objets affichés</span></div>
+ <div class="dlfr109-shop-controls"><div class="dlfr109-categories" role="group" aria-label="Catégorie de produits">${filters}</div><div class="dlfr109-shop-tools"><label class="dlfr109-search"><span aria-hidden="true">⌕</span><input id="dlfr109-search" type="search" placeholder="Rechercher un objet…" aria-label="Rechercher un objet" value="${esc(dlfr109Search)}" autocomplete="off"></label><button type="button" data-shop-owned aria-pressed="false" class="dlfr109-mycollection">✧ Ma collection</button></div></div>
+ <div class="dlfr109-grid" id="dlfr109-grid">${cards}</div>
+ <div id="dlfr109-empty" class="dlfr109-empty" hidden>Aucun objet ne correspond à cette recherche.</div>`;
 }
 // V90 — effets animés des récompenses (profil, aperçu Statistiques, classement). Purement visuel.
 const V90_PRESTIGE=new Set(['frame_amethyst_crown','frame_celestial','banner_bloodmoon','banner_voidwalker','frame_glitch','banner_glitch']);
@@ -1030,7 +1117,7 @@ function listPage(){
  const heading={main:'Geometry Dash Demonlist',nlw:'NLW · Non List Worthy',legacy:'Legacy List'}[sLabel];
  const description={main:'Les 150 niveaux classés de la DemonlistFrancophone.',nlw:'Les niveaux NLW publiés et les archives historiques. En activant UNRATED, les niveaux non homologués s’insèrent aux rangs simulés et décalent les suivants, sans modifier les positions officielles.',legacy:'Anciens niveaux de la Main List, après validation de leur statut Legacy.'}[sLabel];
  const html=sLabel==='nlw'?nlwListCards(state.keyword):cardsHTML(levels.filter(x=>key(x.name).includes(key(state.keyword))));
- return `${templateNotice()}${state.unrated?callout('<b>Mode UNRATED</b> — estimation alternative des positions et points, sans modifier le classement officiel.'):''}${top}<div id="v80-weekly" class="v80-weekly" aria-live="polite"><span class="muted small">Chargement du défi hebdomadaire…</span></div><div id="v81-rewards" class="v81-rewards" aria-live="polite">Chargement des récompenses…</div><div class="page-columns"><section><div class="center-panel"><h1>${heading}</h1><p>${description}</p><label class="filterbox"><span>⌕</span><input id="demonSearch" type="search" placeholder="Filtrer les niveaux affichés..." value="${esc(state.keyword)}" autocomplete="off"></label></div><div id="demonItems">${html}</div></section><aside class="right-side"><div class="info-panel right-panel"><h2>Éditeurs de liste</h2><p>Contacter les éditeurs pour les changements de classement.</p>${staffNamesHTML("general")}<h2>Équipe NLW</h2><p>L’équipe chargée de la liste NLW.</p>${staffNamesHTML("nlw")}</div>${listNewsSidebar()}${submissionGuidelinesSidebar()}</aside></div>`;
+ return `${templateNotice()}${state.unrated?callout('<b>Mode UNRATED</b> — estimation alternative des positions et points, sans modifier le classement officiel.'):''}${top}<div id="v80-weekly" class="v80-weekly" aria-live="polite"><span class="muted small">Chargement du défi hebdomadaire…</span></div><div class="page-columns"><section><div class="center-panel"><h1>${heading}</h1><p>${description}</p><label class="filterbox"><span>⌕</span><input id="demonSearch" type="search" placeholder="Filtrer les niveaux affichés..." value="${esc(state.keyword)}" autocomplete="off"></label></div><div id="demonItems">${html}</div></section><aside class="right-side"><div class="info-panel right-panel"><h2>Éditeurs de liste</h2><p>Contacter les éditeurs pour les changements de classement.</p>${staffNamesHTML("general")}<h2>Équipe NLW</h2><p>L’équipe chargée de la liste NLW.</p>${staffNamesHTML("nlw")}</div>${listNewsSidebar()}${submissionGuidelinesSidebar()}</aside></div>`;
 }
 function completionLinks(levels){return levels.length?levels.sort((a,b)=>a.position-b.position).map(d=>`<a class="link" href="${url('demon',{id:d.id})}" data-nav>#${esc(d.position)} ${esc(d.name)}</a>`).join(' - '):'<span class="muted">Aucun</span>';}
 // V66 : le classement NLW commence à #1 pour la position globale 151.
@@ -2500,11 +2587,11 @@ function render(){
  }
  if(page==='admin'&&state.adminTab==='leaderboard'&&!state.modLeaderboardReady&&!state.modLeaderboardLoading)void loadModeratorLeaderboard();
  if(page==='admin'&&state.adminTab==='requests'&&state.staff&&state.session?.user?.id&&!ownerPreviewActive()&&!state.reversalReady&&!state.reversalLoading)void loadReversalList();
- const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='player'?playerPage():page==='players'?playersPage():page==='my-profile'?selfProfilePage():page==='my-submissions'?mySubmissionsPage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():page==='packs'?packPage():page==='regions'?regionsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;
+ const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='player'?playerPage():page==='players'?playersPage():page==='my-profile'?selfProfilePage():page==='shop'?shopPage():page==='my-submissions'?mySubmissionsPage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():page==='packs'?packPage():page==='regions'?regionsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;
  // Donner un accès clair à l'inscription et à la connexion, sans modifier la navigation existante.
  const accountNavLink=document.querySelector('a[data-link="my-profile"]');
  if(accountNavLink) accountNavLink.textContent=state.session?'Mon profil':'Se connecter / Créer un compte';
- if(page==='list'){v80WeeklyRender();v81RewardsRender();}if(page==='admin'&&state.adminTab==='weekly'&&state.staffRole==='owner'&&!ownerPreviewActive())v86AdminLoad();
+ if(page==='list')v80WeeklyRender();if(page==='shop')v81RewardsRender();if(page==='admin'&&state.adminTab==='weekly'&&state.staffRole==='owner'&&!ownerPreviewActive())v86AdminLoad();
  if(page==='player'||(page==='my-profile'&&document.getElementById('v81-profile-rewards')))v81ProfileRewards();if(page==='stats'||page==='players')v90LoadFx();
  if(page==='admin'&&state.staffRole==='owner'){
    const switcher=document.createElement('section');switcher.className='paper owner-role-switcher';
@@ -2519,7 +2606,7 @@ function render(){
      });
    }
  }
- if(page==='admin'&&state.adminTab==='levels'&&['nlw','moderator'].includes(state.staffRole))scopedLevelSearch('');if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();if(page==='admin'&&state.adminTab==='levels'){arrangeLevelsPanel();syncLevelStudio();}document.title=({list:'Demonlist',stats:'Statistiques',player:'Profil joueur',players:'Profils des joueurs',news:'Actualités',activity:'Vie communautaire',regions:'Carte des régions',packs:'Level Packs',hall:'Palmarès & exploits',honors:'Palmarès & exploits',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Palmarès & exploits',clans:'Clans',history:'Historique','my-profile':'Mon profil','my-submissions':'Mes soumissions','submit-record':'Soumettre un record',demon:'Niveau',archive:'Archives historiques'})[page]+' · DemonlistFrancophone';
+ if(page==='admin'&&state.adminTab==='levels'&&['nlw','moderator'].includes(state.staffRole))scopedLevelSearch('');if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();if(page==='admin'&&state.adminTab==='levels'){arrangeLevelsPanel();syncLevelStudio();}document.title=({list:'Demonlist',stats:'Statistiques',player:'Profil joueur',players:'Profils des joueurs',news:'Actualités',activity:'Vie communautaire',regions:'Carte des régions',packs:'Level Packs',hall:'Palmarès & exploits',honors:'Palmarès & exploits',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Palmarès & exploits',clans:'Clans',history:'Historique','my-profile':'Mon profil','shop':'Boutique','my-submissions':'Mes soumissions','submit-record':'Soumettre un record',demon:'Niveau',archive:'Archives historiques'})[page]+' · DemonlistFrancophone';
  if(PERF_DEBUG)console.info('[DLFR perf] Rendu',page,Math.round(perfNow()-start)+' ms');
  }catch(error){showPageError(error);}
 }
@@ -3066,10 +3153,14 @@ function bootEvents(){
    catch(err){toast('Impossible de récupérer les pièces : '+err.message);weeklyClaimButton.disabled=false;}
    return;
   }
+  const categoryBtn=ev.target.closest('[data-shop-filter]');
+  if(categoryBtn){dlfr109Category=categoryBtn.dataset.shopFilter in dlfr109Cats?categoryBtn.dataset.shopFilter:'all';dlfr109ApplyFilters();return;}
+  const collectionBtn=ev.target.closest('[data-shop-owned]');
+  if(collectionBtn){dlfr109Collection=!dlfr109Collection;dlfr109ApplyFilters();return;}
   const buy=ev.target.closest('[data-v81-buy]');
   if(buy){buy.disabled=true;try{const {error}=await db.rpc('dlfr_reward_buy',{p_item_key:buy.dataset.v81Buy});if(error)throw error;toast('Objet ajouté à ta collection !');await v81RewardsRender();}catch(err){toast('Achat impossible : '+err.message);buy.disabled=false;}return;}
   const equip=ev.target.closest('[data-v81-equip]');
-  if(equip){equip.disabled=true;try{const item=equip.textContent.includes('Équipé')?'':equip.dataset.v81Equip;const category=equip.dataset.v81Category;const {error}=await db.rpc('dlfr_reward_equip',{p_item_key:item,p_category:category});if(error)throw error;toast('Vitrine mise à jour !');V90_FX.t=0;if(category==='theme'){if(item==='theme_halloween'){v82HalloweenOwned=true;setTheme('halloween');}else if(v96StoredTheme()==='halloween')setTheme('light');}await v81RewardsRender();}catch(err){toast('Équipement impossible : '+err.message);equip.disabled=false;}return;}
+  if(equip){equip.disabled=true;try{const item=(equip.dataset.v81Unequip==='true'||equip.textContent.includes('Équipé'))?'':equip.dataset.v81Equip;const category=equip.dataset.v81Category;const {error}=await db.rpc('dlfr_reward_equip',{p_item_key:item,p_category:category});if(error)throw error;toast('Vitrine mise à jour !');V90_FX.t=0;if(category==='theme'){if(item==='theme_halloween'){v82HalloweenOwned=true;setTheme('halloween');}else if(v96StoredTheme()==='halloween')setTheme('light');}await v81RewardsRender();}catch(err){toast('Équipement impossible : '+err.message);equip.disabled=false;}return;}
   const reaction=ev.target.closest('[data-v79-react]');
   if(reaction){
    if(!state.session){toast('Connecte-toi pour réagir.');return;}
@@ -3343,6 +3434,11 @@ function bootEvents(){
   const matches=players.filter(p=>key((p.username||'')+' '+p.player_key).includes(needle)).slice(0,35);
   select.replaceChildren(...matches.map(p=>new Option((p.username||'Joueur')+' · '+p.player_key,p.player_key)));
   select.selectedIndex=-1;
+ });
+ document.addEventListener('input',ev=>{
+  if(ev.target.id!=='dlfr109-search')return;
+  dlfr109Search=String(ev.target.value||'').toLocaleLowerCase('fr').trim();
+  dlfr109ApplyFilters();
  });
  document.addEventListener('input',ev=>{
   if(ev.target.id!=='mySubmissionSearch')return;
