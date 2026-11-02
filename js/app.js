@@ -111,7 +111,7 @@ function startOptionalGroup(name){
  });
 }
 
-let db = null, state = { data:null, staff:false, staffRole:null, session:null, country:'MONDE', region:'ALL', selectedPlayer:'', list:'main', keyword:'', busy:false, statsTab:'players', statsYear:'all', comparePlayer:'', profileTab:'overview', activityTab:'following', selectedRegion:'BRE', regionsSort:'points', regionsGeometryRequested:false, newsFilter:'all', newsSearch:'', adminTab:'overview', editingNews:null, unrated:false, calcPlayer:'', calcDemons:[], calcNlw:false, unbeatSearch:'', unbeatLimit:120, communityExcel:{status:'idle',items:[],message:'',offline:false}, demoRole:'owner', demoActor:'spleen', selectedClan:1, clanSort:'points', clanSearch:'', clanDetailTab:'overview', ownKey:null, ownAccountMessage:'', mySubmissionFilter:'all', mySubmissionSearch:'', ownerPreview:'owner', ownerPreviewQueue:[], ownerPreviewError:'', teamCandidates:[], teamCandidatesReady:false, teamCandidatesError:'', mergedSourceKeys:[], mergedSourceError:'', mergeRequests:[], mergeRequestCandidates:[], mergeRequestsError:'', mergeCandidatesError:'', clanInbox:[], clanCandidates:[], clanExtraError:'', usernameAccount:null, usernameAccountError:'' };
+let db = null, state = { cardsLabAccess:false, data:null, staff:false, staffRole:null, session:null, country:'MONDE', region:'ALL', selectedPlayer:'', list:'main', keyword:'', busy:false, statsTab:'players', statsYear:'all', comparePlayer:'', profileTab:'overview', activityTab:'following', selectedRegion:'BRE', regionsSort:'points', regionsGeometryRequested:false, newsFilter:'all', newsSearch:'', adminTab:'overview', editingNews:null, unrated:false, calcPlayer:'', calcDemons:[], calcNlw:false, unbeatSearch:'', unbeatLimit:120, communityExcel:{status:'idle',items:[],message:'',offline:false}, demoRole:'owner', demoActor:'spleen', selectedClan:1, clanSort:'points', clanSearch:'', clanDetailTab:'overview', ownKey:null, ownAccountMessage:'', mySubmissionFilter:'all', mySubmissionSearch:'', ownerPreview:'owner', ownerPreviewQueue:[], ownerPreviewError:'', teamCandidates:[], teamCandidatesReady:false, teamCandidatesError:'', mergedSourceKeys:[], mergedSourceError:'', mergeRequests:[], mergeRequestCandidates:[], mergeRequestsError:'', mergeCandidatesError:'', clanInbox:[], clanCandidates:[], clanExtraError:'', usernameAccount:null, usernameAccountError:'' };
 // V100 : classement privé des décisions de modération, uniquement via une RPC agrégée.
 Object.assign(state,{
  moderationLeaderboard:[],modLeaderboardPeriod:0,modLeaderboardLoading:false,
@@ -616,6 +616,7 @@ async function load(){
  }catch(err){console.error("[DLFR] Chargement initial :",err);el.innerHTML=`<div class="center-panel" role="alert"><h2>Impossible de charger la Demonlist</h2><p>Les données sont momentanément indisponibles. Réessaie dans quelques instants.</p><button type="button" class="btn" onclick="location.reload()">Réessayer</button></div>`;}
 }
 async function checkStaff(){
+ state.cardsLabAccess=false;
  if(!LIVE)return;
  state.staff=false;state.staffRole=null;
  state.ownerPreview='owner';
@@ -626,6 +627,12 @@ async function checkStaff(){
   const nlw=await db.from('nlw_staff_roles').select('auth_user_id').eq('auth_user_id',state.session.user.id).maybeSingle();
   if(!nlw.error&&nlw.data){state.staffRole='nlw';state.staff=true;}
  }
+ // V112 : vérification côté serveur de l'accès exclusif au laboratoire.
+ try{
+  const {data,error}=await db.rpc('dlfr_cards_lab_access');
+  state.cardsLabAccess=!error&&data===true;
+  if(error)console.warn('[DLFR Cards] Accès laboratoire indisponible :',error.message);
+ }catch(error){state.cardsLabAccess=false;console.warn('[DLFR Cards] Accès refusé :',error);}
 }
 async function checkSelfOwner(){
  state.ownKey=null;state.ownAccountMessage='';
@@ -2610,7 +2617,12 @@ function render(){
  }
  if(page==='admin'&&state.adminTab==='leaderboard'&&!state.modLeaderboardReady&&!state.modLeaderboardLoading)void loadModeratorLeaderboard();
  if(page==='admin'&&state.adminTab==='requests'&&state.staff&&state.session?.user?.id&&!ownerPreviewActive()&&!state.reversalReady&&!state.reversalLoading)void loadReversalList();
- const content=page==='archive'?archivePage():page==='stats'?statsPage():page==='player'?playerPage():page==='players'?playersPage():page==='my-profile'?selfProfilePage():page==='shop'?shopPage():page==='my-submissions'?mySubmissionsPage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():page==='packs'?packPage():page==='regions'?regionsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;
+ // Activer le rendu du labo seulement après validation Supabase.
+ if(window.DLFR_CARDS_LAB)window.DLFR_CARDS_LAB.setGate(!!(state.cardsLabAccess&&state.session));
+ const content=page==='cards-lab'?((state.cardsLabAccess&&state.session&&window.DLFR_CARDS_LAB)?window.DLFR_CARDS_LAB.view(state.data):'<section class="center-panel"><h2>Laboratoire privé</h2><p>Ce prototype est réservé au compte propriétaire autorisé. Connecte-toi avec ton compte habituel pour y accéder.</p><a class="btn subtle" href="?page=my-profile" data-nav>Mon compte</a></section>'):page==='archive'?archivePage():page==='stats'?statsPage():page==='player'?playerPage():page==='players'?playersPage():page==='my-profile'?selfProfilePage():page==='shop'?shopPage():page==='my-submissions'?mySubmissionsPage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():page==='packs'?packPage():page==='regions'?regionsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;
+ // V112 — le lien privé ne doit être visible que lorsque le serveur a autorisé ce compte.
+ const cardsLabNav=document.getElementById('dlfr112PrivateNav');
+ if(cardsLabNav) cardsLabNav.hidden=!(state.cardsLabAccess&&state.session);
  // Donner un accès clair à l'inscription et à la connexion, sans modifier la navigation existante.
  const accountNavLink=document.querySelector('a[data-link="my-profile"]');
  if(accountNavLink) accountNavLink.textContent=state.session?'Mon profil':'Se connecter / Créer un compte';
@@ -2629,7 +2641,7 @@ function render(){
      });
    }
  }
- if(page==='admin'&&state.adminTab==='levels'&&['nlw','moderator'].includes(state.staffRole))scopedLevelSearch('');if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();if(page==='admin'&&state.adminTab==='levels'){arrangeLevelsPanel();syncLevelStudio();}document.title=({list:'Demonlist',stats:'Statistiques',player:'Profil joueur',players:'Profils des joueurs',news:'Actualités',activity:'Vie communautaire',regions:'Carte des régions',packs:'Level Packs',hall:'Palmarès & exploits',honors:'Palmarès & exploits',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Palmarès & exploits',clans:'Clans',history:'Historique','my-profile':'Mon profil','shop':'Boutique','my-submissions':'Mes soumissions','submit-record':'Soumettre un record',demon:'Niveau',archive:'Archives historiques'})[page]+' · DemonlistFrancophone';
+ if(page==='admin'&&state.adminTab==='levels'&&['nlw','moderator'].includes(state.staffRole))scopedLevelSearch('');if(page==='admin'&&state.adminTab==='profiles')fillProfileEditor();if(page==='admin'&&state.adminTab==='levels'){arrangeLevelsPanel();syncLevelStudio();}document.title=({list:'Demonlist',stats:'Statistiques',player:'Profil joueur',players:'Profils des joueurs',news:'Actualités',activity:'Vie communautaire',regions:'Carte des régions',packs:'Level Packs',hall:'Palmarès & exploits',honors:'Palmarès & exploits',admin:'Modération',calculator:'Calculateur',unbeaten:'Non vérifiés',achievements:'Palmarès & exploits',clans:'Clans',history:'Historique','my-profile':'Mon profil','shop':'Boutique','cards-lab':'Cards · Lab privé','my-submissions':'Mes soumissions','submit-record':'Soumettre un record',demon:'Niveau',archive:'Archives historiques'})[page]+' · DemonlistFrancophone';
  if(PERF_DEBUG)console.info('[DLFR perf] Rendu',page,Math.round(perfNow()-start)+' ms');
  }catch(error){showPageError(error);}
 }
@@ -2818,7 +2830,7 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   if(!confirm('Supprimer définitivement ton compte DLFR ? Cette action est irréversible.'))return;
   await USERNAME_AUTH.removeAccount(db,C,f.confirmation,f.password||'');
   try{await db.auth.signOut({scope:'local'});}catch{}
-  state.session=null;state.ownKey=null;state.usernameAccount=null;state.usernameAccountError='';state.staff=false;state.staffRole=null;
+  state.session=null;state.ownKey=null;state.usernameAccount=null;state.usernameAccountError='';state.staff=false;state.staffRole=null;state.cardsLabAccess=false;window.DLFR_CARDS_LAB?.setGate(false);
   toast('Compte supprimé.');render();return;
  }
  if(type==='attachUsername'){
@@ -3382,10 +3394,10 @@ function bootEvents(){
  if(act.dataset.action==='discordUseAvatar'&&LIVE){const picture=DISCORD.sessionDiscordIdentity(state.session)?.avatar_url;const field=document.querySelector('[data-form="selfProfile"] input[name="avatar_url"]');if(picture&&field){field.value=picture;field.focus();toast('Avatar Discord copié dans le champ. Enregistre le profil pour confirmer.');}return;}
  if(act.dataset.action==='moreUnbeaten'){state.unbeatLimit+=120;const results=$('unbeatenResults');if(results)results.innerHTML=unbeatenEntriesHTML();return;}
  if(act.dataset.action==='toggleUnratedStats'){state.unrated=!state.unrated;refreshUnrated();render();return;}
- if(act.dataset.action==='selfLogout'&&LIVE){await db.auth.signOut();state.session=null;state.ownKey=null;state.usernameAccount=null;state.staff=false;render();return;}
+ if(act.dataset.action==='selfLogout'&&LIVE){await db.auth.signOut();state.session=null;state.ownKey=null;state.usernameAccount=null;state.staff=false;state.cardsLabAccess=false;window.DLFR_CARDS_LAB?.setGate(false);render();return;}
  if(act.dataset.action==='clearCalc'){state.calcDemons=[];render();return;}
  if(act.dataset.action==='cancelNews'){state.editingNews=null;const form=document.querySelector('[data-form="news"]');if(form){form.reset();form.elements.news_id.value='';updateNewsPreview(form);}return;}
- if(act.dataset.action==='logout'&&LIVE){await db.auth.signOut();state.session=null;state.usernameAccount=null;state.staff=false;render();}
+ if(act.dataset.action==='logout'&&LIVE){await db.auth.signOut();state.session=null;state.usernameAccount=null;state.staff=false;state.cardsLabAccess=false;window.DLFR_CARDS_LAB?.setGate(false);render();}
  });
  document.addEventListener('focusin',ev=>{if(ev.target.id==='levelStudioSearch')levelStudioChoices(ev.target.value);});
  document.addEventListener('input',ev=>{

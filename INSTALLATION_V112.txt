@@ -1,0 +1,48 @@
+DLFR V112 — DLFR CARDS : LABORATOIRE PRIVÉ / TEST SANS SAUVEGARDE
+================================================================
+Base : V111 (boutique avec niveau de la semaine) + V110 (navigation 2 rangées)
+
+À copier dans GitHub Pages en CONSERVANT TOUS LES AUTRES FICHIERS :
+ - index.html           (remplacer)
+ - js/app.js            (remplacer)
+ - js/v112-cards-lab.js (ajouter)
+ - css/v112-cards-lab.css (ajouter)
+
+NE PAS remplacer assets/flags/ ni les images/customisations.
+Aucune modification des classements, clans, comptes, monnaie, récompenses ou records.
+
+SQL : DÉJÀ INSTALLÉ ET TESTÉ dans Supabase, fonction :
+ public.dlfr_cards_lab_access() returns boolean
+ - TRUE seulement pour le compte propriétaire historique « Spleen »
+ - FALSE pour le second propriétaire et pour les autres membres
+ - les visiteurs anonymes n'ont pas le droit EXECUTE
+ - aucune nouvelle table d'inventaire, aucun enregistrement de cartes ou d'échanges
+
+UTILISATION :
+ 1. Publier les quatre fichiers ci-dessus.
+ 2. Se connecter au compte autorisé et actualiser (Ctrl+F5).
+ 3. Aller dans Mon espace > « DLFR Cards · Laboratoire privé ».
+    URL : ?page=cards-lab
+ 4. Essayer l'album, les cartes, les raretés, l'holographie et les échanges fictifs.
+ 5. Un rechargement ou une fermeture d'onglet efface les essais (inventaire en mémoire seulement).
+
+IMPORTANT :
+ - L'accès a été réservé au profil « Spleen » car il correspond au premier propriétaire
+   connu dans cette base. Si votre propre compte est l'autre propriétaire, il faudra
+   changer explicitement le compte autorisé après identification.
+ - GitHub Pages sert les fichiers HTML/JS/CSS publiquement : les scripts restent
+   consultables, même si le labo n'est pas accessible par l'interface normale.
+   Ce mode est un banc d'essai, pas une zone de stockage d'informations secrètes.
+ - Les échanges sont purement fictifs : aucun autre joueur n'est impliqué.
+ - Aucun achat réel, aucune dépense de Wayllings, aucune sauvegarde de carte.
+ - Les images de niveau utilisent les miniatures déjà disponibles sur la DLFR
+   quand elles existent, sinon le cadre affiche un symbole graphique temporaire.
+
+VALIDATIONS :
+ - JavaScript vérifié (node --check).
+ - Module du labo testé dans Chromium pour le rendu et les actions.
+ - 50 cartes affichées ; pouvoir « toutes les cartes » : 50/50.
+ - Échange fictif effectué dans le navigateur ; remise à zéro testée.
+ - Affichage mobile 390px et ordinateur 1280px vérifié sans overflow.
+ - Fonction SQL : Spleen TRUE / copropriétaire FALSE / anon EXECUTE FALSE.
+ - Tests d'intégration réels sur GitHub Pages toujours à effectuer après publication.
