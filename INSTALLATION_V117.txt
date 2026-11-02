@@ -1,0 +1,90 @@
+DLFR V117 — OUVERTURES CINÉMATIQUES & PROGRESSION LONGUE (laboratoire privé)
+===========================================================================
+BASE : V116 installée (et les versions antérieures V112 à V115).
+
+INSTALLATION GITHUB PAGES :
+  1. Remplacer index.html à la racine par celui de ce ZIP.
+  2. Ajouter js/v117-cards-lab.js.
+  3. Ajouter css/v117-cards-lab.css.
+  4. GARDER css/v116-cards-lab.css (toujours chargé : styles de base des cartes et de l'album).
+  5. Publier, puis actualiser avec Ctrl + F5.
+
+Ne pas remplacer js/app.js. Ne pas exécuter de SQL.
+Ne pas écraser assets/flags/ ni d'autres fichiers/images personnalisés.
+js/v116-cards-lab.js peut rester dans le dépôt : il n'est plus chargé.
+
+1) OUVERTURE DES BOOSTERS (plein écran)
+---------------------------------------
+- Chaque booster a son illustration et sa couleur (7 boosters).
+- Déchirure à la main : glisser le long de la ligne pointillée (souris ou doigt),
+  ou cliquer / Espace pour une déchirure automatique.
+- Le haut du paquet s'envole, un faisceau de lumière sort, les cartes montent en pile.
+- Les cartes arrivent de la moins rare à la plus rare (la meilleure à la fin).
+- Le dos de la carte trahit la rareté : halo violet (Épique), doré (Légendaire),
+  arc-en-ciel (Mythique). Les cartes rares tremblent et se chargent avant de se retourner.
+- Révélation : explosion de particules à la couleur de la rareté, rayons tournants,
+  flash blanc dès Légendaire, secousse de l'écran et confettis pour une Mythique.
+- La carte révélée s'incline avec la souris (reflet de lumière).
+- Finitions : Holo, Prismatique (bord arc-en-ciel animé), Obsidienne (noire et rouge).
+- Bilan animé : cartes distribuées, compteurs d'éclats / poussière / XP,
+  barre d'XP qui se remplit, annonce de passage de niveau, bouton « Rouvrir ».
+- Sons synthétisés optionnels (bouton « Son », désactivé par défaut).
+- Clavier : Espace/Entrée = avancer, Échap = tout révéler puis fermer.
+- Respect du réglage système « réduire les animations ».
+
+2) PROGRESSION LONGUE
+---------------------
+- Niveaux 1 → 100, courbe d'XP croissante ; 11 rangs inspirés de Geometry Dash
+  (Easy, Normal, Hard, Harder, Insane, Easy Demon … Extreme Demon, Grand Démon).
+  Récompenses de niveau : éclats, 1 clé tous les 5 niveaux, poussière tous les 10.
+- 4 ressources : Éclats ◆ (boosters, talents), Poussière ✧ (Forge, vient des doublons),
+  Clés 🔑 (coffres spéciaux), Renaissance ✺ (bonus permanents).
+- 7 boosters débloqués par niveau : Découverte, Explorateur, GD Legends, Joueurs FR,
+  Prestige, Coffre Démoniaque (1 clé), Relique Mythique (3 clés + éclats).
+- Garanties (pitié) affichées : Légendaire après 45 cartes sans, Mythique après 220.
+- Expéditions à durée réelle : 7 destinations de 2 min à 12 h (Stereo Madness → Avernus),
+  jusqu'à 4 camps simultanés, butin croissant (clés, poussière, cartes).
+- Arbre de talents : 3 branches × 6 talents à plusieurs rangs + 2 talents ultimes.
+  59 points pour tout débloquer, mais seulement 1 + niveau/2 (+3 par Renaissance)
+  disponibles : il faut faire des choix.
+- Forge : étoiles ★1 à ★5 par carte (doublons + poussière), fabrication des cartes
+  manquantes, recyclage des doublons des cartes ★5.
+- Puissance de collection ⚡ (rareté × étoiles × finition) : 9 paliers, +3 % d'XP
+  et d'éclats par palier.
+- Missions : 3 missions actives, remplacées dès qu'elles sont réclamées, récompenses
+  qui suivent le niveau ; changement possible contre des éclats.
+- 38 succès avec récompenses et titres à afficher.
+- 8 séries à compléter (dont versions Holo, Prismatique et ★3) : +5 % d'éclats chacune.
+- Renaissance dès le niveau 60 : retour au niveau 1, on garde la collection ;
+  chaque ✺ donne +10 % d'XP et d'éclats et +3 points de talent (10 maximum).
+
+Ordre de grandeur (jeu actif) : niveau 10 en ~2 h, niveau 60 en plusieurs dizaines
+d'heures, niveau 100 et les Renaissances bien au-delà.
+
+3) CONSOLE ADMIN (onglet « Pouvoirs admin »)
+--------------------------------------------
++1 000 éclats, +500 poussière, +5 clés, +5 niveaux, terminer les expéditions,
+réinitialiser les talents (remboursés), simulateur d'équilibrage (1 000 boosters,
+rien n'est donné), raretés fictives, collection complète.
+
+SESSIONS :
+- Nouveau format d'export (version 2) avec toute la progression.
+- Les exports V114 / V115 / V116 sont acceptés : niveau, éclats, cartes et créations
+  sont repris ; l'ancienne holographie devient la finition Holo ; les anciens
+  talents sont rendus sous forme de points (l'arbre a changé).
+- Les sessions modifiées à la main (talents impossibles, valeurs hors limites) sont refusées.
+
+IMPORTANT — TOUJOURS UN PROTOTYPE :
+- Rien n'est enregistré automatiquement (ni Supabase, ni localStorage).
+  Exporter la session avant d'actualiser la page.
+- Les minuteurs d'expédition et les tirages sont calculés dans le navigateur.
+  Pour une version publique, tirages, minuteurs et inventaires devront être
+  vérifiés côté serveur (Supabase) afin d'empêcher la triche.
+- Aucune monnaie réelle, aucun Waylling.
+
+TESTS EFFECTUÉS :
+Syntaxe JS (node --check) ; parcours complet dans Chromium à 1280 px et 390 px
+(déchirure au glisser, révélation, rareté Mythique, bilan, boosters, expéditions,
+talents, Forge, objectifs) sans erreur JS ni défilement horizontal ;
+import d'une session V116, aller-retour export/import V117, refus d'une session falsifiée.
+Le fonctionnement sur GitHub Pages après déploiement reste à confirmer.
