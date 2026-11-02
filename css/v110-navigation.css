@@ -1,0 +1,152 @@
+/* DLFR V110 - navigation sur deux rangées, compatible avec V109.
+   Styles volontairement limités au header, pour ne pas affecter la boutique,
+   les thèmes, le profil ou la modération. */
+.site-header .navigation{
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  flex-wrap:nowrap;
+  max-width:1260px;
+  min-height:0;
+  margin:0 auto;
+  padding:9px clamp(12px,2.1vw,26px) 8px;
+  gap:7px;
+}
+.site-header .navigation .dlfr110-top,
+.site-header .navigation .dlfr110-bottom{
+  width:100%;
+  min-width:0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.site-header .navigation .dlfr110-top{
+  min-height:39px;
+}
+.site-header .navigation .dlfr110-bottom{
+  min-height:45px;
+  border-top:1px solid var(--line,rgba(170,170,190,.16));
+  padding-top:7px;
+}
+.site-header .navigation .dlfr110-top .brand{
+  flex:0 1 auto;
+  min-width:0;
+  margin:0;
+  font-size:17px;
+  font-weight:800;
+  text-decoration:none;
+  white-space:nowrap;
+  line-height:1.2;
+}
+.site-header .navigation .dlfr110-top .v58-social-links{
+  display:flex;
+  flex:0 0 auto;
+  align-items:center;
+  justify-content:flex-end;
+  width:auto;
+  gap:7px;
+}
+.site-header .navigation .dlfr110-top .v58-social-link{
+  flex:0 0 36px;
+  max-width:none;
+  width:36px;
+  min-width:36px;
+  height:36px;
+  min-height:36px;
+  border-radius:9px;
+}
+.site-header .navigation .dlfr110-bottom .nav-links{
+  order:0;
+  flex:1 1 auto;
+  display:flex;
+  min-width:0;
+  width:auto;
+  max-width:none;
+  margin:0;
+  flex-wrap:nowrap;
+  justify-content:flex-start;
+  align-items:center;
+  gap:5px;
+  overflow:visible;
+}
+.site-header .navigation .dlfr110-bottom .nav-links>.nav-primary,
+.site-header .navigation .dlfr110-bottom .nav-menu>summary{
+  min-height:39px;
+  font-size:12px;
+  white-space:nowrap;
+  padding:9px 11px;
+}
+.site-header .navigation .dlfr110-bottom .nav-tools{
+  order:0;
+  display:flex;
+  flex:0 0 auto;
+  min-width:0;
+  width:auto;
+  margin:0;
+  padding:0;
+  align-items:center;
+  justify-content:flex-end;
+  flex-wrap:nowrap;
+  gap:9px;
+}
+/* Le raccourci Discord généré par le JS double le bouton Discord déjà présent en haut. */
+.site-header .navigation .dlfr110-bottom .nav-tools>.dlfr27-discord-link{display:none}
+.site-header .navigation .dlfr110-bottom .nav-theme,
+.site-header .navigation .dlfr110-bottom .unrated-switch{margin:0;flex:0 0 auto}
+.site-header .navigation .dlfr110-bottom .nav-theme select{width:auto;max-width:150px;min-width:90px}
+/* La boutique doit rester directement visible sur la barre principale. */
+.site-header .navigation .dlfr110-bottom .nav-links>.dlfr109-shop-nav{display:flex!important}
+.site-header .navigation .dlfr110-bottom .nav-menu-panel .dlfr109-mobile-shop{display:none!important}
+/* Sous 1050px, on conserve le logo et les réseaux en première ligne.
+   Les menus puis les réglages s'adaptent sans jamais se superposer. */
+@media(max-width:1050px){
+  .site-header .navigation .dlfr110-bottom{flex-wrap:wrap;row-gap:8px}
+  .site-header .navigation .dlfr110-bottom .nav-links{
+    order:0;flex:1 1 100%;width:100%;justify-content:center;
+  }
+  .site-header .navigation .dlfr110-bottom .nav-tools{
+    order:1;flex:1 1 100%;width:100%;
+    border-top:1px solid var(--line,rgba(170,170,190,.15));
+    padding-top:8px;
+    justify-content:center;
+  }
+}
+@media(max-width:680px){
+  .site-header{position:relative}
+  .site-header .navigation{padding:8px 10px;gap:5px}
+  .site-header .navigation .dlfr110-top .brand{width:auto;max-width:calc(100% - 98px);margin:0;text-align:left;flex:0 0 auto}
+  .site-header .navigation .dlfr110-top .brand .v62-brand-long{display:none}
+  .site-header .navigation .dlfr110-top .brand .v62-brand-short{display:inline}
+  .site-header .navigation .dlfr110-bottom .nav-links{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:6px;
+    align-items:stretch;
+    justify-content:stretch;
+  }
+  .site-header .navigation .dlfr110-bottom .nav-links>.nav-primary,
+  .site-header .navigation .dlfr110-bottom .nav-menu>summary{
+    width:100%;height:100%;min-height:40px;
+    white-space:normal;
+    font-size:11px;
+    padding:8px 6px;
+    text-align:center;
+  }
+  .site-header .navigation .dlfr110-bottom .nav-links>.nav-primary:last-child,
+  .site-header .navigation .dlfr110-bottom .nav-links>.nav-menu:last-child{grid-column:1/-1}
+  .site-header .navigation .dlfr110-bottom .nav-menu{min-width:0}
+  .site-header .navigation .dlfr110-bottom .nav-menu-panel{width:min(250px,88vw)}
+  .site-header .navigation .dlfr110-bottom .nav-tools{
+    justify-content:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .site-header .navigation .dlfr110-bottom .nav-theme select{max-width:118px}
+}
+@media(max-width:360px){
+  .site-header .navigation .dlfr110-bottom .nav-tools{gap:6px}
+  .site-header .navigation .dlfr110-bottom .nav-theme{font-size:11px}
+  .site-header .navigation .dlfr110-bottom .nav-theme select{max-width:90px}
+  .site-header .navigation .dlfr110-bottom .unrated-switch{font-size:10px;padding:7px 6px}
+}
