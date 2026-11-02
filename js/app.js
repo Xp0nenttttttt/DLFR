@@ -912,13 +912,33 @@ async function v80WeeklyRender(){
   const {data,error}=await db.rpc('dlfr_weekly_status');
   if(error)throw error;
   if(seq!==v80WeeklyLoad||!area.isConnected)return;
-  if(!data?.active){area.innerHTML='<span class="muted small">Aucun défi hebdomadaire publié pour cette semaine.</span>';return;}
+  if(!data?.active){
+   if(area.classList.contains('dlfr111-weekly-card')){
+    area.innerHTML='<div class="dlfr111-weekly-top"><span class="dlfr111-weekly-eyebrow">✦ Niveau de la semaine</span><span class="dlfr111-weekly-pulse">Bientôt</span></div><h2 class="dlfr111-weekly-empty-title">À venir</h2><p class="dlfr111-weekly-explainer">Aucun défi publié cette semaine. Consulte la boutique pour le prochain niveau.</p>';
+   }else area.innerHTML='<span class="muted small">Aucun défi hebdomadaire publié pour cette semaine.</span>';
+   return;
+  }
   const challenge=data.challenge||{};
   const claimed=!!data.claimed,eligible=!!data.eligible;
+  if(area.classList.contains('dlfr111-weekly-card')){
+   const levelLink=url('demon',{id:challenge.demon_id});
+   const label=esc(challenge.name||'Niveau hebdomadaire');
+   const reward=wayllingLabel(challenge.reward||50);
+   const rewardState=claimed?'<span class="dlfr111-weekly-state is-done">✓ Récompense récupérée</span>':
+     eligible?'<button type="button" class="btn small dlfr111-weekly-claim" data-v80-claim>Récupérer ma récompense</button>':
+     state.session?'<span class="dlfr111-weekly-state">En attente d’une complétion validée</span>':
+     `<a data-nav href="${url('my-profile')}" class="dlfr111-weekly-signin">Se connecter pour participer</a>`;
+   area.innerHTML=`<div class="dlfr111-weekly-top"><span class="dlfr111-weekly-eyebrow">✦ Niveau de la semaine</span><span class="dlfr111-weekly-pulse">● En cours</span></div>
+    <div class="dlfr111-weekly-heading"><span class="dlfr111-weekly-symbol" aria-hidden="true">✦</span><div><div class="dlfr111-weekly-name-label">Défi de la semaine</div><h2><a data-nav href="${levelLink}">${label}</a></h2></div></div>
+    <div class="dlfr111-weekly-reward"><span>Récompense</span><strong>✦ +${reward}</strong></div>
+    <p class="dlfr111-weekly-explainer">Complète le niveau à 100 % cette semaine, fais valider ton record et récupère tes Wayllings dorés.</p>
+    <div class="dlfr111-weekly-actions"><a data-nav class="dlfr111-weekly-level" href="${levelLink}">Voir le niveau <span aria-hidden="true">↗</span></a>${rewardState}</div>`;
+   return;
+  }
   area.innerHTML=`<div class="v80-weekly-title"><span>✦ Défi de la semaine</span><span class="v80-wallet">🪙 ${esc(data.wallet??0)} pièces</span></div>
   <p><a data-nav href="${url('demon',{id:challenge.demon_id})}"><strong>${esc(challenge.name||'Niveau hebdomadaire')}</strong></a> <span class="muted small">· +${wayllingLabel(challenge.reward||50)}</span></p>
   <p class="small muted">Complète le niveau à 100 % pendant la semaine du défi, puis réclame ta récompense. Les points DLFR ne changent pas.</p>
-  ${claimed?'<span class="v80-weekly-done">✓ Récompense récupérée</span>':eligible?'<button type="button" class="btn small" data-v80-claim>Récupérer mes pièces</button>':state.session?'<span class="small muted">En attente d’une complétion validée cette semaine.</span>':'<span class="small muted">Connecte-toi pour participer.</span>'}`;
+  ${claimed?'<span class="v80-weekly-done">✓ Récompense récupérée</span>':eligible?'<button type="button" class="btn small" data-v80-claim>Récupérer mes Wayllings dorés</button>':state.session?'<span class="small muted">En attente d’une complétion validée cette semaine.</span>':'<span class="small muted">Connecte-toi pour participer.</span>'}`;
  }catch(err){if(seq===v80WeeklyLoad&&area.isConnected){area.innerHTML='<span class="muted small">Défis indisponibles : la migration V80 est-elle installée ?</span>';}}
 }
 // V81 : boutique cosmétique, monnaie et équipement, sans toucher aux points DLFR.
@@ -980,7 +1000,10 @@ function shopPage(){
    <h1 id="dlfr109-title">La boutique</h1>
    <p>Personnalise ta fiche avec des cadres, des bannières, des badges et des thèmes. Tes points de classement ne changent pas.</p>
   </div>
-  <div class="dlfr109-hero-art" aria-hidden="true"><span class="dlfr109-hero-orb"></span><span class="dlfr109-hero-spark">✦</span><span class="dlfr109-hero-ring"></span></div>
+  <aside id="v80-weekly" class="v80-weekly dlfr111-weekly-card" aria-label="Niveau de la semaine" aria-live="polite">
+   <span class="dlfr111-weekly-eyebrow">✦ Défi hebdomadaire</span>
+   <div class="dlfr111-weekly-loading">Chargement du niveau de la semaine…</div>
+  </aside>
  </header>
  <div id="v81-rewards" class="v81-rewards dlfr109-shop-root" aria-live="polite"><div class="dlfr109-loading">Chargement de la boutique…</div></div>
  <p class="dlfr109-shop-footnote">Les achats et équipements sont enregistrés sur ton compte DLFR. Les objets d'essai du propriétaire ne coûtent aucun Waylling doré.</p>
@@ -1117,7 +1140,7 @@ function listPage(){
  const heading={main:'Geometry Dash Demonlist',nlw:'NLW · Non List Worthy',legacy:'Legacy List'}[sLabel];
  const description={main:'Les 150 niveaux classés de la DemonlistFrancophone.',nlw:'Les niveaux NLW publiés et les archives historiques. En activant UNRATED, les niveaux non homologués s’insèrent aux rangs simulés et décalent les suivants, sans modifier les positions officielles.',legacy:'Anciens niveaux de la Main List, après validation de leur statut Legacy.'}[sLabel];
  const html=sLabel==='nlw'?nlwListCards(state.keyword):cardsHTML(levels.filter(x=>key(x.name).includes(key(state.keyword))));
- return `${templateNotice()}${state.unrated?callout('<b>Mode UNRATED</b> — estimation alternative des positions et points, sans modifier le classement officiel.'):''}${top}<div id="v80-weekly" class="v80-weekly" aria-live="polite"><span class="muted small">Chargement du défi hebdomadaire…</span></div><div class="page-columns"><section><div class="center-panel"><h1>${heading}</h1><p>${description}</p><label class="filterbox"><span>⌕</span><input id="demonSearch" type="search" placeholder="Filtrer les niveaux affichés..." value="${esc(state.keyword)}" autocomplete="off"></label></div><div id="demonItems">${html}</div></section><aside class="right-side"><div class="info-panel right-panel"><h2>Éditeurs de liste</h2><p>Contacter les éditeurs pour les changements de classement.</p>${staffNamesHTML("general")}<h2>Équipe NLW</h2><p>L’équipe chargée de la liste NLW.</p>${staffNamesHTML("nlw")}</div>${listNewsSidebar()}${submissionGuidelinesSidebar()}</aside></div>`;
+ return `${templateNotice()}${state.unrated?callout('<b>Mode UNRATED</b> — estimation alternative des positions et points, sans modifier le classement officiel.'):''}${top}<div class="page-columns"><section><div class="center-panel"><h1>${heading}</h1><p>${description}</p><label class="filterbox"><span>⌕</span><input id="demonSearch" type="search" placeholder="Filtrer les niveaux affichés..." value="${esc(state.keyword)}" autocomplete="off"></label></div><div id="demonItems">${html}</div></section><aside class="right-side"><div class="info-panel right-panel"><h2>Éditeurs de liste</h2><p>Contacter les éditeurs pour les changements de classement.</p>${staffNamesHTML("general")}<h2>Équipe NLW</h2><p>L’équipe chargée de la liste NLW.</p>${staffNamesHTML("nlw")}</div>${listNewsSidebar()}${submissionGuidelinesSidebar()}</aside></div>`;
 }
 function completionLinks(levels){return levels.length?levels.sort((a,b)=>a.position-b.position).map(d=>`<a class="link" href="${url('demon',{id:d.id})}" data-nav>#${esc(d.position)} ${esc(d.name)}</a>`).join(' - '):'<span class="muted">Aucun</span>';}
 // V66 : le classement NLW commence à #1 pour la position globale 151.
@@ -2591,7 +2614,7 @@ function render(){
  // Donner un accès clair à l'inscription et à la connexion, sans modifier la navigation existante.
  const accountNavLink=document.querySelector('a[data-link="my-profile"]');
  if(accountNavLink) accountNavLink.textContent=state.session?'Mon profil':'Se connecter / Créer un compte';
- if(page==='list')v80WeeklyRender();if(page==='shop')v81RewardsRender();if(page==='admin'&&state.adminTab==='weekly'&&state.staffRole==='owner'&&!ownerPreviewActive())v86AdminLoad();
+ if(page==='shop'){v80WeeklyRender();v81RewardsRender();}if(page==='admin'&&state.adminTab==='weekly'&&state.staffRole==='owner'&&!ownerPreviewActive())v86AdminLoad();
  if(page==='player'||(page==='my-profile'&&document.getElementById('v81-profile-rewards')))v81ProfileRewards();if(page==='stats'||page==='players')v90LoadFx();
  if(page==='admin'&&state.staffRole==='owner'){
    const switcher=document.createElement('section');switcher.className='paper owner-role-switcher';
@@ -3150,7 +3173,7 @@ function bootEvents(){
   if(weeklyClaimButton){
    weeklyClaimButton.disabled=true;
    try{const {error}=await db.rpc('dlfr_weekly_claim');if(error)throw error;toast('Récompense hebdomadaire récupérée !');await v80WeeklyRender();}
-   catch(err){toast('Impossible de récupérer les pièces : '+err.message);weeklyClaimButton.disabled=false;}
+   catch(err){toast('Impossible de récupérer les Wayllings dorés : '+err.message);weeklyClaimButton.disabled=false;}
    return;
   }
   const categoryBtn=ev.target.closest('[data-shop-filter]');

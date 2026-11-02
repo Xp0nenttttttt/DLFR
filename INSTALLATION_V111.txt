@@ -1,0 +1,19 @@
+DLFR V111 — Défi hebdomadaire dans la boutique
+Base : V110 (navigation deux rangées), V109 (boutique dédiée).
+
+INSTALLATION (GitHub Pages)
+1) Remplacer index.html à la racine du dépôt.
+2) Remplacer js/app.js par le fichier du ZIP.
+3) Ajouter css/v111-weekly-shop.css.
+4) Publier et recharger avec Ctrl+F5.
+
+CHANGEMENTS
+- Le niveau de la semaine n'apparaît plus au-dessus du classement Demonlist.
+- Dans ?page=shop, il remplace la planète décorative, à droite de l'en-tête.
+- Affiche le nom réel, le lien vers sa fiche, les Wayllings dorés gagnables et le statut de réclamation.
+- Bouton Récupérer la récompense lorsque la complétion est éligible, sans changer les RPC Supabase.
+- Affichage responsive, y compris mobile; état vide si aucun défi actif.
+- La programmation hebdomadaire par propriétaire reste dans Modération > Défis & tests.
+
+Aucun SQL, aucune modification des données, des récompenses, des bannières, des drapeaux ou des clans.
+IMPORTANT : conserver les fichiers CSS/JS des versions antérieures déjà installées.
