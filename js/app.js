@@ -1004,7 +1004,7 @@ function dlfr109ApplyFilters(){
    btn.classList.toggle('active',active);
    btn.setAttribute('aria-pressed',String(active));
  });
- const own=root.querySelector('[data-shop-owned]');if(own){own.classList.toggle('active',dlfr109Collection);own.setAttribute('aria-pressed',String(dlfr109Collection));}
+ const own=root.querySelector('.dlfr109-mycollection[data-shop-owned]');if(own){own.classList.toggle('active',dlfr109Collection);own.setAttribute('aria-pressed',String(dlfr109Collection));}
  const empty=root.querySelector('#dlfr109-empty');if(empty)empty.hidden=visible>0;
  const count=root.querySelector('#dlfr109-visible');if(count)count.textContent=String(visible);
 }
@@ -1041,15 +1041,15 @@ function dlfr109ShopContent(status,items,owns,equip){
    const price=Number(item.price)||0;
    const category=dlfr109Cats[item.category]||'Cosmétique';
    const desc=item.category==='badge'?esc(item.description||'Un badge décoratif à exposer sur ton profil.'):
-     item.category==='theme'?'Change les couleurs et l’ambiance de ton site.':
+     item.category==='theme'?esc(THEMES.byItem.get(item.item_key)?.desc||item.description||'Change les couleurs et l’ambiance de ton site.'):
      item.category==='frame'?'Un cadre à mettre en valeur sur ta fiche.':'Une bannière pour personnaliser ton profil.';
    let action='';
-   if(!signed)action=`<a data-nav class="btn small" href="${url('my-profile')}">Se connecter</a>`;
+   if(!signed)action=`${item.category==='theme'&&THEMES.byItem.has(item.item_key)?`<button type="button" class="btn small subtle dlfr120-try" data-theme-try="${esc(THEMES.byItem.get(item.item_key).id)}">Essayer</button>`:''}<a data-nav class="btn small" href="${url('my-profile')}">Se connecter</a>`;
    else if(owned)action=`<button type="button" class="btn small ${equipped?'subtle':''}" data-v81-equip="${esc(item.item_key)}" data-v81-category="${esc(item.category)}" data-v81-unequip="${equipped}">${equipped?'Retirer':'Équiper'}</button>`;
-   else action=`<button type="button" class="btn small" data-v81-buy="${esc(item.item_key)}" ${Number(status.balance)<price?'disabled title="Solde insuffisant"':''}>Acheter</button>`;
+   else action=`${item.category==='theme'&&THEMES.byItem.has(item.item_key)?`<button type="button" class="btn small subtle dlfr120-try" data-theme-try="${esc(THEMES.byItem.get(item.item_key).id)}">Essayer</button>`:''}<button type="button" class="btn small" data-v81-buy="${esc(item.item_key)}" ${Number(status.balance)<price?'disabled title="Solde insuffisant"':''}>Acheter</button>`;
    const catClass=/^(frame|banner|badge|theme)$/.test(item.category)?item.category:'other';
    return `<article class="dlfr109-item v81-item v90-shop-item v90-item-${esc(item.item_key)}" data-shop-item data-shop-category="${esc(item.category)}" data-shop-owned="${owned}" data-shop-search="${esc(String(item.label||'').toLocaleLowerCase('fr'))}">
-    <div class="dlfr109-item-art dlfr109-category-${catClass}"><span class="v90-swatch" aria-hidden="true"></span><span class="dlfr109-art-emoji" aria-hidden="true">${esc(item.emoji||'✦')}</span></div>
+    <div class="dlfr109-item-art dlfr109-category-${catClass}">${item.category==='theme'&&THEMES.byItem.has(item.item_key)?THEMES.swatch(item.item_key):'<span class="v90-swatch" aria-hidden="true"></span>'}<span class="dlfr109-art-emoji" aria-hidden="true">${esc(item.emoji||'✦')}</span></div>
     <div class="dlfr109-item-content"><div class="dlfr109-item-label"><span class="dlfr109-category">${esc(category)}</span>${equipped?'<span class="dlfr109-pill dlfr109-equipped">✓ Équipé</span>':owned?'<span class="dlfr109-pill">Possédé</span>':''}</div>
     <h3>${esc(item.label)}</h3><p>${desc}</p>
     ${test?'<span class="dlfr109-test-note">Essai propriétaire actif</span>':''}</div>
@@ -3065,10 +3065,14 @@ function updateNewsPreview(form){if(!form)return;const holder=$('newsDraftPrevie
  holder.innerHTML=`<div class="news-meta"><span class="news-category">${esc(form.elements.category?.value||'Annonce')}</span>${form.elements.is_pinned?.checked?'<span class="news-pin">★ À la une</span>':''}</div><h4>${esc(headline)}</h4><p class="news-body">${esc(body.slice(0,350))}</p>${media&&imageLink(media)?`<img class="news-preview-img" src="${esc(imageLink(media))}" alt="Aperçu">`:''}`;
 }
 // Import JSON de démonstration désactivé.
-// V96 — le thème Halloween est un cosmétique du compte, et non une permission
-// dépendante de l'affichage de la boutique. On vérifie les droits serveur à
-// chaque changement de session puis on garde la préférence locale.
-let v82HalloweenOwned=false;
+// V96 → V120 — les thèmes premium (Halloween, Noël, Néon…) sont des cosmétiques du compte.
+// La possession est vérifiée côté serveur (dlfr_rewards_status) à chaque changement de session,
+// puis la préférence locale est conservée. Liste des thèmes : js/v120-themes.js.
+const THEMES=window.DLFR_THEMES||{list:[{id:'halloween',item:'theme_halloween',label:'Halloween ✦',cls:['halloween']}],byId:new Map([['halloween',{id:'halloween',item:'theme_halloween',label:'Halloween ✦',cls:['halloween']}]]),byItem:new Map([['theme_halloween',{id:'halloween',item:'theme_halloween',label:'Halloween ✦',cls:['halloween']}]]),ALL_CLASSES:['halloween'],swatch:()=>'',stopPreview:()=>{}};
+const BASE_THEMES=['light','dark','midnight','autumn'];
+const isPremiumTheme=id=>THEMES.byId.has(id);
+let ownedThemes=new Set();
+let activeTheme='light';
 let v96ThemeSessionId=undefined;
 let v96ThemeRequest=0;
 function v96StoredTheme(){
@@ -3078,42 +3082,43 @@ function v96StoredTheme(){
 function v96SyncThemeMenu(){
  const sel=$('themeSelect');
  if(!sel)return;
- let opt=sel.querySelector('option[value="halloween"]');
- if(v82HalloweenOwned&&!opt){opt=new Option('Halloween ✦','halloween');sel.add(opt);}
- if(!v82HalloweenOwned&&opt)opt.remove();
- const current=['halloween','autumn','midnight','dark'].find(name=>document.documentElement.classList.contains(name))||'light';
- if(sel.value!==current)sel.value=current;
+ for(const t of THEMES.list){
+  let opt=sel.querySelector(`option[value="${t.id}"]`);
+  if(ownedThemes.has(t.id)&&!opt){opt=new Option(t.label,t.id);sel.add(opt);}
+  if(!ownedThemes.has(t.id)&&opt)opt.remove();
+ }
+ if(sel.value!==activeTheme)sel.value=activeTheme;
 }
 function setTheme(theme,persist=true){
- const valid=['light','dark','midnight','autumn'];
- const t=theme==='halloween'&&v82HalloweenOwned?'halloween':valid.includes(theme)?theme:'light';
- document.documentElement.classList.remove('dark','midnight','autumn','halloween');
- if(t!=='light')document.documentElement.classList.add(t);
+ const t=isPremiumTheme(theme)?(ownedThemes.has(theme)?theme:'light'):BASE_THEMES.includes(theme)?theme:'light';
+ THEMES.stopPreview?.(true);
+ const html=document.documentElement;
+ html.classList.remove('dark','midnight','autumn',...THEMES.ALL_CLASSES);
+ const premium=THEMES.byId.get(t);
+ if(premium)html.classList.add(...premium.cls);else if(t!=='light')html.classList.add(t);
+ activeTheme=t;
  v96SyncThemeMenu();
  if(persist){try{localStorage.setItem('demonlist-theme',t);}catch{}}
 }
 function v96ApplyHalloweenStatus(status){
  const inventory=new Set([...(status?.inventory||[]),...(status?.test_inventory||[])]);
- v82HalloweenOwned=!!status?.signed_in&&inventory.has('theme_halloween');
- const equipped=v82HalloweenOwned&&status?.equipped?.theme==='theme_halloween';
+ ownedThemes=new Set(status?.signed_in?THEMES.list.filter(t=>inventory.has(t.item)).map(t=>t.id):[]);
+ const equipped=THEMES.byItem.get(status?.equipped?.theme||'');
+ const equippedId=equipped&&ownedThemes.has(equipped.id)?equipped.id:null;
  const saved=v96StoredTheme();
- // IMPORTANT : lors d'un changement de page, le rafraîchissement de la boutique
- // ne doit PAS remplacer un choix « Halloween » enregistré par « Midnight ».
+ // Un changement de page ne doit PAS remplacer un choix enregistré.
  // L'équipement côté serveur fournit uniquement le défaut en l'absence de choix.
- const requested=saved||(equipped?'halloween':'light');
- if(requested==='halloween'&&!v82HalloweenOwned){
-  setTheme('light'); // le thème n'est plus possédé sur ce compte
- }else{
-  setTheme(requested,saved===null);
- }
+ const requested=saved||equippedId||'light';
+ if(isPremiumTheme(requested)&&!ownedThemes.has(requested))setTheme('light'); // thème plus possédé sur ce compte
+ else setTheme(requested,saved===null);
 }
 async function v96RefreshHalloweenTheme(){
  const seq=++v96ThemeRequest;
  const uid=state.session?.user?.id||null;
  if(!uid||!db){
-  v82HalloweenOwned=false;
+  ownedThemes=new Set();
   const saved=v96StoredTheme();
-  setTheme(saved==='halloween'?'light':(saved||'light'),saved==='halloween');
+  setTheme(isPremiumTheme(saved)?'light':(saved||'light'),isPremiumTheme(saved));
   return;
  }
  try{
@@ -3122,9 +3127,8 @@ async function v96RefreshHalloweenTheme(){
   if(seq!==v96ThemeRequest||state.session?.user?.id!==uid)return;
   v96ApplyHalloweenStatus(data||{});
  }catch(err){
-  // Une erreur réseau ne doit pas retirer un thème déjà vérifié pour
-  // la même session. Réessai possible depuis le rafraîchissement de la boutique.
-  console.warn('[DLFR Halloween] Impossible de charger le thème :',err);
+  // Une erreur réseau ne retire pas un thème déjà vérifié pour la même session.
+  console.warn('[DLFR Thèmes] Impossible de charger les thèmes :',err);
   v96SyncThemeMenu();
  }
 }
@@ -3132,17 +3136,14 @@ function v96EnsureHalloweenTheme(){
  const uid=state.session?.user?.id||null;
  if(uid!==v96ThemeSessionId){
   v96ThemeSessionId=uid;
-  v82HalloweenOwned=false;
+  ownedThemes=new Set();
   // Revalider les droits lors d'un changement de compte, pas à chaque page.
   void v96RefreshHalloweenTheme();
   return;
  }
- // Le rendu de la page peut changer, mais l'option du menu et les classes
- // CSS ne doivent pas disparaître quand on navigue dans le site.
- if(v82HalloweenOwned&&v96StoredTheme()==='halloween'&&
-    !document.documentElement.classList.contains('halloween')){
-  setTheme('halloween',false);
- }else v96SyncThemeMenu();
+ const saved=v96StoredTheme();
+ if(isPremiumTheme(saved)&&ownedThemes.has(saved)&&activeTheme!==saved&&!THEMES.previewing)setTheme(saved,false);
+ else v96SyncThemeMenu();
 }
 function refreshUnrated(){document.documentElement.classList.toggle('unrated-mode',state.unrated);const button=$('unratedToggle');button.textContent=state.unrated?'◈ UNRATED ON':'◈ UNRATED OFF';button.setAttribute('aria-pressed',String(state.unrated));}
 function bootEvents(){
@@ -3199,12 +3200,12 @@ function bootEvents(){
   }
   const categoryBtn=ev.target.closest('[data-shop-filter]');
   if(categoryBtn){dlfr109Category=categoryBtn.dataset.shopFilter in dlfr109Cats?categoryBtn.dataset.shopFilter:'all';dlfr109ApplyFilters();return;}
-  const collectionBtn=ev.target.closest('[data-shop-owned]');
+  const collectionBtn=ev.target.closest('.dlfr109-mycollection[data-shop-owned]'); // V120 : les cartes portent aussi data-shop-owned
   if(collectionBtn){dlfr109Collection=!dlfr109Collection;dlfr109ApplyFilters();return;}
   const buy=ev.target.closest('[data-v81-buy]');
   if(buy){buy.disabled=true;try{const {error}=await db.rpc('dlfr_reward_buy',{p_item_key:buy.dataset.v81Buy});if(error)throw error;toast('Objet ajouté à ta collection !');await v81RewardsRender();}catch(err){toast('Achat impossible : '+err.message);buy.disabled=false;}return;}
   const equip=ev.target.closest('[data-v81-equip]');
-  if(equip){equip.disabled=true;try{const item=(equip.dataset.v81Unequip==='true'||equip.textContent.includes('Équipé'))?'':equip.dataset.v81Equip;const category=equip.dataset.v81Category;const {error}=await db.rpc('dlfr_reward_equip',{p_item_key:item,p_category:category});if(error)throw error;toast('Vitrine mise à jour !');V90_FX.t=0;if(category==='theme'){if(item==='theme_halloween'){v82HalloweenOwned=true;setTheme('halloween');}else if(v96StoredTheme()==='halloween')setTheme('light');}await v81RewardsRender();}catch(err){toast('Équipement impossible : '+err.message);equip.disabled=false;}return;}
+  if(equip){equip.disabled=true;try{const item=(equip.dataset.v81Unequip==='true'||equip.textContent.includes('Équipé'))?'':equip.dataset.v81Equip;const category=equip.dataset.v81Category;const {error}=await db.rpc('dlfr_reward_equip',{p_item_key:item,p_category:category});if(error)throw error;toast('Vitrine mise à jour !');V90_FX.t=0;if(category==='theme'){const t=THEMES.byItem.get(item);if(t){ownedThemes.add(t.id);setTheme(t.id);}else if(isPremiumTheme(activeTheme))setTheme('light');}await v81RewardsRender();}catch(err){toast('Équipement impossible : '+err.message);equip.disabled=false;}return;}
   const reaction=ev.target.closest('[data-v79-react]');
   if(reaction){
    if(!state.session){toast('Connecte-toi pour réagir.');return;}
@@ -3521,7 +3522,7 @@ function bootEvents(){
  $('themeSelect').addEventListener('change',e=>setTheme(e.target.value));
  $('unratedToggle').addEventListener('click',()=>{state.unrated=!state.unrated;state.calcDemons=[];refreshUnrated();render();});
  window.addEventListener('popstate',()=>{closeNavMenus();state.keyword='';render();});
- try{const initial=v96StoredTheme();setTheme(initial==='halloween'?'light':(initial||'light'),false);}catch{}refreshUnrated();
+ try{const initial=v96StoredTheme();setTheme(isPremiumTheme(initial)?'light':(initial||'light'),false);}catch{}refreshUnrated();
 }
 try{
  bootEvents();

@@ -1,0 +1,37 @@
+DLFR V120 — 9 THÈMES PREMIUM DANS LA BOUTIQUE (dont Noël)
+=========================================================
+BASE : V119 (ce ZIP contient aussi tous les fichiers V117 à V119 si tu ne les as pas encore mis en ligne).
+
+À METTRE SUR GITHUB PAGES :
+  - index.html, js/app.js (remplacer)
+  - js/v120-themes.js, css/v120-themes.css (ajouter)
+  - assets/themes/noel-motifs.webp (ajouter : tes motifs de Noël, fond blanc retiré)
+  - + les fichiers V117/V118/V119 du ZIP s'ils ne sont pas déjà en ligne
+  Puis Ctrl + F5.
+
+THÈMES (prix en Wayllings dorés ; un défi hebdo = 400) :
+  🟨 Stereo Madness 250 · 🧊 Glacier 300 (clair) · 🌸 Sakura 350 (clair) · 💻 Terminal 400
+  🌊 Abysse 450 · 🎄 Noël enneigé 500 · 🌆 Néon Synthwave 600 · 🔥 Inferno 800 · 👑 Couronne Royale 1500
+  (+ 🎃 Halloween existant, 350)
+  Effets : neige + guirlande clignotante + tes motifs (Noël), grille rétro (Néon), braises (Inferno),
+  bulles (Abysse), pétales (Sakura), lignes cathodiques (Terminal), damier GD (Stereo), motif or (Royale).
+  Les animations se coupent si l'appareil demande moins d'animations.
+
+DANS LA BOUTIQUE :
+  - Chaque thème a une miniature à ses couleurs.
+  - Bouton « Essayer » : aperçu de 20 secondes sur tout le site, sans achat (même sans être connecté).
+  - Une fois acheté : « Équiper », ou choix dans le menu « Thème » en haut du site.
+
+CORRECTION D'UN BUG EXISTANT :
+  Dans la boutique V109+, cliquer « Acheter » ou « Équiper » activait le filtre « Ma collection »
+  au lieu d'acheter/équiper (les cartes portaient le même attribut que ce bouton). Corrigé dans js/app.js.
+
+SUPABASE :
+  Les 9 thèmes sont déjà dans dlfr_reward_catalog, mais INACTIFS (invisibles) pour éviter que des
+  joueurs les achètent avant que le nouveau site soit en ligne. Une fois en ligne, active-les
+  (ou demande-le à Claude) :
+    update public.dlfr_reward_catalog set active = true
+    where item_key in ('theme_stereo','theme_glacier','theme_sakura','theme_terminal','theme_abysse',
+                       'theme_noel','theme_neon','theme_inferno','theme_royal');
+  Achat, équipement et vérification de possession utilisent les fonctions serveur existantes
+  (dlfr_reward_buy / dlfr_reward_equip / dlfr_rewards_status) : rien d'autre à installer.
