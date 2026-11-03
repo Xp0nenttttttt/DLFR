@@ -602,6 +602,7 @@ async function load(){
  if(!HAS_SUPABASE){showPageError(Error('Configuration des services absente.'));return;}
  if(!window.supabase){console.error('[DLFR] Bibliothèque de connexion non chargée.');el.innerHTML='<div class="center-panel"><h2>Connexion momentanément indisponible</h2><p>Réessaie dans quelques instants.</p></div>';return;}
  db=window.supabase.createClient(C.supabaseUrl,C.supabasePublishableKey);
+ window.DLFR_CARDS_LAB?.setClient?.(db); // V118 : catalogue DLFR Cards (même session)
  try{
   const {data:sessionData,error:sessionError}=await db.auth.getSession();if(sessionError)throw sessionError;
   state.session=sessionData.session;
@@ -786,6 +787,13 @@ function archivePage(){
 // L'acceptation d'une revendication renseigne cet identifiant via la RPC
 // dlfr_review_verification_claim. Sinon, pour la NLW, afficher le premier FR.
 // On ne modifie jamais les données Supabase : seulement le crédit affiché.
+// V119 — vérifications anonymisées : astérisque + explication sous le crédit.
+const DLFR_ANON_NOTE='Ce joueur ne souhaite pas apparaître sur la liste ou a été supprimé par un modérateur.';
+function isAnonymousCredit(d,shown){
+ if(!/^anonyme$/i.test(plain(shown)))return false;
+ const anon=(state.data?.players||[]).find(p=>p.player_key==='anonyme');
+ return /^anonyme$/i.test(plain(d?.verifier))||(!!anon&&Number(anon.legacy_id)>0&&Number(anon.legacy_id)===Number(d?.verifier_user_id));
+}
 function displayedLevelVerifier(d){
  const isValidCredit=value=>{
   const valueText=plain(value);
@@ -813,7 +821,7 @@ function cardsHTML(demons){if(!demons.length)return '<div class="paper empty">Au
  return demons.map(d=>{const p=num(d.position),req=+d.requirement||100,isRank=p<=cfg().extended_limit;
    const pills=`<div class="level-status">${p>150&&!d.legacy?`<span class="level-badge outside">NLW #${p-150}${d.unrated?' · simulé':' · '+fmt(nlwPoints(d))+' pts NLW'}</span>`:''}${d.legacy?'<span class="level-badge legacy">Legacy</span>':''}${d.unrated?'<span class="level-badge unrated-badge">UNRATED</span>':''}</div>`;
    const thumb=http(d.thumbnail_url)||((d.video_url||d.verifier_video_url)&&window.DLFR_NLW_MEDIA?.thumbnail(d.video_url||d.verifier_video_url))||'',image=thumb?`<img loading="lazy" class="demon-thumb" src="${esc(thumb)}" onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src=this.src.replace('/maxresdefault.jpg','/hqdefault.jpg')}else{this.style.display='none'}" alt="Miniature de ${esc(d.name)}">`:(String(d.thumbnail_url||'').startsWith('assets/')?`<img class="demon-thumb" src="${esc(d.thumbnail_url)}" alt="Miniature de ${esc(d.name)}">`:`<div class="demon-thumb faux-thumb">${esc(d.name)}</div>`);
-   return `<article class="paper list-entry ${p<=75?'main-rank':''}"><a href="${url('demon',{id:d.id})}" data-nav>${image}</a><div><h2><a href="${url('demon',{id:d.id})}" data-nav style="text-decoration:none">${p<=150?'#'+p:p>150&&p<100000000?'NLW #'+(p-150):'Hors liste'} - ${esc(d.name)}</a></h2><div class="entry-meta">publié par <b>${esc(d.publisher&&d.publisher!=='AREDL'?d.publisher:'À renseigner')}</b>, vérifié par <b>${esc(displayedLevelVerifier(d))}</b></div><div class="points ${isRank?'':'no-points'}">${d.unrated?(isRank?`Simulation UNRATED · ${fmt(score(d,100))} points estimés`:'Simulation UNRATED · 0 point NLW officiel'):isRank?`${fmt(score(d,req))} (${req}%) — ${fmt(score(d,100))} (100%) points`:V2.nlwRank(d)>0?`NLW : ${fmt(nlwPoints(d))} points NLW (0 point principal)`:'Hors classement · 0 point'}</div>${(p>cfg().extended_limit||d.legacy||d.unrated)?pills:''}</div></article>`;
+   return `<article class="paper list-entry ${p<=75?'main-rank':''}"><a href="${url('demon',{id:d.id})}" data-nav>${image}</a><div><h2><a href="${url('demon',{id:d.id})}" data-nav style="text-decoration:none">${p<=150?'#'+p:p>150&&p<100000000?'NLW #'+(p-150):'Hors liste'} - ${esc(d.name)}</a></h2><div class="entry-meta">publié par <b>${esc(d.publisher&&d.publisher!=='AREDL'?d.publisher:'À renseigner')}</b>, vérifié par <b>${esc(displayedLevelVerifier(d))}${isAnonymousCredit(d,displayedLevelVerifier(d))?`<sup class="dlfr-anon-mark" title="${esc(DLFR_ANON_NOTE)}">*</sup>`:''}</b></div>${isAnonymousCredit(d,displayedLevelVerifier(d))?`<div class="dlfr-anon-note"><span aria-hidden="true">*</span> ${esc(DLFR_ANON_NOTE)}</div>`:''}<div class="points ${isRank?'':'no-points'}">${d.unrated?(isRank?`Simulation UNRATED · ${fmt(score(d,100))} points estimés`:'Simulation UNRATED · 0 point NLW officiel'):isRank?`${fmt(score(d,req))} (${req}%) — ${fmt(score(d,100))} (100%) points`:V2.nlwRank(d)>0?`NLW : ${fmt(nlwPoints(d))} points NLW (0 point principal)`:'Hors classement · 0 point'}</div>${(p>cfg().extended_limit||d.legacy||d.unrated)?pills:''}</div></article>`;
  }).join('');}
 // Évite les doublons quand un niveau historique est publié en Main List OU en NLW.
 // L'ID GD est prioritaire ; le nom ne sert que si une des deux fiches n'a pas d'ID.
@@ -1714,7 +1722,8 @@ function demonPage(){
  const status=isNlw?'NLW #'+r:d.legacy?'Legacy · ancien Top 150':Number(d.position)<=cfg().main_limit?'Main List #'+d.position:Number(d.position)<=cfg().extended_limit?'Extended List #'+d.position:'Hors classement';
  const points=isNlw?fmt(nlwPoints(d))+' points NLW':Number(d.position)>cfg().extended_limit?'0 point officiel':fmt(score(d,100))+' points à 100 %';
  // Clone destiné au rendu seulement : ne modifie jamais la fiche enregistrée.
- const displayedDemon=isNlw?{...d,verifier:displayedLevelVerifier(d)}:d;
+ const shownVerifier=isNlw?displayedLevelVerifier(d):d.verifier;
+ const displayedDemon={...d,verifier:shownVerifier,__anonymousVerifier:isAnonymousCredit(d,shownVerifier)?DLFR_ANON_NOTE:''};
  return templateNotice()+window.DLFR_LEVEL_CINEMA.render(displayedDemon,{
   records:recs,players:ranked().filter(statsPlayerVisible),history:state.data.demon_position_history||[],
   escape:esc,link:url,format:fmt,formatDate:date,status,points,

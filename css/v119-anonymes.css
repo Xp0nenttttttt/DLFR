@@ -1,0 +1,5 @@
+/* DLFR V119 — crédit de vérification anonymisé */
+.dlfr-anon-mark{margin-left:1px;font-weight:800;color:var(--blue,#147fbd);cursor:help;font-size:.75em}
+.dlfr-anon-note{margin-top:4px;font-size:11px;line-height:1.4;color:var(--muted,#677489);font-style:italic}
+.dlfr23-content .dlfr-anon-note{margin:.6rem 0 0}
+.dlfr-anon-note span{font-style:normal;font-weight:800;color:var(--blue,#147fbd)}
