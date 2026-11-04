@@ -208,3 +208,7 @@ html.dark .c131-step.t0,.dlfr117-panel .c131-step.t0,.dlfr117-game .c131-step.t0
 .dlfr147-check{flex-direction:row!important;align-items:center;gap:8px;font-weight:600}
 .dlfr147-booster small{opacity:.7}
 .dlfr147-check input{width:auto!important;flex:0 0 auto}
+/* V148 — alerte doublon de carte */
+.dlfr148-dup{display:block;font-weight:600;font-size:.78rem;line-height:1.35}.dlfr148-dup:empty{display:none}
+.dlfr148-dup.is-same{color:#fff;background:#dc2626;padding:6px 8px;border-radius:8px}
+.dlfr148-dup.is-near{color:#f59e0b}

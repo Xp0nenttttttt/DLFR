@@ -855,6 +855,21 @@ async function withBusy(label,fn){
  try{await fn();}catch(e){catalog.msg=errText(e);catalog.msgKind='error';console.warn('[DLFR Cards] Catalogue :',e);}
  finally{catalog.busy=false;repaint();}
 }
+// V148 — alerte anti-doublon à la création des cartes.
+const dupKey=n=>String(n||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+function cardDups(name,exceptId){const k=dupKey(name);if(!k)return {same:[],near:[]};
+ const others=CARDS.filter(c=>c.id!==exceptId);
+ const same=others.filter(c=>dupKey(c.name)===k);
+ const near=k.length>=4?others.filter(c=>{const o=dupKey(c.name);return o!==k&&o.length>=4&&(o.includes(k)||k.includes(o));}).slice(0,3):[];
+ return {same,near};}
+const dupLabel=c=>`« ${c.name} » (#${idString(c.id)} · ${colOf(c.collectionId)?.name||'sans collection'} · ${rarity(c)})`;
+function dupState(){
+ if(!catalog.draft)return {cls:'dlfr148-dup',html:''};
+ const ex=catalog.editCard==='new'?null:catalog.editCard,{same,near}=cardDups(catalog.draft.name,ex);
+ return {cls:'dlfr148-dup'+(same.length?' is-same':near.length?' is-near':''),
+  html:same.length?`⚠ Existe déjà : ${same.map(c=>esc(dupLabel(c))).join(', ')}`:near.length?`Nom proche de : ${near.map(c=>esc(dupLabel(c))).join(', ')}`:''};
+}
+function dupHint(){const el=document.getElementById('dlfr148Dup');if(!el)return;const st=dupState();el.className=st.cls;el.innerHTML=st.html;}
 function saveCard(){
  const d=catalog.draft;if(!d)return;
  const name=safeText(d.name,80);
@@ -862,6 +877,8 @@ function saveCard(){
  if(!colOf(d.collection)){setMsg('Choisis une collection.','error');return;}
  if(d.imageUrl&&!validUrl(d.imageUrl)&&!catalog.pendingFile){setMsg('L’URL de l’image doit commencer par https://','error');return;}
  const old=catalog.editCard==='new'?null:get(catalog.editCard);
+ if(!old||dupKey(old.name)!==dupKey(name)){const {same}=cardDups(name,old?.id??null);
+  if(same.length&&!confirm(`Attention, doublon possible !\n\nUne carte porte déjà ce nom :\n${same.map(c=>'• '+dupLabel(c)).join('\n')}\n\n${old?'Renommer':'Créer'} quand même ?`))return;}
  withBusy('Enregistrement de la carte…',async()=>{
   let image=catalog.pendingFile?await uploadImage(catalog.pendingFile):(validUrl(d.imageUrl)||'');
   const {data,error}=await DB.rpc('dlfr_cards_admin_save_card',{p_id:old?old.id:null,p_collection_id:Number(d.collection),p_name:name,p_type:d.type,p_rarity:d.rarity,p_description:safeText(d.description,400),p_image_url:image,p_in_packs:!!d.inPacks,p_sort:Number(d.sort)||0});
@@ -919,7 +936,9 @@ async function importCreations(file){
   rows=rows.map(r=>({...cleanCard({...r,type:r.type||r.card_type,image:r.image||r.image_url},0),inPacks:r.in_packs!==false}));if(rows.some(r=>!r.name))throw new Error('Une carte du fichier est invalide.');
  }catch(e){setMsg('Import impossible : '+e.message,'error');return;}
  if(!rows.length){setMsg('Ce fichier ne contient aucune carte.','error');return;}
- if(!confirm(`Ajouter ${rows.length} carte(s) à la collection « ${col.name} » ?`))return;
+ {const seen=new Set(CARDS.map(c=>dupKey(c.name))),skipped=[];rows=rows.filter(r=>{const k=dupKey(r.name);if(seen.has(k)){skipped.push(r.name);return false;}seen.add(k);return true;});
+  if(skipped.length&&!rows.length){setMsg(`Import annulé : les ${skipped.length} carte(s) du fichier existent déjà.`,'error');return;}
+  if(!confirm(`Ajouter ${rows.length} carte(s) à la collection « ${col.name} » ?${skipped.length?`\n\n${skipped.length} doublon(s) ignoré(s) (nom déjà utilisé) : ${skipped.slice(0,8).join(', ')}${skipped.length>8?'…':''}`:''}`))return;}
  withBusy('Import…',async()=>{
   let n=0,sort=cardsOf(col.id).reduce((m,x)=>Math.max(m,x.sort),0);
   for(const r of rows){
@@ -948,7 +967,7 @@ function catalogView(data){
    <small>Chances : Commun 50 % · Rare 35 % · Épique 12 % · Légendaire 2,6 % · Mythique 0,4 % Il apparaît dès que la collection a au moins 3 cartes « dans les boosters ».</small></fieldset>
   <div class="dlfr118-actions"><button class="btn" type="submit" ${dis}>${catalog.editCol==='new'?'Créer la collection':'Enregistrer'}</button><button class="btn subtle" type="button" data-v112-act="cat-col-cancel">Annuler</button></div></form>`:'';
  const cardForm=d?`<div class="dlfr118-editor"><form class="dlfr118-form" id="dlfr118CardForm" autocomplete="off"><h3>${catalog.editCard==='new'?'Nouvelle carte':'Modifier #'+idString(catalog.editCard)}</h3>
-  <label>Nom<input data-v118-card="name" maxlength="80" required value="${esc(d.name)}" placeholder="Ex. : Oblivion"></label>
+  <label>Nom<input data-v118-card="name" maxlength="80" required value="${esc(d.name)}" placeholder="Ex. : Oblivion"><small id="dlfr148Dup" class="${dupState().cls}" aria-live="polite">${dupState().html}</small></label>
   <div class="dlfr118-row"><label>Catégorie<select data-v118-card="type">${[['level','Niveau'],['player','Joueur'],['dlfr','DLFR / Spéciale']].map(([k,v])=>`<option value="${k}" ${d.type===k?'selected':''}>${v}</option>`).join('')}</select></label>
   <label>Rareté<select data-v118-card="rarity">${ALL_RARITIES.map(r=>`<option ${d.rarity===r?'selected':''}>${esc(r)}</option>`).join('')}</select></label></div>
   <div class="dlfr118-row"><label>Collection<select data-v118-card="collection">${COLLECTIONS.map(c=>`<option value="${c.id}" ${Number(d.collection)===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><label>Ordre<input type="number" data-v118-card="sort" value="${esc(d.sort)}" min="-9999" max="99999"></label></div>
@@ -1157,7 +1176,7 @@ function handleChange(event){
 function handleInput(event){
  if(!gate||!document.getElementById('dlfr112Lab'))return;
  const e=event.target;
- if(e.dataset?.v118Card&&catalog.draft){const k=e.dataset.v118Card;catalog.draft[k]=e.type==='checkbox'?e.checked:e.value;if(k==='imageUrl'&&e.value){catalog.pendingFile=null;catalog.draft.preview='';}refreshCatPreview();return;}
+ if(e.dataset?.v118Card&&catalog.draft){const k=e.dataset.v118Card;catalog.draft[k]=e.type==='checkbox'?e.checked:e.value;if(k==='imageUrl'&&e.value){catalog.pendingFile=null;catalog.draft.preview='';}if(k==='name')dupHint();refreshCatPreview();return;}
  if(e.dataset?.v118Col&&catalog.colDraft){const k=e.dataset.v118Col,cd=catalog.colDraft;cd[k]=e.type==='checkbox'?e.checked:e.value;if(k==='slug')cd.slugTouched=true;if(k==='name'&&!cd.slugTouched){cd.slug=slugify(e.value);const s=document.querySelector('[data-v118-col="slug"]');if(s)s.value=cd.slug;}return;}
  if(!e.matches('[data-v112-field="search"]'))return;
  query=e.value;
