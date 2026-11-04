@@ -2814,6 +2814,7 @@ function render(){
  try{navSync(page);}catch{}
  if(page==='shop'){v80WeeklyRender();v81RewardsRender();}
  if((page==='cards'||page==='cards-lab')&&LIVE&&db)window.DLFR_CARDS?.mount({db,session:state.session?.user?.id||null,ownKey:state.ownKey||null,data:state.data,toast});
+ if(LIVE&&db)window.DLFR_TEXTS?.mount({db,owner:state.staffRole==='owner'&&!ownerPreviewActive()});
  if((page==='cards'||page==='cards-lab')&&LIVE&&db)window.DLFR_ADVENT?.mount({db,session:state.session?.user?.id||null,data:state.data,toast});if(page==='admin'&&state.adminTab==='weekly'&&state.staffRole==='owner'&&!ownerPreviewActive())v86AdminLoad();
  if(page==='player'||(page==='my-profile'&&document.getElementById('v81-profile-rewards')))v81ProfileRewards();
  if(document.getElementById('dlfr137CardShow'))loadCardShowcase();if(page==='stats'||page==='players')v90LoadFx();

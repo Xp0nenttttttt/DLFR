@@ -1,0 +1,24 @@
+DLFR V145 — Les propriétaires peuvent modifier les textes du site
+=================================================================
+(Inclut V144 et avant. Base de données : DÉJÀ APPLIQUÉE — supabase/145_TEXTES_DU_SITE.sql = archive.)
+
+Utilisation (propriétaires uniquement : Spleen, yomayoCB)
+ 1. Connecté, un bouton « ✎ Textes du site » apparaît en bas à gauche, sur toutes les pages.
+ 2. Clique dessus : le mode édition s'active (bandeau orange en bas). Les textes survolés
+    sont entourés ; les liens et boutons ne réagissent plus.
+ 3. Clique sur un texte → fenêtre « Modifier ce texte » : écris le nouveau texte puis
+    « Enregistrer » (ou Ctrl+Entrée). « Rétablir l'original » annule le changement.
+ 4. « Textes modifiés » liste tous les changements, avec Modifier / Rétablir.
+ 5. « Terminer » pour revenir à la navigation normale.
+
+Bon à savoir
+ - Le changement est visible tout de suite, pour tous les visiteurs, sans redéployer.
+ - Il s'applique partout où le texte EXACT apparaît. Un texte qui contient un nombre ou un
+   pseudo variable (« 5 cartes ») ne change que pour cette valeur précise.
+ - Les textes à l'intérieur des champs de saisie et des listes déroulantes ne sont pas
+   modifiables.
+ - Sur téléphone, le menu ne s'ouvre pas en mode édition : modifie les textes du menu
+   depuis un ordinateur.
+ - Sécurité : seul un compte propriétaire peut enregistrer (vérifié par le serveur).
+
+Fichiers : index.html, js/app.js, js/v145-site-texts.js (nouveau), css/v145-site-texts.css (nouveau)
