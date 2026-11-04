@@ -1035,7 +1035,7 @@ async function v81RewardsRender(){
 let dlfr109Category='all';
 let dlfr109Collection=false;
 let dlfr109Search='';
-const dlfr109Cats={all:'Tous les objets',name:'Pseudos',frame:'Cadres',banner:'Bannières',badge:'Badges',theme:'Thèmes'};
+const dlfr109Cats={all:'Tous les objets',name:'Pseudos',card:'Fonds de fiche',frame:'Cadres',banner:'Bannières',badge:'Badges',theme:'Thèmes'};
 const SHOP127={items:[],info:null};
 const RARITY_SLUG=r=>String(r||'Commun').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 const frDate=d=>{try{return new Date(d).toLocaleDateString('fr-FR',{day:'numeric',month:'long'});}catch{return '';}};
@@ -1097,15 +1097,15 @@ function dlfr109ShopContent(status,items,owns,equip,info=null,gifts=[]){
    const giftBtn=signed&&buyable?`<button type="button" class="btn small subtle dlfr127-gift-btn" data-gift-item="${esc(item.item_key)}" title="Offrir cet objet à un autre joueur">🎁</button>`:'';
    const desc=item.category==='badge'?esc(DECO.INFO?.[item.item_key]?.text||item.description||'Un badge décoratif à exposer sur ton profil.'):
      item.category==='theme'?esc(THEMES.byItem.get(item.item_key)?.desc||item.description||'Change les couleurs et l’ambiance de ton site.'):
-     item.category==='frame'?esc(DECO.INFO?.[item.item_key]?.text||'Un cadre à mettre en valeur sur ta fiche.'):item.category==='name'?esc(item.description||DECO.INFO?.[item.item_key]?.text||'Une couleur pour ton pseudo.'):esc(DECO.INFO?.[item.item_key]?.text||'Une bannière pour personnaliser ton profil.');
+     item.category==='frame'?esc(DECO.INFO?.[item.item_key]?.text||'Un cadre à mettre en valeur sur ta fiche.'):(item.category==='name'||item.category==='card')?esc(item.description||DECO.INFO?.[item.item_key]?.text||'Une couleur pour ton pseudo.'):esc(DECO.INFO?.[item.item_key]?.text||'Une bannière pour personnaliser ton profil.');
    let action='';
    if(!signed)action=`${item.category==='theme'&&THEMES.byItem.has(item.item_key)?`<button type="button" class="btn small subtle dlfr120-try" data-theme-try="${esc(THEMES.byItem.get(item.item_key).id)}">Essayer</button>`:''}<a data-nav class="btn small" href="${url('my-profile')}">Se connecter</a>`;
    else if(owned)action=`${giftBtn}<button type="button" class="btn small ${equipped?'subtle':''}" data-v81-equip="${esc(item.item_key)}" data-v81-category="${esc(item.category)}" data-v81-unequip="${equipped}">${equipped?'Retirer':'Équiper'}</button>`;
    else if(!buyable)action=`<span class="small muted">${soon?'Disponible le '+esc(frDate(from)):'Édition terminée'}</span>`;
    else action=`${giftBtn}${item.category==='theme'&&THEMES.byItem.has(item.item_key)?`<button type="button" class="btn small subtle dlfr120-try" data-theme-try="${esc(THEMES.byItem.get(item.item_key).id)}">Essayer</button>`:''}<button type="button" class="btn small" data-v81-buy="${esc(item.item_key)}" ${Number(status.balance)<price?'disabled title="Solde insuffisant"':''}>Acheter</button>`;
-   const catClass=/^(frame|banner|badge|theme|name)$/.test(item.category)?item.category:'other';
+   const catClass=/^(frame|banner|badge|theme|name|card)$/.test(item.category)?item.category:'other';
    return `<article class="dlfr109-item v81-item v90-shop-item v90-item-${esc(item.item_key)} ${discounted?'is-deal':''} ${limited?'is-limited':''}" data-rarity="${esc(RARITY_SLUG(item.rarity))}" ${featured?'':`data-shop-item data-shop-category="${esc(item.category)}" data-shop-owned="${owned}" data-shop-search="${esc(String(item.label||'').toLocaleLowerCase('fr'))}"`}>
-    <div class="dlfr109-item-art dlfr109-category-${catClass}">${item.category==='theme'&&THEMES.byItem.has(item.item_key)?THEMES.swatch(item.item_key):/^(frame|banner|badge|name)$/.test(item.category)&&DECO.preview(item.item_key,3,item.emoji)?DECO.preview(item.item_key,3,item.emoji):'<span class="v90-swatch" aria-hidden="true"></span>'}<span class="dlfr109-art-emoji" aria-hidden="true">${esc(item.emoji||'✦')}</span>${discounted?`<span class="dlfr127-deal">−${esc(info?.discount||25)} %</span>`:''}</div>
+    <div class="dlfr109-item-art dlfr109-category-${catClass}">${item.category==='theme'&&THEMES.byItem.has(item.item_key)?THEMES.swatch(item.item_key):/^(frame|banner|badge|name|card)$/.test(item.category)&&DECO.preview(item.item_key,3,item.emoji)?DECO.preview(item.item_key,3,item.emoji):'<span class="v90-swatch" aria-hidden="true"></span>'}<span class="dlfr109-art-emoji" aria-hidden="true">${esc(item.emoji||'✦')}</span>${discounted?`<span class="dlfr127-deal">−${esc(info?.discount||25)} %</span>`:''}</div>
     <div class="dlfr109-item-content"><div class="dlfr109-item-label"><span class="dlfr109-category">${esc(category)}</span><span class="dlfr127-rarity">${esc(item.rarity||'Commun')}</span>${equipped?'<span class="dlfr109-pill dlfr109-equipped">✓ Équipé</span>':owned?'<span class="dlfr109-pill">Possédé</span>':''}</div>
     <h3>${esc(item.label)}</h3><p>${desc}</p>
     ${limited?`<span class="dlfr127-limited">⏳ Édition limitée${until?` · jusqu’au ${esc(frDate(until))}`:''}${soon?` · dès le ${esc(frDate(from))}`:''}</span>`:''}
@@ -1251,6 +1251,10 @@ function emblemOf(key){
  const hit=id?COMMUNITY.ownedBadges(state.data,key,BADGES).find(x=>x.id===id)||null:null;
  EMBLEM_CACHE.map.set(key,hit);return hit;
 }
+// V128 — style de la fiche (partie claire de l'aperçu et du profil).
+const CARD_STYLES=[['classic','Classique','Le style d’origine, clair et sobre.'],['tinted','Teinté','Légère teinte de ta couleur d’accent.'],['gradient','Dégradé','Dégradé de ta couleur d’accent.'],['dark','Nuit','Fiche sombre avec ta couleur en lueur.'],['glass','Verre','Ta bannière floutée en fond de fiche.']];
+function cardStyleOf(key){const v=(state.data.dlfr_profile_preferences||[]).find(x=>x.player_key===key)?.card_style;return CARD_STYLES.some(s=>s[0]===v)?v:'classic';}
+function cardStyleAttr(key,banner){const st=cardStyleOf(key);let u='';try{u=banner?encodeURI(decodeURI(String(/^data:/.test(banner)?banner:new URL(banner,location.href).href))).replace(/[()'"]/g,c=>'%'+c.charCodeAt(0).toString(16)):'';}catch{u='';}return {cls:`pcs pcs-${st}`,style:u?`--pcs-img:url(${u});`:'',bg:'<i class="pcs-bg" aria-hidden="true"></i>'};}
 function emblemRarity(def){return String(def?.rarity||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
 function emblemMedal(def,extra=''){return `<span class="dlfr-emblem ${extra}" data-rarity="${esc(emblemRarity(def))}"><span class="dlfr-badge-medal" aria-hidden="true"><span class="dlfr-badge-icon">${esc(def.symbol||'★')}</span></span></span>`;}
 function emblemHTML(key,size=''){const e=emblemOf(key);if(!e)return '';const t=`Emblème : ${e.def.label}${e.def.description?' — '+e.def.description:''}`;return `<span class="dlfr-emblem-wrap ${size?'is-'+size:''}" title="${esc(t)}" role="img" aria-label="${esc(t)}">${emblemMedal(e.def)}</span>`;}
@@ -1267,6 +1271,8 @@ function communitySelfFields(actor){
   <label class="field">Titre officiel mis en avant<select name="featured_title_id"><option value="">Aucun titre mis en avant</option>${titles.map(t=>`<option value="${esc(t.id)}" ${String(pref.featured_title_id)===String(t.id)?'selected':''}>${esc(t.label)}</option>`).join('')}</select></label>
   <div class="field"><b>Mes badges favoris (3 maximum)</b>${badges.length?`<div class="dlfr20-badge-picker">${badges.map(x=>`<label><input type="checkbox" name="featured_badges" value="${esc(x.id)}" ${chosen.has(x.id)?'checked':''}> ${esc(x.def.symbol)} ${esc(x.def.label)}</label>`).join('')}</div>`:'<p class="muted small">Tu pourras sélectionner des badges dès que tu en possèderas.</p>'}</div>
   <div class="field"><b>Mon emblème</b><p class="muted small" style="margin:0 0 6px">Le logo de ce badge s'affiche à côté de ton pseudo (profil, classements, liste des joueurs).</p>${badges.length?`<div class="dlfr124-emblem-picker"><label class="dlfr124-emblem-opt"><input type="radio" name="emblem_badge" value="" ${pref.emblem_badge?'':'checked'}><span class="dlfr124-emblem-none" aria-hidden="true">∅</span><small>Aucun</small></label>${badges.map(x=>`<label class="dlfr124-emblem-opt" title="${esc(x.def.label)}${x.def.description?' — '+esc(x.def.description):''}"><input type="radio" name="emblem_badge" value="${esc(x.id)}" ${String(pref.emblem_badge||'')===x.id?'checked':''}>${emblemMedal(x.def)}<small>${esc(x.def.label)}</small></label>`).join('')}</div>`:'<p class="muted small">Obtiens un badge pour pouvoir le choisir comme emblème.</p>'}</div>
+  <div class="field"><b>Style de ma fiche</b><p class="muted small" style="margin:0 0 6px">Change le fond et les cases de ta fiche (aperçu dans les Statistiques et page profil). Ta couleur d’accent est utilisée. Des fonds animés sont aussi dans la <a data-nav href="${url('shop')}">boutique</a>.</p>
+   <div class="dlfr128-style-picker">${CARD_STYLES.map(([id,label,desc])=>`<label class="dlfr128-style-opt" title="${esc(desc)}"><input type="radio" name="card_style" value="${id}" ${(pref.card_style||'classic')===id?'checked':''}><span class="dlfr128-mini pcs pcs-${id}" style="--pcs-acc:${esc(COMMUNITY.hex(pref.accent_color))};${esc(cardStyleAttr(actor,imageLink((state.data.player_profiles||[]).find(x=>x.player_key===actor)?.banner_url)).style)}"><i class="pcs-bg"></i><i class="dlfr128-mini-banner"></i><i class="dlfr128-mini-av"></i><i class="dlfr128-mini-line"></i><span class="dlfr128-mini-tiles"><i class="statbox"></i><i class="statbox"></i><i class="statbox"></i><i class="statbox"></i></span></span><b>${esc(label)}</b><small>${esc(desc)}</small></label>`).join('')}</div></div>
   <h3>Ma vitrine de niveaux</h3><p class="muted small">Choisis jusqu'à trois niveaux, ajoute une description et, si tu le souhaites, un lien vers ta vidéo.</p>
   <div class="dlfr20-showcase-edit">${[1,2,3].map(slot=>{const x=items.find(z=>Number(z.slot)===slot)||{};return `<div class="dlfr20-showcase-slot"><b>Emplacement ${slot}</b><label class="field">Niveau<select name="showcase_demon_${slot}"><option value="">Aucun niveau</option>${opts.replaceAll(`value="${esc(x.demon_id)}"`,`value="${esc(x.demon_id)}" selected`)}</select></label><label class="field">Description (180 caractères)<input name="showcase_caption_${slot}" maxlength="180" value="${esc(x.caption||'')}" placeholder="Pourquoi ce niveau est spécial pour moi…"></label><label class="field">Ma vidéo (URL HTTPS)<input type="url" name="showcase_video_${slot}" maxlength="500" placeholder="https://youtu.be/…" value="${esc(x.video_url||'')}"></label></div>`;}).join('')}</div>
  </fieldset>`;
@@ -1455,6 +1461,10 @@ async function saveSelfProfile(form){
        p_featured_badges:badgeIds,p_showcase:showcase
      });
      if(error)throw Error('Personnalisation DLFR 2.0 : '+error.message);
+     if(form.querySelector('[name="card_style"]')){
+       const cs=String(new FormData(form).get('card_style')||'classic'),curCs=String((state.data.dlfr_profile_preferences||[]).find(x=>x.player_key===actor)?.card_style||'classic');
+       if(cs!==curCs){const r=await db.rpc('dlfr_set_card_style',{p_style:cs});if(r.error)throw Error('Style de fiche : '+r.error.message);}
+     }
      if(form.querySelector('[name="emblem_badge"]')){
        const em=String(new FormData(form).get('emblem_badge')||'');
        const cur=String((state.data.dlfr_profile_preferences||[]).find(x=>x.player_key===actor)?.emblem_badge||'');
@@ -1592,7 +1602,8 @@ function statProfile(p){if(!p)return '<div class="stats-profile empty">Sélectio
   .filter(([_,v])=>plain(v)).map(([l,v])=>`<div class="profile-fact"><strong>${esc(l)}</strong><span>${esc(v)}</span></div>`).join('');
  const socials=[['YouTube',profile.youtube_url],['Twitch',profile.twitch_url],['Lien personnel',profile.social_url]].filter(([_,v])=>http(v))
   .map(([n,v])=>`<a class="social-link" target="_blank" rel="noopener noreferrer" href="${esc(http(v))}">${n} ↗</a>`).join('');
- return `<div class="stats-profile dlfr20-profile" style="--dlfr20-accent:${esc(COMMUNITY.hex((state.data.dlfr_profile_preferences||[]).find(x=>x.player_key===p.player_key)?.accent_color))}"><div class="profile-hero">${banner?`<img class="profile-cover-img" src="${esc(banner)}" alt="" aria-hidden="true">`:''}
+ const pcsAcc=COMMUNITY.hex((state.data.dlfr_profile_preferences||[]).find(x=>x.player_key===p.player_key)?.accent_color),pcs=cardStyleAttr(p.player_key,banner);
+ return `<div class="stats-profile dlfr20-profile ${pcs.cls}" style="--dlfr20-accent:${esc(pcsAcc)};--pcs-acc:${esc(pcsAcc)};${esc(pcs.style)}">${pcs.bg}<div class="profile-hero">${banner?`<img class="profile-cover-img" src="${esc(banner)}" alt="" aria-hidden="true">`:''}
     <div class="profile-hero-inner">${framedAvatar(p.player_key,avatar?`<img class="profile-avatar" src="${esc(avatar)}" alt="Avatar de ${esc(p.display_name||p.username)}">`:`<div class="profile-avatar profile-avatar-fallback" aria-hidden="true">${esc((p.display_name||p.username||'?').slice(0,1).toUpperCase())}</div>`)}
       <div class="profile-hero-copy"><span class="profile-pretitle">Profil joueur · ${p.has_account?'Compte':'Sans compte'}</span><strong>${flag(p.country_code)} <span class="dlfr-pname">${esc(p.display_name||p.username)}</span>${emblemHTML(p.player_key,'lg')}</strong>${regionIdentity(p)}<span>${p.hardest?'Hardest : '+esc(hardestLabel(p)):'Aucun hardest connu'}</span></div>
     </div></div>
@@ -1796,7 +1807,8 @@ function statsProfilePreview(p){
  const featured=titles.find(t=>String(t.id)===String(pref.featured_title_id));
  const mainCount=new Set(p.main.map(d=>d.id)).size,extendedCount=new Set(p.extended.map(d=>d.id)).size;
  const fxItems=V90_FX.items[p.player_key];
- return `<article class="dlfr251-preview ${v90Cls(fxItems)}" style="--dlfr251-accent:${esc(accent)}" aria-label="Aperçu de ${esc(name)}">
+ const pcs=cardStyleAttr(p.player_key,banner);
+ return `<article class="dlfr251-preview ${pcs.cls} ${v90Cls(fxItems)}" style="--dlfr251-accent:${esc(accent)};--pcs-acc:${esc(accent)};${esc(pcs.style)}" aria-label="Aperçu de ${esc(name)}">${pcs.bg}
    <div class="dlfr251-preview-banner ${(fxItems||[]).some(x=>String(x.item_key).startsWith('banner_'))?'pd-hero':''}">${banner?`<img loading="lazy" src="${esc(banner)}" alt="">`:''}${v90LayerHTML(fxItems)}</div>
    <div class="dlfr251-preview-content">
     <div class="dlfr251-preview-identity">${framedAvatar(p.player_key,`<span class="dlfr251-preview-avatar">${avatar?`<img loading="lazy" src="${esc(avatar)}" alt="Avatar de ${esc(name)}">`:`<span aria-hidden="true">${esc(initial)}</span>`}</span>`)}<div class="dlfr251-preview-name"><h3 class="${fxItems?.length?'pd-name':''}">${flag(p.country_code)} <span class="dlfr-pname">${esc(name)}</span>${emblemHTML(p.player_key,'lg')}${DECO.medals(fxItems)}</h3><p class="muted small">${p.has_account?'Compte DLFR':'Profil non revendiqué'} ${p.country_code==='FR'?`· ${esc(GEO.regionInfo(regionFor(p))?.name||'France')}`:''}</p></div></div>
