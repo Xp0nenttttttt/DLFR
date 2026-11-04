@@ -1144,6 +1144,7 @@ window.DLFR_CARDS_LAB={
  // V127 — ouverture réelle (tirage fait par Supabase) : on ne rejoue que la mise en scène.
  mkCard,
  ladder:(rates)=>ladder(rates),
+ advCount:id=>owned.get(Number(id))?.count||0,
  figure:(card,data,compact=false,opts={})=>figure(card,data,compact,opts),
  playReal(pack,draws,meta={}){
   const T={'Commun':0,'Rare':1,'Épique':2,'Légendaire':3,'Mythique':4};
