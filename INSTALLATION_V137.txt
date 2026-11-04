@@ -1,0 +1,28 @@
+DLFR V137 — DLFR Cards : vitrine et nouveautés
+==============================================
+
+Base de données : DÉJÀ APPLIQUÉE (supabase/137_TCG_VITRINE.sql = archive).
+
+1) Vitrine de cartes
+ - Jusqu'à 5 cartes de la collection officielle, choisies sur la page Cartes
+   (clic sur une carte → « ★ Mettre en vitrine », ✕ pour retirer).
+ - Affichée sur la fiche publique (espace communautaire) avec le total de cartes,
+   le nombre de Mythiques et de collections complètes.
+
+2) Fiche détaillée d'une carte
+ - Clic sur n'importe quelle carte : grande carte inclinable + collection, rareté X/5,
+   description, exemplaires possédés, nombre de joueurs qui la possèdent,
+   valeur d'un doublon, boutons vitrine / recyclage.
+
+3) Série quotidienne
+ - Ouvrir le booster du jour plusieurs jours d'affilée remplit une série de 7 jours.
+   Le 7e jour : booster bonus de 6 cartes dont une Épique ou mieux. Un jour manqué
+   remet la série à zéro.
+
+4) Meilleurs collectionneurs
+ - Classement des 10 joueurs ayant le plus de cartes différentes (collection officielle),
+   avec leurs Mythiques et Légendaires.
+
+Fichiers : index.html, js/app.js, js/v127-cards.js, css/v131-cards.css,
+           supabase/137_TCG_VITRINE.sql (archive)
+Le ZIP est cumulatif (V117 → V137) : copie tout à la racine du dépôt.

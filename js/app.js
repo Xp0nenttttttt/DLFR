@@ -1174,6 +1174,25 @@ if(!window.__v90Pointer){window.__v90Pointer=true;let raf=0;
    hero.style.setProperty('--mx',(x*100).toFixed(1)+'%');hero.style.setProperty('--my',(y*100).toFixed(1)+'%');
    hero.style.setProperty('--px',(x*2-1).toFixed(2));hero.style.setProperty('--py',(y*2-1).toFixed(2));});
  },{passive:true});}
+// V137 — vitrine DLFR Cards sur la fiche publique.
+let cardShowSeq=0;
+async function loadCardShowcase(){
+ const area=document.getElementById('dlfr137CardShow');if(!area||!db)return;
+ const key=area.dataset.playerKey,seq=++cardShowSeq;
+ try{
+  const {data,error}=await db.rpc('dlfr_cards_public',{p_player_key:key});if(error)throw error;
+  if(seq!==cardShowSeq||!area.isConnected)return;
+  const ids=(data?.showcase||[]).map(Number);
+  if(!Number(data?.owned)){area.hidden=true;return;}
+  let cards=[];
+  if(ids.length){const r=await db.from('dlfr_cards').select('*').in('id',ids);if(!r.error)cards=ids.map(id=>(r.data||[]).find(c=>Number(c.id)===id)).filter(Boolean);}
+  if(seq!==cardShowSeq||!area.isConnected)return;
+  const L=window.DLFR_CARDS_LAB,fig=c=>L?.figure&&L.mkCard?L.figure(L.mkCard(c),state.data,true,{official:true,owned:true}):`<b>${esc(c.name)}</b>`;
+  area.innerHTML=`<div class="dlfr137-profile"><div class="dlfr137-profile-head"><h3>🃏 Vitrine DLFR Cards</h3><span>${esc(data.owned)} / ${esc(data.total)} cartes${Number(data.mythic)?` · ✺ ${esc(data.mythic)} Mythique${Number(data.mythic)>1?'s':''}`:''}${Number(data.collections)?` · ${esc(data.collections)} collection${Number(data.collections)>1?'s':''} complète${Number(data.collections)>1?'s':''}`:''}</span></div>
+   ${cards.length?`<div class="dlfr137-profile-row">${cards.map(fig).join('')}</div>`:`<p class="muted small">${state.ownKey===key?'Ta vitrine est vide : choisis jusqu’à 5 cartes dans la page <a data-nav href="?page=cards">Cartes</a> (clic sur une carte → « Mettre en vitrine »).':'Aucune carte exposée pour le moment.'}</p>`}</div>`;
+  area.hidden=false;
+ }catch(e){area.hidden=true;}
+}
 async function v81ProfileRewards(){
  const area=document.getElementById('v81-profile-rewards');if(!area||!db)return;
  const k=area.dataset.playerKey;
@@ -1505,6 +1524,7 @@ function communityPublicPanel(playerKey){
  ${highlighted.length?`<div class="dlfr20-featured-badges">${highlighted.map(x=>`<div class="dlfr-badge dlfr20-favorite" data-rarity="${esc(x.def.rarity.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''))}" title="${esc(x.def.label)} — ${esc(x.def.description||'')}"><span class="dlfr-badge-medal" aria-hidden="true"><span class="dlfr-badge-icon">${esc(x.def.symbol)}</span></span><b>${esc(x.def.label)}</b></div>`).join('')}</div>`:''}
  ${packEnabled()?(state.data.dlfr_level_pack_claims||[]).filter(c=>c.player_key===playerKey).map(c=>{const p=(state.data.dlfr_level_packs||[]).find(p=>Number(p.id)===Number(c.pack_id));return p?`<span class="dlfr27-earned-reward">✦ ${esc(p.reward_label)} · Level Pack</span>`:'';}).join(''):''}
  <div id="v81-profile-rewards" data-player-key="${esc(playerKey)}"></div>
+ <div id="dlfr137CardShow" data-player-key="${esc(playerKey)}" hidden></div>
  ${showcase.length?`<h3 class="dlfr20-gallery-title">Ma vitrine de niveaux</h3><div class="dlfr20-gallery">${showcase.map(({s,d})=>{const thumb=imageLink(d.thumbnail_url);const video=http(s.video_url);return `<article class="dlfr20-level-card"><a data-nav href="${url('demon',{id:d.id})}" class="dlfr20-card-link">${thumb?`<img loading="lazy" src="${esc(thumb)}" alt="Miniature du niveau ${esc(d.name)}">`:'<span class="dlfr20-no-thumb">✦</span>'}<strong>${esc(d.name)}</strong></a>${s.caption?`<p>${esc(s.caption)}</p>`:''}${video?`<a href="${esc(video)}" target="_blank" rel="noopener noreferrer" class="link">Voir ma vidéo ↗</a>`:''}</article>`;}).join('')}</div>`:''}
  ${state.ownKey===playerKey&&following.length?`<details class="dlfr20-follow-list"><summary>Mes abonnements (${following.length})</summary><div>${following.map(x=>`<a data-nav class="link" href="${url('player',{player:x.followed_key})}">${esc(getPlayer(x.followed_key)?.display_name||getPlayer(x.followed_key)?.username||x.followed_key)}</a>`).join(' · ')}</div></details>`:''}
  </section>`;
@@ -2793,8 +2813,9 @@ function render(){
  // Donner un accès clair à l'inscription et à la connexion, sans modifier la navigation existante.
  try{navSync(page);}catch{}
  if(page==='shop'){v80WeeklyRender();v81RewardsRender();}
- if((page==='cards'||page==='cards-lab')&&LIVE&&db&&document.getElementById('dlfr127Cards'))window.DLFR_CARDS?.mount({db,session:state.session?.user?.id||null,data:state.data,toast});if(page==='admin'&&state.adminTab==='weekly'&&state.staffRole==='owner'&&!ownerPreviewActive())v86AdminLoad();
- if(page==='player'||(page==='my-profile'&&document.getElementById('v81-profile-rewards')))v81ProfileRewards();if(page==='stats'||page==='players')v90LoadFx();
+ if((page==='cards'||page==='cards-lab')&&LIVE&&db&&document.getElementById('dlfr127Cards'))window.DLFR_CARDS?.mount({db,session:state.session?.user?.id||null,ownKey:state.ownKey||null,data:state.data,toast});if(page==='admin'&&state.adminTab==='weekly'&&state.staffRole==='owner'&&!ownerPreviewActive())v86AdminLoad();
+ if(page==='player'||(page==='my-profile'&&document.getElementById('v81-profile-rewards')))v81ProfileRewards();
+ if(document.getElementById('dlfr137CardShow'))loadCardShowcase();if(page==='stats'||page==='players')v90LoadFx();
  if(page==='admin'&&state.staffRole==='owner'){
    const switcher=document.createElement('section');switcher.className='paper owner-role-switcher';
    switcher.innerHTML='<h2>Aperçu des rôles de modération</h2><p class="small muted">Vue de l’interface seulement : ton compte reste propriétaire. Aucun enregistrement n’est autorisé en aperçu.</p><div class="owner-role-actions">'+

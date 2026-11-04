@@ -7,7 +7,7 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const RAR=['Commun','Rare','Épique','Légendaire','Mythique'];
 const VALUE={Commun:2,Rare:5,'Épique':15,'Légendaire':40,Mythique:120};
 const slug=r=>String(r||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-const S={ctx:null,cards:[],collections:[],status:null,loading:false,loaded:false,error:'',busy:false,filter:'all',timer:0};
+const S={ctx:null,cards:[],collections:[],status:null,board:[],owners:{},loading:false,loaded:false,error:'',busy:false,filter:'all',timer:0};
 const LAB=()=>window.DLFR_CARDS_LAB;
 const toCard=r=>LAB()?.mkCard?LAB().mkCard(r):{id:Number(r.id),name:r.name,rarity:r.rarity,type:r.card_type||'dlfr',image:r.image_url||'',collectionId:Number(r.collection_id)};
 function fig(card,owned){const L=LAB();if(L?.figure)return L.figure(card,S.ctx?.data||{},true,{official:true,owned:!!owned});
@@ -17,11 +17,12 @@ async function load(force=false){
  const db=S.ctx?.db;if(!db||S.loading||(S.loaded&&!force))return;
  S.loading=true;
  try{
-  const [c,k,st]=await Promise.all([
+  const [c,k,st,lb,oc]=await Promise.all([
    db.from('dlfr_card_collections').select('*').order('sort_order'),
    db.from('dlfr_cards').select('*').order('sort_order'),
-   db.rpc('dlfr_cards_status')]);
+   db.rpc('dlfr_cards_status'),db.rpc('dlfr_cards_leaderboard'),db.rpc('dlfr_cards_owner_counts')]);
   if(c.error)throw c.error;if(k.error)throw k.error;if(st.error)throw st.error;
+  S.board=lb.error?[]:(lb.data||[]);S.owners=oc.error?{}:(oc.data||{});
   S.collections=c.data||[];S.cards=(k.data||[]).map(r=>({row:r,card:toCard(r)}));S.status=st.data||{};S.loaded=true;S.error='';
  }catch(e){S.error=e.message||'Chargement impossible.';}
  finally{S.loading=false;paint();}
@@ -31,6 +32,44 @@ async function refreshStatus(){const {data,error}=await S.ctx.db.rpc('dlfr_cards
 function countdown(to){const ms=new Date(to)-Date.now();if(!(ms>0))return 'maintenant';const h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000);return h?`${h} h ${String(m).padStart(2,'0')}`:`${m} min`;}
 function boosterArt(name,emblem,theme){return `<div class="dlfr127-booster-wrap" aria-hidden="true"><div class="dlfr117-booster b-${theme} dlfr127-booster" aria-hidden="true"><div class="b-crimp"></div><div class="b-body"><div class="b-pattern"></div><div class="b-glow"></div><div class="b-logo">DLFR <b>CARDS</b></div><div class="b-emblem">${emblem}</div><div class="b-name">${esc(name)}</div><div class="b-meta">5 CARTES</div><div class="b-foil"></div></div><div class="b-crimp b-bottom"></div></div></div>`;}
 
+function streakHTML(st){
+ const n=Number(st.streak)||0,pos=n%7,next=7-pos;
+ return `<div class="dlfr137-streak" title="Ouvre le booster du jour plusieurs jours d’affilée : le 7e jour, booster bonus de 6 cartes dont une Épique ou mieux."><div class="dlfr137-streak-dots">${Array.from({length:7},(_,i)=>`<i class="${i<pos||(pos===0&&n>0)?'on':''} ${i===6?'gift':''}">${i===6?'🎁':''}</i>`).join('')}</div><small>🔥 Série : <b>${n}</b> jour${n>1?'s':''} · ${pos===0&&n>0?'bonus obtenu !':`bonus dans ${next} jour${next>1?'s':''}`}</small></div>`;
+}
+function showcaseHTML(st){
+ const ids=(st.showcase||[]).map(Number),inv=st.inventory||{},byId=new Map(S.cards.map(x=>[Number(x.card.id),x.card]));
+ const cards=ids.map(id=>byId.get(id)).filter(c=>c&&Number(inv[c.id])>0);
+ return `<section class="dlfr137-showcase"><div class="dlfr137-showcase-head"><div><h3>★ Ma vitrine</h3><p>Jusqu’à 5 cartes de ta collection officielle, affichées sur ton profil public. Clique sur une carte pour l’ajouter.</p></div><b>${cards.length} / 5</b></div>
+  <div class="dlfr137-showcase-row">${cards.map(c=>`<div class="dlfr137-show-slot" data-card-zoom="${c.id}" role="button" tabindex="0">${fig(c,true)}<button type="button" class="dlfr137-unshow" data-showcase-toggle="${c.id}" title="Retirer de la vitrine" aria-label="Retirer ${esc(c.name)} de la vitrine">✕</button></div>`).join('')}${Array.from({length:5-cards.length},()=>'<div class="dlfr137-show-empty" aria-hidden="true">★</div>').join('')}</div></section>`;
+}
+function boardHTML(){
+ if(!S.board.length)return '';
+ const total=S.cards.length,me=S.ctx?.ownKey;
+ return `<section class="dlfr137-board"><h3>🏆 Meilleurs collectionneurs</h3><p class="muted small">Cartes différentes de la collection officielle.</p><ol>${S.board.slice(0,10).map((r,i)=>`<li class="${r.player_key===me?'is-me':''}"><span class="dlfr137-rank">${i<3?['🥇','🥈','🥉'][i]:'#'+(i+1)}</span><a href="?page=player&player=${encodeURIComponent(r.player_key)}" data-nav>${esc(r.name)}</a><span class="dlfr137-bar"><i style="width:${total?Math.min(100,r.owned/total*100):0}%"></i></span><b>${r.owned} / ${total}</b><small>${r.mythic?`✺ ${r.mythic}`:''}${r.legendary?` ★ ${r.legendary}`:''}</small></li>`).join('')}</ol></section>`;
+}
+function zoom(id){
+ const x=S.cards.find(c=>Number(c.card.id)===Number(id));if(!x)return;
+ const st=S.status||{},q=Number((st.inventory||{})[id])||0,a=!q&&(Number(LAB()?.advCount?.(id))||0)>0,inShow=(st.showcase||[]).map(Number).includes(Number(id));
+ const col=S.collections.find(c=>Number(c.id)===Number(x.row.collection_id)),owners=Number(S.owners[id])||0,t=RAR.indexOf(x.card.rarity);
+ const L=LAB(),big=L?.figure?L.figure(x.card,S.ctx?.data||{},false,{official:true,owned:q>0||a}):fig(x.card,q>0);
+ document.getElementById('dlfr137Zoom')?.remove();
+ const d=document.createElement('dialog');d.id='dlfr137Zoom';d.className='dlfr137-zoom';
+ d.innerHTML=`<div class="dlfr137-zoom-card">${big}</div><div class="dlfr137-zoom-info"><small>${esc(col?.name||'Collection')}</small><h2>${esc(x.card.name)}</h2>
+  <p class="dlfr137-zoom-rar r${t}">${esc(x.card.rarity)} · rareté ${t+1}/5</p>${x.row.description?`<p>${esc(x.row.description)}</p>`:''}
+  <ul><li><span>Dans ta collection</span><b>${q?`×${q}`:a?'Mode Aventure seulement':'Pas encore'}</b></li><li><span>Joueurs qui la possèdent</span><b>${owners}</b></li><li><span>Valeur d’un doublon</span><b>${VALUE[x.card.rarity]||2} ✦</b></li><li><span>Dans les boosters</span><b>${x.row.in_packs===false?'Non':'Oui'}</b></li></ul>
+  <div class="dlfr137-zoom-actions">${q?`<button type="button" class="btn ${inShow?'subtle':''}" data-showcase-toggle="${id}">${inShow?'Retirer de la vitrine':'★ Mettre en vitrine'}</button>`:''}${q>1?`<button type="button" class="btn subtle" data-cards-recycle="${id}">♻ Recycler ${q-1} doublon${q>2?'s':''} · +${(q-1)*(VALUE[x.card.rarity]||2)} ✦</button>`:''}<button type="button" class="btn subtle" data-zoom-close>Fermer</button></div></div>`;
+ document.body.append(d);d.showModal();d.addEventListener('close',()=>d.remove());
+ d.addEventListener('click',e=>{if(e.target===d||e.target.closest('[data-zoom-close]'))d.close();
+  const tg=e.target.closest('[data-showcase-toggle]');if(tg){d.close();toggleShowcase(Number(tg.dataset.showcaseToggle));}
+  const rc=e.target.closest('[data-cards-recycle]');if(rc){d.close();recycle(Number(rc.dataset.cardsRecycle));}});
+}
+async function toggleShowcase(id){
+ const cur=(S.status?.showcase||[]).map(Number),next=cur.includes(id)?cur.filter(x=>x!==id):cur.concat(id);
+ if(next.length>5){S.ctx.toast?.('Ta vitrine contient déjà 5 cartes : retires-en une d’abord.');return;}
+ try{const {data,error}=await S.ctx.db.rpc('dlfr_cards_set_showcase',{p_ids:next});if(error)throw error;
+  S.status={...S.status,showcase:data||next};S.ctx.toast?.(cur.includes(id)?'Carte retirée de ta vitrine.':'Carte ajoutée à ta vitrine ★');paint();}
+ catch(e){S.ctx.toast?.(e.message||'Vitrine indisponible.');}
+}
 function view(){
  const st=S.status||{},signed=!!st.signed_in,inv=st.inventory||{},done=new Set((st.collections_done||[]).map(Number));
  const owned=S.cards.filter(x=>Number(inv[x.card.id])>0).length,total=S.cards.length;
@@ -40,7 +79,7 @@ function view(){
  if(!S.loaded)return '<div class="dlfr127-loading">Chargement de ta collection…</div>';
  const pityLeft=Math.max(1,40-(Number(st.pity)||0));
  const actions=signed?`<div class="dlfr127-actions">
-   <article class="dlfr127-action is-daily ${st.daily_available?'is-ready':''}">${boosterArt('Booster du jour','✦','violet')}<div><small>GRATUIT · CHAQUE JOUR</small><h3>Booster du jour</h3><p>5 cartes offertes, la dernière est Rare ou mieux.</p>
+   <article class="dlfr127-action is-daily ${st.daily_available?'is-ready':''}">${boosterArt('Booster du jour','✦','violet')}<div><small>GRATUIT · CHAQUE JOUR</small><h3>Booster du jour</h3><p>5 cartes offertes, la dernière est Rare ou mieux.</p>${streakHTML(st)}
      ${st.daily_available?`<button type="button" class="btn" data-cards-open="daily" ${S.busy?'disabled':''}>Ouvrir gratuitement</button>`:`<span class="dlfr127-wait" data-next="${esc(st.next_daily)}">Prochain booster dans <b>${countdown(st.next_daily)}</b></span>`}</div></article>
    <article class="dlfr127-action">${boosterArt('Booster DLFR','◆','blue')}<div><small>BOUTIQUE</small><h3>Booster DLFR</h3><p>5 cartes pour ${price} Wayllings dorés.</p>
      <button type="button" class="btn" data-cards-open="shop" ${S.busy||bal<price?'disabled':''} ${bal<price?'title="Solde insuffisant"':''}>Acheter et ouvrir · ${price} ✦</button></div></article>
@@ -54,7 +93,7 @@ function view(){
    const shown=list.filter(x=>S.filter==='all'||(S.filter==='owned')===(Number(inv[x.card.id])>0||adv(x.card.id)>0));
    return `<section class="dlfr127-col" style="--col:${esc(col.color||'#8b5cf6')}"><header><div><h3>${esc(col.name)}</h3>${col.description?`<p>${esc(col.description)}</p>`:''}</div>
     <div class="dlfr127-col-meta"><b>${have} / ${list.length}</b><div class="dlfr127-bar"><i style="width:${list.length?have/list.length*100:0}%"></i></div><small>${complete?'✓ Bonus de collection obtenu':`Collection complète : +${bonus} ✦`}</small>${advOnly?`<small class="dlfr136-adv-note">+ ${advOnly} carte${advOnly>1?'s':''} obtenue${advOnly>1?'s':''} en Aventure</small>`:''}</div></header>
-    <div class="dlfr127-grid">${shown.map(x=>{const q=Number(inv[x.card.id])||0,a=!q&&adv(x.card.id)>0;return `<div class="dlfr127-slot ${q?'is-owned':a?'is-adventure':'is-missing'}" title="${esc(x.card.name)} · ${esc(x.card.rarity)}${a?' · obtenue en mode Aventure (ne compte pas pour les Wayllings)':''}">${fig(x.card,q>0||a)}${a?'<span class="dlfr136-adv-tag">🗺️ Aventure</span>':''}${q>1?`<span class="dlfr127-qty">×${q}</span><button type="button" class="dlfr127-recycle-one" data-cards-recycle="${x.card.id}" title="Recycler ${q-1} doublon(s)">♻ +${(q-1)*(VALUE[x.card.rarity]||2)}</button>`:''}</div>`;}).join('')||'<p class="muted small">Aucune carte dans ce filtre.</p>'}</div></section>`;
+    <div class="dlfr127-grid">${shown.map(x=>{const q=Number(inv[x.card.id])||0,a=!q&&adv(x.card.id)>0;return `<div class="dlfr127-slot ${q?'is-owned':a?'is-adventure':'is-missing'}" data-card-zoom="${x.card.id}" role="button" tabindex="0" title="${esc(x.card.name)} · ${esc(x.card.rarity)}${a?' · obtenue en mode Aventure (ne compte pas pour les Wayllings)':''}">${fig(x.card,q>0||a)}${a?'<span class="dlfr136-adv-tag">🗺️ Aventure</span>':''}${q>1?`<span class="dlfr127-qty">×${q}</span><button type="button" class="dlfr127-recycle-one" data-cards-recycle="${x.card.id}" title="Recycler ${q-1} doublon(s)">♻ +${(q-1)*(VALUE[x.card.rarity]||2)}</button>`:''}</div>`;}).join('')||'<p class="muted small">Aucune carte dans ce filtre.</p>'}</div></section>`;
  }).join('');
  const embedded=!!document.querySelector('#dlfr127Cards.is-embedded');
  return (embedded?`<div class="dlfr127-hero-stats is-compact"><div><span>Cartes</span><b>${signed?owned:'—'} <small>/ ${total}</small></b></div><div><span>Wayllings dorés</span><b>✦ ${signed?bal:'—'}</b></div>${signed?`<div><span>Légendaire garantie</span><b>${pityLeft} <small>carte${pityLeft>1?'s':''}</small></b></div>`:''}</div>`:`<header class="dlfr127-hero"><div><span class="kicker">Collection</span><h1>DLFR Cards</h1><p>Collectionne les niveaux, les joueurs et les moments de la DLFR. Les doublons et les collections complètes rapportent des <b>Wayllings dorés</b>.</p></div>
@@ -62,9 +101,11 @@ function view(){
   <div class="dlfr127-hero-stats"><div><span>Cartes</span><b>${signed?owned:'—'} <small>/ ${total}</small></b></div><div><span>Wayllings dorés</span><b>✦ ${signed?bal:'—'}</b></div>${signed?`<div><span>Légendaire garantie</span><b>${pityLeft} <small>carte${pityLeft>1?'s':''}</small></b></div>`:''}</div></header>`)+`
   ${actions}
   <details class="dlfr127-odds"><summary>Probabilités et règles</summary><ul><li>Chaque carte : Commun 58 % · Rare 27 % · Épique 10 % · Légendaire 4 % · Mythique 1 %.</li><li>La 5e carte de chaque booster est Rare ou mieux.</li><li>Une carte Légendaire ou mieux est garantie au plus tard toutes les 40 cartes.</li><li>Recyclage d’un doublon : Commun 2 ✦ · Rare 5 ✦ · Épique 15 ✦ · Légendaire 40 ✦ · Mythique 120 ✦.</li><li>Collection complète : 40 ✦ par carte de la collection, une seule fois.</li></ul></details>
+  ${signed?showcaseHTML(st):''}
   ${LAB()?.ladder?LAB().ladder([58,27,10,4,1]):''}
   <div class="dlfr127-filters" role="group" aria-label="Filtrer les cartes">${[['all','Toutes'],['owned','Possédées'],['missing','Manquantes']].map(([k,l])=>`<button type="button" data-cards-filter="${k}" class="${S.filter===k?'active':''}" aria-pressed="${S.filter===k}">${l}</button>`).join('')}</div>
-  ${collections||'<p class="muted">Aucune carte dans le catalogue pour le moment.</p>'}`;
+  ${collections||'<p class="muted">Aucune carte dans le catalogue pour le moment.</p>'}
+  ${boardHTML()}`;
 }
 function paint(){
  const root=document.getElementById('dlfr127Cards');if(!root)return;
@@ -85,6 +126,7 @@ async function open(source){
   if(LAB()?.playReal)LAB().playReal({name:source==='daily'?'Booster du jour':'Booster DLFR',theme:source==='daily'?'violet':'blue',emblem:source==='daily'?'✦':'◆'},draws,
    {data:S.ctx.data,balance:data.balance,bonuses:data.bonuses||[],onClose:after,againLabel:canAgain?`Rouvrir un booster · ${price} ✦`:'',onAgain:()=>{after();open('shop');}});
   else{after();S.ctx.toast?.(`${draws.length} cartes obtenues !`);}
+  if(data.big)S.ctx.toast?.(`🔥 ${data.streak} jours d’affilée : booster bonus de 6 cartes !`);
   (data.bonuses||[]).forEach(b=>S.ctx.toast?.(`Collection « ${b.collection} » complète : +${b.coins} Wayllings dorés !`));
  }catch(e){S.busy=false;paint();S.ctx.toast?.(e.message||'Ouverture impossible.');}
 }
@@ -99,8 +141,11 @@ document.addEventListener('click',ev=>{
  if(!ev.target.closest?.('#dlfr127Cards'))return;
  const o=ev.target.closest('[data-cards-open]');if(o){ev.preventDefault();open(o.dataset.cardsOpen);return;}
  const r=ev.target.closest('[data-cards-recycle]');if(r){ev.preventDefault();recycle(Number(r.dataset.cardsRecycle)||null);return;}
- const f=ev.target.closest('[data-cards-filter]');if(f){S.filter=f.dataset.cardsFilter;paint();}
+ const f=ev.target.closest('[data-cards-filter]');if(f){S.filter=f.dataset.cardsFilter;paint();return;}
+ const t=ev.target.closest('[data-showcase-toggle]');if(t){ev.preventDefault();ev.stopPropagation();toggleShowcase(Number(t.dataset.showcaseToggle));return;}
+ const z=ev.target.closest('[data-card-zoom]');if(z&&!ev.target.closest('button')){ev.preventDefault();zoom(Number(z.dataset.cardZoom));}
 });
+document.addEventListener('keydown',ev=>{if((ev.key==='Enter'||ev.key===' ')&&ev.target.matches?.('#dlfr127Cards [data-card-zoom]')){ev.preventDefault();zoom(Number(ev.target.dataset.cardZoom));}});
 window.DLFR_CARDS={
  page(){return '<section class="dlfr127-cards" id="dlfr127Cards" aria-live="polite"><div class="dlfr127-loading">Chargement de ta collection…</div></section>';},
  refresh(){if(!S.ctx)return;if(S.loaded)paint();else load();},
