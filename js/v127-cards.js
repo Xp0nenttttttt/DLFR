@@ -5,7 +5,7 @@
 (()=>{'use strict';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const RAR=['Commun','Rare','Épique','Légendaire','Mythique'];
-const VALUE={Commun:2,Rare:5,'Épique':15,'Légendaire':40,Mythique:120};
+const VALUE={Commun:2,Rare:5,'Épique':15,'Légendaire':40,Mythique:120,Festive:60};
 const slug=r=>String(r||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
 const S={ctx:null,cards:[],collections:[],status:null,board:[],owners:{},loading:false,loaded:false,error:'',busy:false,filter:'all',timer:0};
 const LAB=()=>window.DLFR_CARDS_LAB;
@@ -56,7 +56,7 @@ function zoom(id){
  document.getElementById('dlfr137Zoom')?.remove();
  const d=document.createElement('dialog');d.id='dlfr137Zoom';d.className='dlfr137-zoom';
  d.innerHTML=`<div class="dlfr137-zoom-card">${big}</div><div class="dlfr137-zoom-info"><small>${esc(col?.name||'Collection')}</small><h2>${esc(x.card.name)}</h2>
-  <p class="dlfr137-zoom-rar r${t}">${esc(x.card.rarity)} · rareté ${t+1}/5</p>${x.row.description?`<p>${esc(x.row.description)}</p>`:''}
+  <p class="dlfr137-zoom-rar r${t<0?'f':t}">${esc(x.card.rarity)} · ${t<0?'rareté spéciale (calendrier de l’Avent)':`rareté ${t+1}/5`}</p>${x.row.description?`<p>${esc(x.row.description)}</p>`:''}
   <ul><li><span>Dans ta collection</span><b>${q?`×${q}`:a?'Mode Aventure seulement':'Pas encore'}</b></li><li><span>Joueurs qui la possèdent</span><b>${owners}</b></li><li><span>Valeur d’un doublon</span><b>${VALUE[x.card.rarity]||2} ✦</b></li><li><span>Dans les boosters</span><b>${x.row.in_packs===false?'Non':'Oui'}</b></li></ul>
   <div class="dlfr137-zoom-actions">${q?`<button type="button" class="btn ${inShow?'subtle':''}" data-showcase-toggle="${id}">${inShow?'Retirer de la vitrine':'★ Mettre en vitrine'}</button>`:''}${rcOf(id)>0?`<button type="button" class="btn subtle" data-cards-recycle="${id}">♻ Recycler ${rcOf(id)} doublon${rcOf(id)>1?'s':''} · +${rcOf(id)*(VALUE[x.card.rarity]||2)} ✦</button>`:''}<button type="button" class="btn subtle" data-zoom-close>Fermer</button></div></div>`;
  document.body.append(d);d.showModal();d.addEventListener('close',()=>d.remove());
