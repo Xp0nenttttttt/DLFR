@@ -45,7 +45,7 @@ const SAVE={loaded:false,version:0,timer:0,saving:false,pending:false,status:'',
 const catalog={status:'local',error:'',selCol:1,editCard:null,editCol:null,draft:null,colDraft:null,busy:false,msg:'',msgKind:'',pendingFile:null};
 
 // ============================================================ RÈGLES DE PROGRESSION V117
-const MAX_LEVEL=100, MAX_PRESTIGE=10, RENAISSANCE_LEVEL=60;
+const MAX_LEVEL=1000, MAX_PRESTIGE=100, RENAISSANCE_LEVEL=60; // V152 : niveau max 1000, 100 Renaissances
 const RVAL=[1,2,4,8,16,40];                       // valeur de collection par rareté
 const DUST_DUP=[5,12,30,80,200,600];               // poussière gagnée par doublon
 const CRAFT=[40,100,260,800,2400,8000];             // coût de fabrication d'une carte manquante
@@ -54,17 +54,17 @@ const STAR_DUST=[15,35,80,180,400,900,1600,2600,4000,6000]; // poussière de bas
 const MAX_STARS=10;
 const STAR_FACTOR=[1,1.5,2.5,4,6,9];
 const FIN=['none','holo','prism','obsidian','shiny'], FIN_NAME=['Standard','Holo','Prismatique','Obsidienne','Shiny']; // V150 : Shiny
-const FIN_MULT=[1,1.25,1.6,2.2,3], FIN_BASE=[0,.06,.012,.0025,.001];
+const FIN_MULT=[1,1.25,1.6,2.2,3], FIN_BASE=[0,.03,.006,.0012,.0004]; // V152 : finitions 2× plus rares
 const POWER_TIERS=[20,50,100,180,300,480,720,1000,1400];
 const TIER_COLORS=['#c9d1e0','#5fb2ff','#b980ff','#ffc247','#ff5fa2','#fff1b8'];
-const RANKS=[[1,'Easy','#7fd4ff'],[5,'Normal','#7bf0a0'],[10,'Hard','#ffd36b'],[16,'Harder','#ff9e5e'],[24,'Insane','#ff6fa8'],[32,'Easy Demon','#c58bff'],[42,'Medium Demon','#a67bff'],[54,'Hard Demon','#ff5f5f'],[68,'Insane Demon','#ff3d7a'],[84,'Extreme Demon','#ff2a2a'],[100,'Grand Démon','#ffe27a']];
+const RANKS=[[1,'Easy','#7fd4ff'],[5,'Normal','#7bf0a0'],[10,'Hard','#ffd36b'],[16,'Harder','#ff9e5e'],[24,'Insane','#ff6fa8'],[32,'Easy Demon','#c58bff'],[42,'Medium Demon','#a67bff'],[54,'Hard Demon','#ff5f5f'],[68,'Insane Demon','#ff3d7a'],[84,'Extreme Demon','#ff2a2a'],[100,'Grand Démon','#ffe27a'],[120,'Extended List','#ff8a3d'],[200,'Main List','#ff5050'],[300,'Top 50','#ff2e63'],[400,'Top 25','#e0218a'],[500,'Top 10','#b026ff'],[650,'Top 5','#7a5cff'],[800,'Top 1','#2ec5ff'],[1000,'GOD','#fff1b8']];
 const PACKS=[
- {id:'start',name:'Découverte',count:3,cost:{shards:18},level:1,weights:[66,26,7,.9,.1,0],guarantee:0,theme:'violet',emblem:'✦',subtitle:'Pour débuter la collection'},
- {id:'explore',name:'Explorateur',count:5,cost:{shards:60},level:3,weights:[50,35,12,2.6,.4,.02],guarantee:1,theme:'blue',emblem:'◆',subtitle:'Une carte Rare ou mieux garantie'},
- {id:'players',name:'Joueurs FR',count:5,cost:{shards:90},level:11,weights:[50,33,13,3.2,.8,.03],guarantee:1,theme:'green',emblem:'★',subtitle:'Uniquement des cartes Joueur',filter:c=>c.type==='player'},
- {id:'prestige',name:'Prestige',count:5,cost:{shards:150},level:15,weights:[0,45,42,11,2,.08],guarantee:2,theme:'gold',emblem:'♛',subtitle:'Une carte Épique ou mieux garantie',finishBoost:1.5},
- {id:'demon',name:'Coffre Démoniaque',count:6,cost:{keys:1},level:20,weights:[0,35,50,13,2,.12],guarantee:3,theme:'demon',emblem:'🔑',subtitle:'Une Légendaire garantie · ouvert avec une clé',finishBoost:1.5},
- {id:'relic',name:'Coffre Mythique',count:7,cost:{keys:3,shards:600},level:45,weights:[0,0,60,34,6,.4],guarantee:4,theme:'prism',emblem:'✺',subtitle:'Une Mythique garantie',finishBoost:2}
+ {id:'start',name:'Découverte',count:3,cost:{shards:18},level:1,weights:[72,23,4.5,.45,.05,0],guarantee:0,theme:'violet',emblem:'✦',subtitle:'Pour débuter la collection'},
+ {id:'explore',name:'Explorateur',count:5,cost:{shards:60},level:3,weights:[58,33,7.7,1.1,.19,.01],guarantee:1,theme:'blue',emblem:'◆',subtitle:'Une carte Rare ou mieux garantie'},
+ {id:'players',name:'Joueurs FR',count:5,cost:{shards:90},level:11,weights:[58,32,8.3,1.4,.28,.015],guarantee:1,theme:'green',emblem:'★',subtitle:'Uniquement des cartes Joueur',filter:c=>c.type==='player'},
+ {id:'prestige',name:'Prestige',count:5,cost:{shards:150},level:15,weights:[0,58,35,6,.96,.04],guarantee:2,theme:'gold',emblem:'♛',subtitle:'Une carte Épique ou mieux garantie',finishBoost:1.5},
+ {id:'demon',name:'Coffre Démoniaque',count:6,cost:{keys:1},level:20,weights:[0,48,44,7,.94,.06],guarantee:3,theme:'demon',emblem:'🔑',subtitle:'Une Légendaire garantie · ouvert avec une clé',finishBoost:1.5},
+ {id:'relic',name:'Coffre Mythique',count:7,cost:{keys:3,shards:600},level:45,weights:[0,0,72,24.5,3.3,.2],guarantee:4,theme:'prism',emblem:'✺',subtitle:'Une Mythique garantie',finishBoost:2}
 ];
 const DESTS=[
  {id:'stereo',name:'Plaines de Stereo Madness',icon:'▲',min:2,level:1,shards:14,xp:16,dust:0,key:0,card:0},
@@ -78,14 +78,15 @@ const DESTS=[
 const BRANCHES=[
  {key:'fortune',name:'Fortune',icon:'✦',subtitle:'Raretés, finitions et garanties',color:'violet'},
  {key:'explore',name:'Exploration',icon:'◆',subtitle:'Camps, expéditions et clés',color:'blue'},
- {key:'mastery',name:'Maîtrise',icon:'★',subtitle:'Expérience, poussière et forge',color:'gold'}
+ {key:'mastery',name:'Maîtrise',icon:'★',subtitle:'Expérience, poussière et forge',color:'gold'},
+ {key:'legend',name:'Légende',icon:'♛',subtitle:'Talents de haut niveau (100 à 1000)',color:'red'}
 ];
 // max = rangs ; cost = éclats pour le rang 1 (×rang suivant) ; pts = points par rang.
 const SKILLS=[
  {id:'fo1',branch:'fortune',name:'Chance',icon:'✦',max:5,level:1,cost:20,pts:1,requires:[],text:r=>`+${r} niveau${r>1?'x':''} de chance sur toutes les raretés`},
  {id:'fo2',branch:'fortune',name:'Éclat holographique',icon:'◈',max:3,level:6,cost:60,pts:1,requires:['fo1'],text:r=>`Finitions Holo/Prisme/Obsidienne +${25*r} %`},
  {id:'fo3',branch:'fortune',name:'Découverte garantie',icon:'♢',max:1,level:12,cost:180,pts:1,requires:['fo2'],text:()=>'Le paquet Découverte garantit une Rare ou mieux'},
- {id:'fo4',branch:'fortune',name:'Garantie plus rapide',icon:'⌛',max:3,level:20,cost:260,pts:1,requires:['fo3'],text:r=>`Garantie Légendaire ${8*r} cartes plus tôt`},
+ {id:'fo4',branch:'fortune',name:'Garantie plus rapide',icon:'⌛',max:3,level:20,cost:260,pts:1,requires:['fo3'],text:r=>`Garantie Légendaire ${10*r} cartes plus tôt`},
  {id:'fo5',branch:'fortune',name:'Chasseur de Mythiques',icon:'✧',max:3,level:35,cost:500,pts:1,requires:['fo4'],text:r=>`Poids des Mythiques +${60*r} %`},
  {id:'fo6',branch:'fortune',name:'Finitions rares',icon:'❖',max:1,level:55,cost:1400,pts:2,requires:['fo5'],text:()=>'Prismatique ×1,5 et Obsidienne ×2'},
  {id:'ex1',branch:'explore',name:'Sac de voyage',icon:'◇',max:5,level:1,cost:20,pts:1,requires:[],text:r=>`Éclats d’expédition +${8*r} %`},
@@ -100,6 +101,16 @@ const SKILLS=[
  {id:'ma4',branch:'mastery',name:'Forgeron',icon:'⚒',max:3,level:26,cost:320,pts:1,requires:['ma3'],text:r=>`Coûts de la Forge −${10*r} %`},
  {id:'ma5',branch:'mastery',name:'Œil de lynx',icon:'✵',max:1,level:38,cost:650,pts:2,requires:['ma4'],text:()=>'La dernière carte d’un paquet privilégie une carte manquante'},
  {id:'ma6',branch:'mastery',name:'Grand archiviste',icon:'⌘',max:3,level:62,cost:1200,pts:1,requires:['ma5'],text:r=>`Éclats des nouvelles cartes +${50*r} %`},
+ {id:'le1',branch:'legend',name:'Pluie d’éclats',icon:'◆',max:20,level:100,cost:3000,pts:1,requires:[],text:r=>`Éclats +${3*r} %`},
+ {id:'le2',branch:'legend',name:'Mémoire',icon:'✪',max:20,level:120,cost:3000,pts:1,requires:['le1'],text:r=>`XP +${3*r} %`},
+ {id:'le3',branch:'legend',name:'Poussière d’étoile',icon:'✧',max:20,level:150,cost:3500,pts:1,requires:['le2'],text:r=>`Poussière +${5*r} %`},
+ {id:'le4',branch:'legend',name:'Coup de chance',icon:'✦',max:10,level:200,cost:6000,pts:2,requires:['le3'],text:r=>`+${(r*.5).toLocaleString('fr-FR')} niveau de chance sur toutes les raretés`},
+ {id:'le6',branch:'legend',name:'Forge éternelle',icon:'⚒',max:10,level:250,cost:7000,pts:1,requires:['le4'],text:r=>`Coûts de la Forge −${3*r} % (−70 % au total au maximum)`},
+ {id:'le5',branch:'legend',name:'Chasseur de Shiny',icon:'✨',max:5,level:300,cost:9000,pts:2,requires:['le6'],text:r=>`Chances de Shiny +${20*r} %`},
+ {id:'le9',branch:'legend',name:'Expéditions éclair',icon:'⌁',max:10,level:350,cost:9000,pts:1,requires:['le5'],text:r=>`Durée des expéditions −${2*r} %`},
+ {id:'le7',branch:'legend',name:'Quatrième camp',icon:'⛺',max:1,level:400,cost:15000,pts:3,requires:['le9'],text:()=>'+1 expédition simultanée'},
+ {id:'le8',branch:'legend',name:'Chasseur d’Ultra',icon:'♛',max:5,level:500,cost:20000,pts:3,requires:['le7'],text:r=>`Chances d’Ultra +${30*r} %`},
+ {id:'le10',branch:'legend',name:'Légende vivante',icon:'☀',max:1,level:1000,cost:100000,pts:10,requires:['le8'],text:()=>'+1 carte dans tous les paquets, +25 % d’éclats, d’XP et de poussière'},
  {id:'cv',branch:'core',name:'Maître des cartes',icon:'✺',max:1,level:50,cost:2000,pts:3,requires:['fo4','ex4','ma4'],text:()=>'+1 niveau de chance et +15 % d’éclats et d’XP'},
  {id:'ap',branch:'core',name:'Talent ultime',icon:'☀',max:1,level:85,cost:6000,pts:5,requires:['cv','fo6','ex6','ma6'],text:()=>'+1 carte dans tous les paquets et Mythiques ×2'}
 ];
@@ -142,19 +153,20 @@ const ACHIEVEMENTS=[
  {id:'st5',name:'Carte ★5',desc:'Porter une carte à ★5',value:()=>maxStars(),target:5,reward:{keys:3},title:'Maître forgeron'},
  {id:'st7',name:'Premier Éveil',desc:'Porter une carte à ★7',value:()=>maxStars(),target:7,reward:{keys:6,dust:3000}},
  {id:'st10',name:'Carte ★10',desc:'Porter une carte à ★10',value:()=>maxStars(),target:10,reward:{keys:15},title:'Éveillé'},
- {id:'tw10',name:'Tour : étage 10',desc:'Vaincre l’étage 10 de la Tour des démons',value:()=>progress.tower||0,target:10,reward:{keys:3}},
- {id:'tw76',name:'Tour : Main List',desc:'Atteindre la Main List dans la Tour (étage 76)',value:()=>progress.tower||0,target:76,reward:{keys:10},title:'Main List'},
- {id:'tw150',name:'Tour : Top 1',desc:'Vaincre le dernier étage de la Tour (Top 1)',value:()=>progress.tower||0,target:150,reward:{keys:40},title:'Vainqueur du Top 1'},
- ...[[10,{keys:1}],[25,{keys:2}],[50,{keys:3},'Demon Slayer'],[75,{keys:5}],[100,{keys:10},'Grand Démon']].map(([n,reward,title])=>({id:'lv'+n,name:`Niveau ${n}`,desc:`Atteindre le niveau ${n}`,value:()=>Math.max(progress.level,S().bestLevel),target:n,reward,title})),
+ ...[[10,{keys:1}],[25,{keys:2}],[50,{keys:3},'Demon Slayer'],[75,{keys:5}],[100,{keys:10},'Grand Démon'],[200,{keys:15}],[300,{keys:20},'Main List'],[500,{keys:30},'Top 10'],[750,{keys:40}],[1000,{keys:100},'GOD']].map(([n,reward,title])=>({id:'lv'+n,name:`Niveau ${n}`,desc:`Atteindre le niveau ${n}`,value:()=>Math.max(progress.level,S().bestLevel),target:n,reward,title})),
  {id:'set1',name:'Série terminée',desc:'Terminer une série',value:()=>Object.keys(progress.sets).length,target:1,reward:{keys:1}},
  {id:'set8',name:'Encyclopédiste',desc:'Terminer toutes les séries',value:()=>Object.keys(progress.sets).length,get target(){return SETS.length;},reward:{keys:15},title:'Encyclopédiste'},
  {id:'rn1',name:'Renaissance',desc:'Effectuer une Renaissance',value:()=>progress.prestige,target:1,reward:{keys:3},title:'Phénix'},
  {id:'rn5',name:'5 Renaissances',desc:'Effectuer 5 Renaissances',value:()=>progress.prestige,target:5,reward:{keys:10},title:'Vétéran'},
+ {id:'rn10',name:'10 Renaissances',desc:'Effectuer 10 Renaissances',value:()=>progress.prestige,target:10,reward:{keys:15},title:'Increvable'},
+ {id:'rn25',name:'25 Renaissances',desc:'Effectuer 25 Renaissances',value:()=>progress.prestige,target:25,reward:{keys:25}},
+ {id:'rn50',name:'50 Renaissances',desc:'Effectuer 50 Renaissances',value:()=>progress.prestige,target:50,reward:{keys:40},title:'Immortel'},
+ {id:'rn100',name:'100 Renaissances',desc:'Effectuer 100 Renaissances',value:()=>progress.prestige,target:100,reward:{keys:100},title:'✺ 100'},
  ...[[10,{dust:60}],[50,{keys:2}],[150,{keys:5},'Infatigable']].map(([n,reward,title])=>({id:'qs'+n,name:`${n} missions`,desc:`Accomplir ${n} missions`,value:()=>S().quests,target:n,reward,title})),
  ...[[3,{keys:1}],[6,{keys:3}],[9,{keys:6},'Puissance absolue']].map(([n,reward,title])=>({id:'pw'+n,name:`Puissance ${n}`,desc:`Atteindre le palier de puissance ${n}`,value:()=>powerTier(),target:n,reward,title}))
 ];
 const newStats=()=>({packs:0,expeditions:0,pulled:0,newCards:0,tiers:[0,0,0,0,0,0],finishes:[0,0,0,0,0],crafted:0,upgraded:0,quests:0,shardsEarned:0,bestLevel:1});
-const freshProgress=()=>({xp:0,level:1,shards:35,dust:0,keys:0,prestige:0,skills:{},camps:[],quests:[],achievements:{},sets:{},pity:{leg:0,myth:0},stats:newStats(),title:'',reveals:[],questSeed:0,tower:0});
+const freshProgress=()=>({xp:0,level:1,shards:35,dust:0,keys:0,prestige:0,skills:{},camps:[],quests:[],achievements:{},sets:{},pity:{leg:0,myth:0},stats:newStats(),title:'',reveals:[],questSeed:0});
 const progress=freshProgress();
 
 // Mémoire volatile : le rechargement de la page efface entièrement cette collection.
@@ -229,7 +241,7 @@ function take(id){const x=owned.get(Number(id));if(!x||x.count<=0)return false;x
 
 function download(obj,name){const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);}
 // ============================================================ PROGRESSION : formules
-function levelTarget(l){return Math.round((40+10*Math.pow(l,1.45))*(l>60?1+.05*(l-60):1));} // V151 : plus lent après le niveau 60
+function levelTarget(l){return Math.round(l<=100?40+10*Math.pow(l,1.45):7984+60*(l-100));} // V152 : jusqu’au niveau 1000
 function rankInfo(level=progress.level){let r=RANKS[0];for(const x of RANKS)if(level>=x[0])r=x;const i=RANKS.indexOf(r);return {name:r[1],color:r[2],index:i,next:RANKS[i+1]||null};}
 function totalPoints(){return 1+Math.floor(progress.level/2)+3*progress.prestige;}
 function spentPoints(){return SKILLS.reduce((n,s)=>n+rank(s.id)*s.pts,0);}
@@ -237,24 +249,28 @@ function freePoints(){return totalPoints()-spentPoints();}
 function maxStars(){let m=0;for(const v of owned.values())m=Math.max(m,v.stars||0);return m;}
 function collectionPower(){let p=0;for(const [id,v] of owned){const c=get(id);if(!c||v.count<=0)continue;p+=RVAL[tierOf(c)]*(1+.5*(v.stars||0))*FIN_MULT[v.finish||0];}return Math.round(p);}
 function powerTier(){const p=collectionPower();return POWER_TIERS.filter(t=>p>=t).length;}
+// V152 : chaque carte possédée donne un bonus permanent selon sa meilleure finition.
+const FIN_BONUS=[null,{shards:.005},{shards:.01,xp:.01},{shards:.02,xp:.02,dust:.02},{shards:.03,xp:.03,dust:.03}];
+function finBonus(){const o={shards:0,xp:0,dust:0};for(const [id,v] of owned){const b=FIN_BONUS[v.finish||0];if(!b||!(v.count>0)||!get(id))continue;o.shards+=b.shards||0;o.xp+=b.xp||0;o.dust+=b.dust||0;}return o;}
 function setBonus(){return .05*Object.keys(progress.sets).length;}
-function shardMult(){return (1+.1*progress.prestige)*(1+.03*powerTier())*(1+setBonus())*(rank('cv')?1.15:1);}
-function xpMult(){return (1+.1*progress.prestige)*(1+.03*powerTier())*(1+.06*rank('ma1'))*(rank('cv')?1.15:1);}
-function dustMult(){return 1+.2*rank('ma2');}
-function forgeDiscount(){return 1-.1*rank('ma4');}
-function luck(){return rank('fo1')+(rank('cv')?1:0);}
-function legPity(){return 80-8*rank('fo4');}
-const MYTH_PITY=400;
-function slots(){return Math.min(4,1+rank('ex3')+rank('ex5')+(progress.level>=30?1:0));}
-function destDuration(d){return Math.round(d.min*60000*(1-.08*rank('ex2')));}
+function prestMult(){const p=progress.prestige;return 1+.1*Math.min(p,10)+.04*Math.max(0,p-10);}
+function shardMult(){return prestMult()*(1+.03*rank('le1'))*(rank('le10')?1.25:1)*(1+finBonus().shards)*(1+.03*powerTier())*(1+setBonus())*(rank('cv')?1.15:1);}
+function xpMult(){return prestMult()*(1+.03*rank('le2'))*(rank('le10')?1.25:1)*(1+finBonus().xp)*(1+.03*powerTier())*(1+.06*rank('ma1'))*(rank('cv')?1.15:1);}
+function dustMult(){return (1+.2*rank('ma2')+.05*rank('le3')+finBonus().dust)*(rank('le10')?1.25:1);}
+function forgeDiscount(){return Math.max(.3,1-.1*rank('ma4')-.03*rank('le6'));}
+function luck(){return rank('fo1')+(rank('cv')?1:0)+.5*rank('le4');}
+function legPity(){return 120-10*rank('fo4');}
+const MYTH_PITY=700;
+function slots(){return Math.min(5,1+rank('ex3')+rank('ex5')+(progress.level>=30?1:0)+rank('le7'));}
+function destDuration(d){return Math.round(d.min*60000*(1-.08*rank('ex2')-.02*rank('le9')));}
 // V147 — un booster par collection (réglé dans le Catalogue).
 function allPacks(){
  const cols=COLLECTIONS.filter(c=>c.booster!==false&&packable().filter(x=>x.collectionId===c.id).length>=3);
  return [...PACKS,...cols.map(c=>({id:'col-'+c.id,name:c.name,count:c.boosterCount||5,cost:{shards:c.boosterCost||80},level:c.boosterLevel||1,
-  weights:[50,35,12,2.6,.4,.02],guarantee:(c.boosterCount||5)>=5?1:0,theme:'collection',emblem:'❖',color:c.color,
+  weights:[58,33,7.7,1.1,.19,.01],guarantee:(c.boosterCount||5)>=5?1:0,theme:'collection',emblem:'❖',color:c.color,
   subtitle:`Uniquement les cartes de la collection « ${c.name} »`,filter:x=>x.collectionId===c.id,collection:c.id}))];
 }
-function packCount(p){return p.count+(rank('ma3')&&p.count>=5?1:0)+(rank('ap')?1:0);}
+function packCount(p){return p.count+(rank('ma3')&&p.count>=5?1:0)+(rank('ap')?1:0)+(rank('le10')?1:0);}
 function packGuarantee(p){return p.id==='start'&&rank('fo3')?1:p.guarantee;}
 function costText(c){return [c.keys?`🔑 ${c.keys}`:'',c.shards?`◆ ${fmt(c.shards)}`:''].filter(Boolean).join(' + ');}
 function canAfford(c){return progress.shards>=(c.shards||0)&&progress.keys>=(c.keys||0);}
@@ -286,9 +302,9 @@ function makeQuest(exclude=[]){
  const lvl=progress.level,pool=QUEST_POOL.filter(q=>q.lvl<=lvl&&!exclude.includes(q.type));
  const t=pick(pool.length?pool:QUEST_POOL);
  let target=t.base[0]+Math.floor(Math.random()*(t.base[1]-t.base[0]+1));
- if(t.scale)target=Math.round(target*(1+lvl*.06)/5)*5;
- const xp=Math.round((50+lvl*14)*(.8+target/(t.base[1]||1)*.3)),shards=Math.round(20+lvl*6);
- const reward={xp,shards};if(Math.random()<.18+lvl*.004)reward.keys=1;else reward.dust=Math.round(15+lvl*3);
+ if(t.scale)target=Math.round(target*(1+Math.min(lvl,150)*.06)/5)*5;
+ const ql=Math.min(lvl,300),xp=Math.round((50+lvl*14)*(.8+target/(t.base[1]||1)*.3)),shards=Math.round(20+ql*6);
+ const reward={xp,shards};if(Math.random()<Math.min(.4,.18+lvl*.004))reward.keys=1;else reward.dust=Math.round(15+ql*3);
  progress.questSeed++;
  return {id:'q'+progress.questSeed,type:t.type,target,have:0,reward};
 }
@@ -332,7 +348,7 @@ function claimExpedition(i){
   parts.push(`+${addShards(d.shards*(1+.08*rank('ex1'))*shardMult())} ◆`,`+${addXP(d.xp*xpMult())} XP`);
   if(d.dust)parts.push(`+${addDust(d.dust*dustMult())} ✧`);
   const kc=d.key+.05*rank('ex4');const keys=Math.floor(kc)+(Math.random()<kc%1?1:0);if(keys){progress.keys+=keys;parts.push(`+${keys} 🔑`);}
-  if(d.card&&Math.random()<d.card&&packable().length){const rare=packable().filter(x=>tierOf(x)>=1),pool=rare.length?rare:packable();const tw=[0,70,24,5,1,.05],tiers=[...new Set(pool.map(tierOf))];let tr=Math.random()*tiers.reduce((a,t)=>a+tw[t],0),tt=tiers[0];for(const t of tiers.sort((a,b)=>a-b)){tr-=tw[t];if(tr<=0){tt=t;break;}}const card=pick(pool.filter(x=>tierOf(x)===tt));const isNew=!has(card.id);const f=rollFinish({});give(card.id,1,f);registerPull(card,f,isNew);parts.push(`carte ${card.name}${isNew?' (nouvelle !)':''}`);}
+  if(d.card&&Math.random()<d.card&&packable().length){const rare=packable().filter(x=>tierOf(x)>=1),pool=rare.length?rare:packable();const tw=[0,78,19,2.6,.38,.02],tiers=[...new Set(pool.map(tierOf))];let tr=Math.random()*tiers.reduce((a,t)=>a+tw[t],0),tt=tiers[0];for(const t of tiers.sort((a,b)=>a-b)){tr-=tw[t];if(tr<=0){tt=t;break;}}const card=pick(pool.filter(x=>tierOf(x)===tt));const isNew=!has(card.id);const f=rollFinish({});give(card.id,1,f);registerPull(card,f,isNew);parts.push(`carte ${card.name}${isNew?' (nouvelle !)':''}`);}
  }
  S().expeditions++;emit('expeditions');
  const txt=(times>1?'Récolte double ! ':'')+parts.join(' · ');
@@ -346,7 +362,7 @@ function packable(){return CARDS.filter(c=>c.inPacks&&c.rarity!==FESTIVE&&colLiv
 function poolFor(pack){const base=packable(),p=base.filter(c=>!pack.filter||pack.filter(c));return p.length?p:base;}
 function weights(pack){
  const pool=poolFor(pack),n=luck();
- const mult=[1,1+.16*n,1+.28*n,1+.44*n,(1+.64*n)*(1+.6*rank('fo5'))*(rank('ap')?2:1),1+.64*n];
+ const mult=[1,1+.16*n,1+.28*n,1+.44*n,(1+.64*n)*(1+.6*rank('fo5'))*(rank('ap')?2:1),(1+.64*n)*(1+.3*rank('le8'))];
  const w=pack.weights.map((x,i)=>pool.some(c=>tierOf(c)===i)?x*mult[i]:0);
  const total=w.reduce((a,b)=>a+b,0);return total>0?w.map(x=>x/total):w;
 }
@@ -362,7 +378,7 @@ function chooseTier(pack,minTier){
 function rollFinish(pack){
  const m=(1+.25*rank('fo2'))*(pack.finishBoost||1),r=Math.random();
  const obs=(progress.level>=30||progress.prestige>0)?FIN_BASE[3]*m*(rank('fo6')?2:1):0,pri=FIN_BASE[2]*m*(rank('fo6')?1.5:1),hol=FIN_BASE[1]*m;
- const shi=FIN_BASE[4]*(pack.finishBoost||1); // ~1 carte sur 1 000 : une Shiny
+ const shi=FIN_BASE[4]*(pack.finishBoost||1)*(1+.2*rank('le5')); // ~1 carte sur 1 000 : une Shiny
  if(r<shi)return 4;const r2=r-shi;
  return r2<obs?3:r2<obs+pri?2:r2<obs+pri+hol?1:0;
 }
@@ -416,7 +432,7 @@ function renaissanceGain(){return progress.level<RENAISSANCE_LEVEL?0:Math.min(MA
 function doRenaissance(){const g=renaissanceGain();if(!g)return;
  if(!confirm(`Renaissance : tu repars au niveau 1 avec 35 éclats, tes talents sont remis à zéro (sans remboursement) et les expéditions en cours sont perdues.\nTu gardes cartes, étoiles, poussière, clés, succès et séries.\nTu gagnes ${g} ✺ (+10 % d’XP et d’éclats et +3 points de talent chacun). Continuer ?`))return;
  progress.prestige+=g;Object.assign(progress,{level:1,xp:0,shards:35,skills:{},camps:[]});progress.quests=[];ensureQuests();checkAchievements();
- log(`Renaissance ! +${g} ✺ (total ${progress.prestige}).`);toast('Renaissance',`+${g} ✺ · bonus permanent ${progress.prestige*10} %`,'level');}
+ log(`Renaissance ! +${g} ✺ (total ${progress.prestige}).`);toast('Renaissance',`+${g} ✺ · bonus permanent +${Math.round((prestMult()-1)*100)} %`,'level');}
 
 // ============================================================ Notifications
 function toast(title,text,kind='info'){
@@ -442,6 +458,13 @@ function hud(){
   </div></div>`;
 }
 // V143 — Paliers de puissance bien visibles (piste à 9 étapes, bonus actuel et prochain).
+function finishPanel(){
+ const b=finBonus(),cnt=[0,0,0,0,0];for(const [id,v] of owned)if(v.count>0&&get(id))cnt[v.finish||0]++;
+ const pc=x=>(Math.round(x*1000)/10).toLocaleString('fr-FR');
+ return `<section class="dlfr152-fin" aria-label="Bonus de finitions"><div><small>BONUS DE FINITIONS</small><strong>+${pc(b.shards)} % éclats · +${pc(b.xp)} % XP · +${pc(b.dust)} % poussière</strong></div>
+  <ul><li class="f1"><b>${cnt[1]}</b> Holo<span>+0,5 % éclats</span></li><li class="f2"><b>${cnt[2]}</b> Prismatique<span>+1 % éclats et XP</span></li><li class="f3"><b>${cnt[3]}</b> Obsidienne<span>+2 % éclats, XP, poussière</span></li><li class="f4"><b>${cnt[4]}</b> Shiny<span>+3 % éclats, XP, poussière</span></li></ul>
+  <p>Chaque carte compte une fois, avec sa meilleure finition. Bonus permanents, sans limite.</p></section>`;
+}
 function powerTrack(){
  const pw=collectionPower(),t=powerTier(),max=POWER_TIERS.length,next=POWER_TIERS[t],prev=t?POWER_TIERS[t-1]:0;
  const PERK={3:'🔑 ×1',6:'🔑 ×3',9:'🔑 ×6 · titre « Puissance absolue »'};
@@ -487,41 +510,6 @@ function boostersView(){
 function campRow(c,i){const d=DESTS.find(x=>x.id===c.dest);if(!d)return '';const left=Math.max(0,c.end-Date.now()),pct=Math.min(100,(Date.now()-c.start)/(c.end-c.start)*100);
  return `<div class="dlfr117-camp" data-v117-camp="${i}"><span class="dlfr117-camp-icon">${d.icon}</span><div><strong>${esc(d.name)}</strong><div class="dlfr117-bar small"><i data-v117-bar style="width:${pct}%"></i></div><small data-v117-left>${left?'Retour dans '+duration(left):'De retour !'}</small></div><button class="btn" type="button" data-v112-act="claim-exp" data-index="${i}" ${left?'disabled':''}>${left?'En route':'Récupérer'}</button></div>`;}
 function duration(ms){const s=Math.ceil(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),sec=s%60;return h?`${h} h ${String(m).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;}
-// ============================================================ V151 : Tour des démons
-// 150 étages = les 150 niveaux de la liste, du #150 (étage 1) au Top 1 (étage 150).
-// Pour vaincre un étage : une puissance de collection suffisante + de la poussière ✧ (+ des clés tous les 10 étages).
-const TOWER_FLOORS=150;
-function towerReq(f){return Math.round(15+2.2*Math.pow(f,1.55));}
-function towerCost(f){return {dust:Math.round(60*Math.pow(f,1.25)),keys:f%10===0?3:0};}
-function towerReward(f){return {shards:40*f,xp:30*f,keys:f%5===0?2:0,card:f%10===0};}
-function towerDemon(f){const pos=TOWER_FLOORS+1-f,d=(srcData().demons||[]).find(x=>Number(x.position)===pos&&x.is_public!==false&&!x.is_legacy);return {pos,name:d?.name||`Démon #${pos}`};}
-function towerFight(){
- const f=(progress.tower||0)+1;if(f>TOWER_FLOORS)return;
- const req=towerReq(f),c=towerCost(f),pw=collectionPower();
- if(pw<req){toast('Tour des démons',`Puissance insuffisante : ${fmt(pw)} / ${fmt(req)} ⚡. Monte des étoiles à la Forge !`,'info');return;}
- if(progress.dust<c.dust||progress.keys<c.keys){toast('Tour des démons','Il te manque de la poussière ✧ ou des clés 🔑.','info');return;}
- progress.dust-=c.dust;progress.keys-=c.keys;progress.tower=f;
- const r=towerReward(f),dm=towerDemon(f);const parts=[`+${fmt(addShards(r.shards*shardMult()))} ◆`];addXP(r.xp*xpMult());parts.push(`+${fmt(r.xp)} XP`);
- if(r.keys){progress.keys+=r.keys;parts.push(`+${r.keys} 🔑`);}
- if(r.card&&packable().length){const pool=packable().filter(x=>tierOf(x)>=2),src=pool.length?pool:packable(),card=pick(src),isNew=!has(card.id),fin=rollFinish({finishBoost:2});give(card.id,1,fin);registerPull(card,fin,isNew);parts.push(`carte ${card.name}${fin?' '+FIN_NAME[fin]:''}${isNew?' (nouvelle !)':''}`);}
- log(`Tour : étage ${f} (${dm.name}) vaincu.`);toast(`🗼 Étage ${f} vaincu !`,`${dm.name} · ${parts.join(' · ')}`,'achievement');
-}
-function towerView(){
- const done=progress.tower||0,f=done+1,pw=collectionPower(),top=f>TOWER_FLOORS;
- const req=top?0:towerReq(f),c=top?{dust:0,keys:0}:towerCost(f),r=top?null:towerReward(f),dm=top?null:towerDemon(f);
- const okP=pw>=req,okD=progress.dust>=c.dust,okK=progress.keys>=c.keys;
- const next=Array.from({length:6},(_,i)=>f+1+i).filter(x=>x<=TOWER_FLOORS);
- return `<section class="dlfr117-panel dlfr151-tower"><div class="dlfr117-head"><div><small>TOUR DES DÉMONS</small><h2>Tour des démons</h2><p>150 étages, un par niveau de la liste : de l’étage 1 (#150) jusqu’au Top 1. Il faut assez de <b>puissance de collection</b> ⚡ (étoiles, finitions, nouvelles cartes) et de la poussière ✧ pour chaque étage. Les étages vaincus restent acquis, même après une Renaissance.</p></div>
-  <div class="dlfr151-floor"><b>${done}</b><span>/ ${TOWER_FLOORS} étages</span></div></div>
-  <div class="dlfr117-bar dlfr151-climb"><i style="width:${done/TOWER_FLOORS*100}%"></i></div>
-  ${top?'<div class="dlfr151-boss is-done"><h3>🏆 Tour terminée</h3><p>Tu as vaincu le Top 1. Respect.</p></div>':`<div class="dlfr151-boss ${f%10===0?'is-boss':''}">
-   <div class="dlfr151-boss-id"><small>ÉTAGE ${f}${f%10===0?' · BOSS':''}</small><h3>#${dm.pos} · ${esc(dm.name)}</h3></div>
-   <ul class="dlfr117-reqs"><li class="${okP?'ok':''}">Puissance : ${fmt(pw)} / ${fmt(req)} ⚡</li><li class="${okD?'ok':''}">Poussière : ${fmt(progress.dust)} / ${fmt(c.dust)} ✧</li>${c.keys?`<li class="${okK?'ok':''}">Clés : ${progress.keys} / ${c.keys} 🔑</li>`:''}</ul>
-   <p class="dlfr151-loot">Récompense : ◆ ${fmt(r.shards)} · ${fmt(r.xp)} XP${r.keys?` · 🔑 ${r.keys}`:''}${r.card?' · 1 carte Épique ou mieux (finitions ×2)':''}</p>
-   <button class="btn" type="button" data-v112-act="tower-fight" ${okP&&okD&&okK?'':'disabled'}>${okP?'⚔ Affronter':'Puissance insuffisante'}</button></div>`}
-  ${next.length?`<div class="dlfr117-sub"><h3>Étages suivants</h3><div class="dlfr151-next">${next.map(x=>{const d=towerDemon(x);return `<div class="${x%10===0?'is-boss':''}"><small>Étage ${x}${x%10===0?' · BOSS':''}</small><b>#${d.pos} ${esc(d.name)}</b><span>⚡ ${fmt(towerReq(x))}</span></div>`;}).join('')}</div></div>`:''}
- </section>`;
-}
 function expeditionsView(){
  const p=progress,free=slots()-p.camps.length;
  return `<section class="dlfr117-panel"><div class="dlfr117-head"><div><small>CARTE DU MONDE</small><h2>Expéditions</h2><p>Envoie tes camps vers des destinations de plus en plus lointaines. Plus l’expédition est longue, plus elle rapporte : clés, poussière et parfois une carte.</p></div><div class="dlfr117-slots"><b>${p.camps.length} / ${slots()}</b><span>camps occupés</span><small>+1 au niveau 30 et via les talents</small></div></div>
@@ -538,7 +526,7 @@ function talentsView(){
    <p>${esc(s.text(Math.max(1,r)))}${s.max>1&&r?` <em>→ rang ${Math.min(s.max,r+1)} : ${esc(s.text(Math.min(s.max,r+1)))}</em>`:''}</p>
    <div class="dlfr117-pips">${Array.from({length:s.max},(_,i)=>`<i class="${i<r?'on':''}"></i>`).join('')}<span>${r}/${s.max} · ${s.pts} pt${s.pts>1?'s':''}/rang</span></div>
    <button class="btn ${st==='available'?'':'subtle'}" type="button" data-v112-act="skill" data-skill="${s.id}" ${st!=='available'?'disabled':''}>${skillReason(s)}</button></article>`;};
- return `<section class="dlfr117-panel dlfr117-talents"><div class="dlfr117-head"><div><small>ARBRE DE TALENTS</small><h2>Talents</h2><p>1 point au départ, +1 tous les 2 niveaux et +3 par Renaissance. L’arbre complet demande ${SKILLS.reduce((n,s)=>n+s.max*s.pts,0)} points : sans Renaissance, tu ne peux pas tout débloquer.</p></div><div class="dlfr117-slots"><b>${freePoints()}</b><span>point${freePoints()>1?'s':''} libre${freePoints()>1?'s':''}</span><small>${spentPoints()} / ${totalPoints()} utilisés</small></div></div>
+ return `<section class="dlfr117-panel dlfr117-talents"><div class="dlfr117-head"><div><small>ARBRE DE TALENTS</small><h2>Talents</h2><p>1 point au départ, +1 tous les 2 niveaux et +3 par Renaissance. L’arbre complet demande ${SKILLS.reduce((n,s)=>n+s.max*s.pts,0)} points. La branche Légende se débloque à partir du niveau 100.</p></div><div class="dlfr117-slots"><b>${freePoints()}</b><span>point${freePoints()>1?'s':''} libre${freePoints()>1?'s':''}</span><small>${spentPoints()} / ${totalPoints()} utilisés</small></div></div>
   <div class="dlfr117-tree">${BRANCHES.map(b=>`<div class="dlfr117-branch c-${b.color}"><header><span>${b.icon}</span><div><h3>${b.name}</h3><small>${b.subtitle}</small></div></header>${SKILLS.filter(s=>s.branch===b.key).map(node).join('<i class="dlfr117-link" aria-hidden="true"></i>')}</div>`).join('')}</div>
   <div class="dlfr117-capstones">${SKILLS.filter(s=>s.branch==='core').map(node).join('')}</div>
  </section>`;
@@ -548,7 +536,7 @@ function forgeView(data){
  if(!list.find(c=>c.id===forgeSel))forgeSel=list[0]?.id||0;
  const cur=get(forgeSel),v=cur&&owned.get(cur.id),k=cur&&v?starCost(cur,v):null;
  return `<section class="dlfr117-panel"><div class="dlfr117-head"><div><small>FORGE</small><h2>Étoiles</h2><p>Consomme des doublons et de la poussière ✧ pour faire monter une carte jusqu’à ★5, puis jusqu’à ★10 avec l’<b>Éveil</b> (★6 à ★10, très coûteux). Chaque étoile augmente ta puissance de collection, qui donne des bonus permanents.</p></div></div>
-  ${starTrack(cur,v)}${powerTrack()}
+  ${starTrack(cur,v)}${finishPanel()}${powerTrack()}
   ${list.length?`<div class="dlfr117-forge"><div class="dlfr117-forge-list">${list.map(c=>{const o=owned.get(c.id),sc=starCost(c,o),ready=sc&&o.count-1>=sc.copies&&progress.dust>=sc.dust;return `<button type="button" class="dlfr117-forge-item ${c.id===forgeSel?'is-current':''} ${ready?'is-ready':''}" data-v112-act="forge-select" data-id="${c.id}"><span class="t${tierOf(c)}">${esc(c.name)}</span><small>${'★'.repeat(o.stars||0)}${'☆'.repeat(Math.max(0,5-(o.stars||0)))} · ${sc?`${Math.min(o.count-1,sc.copies)}/${sc.copies} doublon${sc.copies>1?'s':''}`:'MAX'}</small>${sc?`<i class="dlfr143-mini"><b style="width:${Math.min(100,(o.count-1)/sc.copies*100)}%"></b></i>`:''}${ready?'<em class="dlfr143-ready">Prêt !</em>':''}</button>`;}).join('')}</div>
    <div class="dlfr117-forge-main">${cur?`<div class="dlfr117-forge-card">${figure(cur,data)}</div><div class="dlfr117-forge-info"><h3>${esc(cur.name)}</h3><p>${esc(rarity(cur))} · ${FIN_NAME[v.finish||0]} · ★${v.stars||0}/5</p>
     ${k?`<ul class="dlfr117-reqs"><li class="${v.count-1>=k.copies?'ok':''}">Doublons : ${v.count-1} / ${k.copies}</li><li class="${progress.dust>=k.dust?'ok':''}">Poussière : ${fmt(progress.dust)} / ${fmt(k.dust)} ✧</li></ul><button class="btn" type="button" data-v112-act="upgrade" data-id="${cur.id}" ${v.count-1>=k.copies&&progress.dust>=k.dust?'':'disabled'}>Forger ★${(v.stars||0)+1}</button>`:'<p class="dlfr117-done">★★★★★ Étoiles maximales</p>'}</div>`:''}</div></div>`:'<p class="dlfr117-empty">Ouvre des boosters pour remplir la Forge.</p>'}
@@ -567,7 +555,7 @@ function goalsView(){
 }
 function progressionPage(data){
  ensureQuests();
- const inner=view==='packs'?boostersView():view==='expeditions'?expeditionsView():view==='tower'?towerView():view==='talents'?talentsView():view==='forge'?forgeView(data):goalsView();
+ const inner=view==='packs'?boostersView():view==='expeditions'?expeditionsView():view==='talents'?talentsView():view==='forge'?forgeView(data):goalsView();
  return `<div class="dlfr117-game">${hud()}${inner}
   <div class="dlfr117-footer"><p>Ta partie est sauvegardée automatiquement sur ton compte.${editor?' Importer une sauvegarde passe la session en <strong>mode test</strong> (plus de sauvegarde automatique jusqu’au rechargement).':''}</p><div class="dlfr113-create-buttons"><button class="btn subtle" data-v112-act="export-session" type="button">↓ Exporter ma partie</button>${editor?'<button class="btn subtle" data-v112-act="open-session-import" type="button">↑ Importer (test)</button>':''}<input type="file" id="dlfr114SessionFile" accept="application/json,.json" hidden></div></div></div>`;
 }
@@ -605,13 +593,13 @@ function restoreSession(x,interactive){
    for(const [k,r] of Object.entries(p.skills)){const s=SKILLS.find(z=>z.id===k);if(!s||!I(r,s.max,1)||p.level<s.level)throw new Error('Talent invalide');skills[k]=r;}
    for(const k of Object.keys(skills)){const s=SKILLS.find(z=>z.id===k);if(!s.requires.every(r=>skills[r]))throw new Error('Arbre de talents incohérent');}
    if(SKILLS.reduce((n,s)=>n+(skills[s.id]||0)*s.pts,0)>1+Math.floor(p.level/2)+3*p.prestige)throw new Error('Nombre de points incohérent');
-   const camps=Array.isArray(p.camps)?p.camps:[];if(camps.length>4)throw new Error('Expéditions invalides');
+   const camps=Array.isArray(p.camps)?p.camps:[];if(camps.length>5)throw new Error('Expéditions invalides');
    for(const c of camps)if(!DESTS.some(d=>d.id===c?.dest)||!I(c.start,4102444800000)||!I(c.end,4102444800000)||c.end<c.start)throw new Error('Expédition invalide');
    const flags=(o,list)=>{const out={};if(!o||typeof o!=='object'||Array.isArray(o))return out;for(const [k,v] of Object.entries(o))if(v===true&&list.some(z=>z.id===k))out[k]=true;return out;};
    const st=p.stats||{},stats=newStats();for(const k of Object.keys(stats)){if(Array.isArray(stats[k])){if(Array.isArray(st[k])&&st[k].length<=stats[k].length&&st[k].every(n=>I(n,100000000)))st[k].forEach((n,i)=>{stats[k][i]=n;});}else if(I(st[k],100000000))stats[k]=st[k];}
    const quests=Array.isArray(p.quests)?p.quests.filter(q=>q&&QUEST_POOL.some(t=>t.type===q.type)&&I(q.target,100000,1)&&I(q.have,q.target)&&q.reward&&typeof q.reward==='object'&&['xp','shards','dust','keys'].every(k=>q.reward[k]===undefined||I(q.reward[k],1000000))).slice(0,3).map(q=>({id:String(q.id).slice(0,20),type:q.type,target:q.target,have:q.have,reward:{...q.reward}})):[];
    Object.assign(np,{level:p.level,xp:p.xp,shards:p.shards,dust:p.dust,keys:p.keys,prestige:p.prestige,skills,camps:camps.map(c=>({dest:c.dest,start:c.start,end:c.end})),quests,questSeed:p.questSeed||0,
-    achievements:flags(p.achievements,ACHIEVEMENTS),sets:flags(Object.fromEntries(Object.entries(p.sets||{}).map(([k,v])=>[['legends','modern','players','dlfr'].includes(k)?'col-'+k:k,v])),SETS),pity:{leg:I(p.pity?.leg,1000)?p.pity.leg:0,myth:I(p.pity?.myth,1000)?p.pity.myth:0},stats,title:typeof p.title==='string'?p.title.slice(0,40):'',tower:I(p.tower||0,TOWER_FLOORS)?(p.tower||0):0});
+    achievements:flags(p.achievements,ACHIEVEMENTS),sets:flags(Object.fromEntries(Object.entries(p.sets||{}).map(([k,v])=>[['legends','modern','players','dlfr'].includes(k)?'col-'+k:k,v])),SETS),pity:{leg:I(p.pity?.leg,1000)?p.pity.leg:0,myth:I(p.pity?.myth,1000)?p.pity.myth:0},stats,title:typeof p.title==='string'?p.title.slice(0,40):''});
   }
   if(interactive&&!confirm('Restaurer cette sauvegarde ? Les cartes et la progression actuelles seront remplacées.'))return;
   reset();for(const [id,v] of inv)owned.set(id,v);for(const [id,r] of rares)overrides.set(id,r);
@@ -1012,7 +1000,7 @@ function catalogView(data){
   <fieldset class="dlfr147-booster"><legend>Booster de la collection (mode Aventure)</legend>
    <label class="dlfr147-check"><input type="checkbox" data-v118-col="booster" ${cd.booster!==false?'checked':''}> Proposer un booster avec uniquement les cartes de cette collection</label>
    <div class="dlfr118-row"><label>Prix (éclats ◆)<input type="number" data-v118-col="boosterCost" min="1" max="100000" value="${esc(cd.boosterCost??80)}"></label><label>Niveau requis<input type="number" data-v118-col="boosterLevel" min="1" max="200" value="${esc(cd.boosterLevel??1)}"></label><label>Cartes<input type="number" data-v118-col="boosterCount" min="1" max="10" value="${esc(cd.boosterCount??5)}"></label></div>
-   <small>Chances : Commun 50 % · Rare 35 % · Épique 12 % · Légendaire 2,6 % · Mythique 0,4 % · Ultra 0,02 %. Il apparaît dès que la collection a au moins 3 cartes « dans les boosters ».</small></fieldset>
+   <small>Chances : Commun 58 % · Rare 33 % · Épique 7,7 % · Légendaire 1,1 % · Mythique 0,19 % · Ultra 0,01 %. Il apparaît dès que la collection a au moins 3 cartes « dans les boosters ».</small></fieldset>
   <div class="dlfr118-actions"><button class="btn" type="submit" ${dis}>${catalog.editCol==='new'?'Créer la collection':'Enregistrer'}</button><button class="btn subtle" type="button" data-v112-act="cat-col-cancel">Annuler</button></div></form>`:'';
  const cardForm=d?`<div class="dlfr118-editor"><form class="dlfr118-form" id="dlfr118CardForm" autocomplete="off"><h3>${catalog.editCard==='new'?'Nouvelle carte':'Modifier #'+idString(catalog.editCard)}</h3>
   <label>Nom<input data-v118-card="name" maxlength="80" required value="${esc(d.name)}" placeholder="Ex. : Oblivion"><small id="dlfr148Dup" class="${dupState().cls}" aria-live="polite">${dupState().html}</small></label>
@@ -1041,7 +1029,7 @@ function catalogView(data){
 }
 
 // ============================================================ PAGE
-function tabs(){const t=[...(window.DLFR_CARDS?[['official','★ Collection']]:[]),...(window.DLFR_ADVENT?[['advent','🎄 Avent']]:[]),['packs','✦ Boosters'],['expeditions','Expéditions'],['tower','🗼 Tour'],['talents','Talents'],['forge','Forge'],['goals','Objectifs'],['album','Album'],['collection','Ma collection']];return editor?t.concat([['catalog','✎ Catalogue'],['exchanges','Échanges fictifs'],['control','Outils de test']]):t;}
+function tabs(){const t=[...(window.DLFR_CARDS?[['official','★ Collection']]:[]),...(window.DLFR_ADVENT?[['advent','🎄 Avent']]:[]),['packs','✦ Boosters'],['expeditions','Expéditions'],['talents','Talents'],['forge','Forge'],['goals','Objectifs'],['album','Album'],['collection','Ma collection']];return editor?t.concat([['catalog','✎ Catalogue'],['exchanges','Échanges fictifs'],['control','Outils de test']]):t;}
 function filtered(){return CARDS.filter(c=>(view!=='collection'||has(c.id))&&(filter==='all'||filter==='owned'&&has(c.id)||filter==='missing'&&!has(c.id)||filter===c.type||filter==='col:'+c.collectionId)&&normalize(c.name+' '+c.series+' '+rarity(c)).includes(normalize(query)));}
 function albumView(data){
  const current=get(selected)||CARDS[0];
@@ -1056,7 +1044,7 @@ function viewPage(data){
  if(view==='advent'&&!window.DLFR_ADVENT)view='official';
  if(!editor&&['catalog','exchanges','control'].includes(view))view='album';
  const current=get(selected)||CARDS[0];
- const prog=['packs','expeditions','tower','talents','forge','goals'].includes(view),total=Math.max(1,CARDS.length);
+ const prog=['packs','expeditions','talents','forge','goals'].includes(view),total=Math.max(1,CARDS.length);
  const src=catalog.status==='loading'?'chargement…':catalog.status==='ready'||catalog.status==='empty'?'':'hors ligne';
  return `<section class="dlfr112 dlfr117" id="dlfr112Lab">
   <div class="dlfr112-header"><div><div class="dlfr112-eyebrow">DLFR CARDS${view==='official'?' · COLLECTION':view==='advent'?' · CALENDRIER DE L’AVENT':' · MODE AVENTURE'}</div><h1>DLFR Cards</h1><p>${CARDS.length} cartes · ${COLLECTIONS.length} collections${src?` · ${src}`:''}${progress.title?` · <b>${esc(progress.title)}</b>`:''}</p></div><span class="dlfr141-savebox"><span class="dlfr112-demo-label ${SAVE.tainted||SAVE.conflict?'is-warn':''}" id="dlfr129Save" aria-live="polite" title="Sauvegarde du mode Aventure">Aventure · ${esc(saveLabel())}</span>${SAVE.tainted&&userId?'<button type="button" class="btn small dlfr141-leave" data-v112-act="leave-test">↺ Revenir à ma partie</button>':''}</span></div>
@@ -1185,7 +1173,6 @@ function handleClick(event){
  else if(act==='select'){selected=Number(b.dataset.id);}
  else if(act==='start-exp'){startExpedition(b.dataset.dest);}
  else if(act==='claim-exp'){claimExpedition(Number(b.dataset.index));}
- else if(act==='tower-fight'){towerFight();}
  else if(act==='claim-all'){claimAllExpeditions();}
  else if(act==='skill'){buySkill(b.dataset.skill);}
  else if(act==='open-pack'){openPack(b.dataset.pack);return;}

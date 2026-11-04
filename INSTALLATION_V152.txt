@@ -1,0 +1,35 @@
+DLFR V152 — Niveau 1000, 100 Renaissances, branche Légende, finitions utiles, cartes plus rares
+==============================================================================================
+(Inclut V150 et avant. La Tour des démons de la V151 est retirée ; l'Éveil ★6-★10 est gardé.
+ Aucune requête SQL.)
+
+À METTRE EN LIGNE VITE : la version actuellement en ligne ne connaît pas la rareté Ultra et
+traite GRIEF comme une Commune. En attendant, GRIEF a été retiré des boosters (base de données) :
+recoche « dans les boosters » sur la carte une fois cette version en ligne.
+
+Niveaux et Renaissances
+ - Niveau maximum : 1000 (au lieu de 100). Après le niveau 100, chaque niveau demande un peu
+   plus d'XP (≈ 8 000 XP au niveau 100, ≈ 62 000 au niveau 1000).
+ - Nouveaux rangs : Extended List (120), Main List (200), Top 50 (300), Top 25 (400),
+   Top 10 (500), Top 5 (650), Top 1 (800), GOD (1000).
+ - Renaissances : jusqu'à 100 (au lieu de 10). Bonus : +10 % par Renaissance jusqu'à 10, puis
+   +4 % par Renaissance ; toujours +3 points de talent chacune.
+ - Succès : niveaux 200 / 300 / 500 / 750 / 1000 (titres Main List, Top 10, GOD) et
+   10 / 25 / 50 / 100 Renaissances.
+ - Les quêtes n'augmentent plus sans fin avec le niveau.
+
+Nouvelle branche de talents « Légende » (niveaux 100 à 1000, 10 talents)
+ Pluie d'éclats, Mémoire, Poussière d'étoile, Coup de chance, Forge éternelle, Chasseur de
+ Shiny, Expéditions éclair, Quatrième camp, Chasseur d'Ultra, Légende vivante (niv. 1000).
+
+Finitions utiles (Forge → bloc « Bonus de finitions »)
+ - Chaque carte possédée donne un bonus permanent selon sa meilleure finition :
+   Holo +0,5 % éclats · Prismatique +1 % éclats et XP · Obsidienne +2 % éclats, XP et
+   poussière · Shiny +3 % éclats, XP et poussière. Les bonus s'additionnent sans limite.
+
+Tout plus rare (mode Aventure)
+ - Épique, Légendaire, Mythique et Ultra environ 2× plus rares dans tous les boosters et
+   expéditions ; finitions 2× plus rares (Shiny ≈ 1 carte sur 2 500).
+ - Garantie Légendaire : 120 cartes (avant 80) ; garantie Mythique : 700 (avant 400).
+
+Fichiers : index.html, js/v118-cards-lab.js, js/v127-cards.js, css/v131-cards.css
