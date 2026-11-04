@@ -1,0 +1,15 @@
+DLFR V153 — Tout encore plus rare (mode Aventure)
+=================================================
+(Inclut V152 et avant — lis aussi INSTALLATION_V152.txt. Aucune requête SQL.)
+
+Chances par carte (avant → maintenant), booster Explorateur et boosters de collection :
+  Rare 33 → 26,4 % · Épique 7,7 → 4,6 % · Légendaire 1,1 → 0,55 % · Mythique 0,19 → 0,095 %
+  · Ultra 0,01 → 0,005 %
+Même baisse dans tous les autres boosters (Découverte, Joueurs FR, Prestige, Coffres) et
+dans les cartes trouvées en expédition.
+Finitions encore 2× plus rares : Holo 1,5 % · Prismatique 0,3 % · Obsidienne 0,06 % ·
+Shiny 0,02 % (≈ 1 carte sur 5 000).
+Garanties : Légendaire toutes les 200 cartes (avant 120), Mythique toutes les 1 200 (avant 700).
+Les boosters gardent leur garantie de dernière carte (Rare / Épique / Légendaire / Mythique).
+
+Fichiers : index.html, js/v118-cards-lab.js

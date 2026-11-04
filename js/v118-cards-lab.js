@@ -54,17 +54,17 @@ const STAR_DUST=[15,35,80,180,400,900,1600,2600,4000,6000]; // poussière de bas
 const MAX_STARS=10;
 const STAR_FACTOR=[1,1.5,2.5,4,6,9];
 const FIN=['none','holo','prism','obsidian','shiny'], FIN_NAME=['Standard','Holo','Prismatique','Obsidienne','Shiny']; // V150 : Shiny
-const FIN_MULT=[1,1.25,1.6,2.2,3], FIN_BASE=[0,.03,.006,.0012,.0004]; // V152 : finitions 2× plus rares
+const FIN_MULT=[1,1.25,1.6,2.2,3], FIN_BASE=[0,.015,.003,.0006,.0002]; // V153 : finitions encore 2× plus rares
 const POWER_TIERS=[20,50,100,180,300,480,720,1000,1400];
 const TIER_COLORS=['#c9d1e0','#5fb2ff','#b980ff','#ffc247','#ff5fa2','#fff1b8'];
 const RANKS=[[1,'Easy','#7fd4ff'],[5,'Normal','#7bf0a0'],[10,'Hard','#ffd36b'],[16,'Harder','#ff9e5e'],[24,'Insane','#ff6fa8'],[32,'Easy Demon','#c58bff'],[42,'Medium Demon','#a67bff'],[54,'Hard Demon','#ff5f5f'],[68,'Insane Demon','#ff3d7a'],[84,'Extreme Demon','#ff2a2a'],[100,'Grand Démon','#ffe27a'],[120,'Extended List','#ff8a3d'],[200,'Main List','#ff5050'],[300,'Top 50','#ff2e63'],[400,'Top 25','#e0218a'],[500,'Top 10','#b026ff'],[650,'Top 5','#7a5cff'],[800,'Top 1','#2ec5ff'],[1000,'GOD','#fff1b8']];
 const PACKS=[
- {id:'start',name:'Découverte',count:3,cost:{shards:18},level:1,weights:[72,23,4.5,.45,.05,0],guarantee:0,theme:'violet',emblem:'✦',subtitle:'Pour débuter la collection'},
- {id:'explore',name:'Explorateur',count:5,cost:{shards:60},level:3,weights:[58,33,7.7,1.1,.19,.01],guarantee:1,theme:'blue',emblem:'◆',subtitle:'Une carte Rare ou mieux garantie'},
- {id:'players',name:'Joueurs FR',count:5,cost:{shards:90},level:11,weights:[58,32,8.3,1.4,.28,.015],guarantee:1,theme:'green',emblem:'★',subtitle:'Uniquement des cartes Joueur',filter:c=>c.type==='player'},
- {id:'prestige',name:'Prestige',count:5,cost:{shards:150},level:15,weights:[0,58,35,6,.96,.04],guarantee:2,theme:'gold',emblem:'♛',subtitle:'Une carte Épique ou mieux garantie',finishBoost:1.5},
- {id:'demon',name:'Coffre Démoniaque',count:6,cost:{keys:1},level:20,weights:[0,48,44,7,.94,.06],guarantee:3,theme:'demon',emblem:'🔑',subtitle:'Une Légendaire garantie · ouvert avec une clé',finishBoost:1.5},
- {id:'relic',name:'Coffre Mythique',count:7,cost:{keys:3,shards:600},level:45,weights:[0,0,72,24.5,3.3,.2],guarantee:4,theme:'prism',emblem:'✺',subtitle:'Une Mythique garantie',finishBoost:2}
+ {id:'start',name:'Découverte',count:3,cost:{shards:18},level:1,weights:[78.6,18.4,2.7,.23,.025,0],guarantee:0,theme:'violet',emblem:'✦',subtitle:'Pour débuter la collection'},
+ {id:'explore',name:'Explorateur',count:5,cost:{shards:60},level:3,weights:[68.3,26.4,4.6,.55,.095,.005],guarantee:1,theme:'blue',emblem:'◆',subtitle:'Une carte Rare ou mieux garantie'},
+ {id:'players',name:'Joueurs FR',count:5,cost:{shards:90},level:11,weights:[68.5,25.6,5,.7,.14,.0075],guarantee:1,theme:'green',emblem:'★',subtitle:'Uniquement des cartes Joueur',filter:c=>c.type==='player'},
+ {id:'prestige',name:'Prestige',count:5,cost:{shards:150},level:15,weights:[0,75.5,21,3,.48,.02],guarantee:2,theme:'gold',emblem:'♛',subtitle:'Une carte Épique ou mieux garantie',finishBoost:1.5},
+ {id:'demon',name:'Coffre Démoniaque',count:6,cost:{keys:1},level:20,weights:[0,69.6,26.4,3.5,.47,.03],guarantee:3,theme:'demon',emblem:'🔑',subtitle:'Une Légendaire garantie · ouvert avec une clé',finishBoost:1.5},
+ {id:'relic',name:'Coffre Mythique',count:7,cost:{keys:3,shards:600},level:45,weights:[0,0,86,12.25,1.65,.1],guarantee:4,theme:'prism',emblem:'✺',subtitle:'Une Mythique garantie',finishBoost:2}
 ];
 const DESTS=[
  {id:'stereo',name:'Plaines de Stereo Madness',icon:'▲',min:2,level:1,shards:14,xp:16,dust:0,key:0,card:0},
@@ -86,7 +86,7 @@ const SKILLS=[
  {id:'fo1',branch:'fortune',name:'Chance',icon:'✦',max:5,level:1,cost:20,pts:1,requires:[],text:r=>`+${r} niveau${r>1?'x':''} de chance sur toutes les raretés`},
  {id:'fo2',branch:'fortune',name:'Éclat holographique',icon:'◈',max:3,level:6,cost:60,pts:1,requires:['fo1'],text:r=>`Finitions Holo/Prisme/Obsidienne +${25*r} %`},
  {id:'fo3',branch:'fortune',name:'Découverte garantie',icon:'♢',max:1,level:12,cost:180,pts:1,requires:['fo2'],text:()=>'Le paquet Découverte garantit une Rare ou mieux'},
- {id:'fo4',branch:'fortune',name:'Garantie plus rapide',icon:'⌛',max:3,level:20,cost:260,pts:1,requires:['fo3'],text:r=>`Garantie Légendaire ${10*r} cartes plus tôt`},
+ {id:'fo4',branch:'fortune',name:'Garantie plus rapide',icon:'⌛',max:3,level:20,cost:260,pts:1,requires:['fo3'],text:r=>`Garantie Légendaire ${15*r} cartes plus tôt`},
  {id:'fo5',branch:'fortune',name:'Chasseur de Mythiques',icon:'✧',max:3,level:35,cost:500,pts:1,requires:['fo4'],text:r=>`Poids des Mythiques +${60*r} %`},
  {id:'fo6',branch:'fortune',name:'Finitions rares',icon:'❖',max:1,level:55,cost:1400,pts:2,requires:['fo5'],text:()=>'Prismatique ×1,5 et Obsidienne ×2'},
  {id:'ex1',branch:'explore',name:'Sac de voyage',icon:'◇',max:5,level:1,cost:20,pts:1,requires:[],text:r=>`Éclats d’expédition +${8*r} %`},
@@ -259,15 +259,15 @@ function xpMult(){return prestMult()*(1+.03*rank('le2'))*(rank('le10')?1.25:1)*(
 function dustMult(){return (1+.2*rank('ma2')+.05*rank('le3')+finBonus().dust)*(rank('le10')?1.25:1);}
 function forgeDiscount(){return Math.max(.3,1-.1*rank('ma4')-.03*rank('le6'));}
 function luck(){return rank('fo1')+(rank('cv')?1:0)+.5*rank('le4');}
-function legPity(){return 120-10*rank('fo4');}
-const MYTH_PITY=700;
+function legPity(){return 200-15*rank('fo4');}
+const MYTH_PITY=1200;
 function slots(){return Math.min(5,1+rank('ex3')+rank('ex5')+(progress.level>=30?1:0)+rank('le7'));}
 function destDuration(d){return Math.round(d.min*60000*(1-.08*rank('ex2')-.02*rank('le9')));}
 // V147 — un booster par collection (réglé dans le Catalogue).
 function allPacks(){
  const cols=COLLECTIONS.filter(c=>c.booster!==false&&packable().filter(x=>x.collectionId===c.id).length>=3);
  return [...PACKS,...cols.map(c=>({id:'col-'+c.id,name:c.name,count:c.boosterCount||5,cost:{shards:c.boosterCost||80},level:c.boosterLevel||1,
-  weights:[58,33,7.7,1.1,.19,.01],guarantee:(c.boosterCount||5)>=5?1:0,theme:'collection',emblem:'❖',color:c.color,
+  weights:[68.3,26.4,4.6,.55,.095,.005],guarantee:(c.boosterCount||5)>=5?1:0,theme:'collection',emblem:'❖',color:c.color,
   subtitle:`Uniquement les cartes de la collection « ${c.name} »`,filter:x=>x.collectionId===c.id,collection:c.id}))];
 }
 function packCount(p){return p.count+(rank('ma3')&&p.count>=5?1:0)+(rank('ap')?1:0)+(rank('le10')?1:0);}
@@ -348,7 +348,7 @@ function claimExpedition(i){
   parts.push(`+${addShards(d.shards*(1+.08*rank('ex1'))*shardMult())} ◆`,`+${addXP(d.xp*xpMult())} XP`);
   if(d.dust)parts.push(`+${addDust(d.dust*dustMult())} ✧`);
   const kc=d.key+.05*rank('ex4');const keys=Math.floor(kc)+(Math.random()<kc%1?1:0);if(keys){progress.keys+=keys;parts.push(`+${keys} 🔑`);}
-  if(d.card&&Math.random()<d.card&&packable().length){const rare=packable().filter(x=>tierOf(x)>=1),pool=rare.length?rare:packable();const tw=[0,78,19,2.6,.38,.02],tiers=[...new Set(pool.map(tierOf))];let tr=Math.random()*tiers.reduce((a,t)=>a+tw[t],0),tt=tiers[0];for(const t of tiers.sort((a,b)=>a-b)){tr-=tw[t];if(tr<=0){tt=t;break;}}const card=pick(pool.filter(x=>tierOf(x)===tt));const isNew=!has(card.id);const f=rollFinish({});give(card.id,1,f);registerPull(card,f,isNew);parts.push(`carte ${card.name}${isNew?' (nouvelle !)':''}`);}
+  if(d.card&&Math.random()<d.card&&packable().length){const rare=packable().filter(x=>tierOf(x)>=1),pool=rare.length?rare:packable();const tw=[0,86,12,1.6,.2,.01],tiers=[...new Set(pool.map(tierOf))];let tr=Math.random()*tiers.reduce((a,t)=>a+tw[t],0),tt=tiers[0];for(const t of tiers.sort((a,b)=>a-b)){tr-=tw[t];if(tr<=0){tt=t;break;}}const card=pick(pool.filter(x=>tierOf(x)===tt));const isNew=!has(card.id);const f=rollFinish({});give(card.id,1,f);registerPull(card,f,isNew);parts.push(`carte ${card.name}${isNew?' (nouvelle !)':''}`);}
  }
  S().expeditions++;emit('expeditions');
  const txt=(times>1?'Récolte double ! ':'')+parts.join(' · ');
@@ -599,7 +599,7 @@ function restoreSession(x,interactive){
    const st=p.stats||{},stats=newStats();for(const k of Object.keys(stats)){if(Array.isArray(stats[k])){if(Array.isArray(st[k])&&st[k].length<=stats[k].length&&st[k].every(n=>I(n,100000000)))st[k].forEach((n,i)=>{stats[k][i]=n;});}else if(I(st[k],100000000))stats[k]=st[k];}
    const quests=Array.isArray(p.quests)?p.quests.filter(q=>q&&QUEST_POOL.some(t=>t.type===q.type)&&I(q.target,100000,1)&&I(q.have,q.target)&&q.reward&&typeof q.reward==='object'&&['xp','shards','dust','keys'].every(k=>q.reward[k]===undefined||I(q.reward[k],1000000))).slice(0,3).map(q=>({id:String(q.id).slice(0,20),type:q.type,target:q.target,have:q.have,reward:{...q.reward}})):[];
    Object.assign(np,{level:p.level,xp:p.xp,shards:p.shards,dust:p.dust,keys:p.keys,prestige:p.prestige,skills,camps:camps.map(c=>({dest:c.dest,start:c.start,end:c.end})),quests,questSeed:p.questSeed||0,
-    achievements:flags(p.achievements,ACHIEVEMENTS),sets:flags(Object.fromEntries(Object.entries(p.sets||{}).map(([k,v])=>[['legends','modern','players','dlfr'].includes(k)?'col-'+k:k,v])),SETS),pity:{leg:I(p.pity?.leg,1000)?p.pity.leg:0,myth:I(p.pity?.myth,1000)?p.pity.myth:0},stats,title:typeof p.title==='string'?p.title.slice(0,40):''});
+    achievements:flags(p.achievements,ACHIEVEMENTS),sets:flags(Object.fromEntries(Object.entries(p.sets||{}).map(([k,v])=>[['legends','modern','players','dlfr'].includes(k)?'col-'+k:k,v])),SETS),pity:{leg:I(p.pity?.leg,5000)?p.pity.leg:0,myth:I(p.pity?.myth,5000)?p.pity.myth:0},stats,title:typeof p.title==='string'?p.title.slice(0,40):''});
   }
   if(interactive&&!confirm('Restaurer cette sauvegarde ? Les cartes et la progression actuelles seront remplacées.'))return;
   reset();for(const [id,v] of inv)owned.set(id,v);for(const [id,r] of rares)overrides.set(id,r);
@@ -1000,7 +1000,7 @@ function catalogView(data){
   <fieldset class="dlfr147-booster"><legend>Booster de la collection (mode Aventure)</legend>
    <label class="dlfr147-check"><input type="checkbox" data-v118-col="booster" ${cd.booster!==false?'checked':''}> Proposer un booster avec uniquement les cartes de cette collection</label>
    <div class="dlfr118-row"><label>Prix (éclats ◆)<input type="number" data-v118-col="boosterCost" min="1" max="100000" value="${esc(cd.boosterCost??80)}"></label><label>Niveau requis<input type="number" data-v118-col="boosterLevel" min="1" max="200" value="${esc(cd.boosterLevel??1)}"></label><label>Cartes<input type="number" data-v118-col="boosterCount" min="1" max="10" value="${esc(cd.boosterCount??5)}"></label></div>
-   <small>Chances : Commun 58 % · Rare 33 % · Épique 7,7 % · Légendaire 1,1 % · Mythique 0,19 % · Ultra 0,01 %. Il apparaît dès que la collection a au moins 3 cartes « dans les boosters ».</small></fieldset>
+   <small>Chances : Commun 68,3 % · Rare 26,4 % · Épique 4,6 % · Légendaire 0,55 % · Mythique 0,095 % · Ultra 0,005 %. Il apparaît dès que la collection a au moins 3 cartes « dans les boosters ».</small></fieldset>
   <div class="dlfr118-actions"><button class="btn" type="submit" ${dis}>${catalog.editCol==='new'?'Créer la collection':'Enregistrer'}</button><button class="btn subtle" type="button" data-v112-act="cat-col-cancel">Annuler</button></div></form>`:'';
  const cardForm=d?`<div class="dlfr118-editor"><form class="dlfr118-form" id="dlfr118CardForm" autocomplete="off"><h3>${catalog.editCard==='new'?'Nouvelle carte':'Modifier #'+idString(catalog.editCard)}</h3>
   <label>Nom<input data-v118-card="name" maxlength="80" required value="${esc(d.name)}" placeholder="Ex. : Oblivion"><small id="dlfr148Dup" class="${dupState().cls}" aria-live="polite">${dupState().html}</small></label>
