@@ -58,12 +58,12 @@ const POWER_TIERS=[20,50,100,180,300,480,720,1000,1400];
 const TIER_COLORS=['#c9d1e0','#5fb2ff','#b980ff','#ffc247','#ff5fa2'];
 const RANKS=[[1,'Easy','#7fd4ff'],[5,'Normal','#7bf0a0'],[10,'Hard','#ffd36b'],[16,'Harder','#ff9e5e'],[24,'Insane','#ff6fa8'],[32,'Easy Demon','#c58bff'],[42,'Medium Demon','#a67bff'],[54,'Hard Demon','#ff5f5f'],[68,'Insane Demon','#ff3d7a'],[84,'Extreme Demon','#ff2a2a'],[100,'Grand Démon','#ffe27a']];
 const PACKS=[
- {id:'start',name:'Découverte',count:3,cost:{shards:18},level:1,weights:[60,27,10,2.6,.4],guarantee:0,theme:'violet',emblem:'✦',subtitle:'Pour débuter la collection'},
- {id:'explore',name:'Explorateur',count:5,cost:{shards:60},level:3,weights:[40,35,18,5.5,1.5],guarantee:1,theme:'blue',emblem:'◆',subtitle:'Une carte Rare ou mieux garantie'},
- {id:'players',name:'Joueurs FR',count:5,cost:{shards:90},level:11,weights:[40,33,19,6,2],guarantee:1,theme:'green',emblem:'★',subtitle:'Uniquement des cartes Joueur',filter:c=>c.type==='player'},
- {id:'prestige',name:'Prestige',count:5,cost:{shards:150},level:15,weights:[0,30,45,20,5],guarantee:2,theme:'gold',emblem:'♛',subtitle:'Une carte Épique ou mieux garantie',finishBoost:1.5},
- {id:'demon',name:'Coffre Démoniaque',count:6,cost:{keys:1},level:20,weights:[0,25,45,25,5],guarantee:3,theme:'demon',emblem:'🔑',subtitle:'Une Légendaire garantie · ouvert avec une clé',finishBoost:1.5},
- {id:'relic',name:'Relique Mythique',count:7,cost:{keys:3,shards:600},level:45,weights:[0,0,50,38,12],guarantee:4,theme:'prism',emblem:'✺',subtitle:'Une Mythique garantie',finishBoost:2}
+ {id:'start',name:'Découverte',count:3,cost:{shards:18},level:1,weights:[66,26,7,.9,.1],guarantee:0,theme:'violet',emblem:'✦',subtitle:'Pour débuter la collection'},
+ {id:'explore',name:'Explorateur',count:5,cost:{shards:60},level:3,weights:[50,35,12,2.6,.4],guarantee:1,theme:'blue',emblem:'◆',subtitle:'Une carte Rare ou mieux garantie'},
+ {id:'players',name:'Joueurs FR',count:5,cost:{shards:90},level:11,weights:[50,33,13,3.2,.8],guarantee:1,theme:'green',emblem:'★',subtitle:'Uniquement des cartes Joueur',filter:c=>c.type==='player'},
+ {id:'prestige',name:'Prestige',count:5,cost:{shards:150},level:15,weights:[0,45,42,11,2],guarantee:2,theme:'gold',emblem:'♛',subtitle:'Une carte Épique ou mieux garantie',finishBoost:1.5},
+ {id:'demon',name:'Coffre Démoniaque',count:6,cost:{keys:1},level:20,weights:[0,35,50,13,2],guarantee:3,theme:'demon',emblem:'🔑',subtitle:'Une Légendaire garantie · ouvert avec une clé',finishBoost:1.5},
+ {id:'relic',name:'Coffre Mythique',count:7,cost:{keys:3,shards:600},level:45,weights:[0,0,60,34,6],guarantee:4,theme:'prism',emblem:'✺',subtitle:'Une Mythique garantie',finishBoost:2}
 ];
 const DESTS=[
  {id:'stereo',name:'Plaines de Stereo Madness',icon:'▲',min:2,level:1,shards:14,xp:16,dust:0,key:0,card:0},
@@ -81,12 +81,12 @@ const BRANCHES=[
 ];
 // max = rangs ; cost = éclats pour le rang 1 (×rang suivant) ; pts = points par rang.
 const SKILLS=[
- {id:'fo1',branch:'fortune',name:'Instinct rare',icon:'✦',max:5,level:1,cost:20,pts:1,requires:[],text:r=>`+${r} niveau${r>1?'x':''} de chance sur toutes les raretés`},
+ {id:'fo1',branch:'fortune',name:'Chance',icon:'✦',max:5,level:1,cost:20,pts:1,requires:[],text:r=>`+${r} niveau${r>1?'x':''} de chance sur toutes les raretés`},
  {id:'fo2',branch:'fortune',name:'Éclat holographique',icon:'◈',max:3,level:6,cost:60,pts:1,requires:['fo1'],text:r=>`Finitions Holo/Prisme/Obsidienne +${25*r} %`},
- {id:'fo3',branch:'fortune',name:'Sceau de rareté',icon:'♢',max:1,level:12,cost:180,pts:1,requires:['fo2'],text:()=>'Le paquet Découverte garantit une Rare ou mieux'},
- {id:'fo4',branch:'fortune',name:'Pitié réduite',icon:'⌛',max:3,level:20,cost:260,pts:1,requires:['fo3'],text:r=>`Garantie Légendaire ${5*r} cartes plus tôt`},
- {id:'fo5',branch:'fortune',name:'Constellation mythique',icon:'✧',max:3,level:35,cost:500,pts:1,requires:['fo4'],text:r=>`Poids des Mythiques +${60*r} %`},
- {id:'fo6',branch:'fortune',name:'Prisme parfait',icon:'❖',max:1,level:55,cost:1400,pts:2,requires:['fo5'],text:()=>'Prismatique ×1,5 et Obsidienne ×2'},
+ {id:'fo3',branch:'fortune',name:'Découverte garantie',icon:'♢',max:1,level:12,cost:180,pts:1,requires:['fo2'],text:()=>'Le paquet Découverte garantit une Rare ou mieux'},
+ {id:'fo4',branch:'fortune',name:'Garantie plus rapide',icon:'⌛',max:3,level:20,cost:260,pts:1,requires:['fo3'],text:r=>`Garantie Légendaire ${8*r} cartes plus tôt`},
+ {id:'fo5',branch:'fortune',name:'Chasseur de Mythiques',icon:'✧',max:3,level:35,cost:500,pts:1,requires:['fo4'],text:r=>`Poids des Mythiques +${60*r} %`},
+ {id:'fo6',branch:'fortune',name:'Finitions rares',icon:'❖',max:1,level:55,cost:1400,pts:2,requires:['fo5'],text:()=>'Prismatique ×1,5 et Obsidienne ×2'},
  {id:'ex1',branch:'explore',name:'Sac de voyage',icon:'◇',max:5,level:1,cost:20,pts:1,requires:[],text:r=>`Éclats d’expédition +${8*r} %`},
  {id:'ex2',branch:'explore',name:'Cartographe',icon:'⌁',max:3,level:5,cost:60,pts:1,requires:['ex1'],text:r=>`Durée des expéditions −${8*r} %`},
  {id:'ex3',branch:'explore',name:'Second camp',icon:'⛺',max:1,level:14,cost:200,pts:1,requires:['ex2'],text:()=>'+1 expédition simultanée'},
@@ -99,17 +99,17 @@ const SKILLS=[
  {id:'ma4',branch:'mastery',name:'Forgeron',icon:'⚒',max:3,level:26,cost:320,pts:1,requires:['ma3'],text:r=>`Coûts de la Forge −${10*r} %`},
  {id:'ma5',branch:'mastery',name:'Œil de lynx',icon:'✵',max:1,level:38,cost:650,pts:2,requires:['ma4'],text:()=>'La dernière carte d’un paquet privilégie une carte manquante'},
  {id:'ma6',branch:'mastery',name:'Grand archiviste',icon:'⌘',max:3,level:62,cost:1200,pts:1,requires:['ma5'],text:r=>`Éclats des nouvelles cartes +${50*r} %`},
- {id:'cv',branch:'core',name:'Convergence',icon:'✺',max:1,level:50,cost:2000,pts:3,requires:['fo4','ex4','ma4'],text:()=>'+1 niveau de chance et +15 % d’éclats et d’XP'},
- {id:'ap',branch:'core',name:'Apothéose',icon:'☀',max:1,level:85,cost:6000,pts:5,requires:['cv','fo6','ex6','ma6'],text:()=>'+1 carte dans tous les paquets et Mythiques ×2'}
+ {id:'cv',branch:'core',name:'Maître des cartes',icon:'✺',max:1,level:50,cost:2000,pts:3,requires:['fo4','ex4','ma4'],text:()=>'+1 niveau de chance et +15 % d’éclats et d’XP'},
+ {id:'ap',branch:'core',name:'Talent ultime',icon:'☀',max:1,level:85,cost:6000,pts:5,requires:['cv','fo6','ex6','ma6'],text:()=>'+1 carte dans tous les paquets et Mythiques ×2'}
 ];
 let SETS=[];
 function rebuildSets(){
  const bySlug=s=>COLLECTIONS.find(c=>c.slug===s);
  SETS=[...COLLECTIONS.map(c=>({id:'col-'+c.slug,name:c.name,test:x=>x.collectionId===c.id,reward:{keys:2,dust:150}})),
-  {id:'mythic',name:'Panthéon Mythique',test:c=>c.rarity==='Mythique',reward:{keys:3,dust:300}},
+  {id:'mythic',name:'Toutes les Mythiques',test:c=>c.rarity==='Mythique',reward:{keys:3,dust:300}},
   ...(bySlug('legends')?[{id:'holo-legends',name:bySlug('legends').name+' Holo',test:c=>c.slug==='legends',finish:1,reward:{keys:4,dust:600}}]:[]),
   ...(bySlug('players')?[{id:'prism-players',name:bySlug('players').name+' Prismatiques',test:c=>c.slug==='players',finish:2,reward:{keys:6,dust:1500}}]:[]),
-  {id:'stars-all',name:'Constellation complète',test:()=>true,stars:3,reward:{keys:10,dust:4000}}];
+  {id:'stars-all',name:'Tout en ★3',test:()=>true,stars:3,reward:{keys:10,dust:4000}}];
 }
 rebuildSets();
 const QUEST_POOL=[
@@ -128,20 +128,20 @@ const ACHIEVEMENTS=[
  {id:'col3',name:'Catalogue complet',desc:'Posséder toutes les cartes du catalogue',value:()=>CARDS.filter(c=>has(c.id)).length,get target(){return Math.max(1,CARDS.length);},reward:{keys:5,dust:500},title:'Gardien du catalogue'},
  ...[[10,'Déchireur',{dust:40}],[50,'Ouvreur assidu',{keys:1}],[150,'Usine à boosters',{keys:3}],[500,'Main d’or',{keys:8},'Main d’or']].map(([n,name,reward,title],i)=>({id:'pk'+i,name,desc:`Ouvrir ${n} paquets`,value:()=>S().packs,target:n,reward,title})),
  ...[[5,'Randonneur',{dust:30}],[25,'Aventurier',{keys:1}],[100,'Cartographe',{keys:3}],[300,'Nomade éternel',{keys:6},'Nomade']].map(([n,name,reward,title],i)=>({id:'ex'+i,name,desc:`Terminer ${n} expéditions`,value:()=>S().expeditions,target:n,reward,title})),
- {id:'leg1',name:'Lueur dorée',desc:'Obtenir une carte Légendaire',value:()=>S().tiers[3],target:1,reward:{dust:80}},
+ {id:'leg1',name:'Première Légendaire',desc:'Obtenir une carte Légendaire',value:()=>S().tiers[3],target:1,reward:{dust:80}},
  {id:'leg2',name:'Ruée vers l’or',desc:'Obtenir 15 cartes Légendaires',value:()=>S().tiers[3],target:15,reward:{keys:2}},
- {id:'myt1',name:'Étoile filante',desc:'Obtenir une carte Mythique',value:()=>S().tiers[4],target:1,reward:{keys:1},title:'Touché par les étoiles'},
- {id:'myt2',name:'Pluie de météores',desc:'Obtenir 10 cartes Mythiques',value:()=>S().tiers[4],target:10,reward:{keys:4}},
- {id:'fin1',name:'Reflets',desc:'Obtenir une carte Holo',value:()=>S().finishes[1]+S().finishes[2]+S().finishes[3],target:1,reward:{dust:50}},
+ {id:'myt1',name:'Première Mythique',desc:'Obtenir une carte Mythique',value:()=>S().tiers[4],target:1,reward:{keys:1},title:'Chanceux'},
+ {id:'myt2',name:'10 Mythiques',desc:'Obtenir 10 cartes Mythiques',value:()=>S().tiers[4],target:10,reward:{keys:4}},
+ {id:'fin1',name:'Première Holo',desc:'Obtenir une carte Holo',value:()=>S().finishes[1]+S().finishes[2]+S().finishes[3],target:1,reward:{dust:50}},
  {id:'fin2',name:'Arc-en-ciel',desc:'Obtenir une carte Prismatique',value:()=>S().finishes[2]+S().finishes[3],target:1,reward:{keys:1}},
- {id:'fin3',name:'Ténèbres polies',desc:'Obtenir une carte Obsidienne',value:()=>S().finishes[3],target:1,reward:{keys:3},title:'Obsidien'},
+ {id:'fin3',name:'Première Obsidienne',desc:'Obtenir une carte Obsidienne',value:()=>S().finishes[3],target:1,reward:{keys:3},title:'Obsidien'},
  {id:'st1',name:'Première étoile',desc:'Améliorer une carte à ★1',value:()=>maxStars(),target:1,reward:{dust:40}},
- {id:'st5',name:'Supernova',desc:'Porter une carte à ★5',value:()=>maxStars(),target:5,reward:{keys:3},title:'Supernova'},
+ {id:'st5',name:'Carte ★5',desc:'Porter une carte à ★5',value:()=>maxStars(),target:5,reward:{keys:3},title:'Maître forgeron'},
  ...[[10,{keys:1}],[25,{keys:2}],[50,{keys:3},'Demon Slayer'],[75,{keys:5}],[100,{keys:10},'Grand Démon']].map(([n,reward,title])=>({id:'lv'+n,name:`Niveau ${n}`,desc:`Atteindre le niveau ${n}`,value:()=>Math.max(progress.level,S().bestLevel),target:n,reward,title})),
  {id:'set1',name:'Série terminée',desc:'Terminer une série',value:()=>Object.keys(progress.sets).length,target:1,reward:{keys:1}},
  {id:'set8',name:'Encyclopédiste',desc:'Terminer toutes les séries',value:()=>Object.keys(progress.sets).length,get target(){return SETS.length;},reward:{keys:15},title:'Encyclopédiste'},
  {id:'rn1',name:'Renaissance',desc:'Effectuer une Renaissance',value:()=>progress.prestige,target:1,reward:{keys:3},title:'Phénix'},
- {id:'rn5',name:'Cycle éternel',desc:'Effectuer 5 Renaissances',value:()=>progress.prestige,target:5,reward:{keys:10},title:'Éternel'},
+ {id:'rn5',name:'5 Renaissances',desc:'Effectuer 5 Renaissances',value:()=>progress.prestige,target:5,reward:{keys:10},title:'Vétéran'},
  ...[[10,{dust:60}],[50,{keys:2}],[150,{keys:5},'Infatigable']].map(([n,reward,title])=>({id:'qs'+n,name:`${n} missions`,desc:`Accomplir ${n} missions`,value:()=>S().quests,target:n,reward,title})),
  ...[[3,{keys:1}],[6,{keys:3}],[9,{keys:6},'Puissance absolue']].map(([n,reward,title])=>({id:'pw'+n,name:`Puissance ${n}`,desc:`Atteindre le palier de puissance ${n}`,value:()=>powerTier(),target:n,reward,title}))
 ];
@@ -235,8 +235,8 @@ function xpMult(){return (1+.1*progress.prestige)*(1+.03*powerTier())*(1+.06*ran
 function dustMult(){return 1+.2*rank('ma2');}
 function forgeDiscount(){return 1-.1*rank('ma4');}
 function luck(){return rank('fo1')+(rank('cv')?1:0);}
-function legPity(){return 45-5*rank('fo4');}
-const MYTH_PITY=220;
+function legPity(){return 80-8*rank('fo4');}
+const MYTH_PITY=400;
 function slots(){return Math.min(4,1+rank('ex3')+rank('ex5')+(progress.level>=30?1:0));}
 function destDuration(d){return Math.round(d.min*60000*(1-.08*rank('ex2')));}
 function packCount(p){return p.count+(rank('ma3')&&p.count>=5?1:0)+(rank('ap')?1:0);}
@@ -317,7 +317,7 @@ function claimExpedition(i){
   parts.push(`+${addShards(d.shards*(1+.08*rank('ex1'))*shardMult())} ◆`,`+${addXP(d.xp*xpMult())} XP`);
   if(d.dust)parts.push(`+${addDust(d.dust*dustMult())} ✧`);
   const kc=d.key+.05*rank('ex4');const keys=Math.floor(kc)+(Math.random()<kc%1?1:0);if(keys){progress.keys+=keys;parts.push(`+${keys} 🔑`);}
-  if(d.card&&Math.random()<d.card&&packable().length){const rare=packable().filter(x=>tierOf(x)>=1),pool=rare.length?rare:packable();const card=pick(pool);const isNew=!has(card.id);const f=rollFinish({});give(card.id,1,f);registerPull(card,f,isNew);parts.push(`carte ${card.name}${isNew?' (nouvelle !)':''}`);}
+  if(d.card&&Math.random()<d.card&&packable().length){const rare=packable().filter(x=>tierOf(x)>=1),pool=rare.length?rare:packable();const tw=[0,70,24,5,1],tiers=[...new Set(pool.map(tierOf))];let tr=Math.random()*tiers.reduce((a,t)=>a+tw[t],0),tt=tiers[0];for(const t of tiers.sort((a,b)=>a-b)){tr-=tw[t];if(tr<=0){tt=t;break;}}const card=pick(pool.filter(x=>tierOf(x)===tt));const isNew=!has(card.id);const f=rollFinish({});give(card.id,1,f);registerPull(card,f,isNew);parts.push(`carte ${card.name}${isNew?' (nouvelle !)':''}`);}
  }
  S().expeditions++;emit('expeditions');
  const txt=(times>1?'Récolte double ! ':'')+parts.join(' · ');
@@ -469,7 +469,7 @@ function campRow(c,i){const d=DESTS.find(x=>x.id===c.dest);if(!d)return '';const
 function duration(ms){const s=Math.ceil(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),sec=s%60;return h?`${h} h ${String(m).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;}
 function expeditionsView(){
  const p=progress,free=slots()-p.camps.length;
- return `<section class="dlfr117-panel"><div class="dlfr117-head"><div><small>CARTE DU MONDE</small><h2>Expéditions</h2><p>Envoie tes camps vers des destinations de plus en plus lointaines. Plus c’est long, plus le butin est riche : clés, poussière et parfois une carte.</p></div><div class="dlfr117-slots"><b>${p.camps.length} / ${slots()}</b><span>camps occupés</span><small>+1 au niveau 30 et via les talents</small></div></div>
+ return `<section class="dlfr117-panel"><div class="dlfr117-head"><div><small>CARTE DU MONDE</small><h2>Expéditions</h2><p>Envoie tes camps vers des destinations de plus en plus lointaines. Plus l’expédition est longue, plus elle rapporte : clés, poussière et parfois une carte.</p></div><div class="dlfr117-slots"><b>${p.camps.length} / ${slots()}</b><span>camps occupés</span><small>+1 au niveau 30 et via les talents</small></div></div>
   ${p.camps.length?`<div class="dlfr117-camps">${p.camps.map(campRow).join('')}</div>${p.camps.some(c=>Date.now()>=c.end)?'<button class="btn" type="button" data-v112-act="claim-all">Tout récupérer</button>':''}`:'<p class="dlfr117-empty">Aucun camp en route. Choisis une destination ci-dessous.</p>'}
   <div class="dlfr117-dests">${DESTS.map(d=>{const locked=p.level<d.level;const kc=Math.min(1,d.key+.05*rank('ex4'));
    return `<article class="dlfr117-dest ${locked?'is-locked':''}"><span class="dlfr117-dest-icon">${d.icon}</span><h3>${esc(d.name)}</h3><p class="dlfr117-dest-time">⏱ ${duration(destDuration(d))}</p>
@@ -483,7 +483,7 @@ function talentsView(){
    <p>${esc(s.text(Math.max(1,r)))}${s.max>1&&r?` <em>→ rang ${Math.min(s.max,r+1)} : ${esc(s.text(Math.min(s.max,r+1)))}</em>`:''}</p>
    <div class="dlfr117-pips">${Array.from({length:s.max},(_,i)=>`<i class="${i<r?'on':''}"></i>`).join('')}<span>${r}/${s.max} · ${s.pts} pt${s.pts>1?'s':''}/rang</span></div>
    <button class="btn ${st==='available'?'':'subtle'}" type="button" data-v112-act="skill" data-skill="${s.id}" ${st!=='available'?'disabled':''}>${skillReason(s)}</button></article>`;};
- return `<section class="dlfr117-panel dlfr117-talents"><div class="dlfr117-head"><div><small>ARBRE DE TALENTS</small><h2>Talents</h2><p>1 point au départ, +1 tous les 2 niveaux et +3 par Renaissance. L’arbre complet demande ${SKILLS.reduce((n,s)=>n+s.max*s.pts,0)} points : impossible de tout prendre sans renaître, il faut choisir.</p></div><div class="dlfr117-slots"><b>${freePoints()}</b><span>point${freePoints()>1?'s':''} libre${freePoints()>1?'s':''}</span><small>${spentPoints()} / ${totalPoints()} utilisés</small></div></div>
+ return `<section class="dlfr117-panel dlfr117-talents"><div class="dlfr117-head"><div><small>ARBRE DE TALENTS</small><h2>Talents</h2><p>1 point au départ, +1 tous les 2 niveaux et +3 par Renaissance. L’arbre complet demande ${SKILLS.reduce((n,s)=>n+s.max*s.pts,0)} points : sans Renaissance, tu ne peux pas tout débloquer.</p></div><div class="dlfr117-slots"><b>${freePoints()}</b><span>point${freePoints()>1?'s':''} libre${freePoints()>1?'s':''}</span><small>${spentPoints()} / ${totalPoints()} utilisés</small></div></div>
   <div class="dlfr117-tree">${BRANCHES.map(b=>`<div class="dlfr117-branch c-${b.color}"><header><span>${b.icon}</span><div><h3>${b.name}</h3><small>${b.subtitle}</small></div></header>${SKILLS.filter(s=>s.branch===b.key).map(node).join('<i class="dlfr117-link" aria-hidden="true"></i>')}</div>`).join('')}</div>
   <div class="dlfr117-capstones">${SKILLS.filter(s=>s.branch==='core').map(node).join('')}</div>
  </section>`;
@@ -508,7 +508,7 @@ function goalsView(){
  if(goalsTab==='achievements')body=`<div class="dlfr117-achievements">${ACHIEVEMENTS.map(a=>{const ok=progress.achievements[a.id],v=Math.min(a.value(),a.target);return `<article class="dlfr117-ach ${ok?'is-done':''}"><span>${ok?'🏆':'◌'}</span><div><h4>${esc(a.name)}</h4><p>${esc(a.desc)}</p><div class="dlfr117-bar small"><i style="width:${v/a.target*100}%"></i></div><small>${fmt(v)} / ${fmt(a.target)} · ${Object.entries(a.reward).map(([k,n])=>`${{keys:'🔑',dust:'✧',shards:'◆',xp:'XP'}[k]} ${n}`).join(' ')}${a.title?` · titre « ${esc(a.title)} »`:''}</small></div></article>`;}).join('')}</div>`;
  if(goalsTab==='sets')body=`<div class="dlfr117-sets">${SETS.map(s=>{const pr=setProgress(s),done=progress.sets[s.id],ready=!done&&pr.total&&pr.have>=pr.total;return `<article class="dlfr117-set ${done?'is-done':''}"><h4>${esc(s.name)}</h4><p>${s.finish?`Toutes en ${FIN_NAME[s.finish]} ou mieux`:s.stars?`Toutes à ★${s.stars} ou plus`:'Toutes les cartes de la série'}</p><div class="dlfr117-bar small"><i style="width:${pr.total?pr.have/pr.total*100:0}%"></i></div><small>${pr.have} / ${pr.total} · 🔑 ${s.reward.keys} · ✧ ${s.reward.dust} · +5 % ◆ permanents</small>${done?'<b class="dlfr117-ok">✓ Terminée</b>':`<button class="btn" type="button" data-v112-act="set-claim" data-id="${s.id}" ${ready?'':'disabled'}>Valider la série</button>`}</article>`;}).join('')}</div>`;
  if(goalsTab==='renaissance'){const g=renaissanceGain();body=`<div class="dlfr117-reborn"><div class="dlfr117-reborn-mark">✺</div><div><h3>Renaissance ${progress.prestige}/${MAX_PRESTIGE}</h3><p>À partir du niveau ${RENAISSANCE_LEVEL}, tu peux renaître : retour au niveau 1, talents remis à zéro, mais tu gardes toute ta collection, la poussière, les clés, les succès et les séries.</p><ul><li>Chaque ✺ : +10 % d’XP et d’éclats, +3 points de talent permanents.</li><li>Gain : 1 ✺ au niveau 60, +1 tous les 10 niveaux au-delà.</li><li>Bonus actuel : +${progress.prestige*10} % · ${progress.prestige*3} points de talent supplémentaires.</li></ul><button class="btn" type="button" data-v112-act="renaissance" ${g?'':'disabled'}>${g?`Renaître · +${g} ✺`:progress.prestige>=MAX_PRESTIGE?'Maximum atteint':`Disponible au niveau ${RENAISSANCE_LEVEL}`}</button></div></div>`;}
- return `<section class="dlfr117-panel"><div class="dlfr117-head"><div><small>OBJECTIFS</small><h2>Missions, succès & séries</h2><p>Des objectifs à court, moyen et très long terme.</p></div></div><div class="dlfr117-tabs">${tabs.map(([k,t])=>`<button type="button" class="${goalsTab===k?'active':''}" data-v112-act="goals-tab" data-tab="${k}">${t}</button>`).join('')}</div>${body}</section>`;
+ return `<section class="dlfr117-panel"><div class="dlfr117-head"><div><small>OBJECTIFS</small><h2>Missions, succès & séries</h2><p>Missions du moment, succès et séries.</p></div></div><div class="dlfr117-tabs">${tabs.map(([k,t])=>`<button type="button" class="${goalsTab===k?'active':''}" data-v112-act="goals-tab" data-tab="${k}">${t}</button>`).join('')}</div>${body}</section>`;
 }
 function progressionPage(data){
  ensureQuests();
@@ -615,7 +615,7 @@ function renderOpening(){
    <div class="o-card t${d.tier} f${d.finish} is-entering" data-o="card" tabindex="0" aria-label="Carte à révéler"><div class="o-card-inner"><div class="o-face o-back">${cardBack(d.tier)}</div><div class="o-face o-front">${card?figure(card,data,false,{finish:d.finish,stars:0}):''}<div class="o-glare"></div></div></div></div></div>`);
   setOpening('.o-banner','');
   setOpening('.o-buttons',`<button type="button" class="o-btn o-primary" data-o="next">Révéler la carte</button>`);
-  setOpening('.o-hint',d.tier>=2?'Quelque chose brille derrière cette carte…':'Clique sur la carte ou appuie sur Espace');
+  setOpening('.o-hint',d.tier>=2?'Carte rare…':'Clique sur la carte ou appuie sur Espace');
   setTimeout(()=>OPEN.el?.querySelector('.o-card')?.classList.remove('is-entering'),reducedMotion()?0:520);
  }else if(st.stage==='summary')renderSummary();
  OPEN.el.querySelector('.o-primary')?.focus({preventScroll:true});
@@ -924,8 +924,8 @@ async function importCreations(file){
 function exportCatalog(){download({format:'dlfr-cards-catalog',version:1,exportedAt:new Date().toISOString(),collections:COLLECTIONS.map(c=>({id:c.id,slug:c.slug,name:c.name,description:c.description,color:c.color,sort_order:c.sort})),cards:CARDS.map(c=>({id:c.id,collection_id:c.collectionId,collection:c.slug,name:c.name,card_type:c.type,type:c.type,rarity:c.rarity,description:c.description,image_url:c.image,in_packs:c.inPacks,sort_order:c.sort}))},'DLFR_Cards_catalogue.json');}
 function catalogView(data){
  const st=catalog.status,col=colOf(catalog.selCol),list=col?cardsOf(col.id):[],dis=canEdit()?'':'disabled';
- const badge=st==='ready'||st==='empty'?'<span class="dlfr118-badge ok">● Supabase connecté</span>':st==='loading'?'<span class="dlfr118-badge">Chargement…</span>':st==='error'?'<span class="dlfr118-badge err">● Erreur</span>':'<span class="dlfr118-badge err">● Hors ligne</span>';
- if(!DB||st==='local'||st==='error')return `<div class="dlfr117-game dlfr118-cat"><section class="dlfr117-panel"><div class="dlfr117-head"><div><small>CATALOGUE OFFICIEL</small><h2>Cartes & collections</h2><p>${st==='error'?'Le catalogue Supabase n’a pas pu être chargé : '+esc(catalog.error):'Connexion à Supabase indisponible : le labo utilise le catalogue intégré, en lecture seule.'}</p></div>${badge}</div>${DB?'<button class="btn" type="button" data-v112-act="cat-reload">Réessayer</button>':''}</section></div>`;
+ const badge=st==='ready'||st==='empty'?'<span class="dlfr118-badge ok">● Connecté</span>':st==='loading'?'<span class="dlfr118-badge">Chargement…</span>':st==='error'?'<span class="dlfr118-badge err">● Erreur</span>':'<span class="dlfr118-badge err">● Hors ligne</span>';
+ if(!DB||st==='local'||st==='error')return `<div class="dlfr117-game dlfr118-cat"><section class="dlfr117-panel"><div class="dlfr117-head"><div><small>CATALOGUE OFFICIEL</small><h2>Cartes & collections</h2><p>${st==='error'?'Le catalogue n’a pas pu être chargé : '+esc(catalog.error):'Connexion impossible : catalogue de secours, en lecture seule.'}</p></div>${badge}</div>${DB?'<button class="btn" type="button" data-v112-act="cat-reload">Réessayer</button>':''}</section></div>`;
  const d=catalog.draft,cd=catalog.colDraft;
  const colForm=cd?`<form class="dlfr118-form" id="dlfr118ColForm" autocomplete="off"><h3>${catalog.editCol==='new'?'Nouvelle collection':'Modifier la collection'}</h3>
   <label>Nom<input data-v118-col="name" maxlength="60" required value="${esc(cd.name)}" placeholder="Ex. : French Legends"></label>
@@ -940,12 +940,12 @@ function catalogView(data){
   <div class="dlfr118-row"><label>Collection<select data-v118-card="collection">${COLLECTIONS.map(c=>`<option value="${c.id}" ${Number(d.collection)===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><label>Ordre<input type="number" data-v118-card="sort" value="${esc(d.sort)}" min="-9999" max="99999"></label></div>
   <label>Description (dos de la carte)<textarea data-v118-card="description" maxlength="400" rows="3">${esc(d.description)}</textarea></label>
   <label>Image : URL https<input type="url" data-v118-card="imageUrl" value="${esc(catalog.pendingFile?'':d.imageUrl)}" placeholder="https://…/image.png"></label>
-  <label>… ou fichier depuis ton PC <small>(PNG, JPEG, WebP, GIF · 2 Mo max · envoyé dans Supabase)</small><input type="file" id="dlfr118ImageFile" accept="image/png,image/jpeg,image/webp,image/gif"></label>
+  <label>… ou fichier depuis ton PC <small>(PNG, JPEG, WebP, GIF · 2 Mo max · envoyé sur le site)</small><input type="file" id="dlfr118ImageFile" accept="image/png,image/jpeg,image/webp,image/gif"></label>
   <label class="dlfr118-check"><input type="checkbox" data-v118-card="inPacks" ${d.inPacks?'checked':''}> Peut sortir dans les boosters et expéditions</label>
   <div class="dlfr118-actions"><button class="btn" type="submit" ${dis}>${catalog.editCard==='new'?'Créer la carte':'Enregistrer'}</button>${d.imageUrl||catalog.pendingFile?`<button class="btn subtle" type="button" data-v112-act="cat-clear-image">Retirer l’image</button>`:''}<button class="btn subtle" type="button" data-v112-act="cat-card-cancel">Fermer</button>${catalog.editCard!=='new'?`<button class="btn danger" type="button" data-v112-act="cat-card-delete" ${dis}>Supprimer la carte</button>`:''}</div></form>
   <aside class="dlfr118-preview"><small>APERÇU</small><div id="dlfr118Preview">${previewHtml()}</div></aside></div>`:'';
  return `<div class="dlfr117-game dlfr118-cat"><section class="dlfr117-panel">
-  <div class="dlfr117-head"><div><small>CATALOGUE OFFICIEL · SUPABASE</small><h2>Cartes & collections</h2><p>Les modifications sont enregistrées tout de suite dans Supabase, et seuls les propriétaires et supermodérateurs peuvent les faire. Elles s’appliquent au mode Aventure et à la collection officielle de tous les joueurs.</p></div><div class="dlfr118-top">${badge}<div class="dlfr118-actions"><button class="btn subtle" type="button" data-v112-act="cat-reload" ${dis}>↻ Recharger</button><button class="btn subtle" type="button" data-v112-act="cat-export">↓ Sauvegarde JSON</button></div></div></div>
+  <div class="dlfr117-head"><div><small>CATALOGUE OFFICIEL</small><h2>Cartes & collections</h2><p>Réservé aux propriétaires et supermodos. Chaque modification s’applique tout de suite pour tous les joueurs.</p></div><div class="dlfr118-top">${badge}<div class="dlfr118-actions"><button class="btn subtle" type="button" data-v112-act="cat-reload" ${dis}>↻ Recharger</button><button class="btn subtle" type="button" data-v112-act="cat-export">↓ Sauvegarde JSON</button></div></div></div>
   <p class="dlfr118-msg ${catalog.msgKind?'is-'+catalog.msgKind:''}" id="dlfr118Msg" role="status" aria-live="polite">${esc(catalog.msg)}</p>
   <div class="dlfr118-layout"><aside class="dlfr118-cols"><h3>Collections <span>${COLLECTIONS.length}</span></h3>
    ${COLLECTIONS.map(c=>`<button type="button" class="dlfr118-col ${c.id===catalog.selCol?'is-current':''}" data-v112-act="cat-col" data-id="${c.id}" style="--cc:${esc(c.color)}"><i></i><span>${esc(c.name)}</span><b>${cardsOf(c.id).length}</b></button>`).join('')||'<p class="dlfr117-muted">Aucune collection.</p>'}
@@ -959,7 +959,7 @@ function catalogView(data){
 }
 
 // ============================================================ PAGE
-function tabs(){const t=[...(window.DLFR_CARDS?[['official','★ Booster du jour']]:[]),...(window.DLFR_ADVENT?[['advent','🎄 Avent']]:[]),['packs','✦ Boosters'],['expeditions','Expéditions'],['talents','Talents'],['forge','Forge'],['goals','Objectifs'],['album','Album'],['collection','Ma collection']];return editor?t.concat([['catalog','✎ Catalogue'],['exchanges','Échanges fictifs'],['control','Outils de test']]):t;}
+function tabs(){const t=[...(window.DLFR_CARDS?[['official','★ Collection']]:[]),...(window.DLFR_ADVENT?[['advent','🎄 Avent']]:[]),['packs','✦ Boosters'],['expeditions','Expéditions'],['talents','Talents'],['forge','Forge'],['goals','Objectifs'],['album','Album'],['collection','Ma collection']];return editor?t.concat([['catalog','✎ Catalogue'],['exchanges','Échanges fictifs'],['control','Outils de test']]):t;}
 function filtered(){return CARDS.filter(c=>(view!=='collection'||has(c.id))&&(filter==='all'||filter==='owned'&&has(c.id)||filter==='missing'&&!has(c.id)||filter===c.type||filter==='col:'+c.collectionId)&&normalize(c.name+' '+c.series+' '+rarity(c)).includes(normalize(query)));}
 function albumView(data){
  const current=get(selected)||CARDS[0];
@@ -969,24 +969,24 @@ function albumView(data){
 }
 function viewPage(data){
  const OFFICIAL='<div id="dlfr127Cards" class="dlfr127-cards is-embedded" aria-live="polite"><div class="dlfr127-loading">Chargement de ta collection…</div></div>';
- if(!gate)return `<section class="dlfr112 dlfr117" id="dlfr112Lab"><div class="dlfr112-header"><div><div class="dlfr112-eyebrow">DLFR CARDS</div><h1>DLFR Cards</h1><p>Booster gratuit chaque jour, collections, expéditions, talents, Forge et quêtes.</p></div></div>${OFFICIAL}</section>`;
+ if(!gate)return `<section class="dlfr112 dlfr117" id="dlfr112Lab"><div class="dlfr112-header"><div><div class="dlfr112-eyebrow">DLFR CARDS</div><h1>DLFR Cards</h1><p>Collections, expéditions, talents, Forge et quêtes.</p></div></div>${OFFICIAL}</section>`;
  if(view==='official'&&!window.DLFR_CARDS)view='packs';
  if(view==='advent'&&!window.DLFR_ADVENT)view='official';
  if(!editor&&['catalog','exchanges','control'].includes(view))view='album';
  const current=get(selected)||CARDS[0];
  const prog=['packs','expeditions','talents','forge','goals'].includes(view),total=Math.max(1,CARDS.length);
- const src=catalog.status==='ready'||catalog.status==='empty'?'catalogue Supabase':catalog.status==='loading'?'chargement du catalogue…':'catalogue intégré (hors ligne)';
+ const src=catalog.status==='loading'?'chargement…':catalog.status==='ready'||catalog.status==='empty'?'':'hors ligne';
  return `<section class="dlfr112 dlfr117" id="dlfr112Lab">
-  <div class="dlfr112-header"><div><div class="dlfr112-eyebrow">DLFR CARDS${view==='official'?' · COLLECTION':view==='advent'?' · CALENDRIER DE L’AVENT':' · MODE AVENTURE'}</div><h1>DLFR Cards</h1><p>${CARDS.length} cartes · ${COLLECTIONS.length} collections · ${src}${progress.title?` · <b>${esc(progress.title)}</b>`:''}</p></div><span class="dlfr141-savebox"><span class="dlfr112-demo-label ${SAVE.tainted||SAVE.conflict?'is-warn':''}" id="dlfr129Save" aria-live="polite" title="Sauvegarde du mode Aventure">Aventure · ${esc(saveLabel())}</span>${SAVE.tainted&&userId?'<button type="button" class="btn small dlfr141-leave" data-v112-act="leave-test">↺ Revenir à ma partie</button>':''}</span></div>
-  <p class="dlfr129-intro">${view==='advent'?'<b>🎄 Calendrier de l’Avent</b> : du 1er au 25 décembre, une case à ouvrir chaque jour, avec des cartes <b>Festive</b> introuvables ailleurs et des Wayllings dorés. Tu as raté un jour ? Tu peux le rattraper jusqu’au 31 décembre.':view==='official'?'<b>★ Booster du jour</b> : ta collection officielle. Un booster gratuit chaque jour ; les doublons et les collections complètes rapportent des <b>Wayllings dorés</b>. Les autres onglets forment le <b>mode Aventure</b> : boosters à éclats ◆, expéditions, talents, Forge et quêtes. <b>Une seule collection</b> : toutes les cartes gagnées, ici ou en Aventure, vont au même endroit.':'<b>Mode Aventure</b> : ouvre des boosters avec tes éclats ◆, pars en expédition, monte de niveau, améliore tes cartes à la Forge et débloque des talents. Les cartes gagnées rejoignent ta collection unique. Les éclats, la poussière et les clés restent dans le jeu ; seuls les exemplaires du booster du jour et des boosters achetés se recyclent en Wayllings.'}</p>
+  <div class="dlfr112-header"><div><div class="dlfr112-eyebrow">DLFR CARDS${view==='official'?' · COLLECTION':view==='advent'?' · CALENDRIER DE L’AVENT':' · MODE AVENTURE'}</div><h1>DLFR Cards</h1><p>${CARDS.length} cartes · ${COLLECTIONS.length} collections${src?` · ${src}`:''}${progress.title?` · <b>${esc(progress.title)}</b>`:''}</p></div><span class="dlfr141-savebox"><span class="dlfr112-demo-label ${SAVE.tainted||SAVE.conflict?'is-warn':''}" id="dlfr129Save" aria-live="polite" title="Sauvegarde du mode Aventure">Aventure · ${esc(saveLabel())}</span>${SAVE.tainted&&userId?'<button type="button" class="btn small dlfr141-leave" data-v112-act="leave-test">↺ Revenir à ma partie</button>':''}</span></div>
+  <p class="dlfr129-intro">${view==='advent'?'Une case par jour du 1er au 25 décembre : cartes <b>Festive</b> et Wayllings dorés. Les jours ratés se rattrapent jusqu’au 31.':view==='official'?'Ta collection, tes boosters achetés en Wayllings dorés et le recyclage des doublons. Les autres onglets, c’est le mode Aventure.':'Boosters avec tes éclats ◆, expéditions, Forge et talents. Les cartes gagnées vont dans ta collection, mais leurs doublons ne se recyclent pas en Wayllings.'}</p>
   <div class="dlfr112-toolbar">${view==='official'||view==='advent'?'':`<div class="dlfr112-summary"><b>Aventure · ${status()}</b><span>Progression : ${Math.round(inventoryUnique()/total*100)} %</span><div class="dlfr112-meter"><span style="width:${inventoryUnique()/total*100}%"></span></div></div>`}<div class="dlfr112-modes" role="tablist" aria-label="Sections du mode Aventure">${tabs().map(([id,title])=>`<button type="button" role="tab" aria-selected="${view===id}" class="${view===id?'active':''}" data-v112-act="mode" data-mode="${id}">${title}${id==='expeditions'&&progress.camps.some(c=>Date.now()>=c.end)?' <i class="dlfr117-dot"></i>':''}${id==='goals'&&progress.quests.some(q=>q.have>=q.target)?' <i class="dlfr117-dot"></i>':''}</button>`).join('')}</div></div>
   ${view==='official'?OFFICIAL:''}
   ${view==='advent'?'<div id="dlfr139Advent" class="dlfr139-advent" aria-live="polite"><div class="dlfr127-loading">Chargement du calendrier…</div></div>':''}
   ${prog?progressionPage(data):''}
   ${view==='album'||view==='collection'?albumView(data):''}
   ${view==='catalog'?catalogView(data):''}
-  ${view==='exchanges'?`<section class="dlfr112-panel"><div class="dlfr112-section-head"><h2>Échanges fictifs</h2><p>Simulation locale avec un partenaire imaginaire. Impossible d'impliquer ou de modifier le compte d'un autre joueur.</p></div><div class="dlfr112-trade"><label>Tu donnes<select id="dlfr112TradeGive">${CARDS.filter(c=>has(c.id)).map(optionCard).join('')||'<option value="">Aucune carte possédée</option>'}</select></label><div class="dlfr112-arrows">⇄</div><label>Tu reçois<select id="dlfr112TradeGet">${CARDS.map(optionCard).join('')}</select></label></div><button class="btn" type="button" data-v112-act="trade" ${inventoryUnique()===0?'disabled':''}>Simuler l'échange</button><p class="muted small">Aucun échange n'est enregistré. Le partenaire est fictif, sans compte Supabase.</p></section>`:''}
-  ${view==='control'?`<section class="dlfr112-panel"><div class="dlfr112-section-head"><h2>Console de test · Pouvoirs admin</h2><p>Pour essayer rapidement la progression sans attendre. Ces actions ne touchent pas au catalogue Supabase.</p></div>
+  ${view==='exchanges'?`<section class="dlfr112-panel"><div class="dlfr112-section-head"><h2>Échanges fictifs</h2><p>Simulation locale avec un partenaire imaginaire. Impossible d'impliquer ou de modifier le compte d'un autre joueur.</p></div><div class="dlfr112-trade"><label>Tu donnes<select id="dlfr112TradeGive">${CARDS.filter(c=>has(c.id)).map(optionCard).join('')||'<option value="">Aucune carte possédée</option>'}</select></label><div class="dlfr112-arrows">⇄</div><label>Tu reçois<select id="dlfr112TradeGet">${CARDS.map(optionCard).join('')}</select></label></div><button class="btn" type="button" data-v112-act="trade" ${inventoryUnique()===0?'disabled':''}>Simuler l'échange</button><p class="muted small">Aucun échange n'est enregistré. Le partenaire est fictif.</p></section>`:''}
+  ${view==='control'?`<section class="dlfr112-panel"><div class="dlfr112-section-head"><h2>Console de test · Pouvoirs admin</h2><p>Pour tester la progression. Le catalogue n’est pas modifié.</p></div>
    <div class="dlfr112-admin-actions"><button class="btn" type="button" data-v112-act="all">✦ Recevoir toutes les cartes</button><button class="btn subtle" type="button" data-v112-act="holo-all">✧ Tout passer en Holo</button><button class="btn subtle" type="button" data-v112-act="cheat" data-what="shards">+1 000 ◆</button><button class="btn subtle" type="button" data-v112-act="cheat" data-what="dust">+500 ✧</button><button class="btn subtle" type="button" data-v112-act="cheat" data-what="keys">+5 🔑</button><button class="btn subtle" type="button" data-v112-act="cheat" data-what="levels">+5 niveaux</button><button class="btn subtle" type="button" data-v112-act="cooldown-skip">Terminer les expéditions</button><button class="btn subtle" type="button" data-v112-act="skills-reset">Réinitialiser les talents (remboursement)</button><button class="btn danger" type="button" data-v112-act="reset">Réinitialiser la progression de test</button></div>
    ${current?`<div class="dlfr112-admin-edit"><label>Carte à modifier<select id="dlfr112CardPick">${CARDS.map(c=>`<option value="${c.id}" ${c.id===selected?'selected':''}>${idString(c.id)} · ${esc(c.name)}</option>`).join('')}</select></label><label>Rareté fictive (test, non enregistrée)<select id="dlfr112Rarity">${rarities.map(r=>`<option value="${esc(r)}" ${r===rarity(current)?'selected':''}>${esc(r)}</option>`).join('')}</select></label><button class="btn subtle" type="button" data-v112-act="rarity">Tester la rareté</button></div>`:''}
    <div class="dlfr112-admin-edit"><label>Simulateur d'équilibrage (rien n'est donné)<select id="dlfr117SimPack">${PACKS.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></label><button class="btn subtle" type="button" data-v112-act="simulate">Simuler 1 000 paquets</button></div>
@@ -1123,7 +1123,7 @@ function handleClick(event){
  else if(act==='holo'){const card=owned.get(Number(b.dataset.id));if(card){card.finish=((card.finish||0)+1)%4;card.holo=card.finish>0;log(`Finition modifiée : ${get(b.dataset.id)?.name} → ${FIN_NAME[card.finish]}`);}}
  else if(act==='all'){for(const c of CARDS)if(!has(c.id))give(c.id);log('Collection complète ajoutée pour ce test.');}
  else if(act==='holo-all'){for(const v of owned.values()){v.finish=Math.max(1,v.finish||0);v.holo=true;}log('Toutes les cartes possédées passent en Holo.');}
- else if(act==='reset'){if(!confirm('Réinitialiser toute la progression de test ? Le catalogue Supabase n’est pas touché.'))return;reset();}
+ else if(act==='reset'){if(!confirm('Réinitialiser toute la progression de test ? Le catalogue n’est pas modifié.'))return;reset();}
  else if(act==='rarity'){const cid=Number(document.getElementById('dlfr112CardPick')?.value),r=document.getElementById('dlfr112Rarity')?.value;if(get(cid)&&rarities.includes(r)){selected=cid;overrides.set(cid,r);log('Rareté fictive modifiée : '+get(cid).name+' → '+r);}}
  else if(act==='trade'){
   const offer=Number(document.getElementById('dlfr112TradeGive')?.value),want=Number(document.getElementById('dlfr112TradeGet')?.value);

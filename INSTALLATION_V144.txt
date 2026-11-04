@@ -1,0 +1,32 @@
+DLFR V144 — Cartes plus rares, booster du jour retiré, textes simplifiés
+=======================================================================
+(Inclut V141 → V143 : sauvegarde Aventure fiable, plus de limite de 120 cartes / jour,
+ Forge sans fabrication, paliers d'étoiles visibles.)
+
+Base de données : DÉJÀ APPLIQUÉE (supabase/144_CARTES_PLUS_RARES.sql = archive).
+
+Booster du jour retiré
+ - Plus de booster gratuit ni de série de jours : le serveur refuse l'ouverture gratuite.
+ - L'onglet « ★ Booster du jour » devient « ★ Collection » : boosters achetés (150 ✦),
+   recyclage des doublons, vitrine, classement, collections.
+ - Boutique : l'encart DLFR Cards propose « 150 ✦ le booster ».
+
+Cartes plus rares
+ - Boosters achetés, par carte : Commun 68,2 % · Rare 24 % · Épique 6 % · Légendaire 1,5 %
+   · Mythique 0,3 % (avant : 58 / 27 / 10 / 4 / 1). Légendaire garantie toutes les 80 cartes
+   (avant 40). La 5e carte reste Rare ou mieux.
+ - Mode Aventure : Épique, Légendaire et Mythique environ deux fois plus rares dans tous les
+   boosters ; garanties Légendaire 80 cartes (avant 45) et Mythique 400 (avant 220) ;
+   les cartes d'expédition suivent maintenant des chances (70 % Rare, 24 % Épique,
+   5 % Légendaire, 1 % Mythique) au lieu d'être tirées au hasard parmi les Rare et plus.
+
+Textes moins « IA »
+ - Retrait des formules dramatiques ou creuses (badges, pages Communauté, Clans, Palmarès,
+   Mes soumissions, mode Aventure…), des numéros de version (« DLFR 2.1 », « DLFR 2.2 »)
+   et des mentions techniques (Supabase, RLS) visibles par les joueurs.
+ - Indices des badges non obtenus : consignes simples (« Bats 10 niveaux NLW. »).
+ - Noms du mode Aventure plus simples (ex. « Première Mythique » au lieu de « Étoile
+   filante », « Talent ultime » au lieu de « Apothéose »).
+
+Fichiers : index.html, js/app.js, js/v118-cards-lab.js, js/v127-cards.js,
+           js/badge-system.js, css/v131-cards.css

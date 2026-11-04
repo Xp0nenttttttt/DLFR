@@ -78,15 +78,13 @@ function view(){
  const price=Number(st.booster_price)||150,bal=Number(st.balance)||0;
  if(S.error)return `<div class="notice warning">DLFR Cards indisponible : ${esc(S.error)}</div>`;
  if(!S.loaded)return '<div class="dlfr127-loading">Chargement de ta collection…</div>';
- const pityLeft=Math.max(1,40-(Number(st.pity)||0));
+ const pityLeft=Math.max(1,80-(Number(st.pity)||0));
  const actions=signed?`<div class="dlfr127-actions">
-   <article class="dlfr127-action is-daily ${st.daily_available?'is-ready':''}">${boosterArt('Booster du jour','✦','violet')}<div><small>GRATUIT · CHAQUE JOUR</small><h3>Booster du jour</h3><p>5 cartes offertes, la dernière est Rare ou mieux.</p>${streakHTML(st)}
-     ${st.daily_available?`<button type="button" class="btn" data-cards-open="daily" ${S.busy?'disabled':''}>Ouvrir gratuitement</button>`:`<span class="dlfr127-wait" data-next="${esc(st.next_daily)}">Prochain booster dans <b>${countdown(st.next_daily)}</b></span>`}</div></article>
    <article class="dlfr127-action">${boosterArt('Booster DLFR','◆','blue')}<div><small>BOUTIQUE</small><h3>Booster DLFR</h3><p>5 cartes pour ${price} Wayllings dorés.</p>
      <button type="button" class="btn" data-cards-open="shop" ${S.busy||bal<price?'disabled':''} ${bal<price?'title="Solde insuffisant"':''}>Acheter et ouvrir · ${price} ✦</button></div></article>
-   <article class="dlfr127-action is-recycle"><div class="dlfr127-recycle-ico" aria-hidden="true">♻</div><div><small>DOUBLONS</small><h3>${dups} doublon${dups>1?'s':''} recyclable${dups>1?'s':''}</h3><p>Les exemplaires en trop venant du booster du jour ou des boosters achetés se recyclent en Wayllings (ceux de l’Aventure servent à la Forge).</p>
+   <article class="dlfr127-action is-recycle"><div class="dlfr127-recycle-ico" aria-hidden="true">♻</div><div><small>DOUBLONS</small><h3>${dups} doublon${dups>1?'s':''} recyclable${dups>1?'s':''}</h3><p>Les doublons des boosters achetés se recyclent en Wayllings dorés (ceux de l’Aventure servent à la Forge).</p>
      <button type="button" class="btn subtle" data-cards-recycle ${S.busy||!dups?'disabled':''}>Tout recycler · +${dupValue} ✦</button></div></article>
-  </div>`:`<div class="dlfr127-guest"><b>Connecte-toi pour commencer ta collection</b><p>Un booster gratuit t’attend chaque jour.</p><a class="btn" data-nav href="?page=my-profile">Se connecter</a></div>`;
+  </div>`:`<div class="dlfr127-guest"><b>Connecte-toi pour commencer ta collection</b><a class="btn" data-nav href="?page=my-profile">Se connecter</a></div>`;
  const collections=S.collections.map(col=>{
    const list=S.cards.filter(x=>Number(x.row.collection_id)===Number(col.id));if(!list.length)return '';
    const have=list.filter(x=>Number(inv[x.card.id])>0).length,bonus=list.length*40,complete=done.has(Number(col.id));
@@ -97,11 +95,11 @@ function view(){
     <div class="dlfr127-grid">${shown.map(x=>{const q=Number(inv[x.card.id])||0,a=!q&&adv(x.card.id)>0;return `<div class="dlfr127-slot ${q?'is-owned':a?'is-adventure':'is-missing'}" data-card-zoom="${x.card.id}" role="button" tabindex="0" title="${esc(x.card.name)} · ${esc(x.card.rarity)}${a?' · obtenue en mode Aventure (ne compte pas pour les Wayllings)':''}">${fig(x.card,q>0||a)}${a?'<span class="dlfr136-adv-tag">🗺️ Aventure</span>':''}${q>1?`<span class="dlfr127-qty">×${q}</span>`:''}${rcOf(x.card.id)>0?`<button type="button" class="dlfr127-recycle-one" data-cards-recycle="${x.card.id}" title="Recycler ${rcOf(x.card.id)} doublon(s) officiel(s)">♻ +${rcOf(x.card.id)*(VALUE[x.card.rarity]||2)}</button>`:''}</div>`;}).join('')||'<p class="muted small">Aucune carte dans ce filtre.</p>'}</div></section>`;
  }).join('');
  const embedded=!!document.querySelector('#dlfr127Cards.is-embedded');
- return (embedded?`<div class="dlfr127-hero-stats is-compact"><div><span>Cartes</span><b>${signed?owned:'—'} <small>/ ${total}</small></b></div><div><span>Wayllings dorés</span><b>✦ ${signed?bal:'—'}</b></div>${signed?`<div><span>Légendaire garantie</span><b>${pityLeft} <small>carte${pityLeft>1?'s':''}</small></b></div>`:''}</div>`:`<header class="dlfr127-hero"><div><span class="kicker">Collection</span><h1>DLFR Cards</h1><p>Collectionne les niveaux, les joueurs et les moments de la DLFR. Les doublons et les collections complètes rapportent des <b>Wayllings dorés</b>.</p></div>
+ return (embedded?`<div class="dlfr127-hero-stats is-compact"><div><span>Cartes</span><b>${signed?owned:'—'} <small>/ ${total}</small></b></div><div><span>Wayllings dorés</span><b>✦ ${signed?bal:'—'}</b></div>${signed?`<div><span>Légendaire garantie</span><b>${pityLeft} <small>carte${pityLeft>1?'s':''}</small></b></div>`:''}</div>`:`<header class="dlfr127-hero"><div><span class="kicker">Collection</span><h1>DLFR Cards</h1><p>Des cartes de niveaux, de joueurs et de moments de la DLFR. Les doublons et les collections complètes rapportent des <b>Wayllings dorés</b>.</p></div>
   <a class="dlfr129-adventure-cta" href="?page=cards-lab" data-nav><span aria-hidden="true">🗺️</span><span><b>Mode Aventure</b><small>Expéditions, talents, Forge, quêtes…</small></span><em>Jouer →</em></a>
   <div class="dlfr127-hero-stats"><div><span>Cartes</span><b>${signed?owned:'—'} <small>/ ${total}</small></b></div><div><span>Wayllings dorés</span><b>✦ ${signed?bal:'—'}</b></div>${signed?`<div><span>Légendaire garantie</span><b>${pityLeft} <small>carte${pityLeft>1?'s':''}</small></b></div>`:''}</div></header>`)+`
   ${actions}
-  <details class="dlfr127-odds"><summary>Probabilités et règles</summary><ul><li>Chaque carte : Commun 58 % · Rare 27 % · Épique 10 % · Légendaire 4 % · Mythique 1 %.</li><li>La 5e carte de chaque booster est Rare ou mieux.</li><li>Une carte Légendaire ou mieux est garantie au plus tard toutes les 40 cartes.</li><li>Une seule collection : les cartes de l’Aventure s’y ajoutent.</li><li>Recyclage d’un doublon officiel : Commun 2 ✦ · Rare 5 ✦ · Épique 15 ✦ · Légendaire 40 ✦ · Mythique 120 ✦.</li><li>Collection complète : 40 ✦ par carte de la collection, une seule fois.</li></ul></details>
+  <details class="dlfr127-odds"><summary>Probabilités et règles</summary><ul><li>Chaque carte : Commun 68,2 % · Rare 24 % · Épique 6 % · Légendaire 1,5 % · Mythique 0,3 %.</li><li>La 5e carte de chaque booster est Rare ou mieux.</li><li>Une carte Légendaire ou mieux est garantie au plus tard toutes les 80 cartes.</li><li>Une seule collection : les cartes de l’Aventure s’y ajoutent.</li><li>Recyclage d’un doublon officiel : Commun 2 ✦ · Rare 5 ✦ · Épique 15 ✦ · Légendaire 40 ✦ · Mythique 120 ✦.</li><li>Collection complète : 40 ✦ par carte de la collection, une seule fois.</li></ul></details>
   ${signed?showcaseHTML(st):''}
   ${LAB()?.ladder?LAB().ladder([58,27,10,4,1]):''}
   <div class="dlfr127-filters" role="group" aria-label="Filtrer les cartes">${[['all','Toutes'],['owned','Possédées'],['missing','Manquantes']].map(([k,l])=>`<button type="button" data-cards-filter="${k}" class="${S.filter===k?'active':''}" aria-pressed="${S.filter===k}">${l}</button>`).join('')}</div>
@@ -124,7 +122,7 @@ async function open(source){
   await refreshStatus();S.busy=false;LAB()?.applyServerInventory?.(S.status?.inventory||{});
   const price=Number(S.status?.booster_price)||150,canAgain=Number(S.status?.balance)>=price;
   const after=()=>{paint();S.ctx.onWallet?.();};
-  if(LAB()?.playReal)LAB().playReal({name:source==='daily'?'Booster du jour':'Booster DLFR',theme:source==='daily'?'violet':'blue',emblem:source==='daily'?'✦':'◆'},draws,
+  if(LAB()?.playReal)LAB().playReal({name:'Booster DLFR',theme:'blue',emblem:'◆'},draws,
    {data:S.ctx.data,balance:data.balance,bonuses:data.bonuses||[],onClose:after,againLabel:canAgain?`Rouvrir un booster · ${price} ✦`:'',onAgain:()=>{after();open('shop');}});
   else{after();S.ctx.toast?.(`${draws.length} cartes obtenues !`);}
   if(data.big)S.ctx.toast?.(`🔥 ${data.streak} jours d’affilée : booster bonus de 6 cartes !`);
