@@ -45,7 +45,7 @@ const SAVE={loaded:false,version:0,timer:0,saving:false,pending:false,status:'',
 const catalog={status:'local',error:'',selCol:1,editCard:null,editCol:null,draft:null,colDraft:null,busy:false,msg:'',msgKind:'',pendingFile:null};
 
 // ============================================================ RÈGLES DE PROGRESSION V117
-const MAX_LEVEL=1000, MAX_PRESTIGE=100, RENAISSANCE_LEVEL=60; // V152 : niveau max 1000, 100 Renaissances
+const MAX_LEVEL=1000, MAX_PRESTIGE=100, RENAISSANCE_LEVEL=100; // V152 : niveau max 1000, 100 Renaissances
 const RVAL=[1,2,4,8,16,40];                       // valeur de collection par rareté
 const DUST_DUP=[5,12,30,80,200,600];               // poussière gagnée par doublon
 const CRAFT=[40,100,260,800,2400,8000];             // coût de fabrication d'une carte manquante
@@ -59,12 +59,12 @@ const POWER_TIERS=[20,50,100,180,300,480,720,1000,1400];
 const TIER_COLORS=['#c9d1e0','#5fb2ff','#b980ff','#ffc247','#ff5fa2','#fff1b8'];
 const RANKS=[[1,'Easy','#7fd4ff'],[5,'Normal','#7bf0a0'],[10,'Hard','#ffd36b'],[16,'Harder','#ff9e5e'],[24,'Insane','#ff6fa8'],[32,'Easy Demon','#c58bff'],[42,'Medium Demon','#a67bff'],[54,'Hard Demon','#ff5f5f'],[68,'Insane Demon','#ff3d7a'],[84,'Extreme Demon','#ff2a2a'],[100,'Grand Démon','#ffe27a'],[120,'Extended List','#ff8a3d'],[200,'Main List','#ff5050'],[300,'Top 50','#ff2e63'],[400,'Top 25','#e0218a'],[500,'Top 10','#b026ff'],[650,'Top 5','#7a5cff'],[800,'Top 1','#2ec5ff'],[1000,'GOD','#fff1b8']];
 const PACKS=[
- {id:'start',name:'Découverte',count:3,cost:{shards:18},level:1,weights:[78.6,18.4,2.7,.23,.025,0],guarantee:0,theme:'violet',emblem:'✦',subtitle:'Pour débuter la collection'},
- {id:'explore',name:'Explorateur',count:5,cost:{shards:60},level:3,weights:[68.3,26.4,4.6,.55,.095,.005],guarantee:1,theme:'blue',emblem:'◆',subtitle:'Une carte Rare ou mieux garantie'},
- {id:'players',name:'Joueurs FR',count:5,cost:{shards:90},level:11,weights:[68.5,25.6,5,.7,.14,.0075],guarantee:1,theme:'green',emblem:'★',subtitle:'Uniquement des cartes Joueur',filter:c=>c.type==='player'},
- {id:'prestige',name:'Prestige',count:5,cost:{shards:150},level:15,weights:[0,75.5,21,3,.48,.02],guarantee:2,theme:'gold',emblem:'♛',subtitle:'Une carte Épique ou mieux garantie',finishBoost:1.5},
- {id:'demon',name:'Coffre Démoniaque',count:6,cost:{keys:1},level:20,weights:[0,69.6,26.4,3.5,.47,.03],guarantee:3,theme:'demon',emblem:'🔑',subtitle:'Une Légendaire garantie · ouvert avec une clé',finishBoost:1.5},
- {id:'relic',name:'Coffre Mythique',count:7,cost:{keys:3,shards:600},level:45,weights:[0,0,86,12.25,1.65,.1],guarantee:4,theme:'prism',emblem:'✺',subtitle:'Une Mythique garantie',finishBoost:2}
+ {id:'start',name:'Découverte',count:3,cost:{shards:27},level:1,weights:[78.6,18.4,2.7,.23,.025,0],guarantee:0,theme:'violet',emblem:'✦',subtitle:'Pour débuter la collection'},
+ {id:'explore',name:'Explorateur',count:5,cost:{shards:90},level:3,weights:[68.3,26.4,4.6,.55,.095,.00667],guarantee:1,theme:'blue',emblem:'◆',subtitle:'Une carte Rare ou mieux garantie'},
+ {id:'players',name:'Joueurs FR',count:5,cost:{shards:135},level:11,weights:[68.5,25.6,5,.7,.14,.00667],guarantee:1,theme:'green',emblem:'★',subtitle:'Uniquement des cartes Joueur',filter:c=>c.type==='player'},
+ {id:'prestige',name:'Prestige',count:5,cost:{shards:225},level:15,weights:[0,75.5,21,3,.48,.00667],guarantee:2,theme:'gold',emblem:'♛',subtitle:'Une carte Épique ou mieux garantie',finishBoost:1.5},
+ {id:'demon',name:'Coffre Démoniaque',count:6,cost:{keys:1},level:20,weights:[0,69.6,26.4,3.5,.47,.00667],guarantee:3,theme:'demon',emblem:'🔑',subtitle:'Une Légendaire garantie · ouvert avec une clé',finishBoost:1.5},
+ {id:'relic',name:'Coffre Mythique',count:7,cost:{keys:4,shards:900},level:45,weights:[0,0,86,12.25,1.65,.00667],guarantee:4,theme:'prism',emblem:'✺',subtitle:'Une Mythique garantie',finishBoost:2}
 ];
 const DESTS=[
  {id:'stereo',name:'Plaines de Stereo Madness',icon:'▲',min:2,level:1,shards:14,xp:16,dust:0,key:0,card:0},
@@ -241,7 +241,7 @@ function take(id){const x=owned.get(Number(id));if(!x||x.count<=0)return false;x
 
 function download(obj,name){const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);}
 // ============================================================ PROGRESSION : formules
-function levelTarget(l){return Math.round(l<=100?40+10*Math.pow(l,1.45):7984+60*(l-100));} // V152 : jusqu’au niveau 1000
+function levelTarget(l){return Math.round(l<=100?60+15*Math.pow(l,1.45):11976+90*(l-100));} // V154 : 1,5× plus d’XP, jusqu’au niveau 1000
 function rankInfo(level=progress.level){let r=RANKS[0];for(const x of RANKS)if(level>=x[0])r=x;const i=RANKS.indexOf(r);return {name:r[1],color:r[2],index:i,next:RANKS[i+1]||null};}
 function totalPoints(){return 1+Math.floor(progress.level/2)+3*progress.prestige;}
 function spentPoints(){return SKILLS.reduce((n,s)=>n+rank(s.id)*s.pts,0);}
@@ -266,8 +266,8 @@ function destDuration(d){return Math.round(d.min*60000*(1-.08*rank('ex2')-.02*ra
 // V147 — un booster par collection (réglé dans le Catalogue).
 function allPacks(){
  const cols=COLLECTIONS.filter(c=>c.booster!==false&&packable().filter(x=>x.collectionId===c.id).length>=3);
- return [...PACKS,...cols.map(c=>({id:'col-'+c.id,name:c.name,count:c.boosterCount||5,cost:{shards:c.boosterCost||80},level:c.boosterLevel||1,
-  weights:[68.3,26.4,4.6,.55,.095,.005],guarantee:(c.boosterCount||5)>=5?1:0,theme:'collection',emblem:'❖',color:c.color,
+ return [...PACKS,...cols.map(c=>({id:'col-'+c.id,name:c.name,count:c.boosterCount||5,cost:{shards:c.boosterCost||120},level:c.boosterLevel||1,
+  weights:[68.3,26.4,4.6,.55,.095,.00667],guarantee:(c.boosterCount||5)>=5?1:0,theme:'collection',emblem:'❖',color:c.color,
   subtitle:`Uniquement les cartes de la collection « ${c.name} »`,filter:x=>x.collectionId===c.id,collection:c.id}))];
 }
 function packCount(p){return p.count+(rank('ma3')&&p.count>=5?1:0)+(rank('ap')?1:0)+(rank('le10')?1:0);}
@@ -284,7 +284,7 @@ function addXP(earned){
  while(progress.level<MAX_LEVEL&&progress.xp>=levelTarget(progress.level)){
   progress.xp-=levelTarget(progress.level);progress.level++;
   S().bestLevel=Math.max(S().bestLevel,progress.level);
-  const bonus=addShards(15+progress.level*4),keys=progress.level%5===0?1:0,dust=progress.level%10===0?100:0;
+  const bonus=addShards(10+Math.min(progress.level,100)*2),keys=progress.level%10===0?1:0,dust=progress.level%10===0?100:0; // V154 : récompenses de niveau réduites
   progress.keys+=keys;if(dust)addDust(dust);
   const before=rankInfo(progress.level-1).name,after=rankInfo().name;
   levelUps.push({level:progress.level,bonus,keys,dust,rank:before!==after?after:''});
@@ -348,7 +348,7 @@ function claimExpedition(i){
   parts.push(`+${addShards(d.shards*(1+.08*rank('ex1'))*shardMult())} ◆`,`+${addXP(d.xp*xpMult())} XP`);
   if(d.dust)parts.push(`+${addDust(d.dust*dustMult())} ✧`);
   const kc=d.key+.05*rank('ex4');const keys=Math.floor(kc)+(Math.random()<kc%1?1:0);if(keys){progress.keys+=keys;parts.push(`+${keys} 🔑`);}
-  if(d.card&&Math.random()<d.card&&packable().length){const rare=packable().filter(x=>tierOf(x)>=1),pool=rare.length?rare:packable();const tw=[0,86,12,1.6,.2,.01],tiers=[...new Set(pool.map(tierOf))];let tr=Math.random()*tiers.reduce((a,t)=>a+tw[t],0),tt=tiers[0];for(const t of tiers.sort((a,b)=>a-b)){tr-=tw[t];if(tr<=0){tt=t;break;}}const card=pick(pool.filter(x=>tierOf(x)===tt));const isNew=!has(card.id);const f=rollFinish({});give(card.id,1,f);registerPull(card,f,isNew);parts.push(`carte ${card.name}${isNew?' (nouvelle !)':''}`);}
+  if(d.card&&Math.random()<d.card&&packable().length){const rare=packable().filter(x=>tierOf(x)>=1),pool=rare.length?rare:packable();const tw=[0,86,12,1.6,.2,.00667],tiers=[...new Set(pool.map(tierOf))];let tr=Math.random()*tiers.reduce((a,t)=>a+tw[t],0),tt=tiers[0];for(const t of tiers.sort((a,b)=>a-b)){tr-=tw[t];if(tr<=0){tt=t;break;}}const card=pick(pool.filter(x=>tierOf(x)===tt));const isNew=!has(card.id);const f=rollFinish({});give(card.id,1,f);registerPull(card,f,isNew);parts.push(`carte ${card.name}${isNew?' (nouvelle !)':''}`);}
  }
  S().expeditions++;emit('expeditions');
  const txt=(times>1?'Récolte double ! ':'')+parts.join(' · ');
@@ -362,7 +362,7 @@ function packable(){return CARDS.filter(c=>c.inPacks&&c.rarity!==FESTIVE&&colLiv
 function poolFor(pack){const base=packable(),p=base.filter(c=>!pack.filter||pack.filter(c));return p.length?p:base;}
 function weights(pack){
  const pool=poolFor(pack),n=luck();
- const mult=[1,1+.16*n,1+.28*n,1+.44*n,(1+.64*n)*(1+.6*rank('fo5'))*(rank('ap')?2:1),(1+.64*n)*(1+.3*rank('le8'))];
+ const mult=[1,1+.16*n,1+.28*n,1+.44*n,(1+.64*n)*(1+.6*rank('fo5'))*(rank('ap')?2:1),1+.3*rank('le8')];  // V154 : Ultra = 1 carte sur 15 000, la chance ne compte pas
  const w=pack.weights.map((x,i)=>pool.some(c=>tierOf(c)===i)?x*mult[i]:0);
  const total=w.reduce((a,b)=>a+b,0);return total>0?w.map(x=>x/total):w;
 }
@@ -428,7 +428,7 @@ function craftCard(){/* V143 : fabrication de cartes supprimée (trop avantageus
 function recycleSpare(){let gained=0;for(const [id,v] of owned){const c=get(id);if(!c||(v.stars||0)<MAX_STARS||v.count<=1)continue;gained+=Math.round(DUST_DUP[tierOf(c)]*.5*(v.count-1));v.count=1;}if(gained){addDust(gained);log(`Recyclage : +${gained} ✧.`);}return gained;}
 
 // ============================================================ Renaissance
-function renaissanceGain(){return progress.level<RENAISSANCE_LEVEL?0:Math.min(MAX_PRESTIGE-progress.prestige,1+Math.floor((progress.level-RENAISSANCE_LEVEL)/10));}
+function renaissanceGain(){return progress.level<RENAISSANCE_LEVEL?0:Math.min(MAX_PRESTIGE-progress.prestige,1+Math.floor((progress.level-RENAISSANCE_LEVEL)/25));}
 function doRenaissance(){const g=renaissanceGain();if(!g)return;
  if(!confirm(`Renaissance : tu repars au niveau 1 avec 35 éclats, tes talents sont remis à zéro (sans remboursement) et les expéditions en cours sont perdues.\nTu gardes cartes, étoiles, poussière, clés, succès et séries.\nTu gagnes ${g} ✺ (+10 % d’XP et d’éclats et +3 points de talent chacun). Continuer ?`))return;
  progress.prestige+=g;Object.assign(progress,{level:1,xp:0,shards:35,skills:{},camps:[]});progress.quests=[];ensureQuests();checkAchievements();
@@ -492,7 +492,7 @@ function starTrack(cur,v){
 function packArt(pack,size=''){
  return `<div class="dlfr117-booster b-${pack.theme} ${size}" aria-hidden="true"${pack.color?` style="--pc:${esc(pack.color)}"`:''}><div class="b-crimp"></div><div class="b-body"><div class="b-pattern"></div><div class="b-glow"></div><div class="b-logo">DLFR <b>CARDS</b></div><div class="b-emblem">${pack.emblem}</div><div class="b-name">${esc(pack.name)}</div><div class="b-meta">${pack.real?pack.count:packCount(pack)} CARTE${(pack.real?pack.count:packCount(pack))>1?'S':''} · ORIGINS</div><div class="b-foil"></div></div><div class="b-crimp b-bottom"></div></div>`;
 }
-function fmtPercent(n){return (n*100).toLocaleString('fr-FR',{maximumFractionDigits:n<.01?2:1})+' %';}
+function fmtPercent(n){if(n>0&&n<.0005)return '1 sur '+(Math.round(1/n/100)*100).toLocaleString('fr-FR');return (n*100).toLocaleString('fr-FR',{maximumFractionDigits:n<.01?2:1})+' %';}
 function boostersView(){
  const p=progress;
  return `<section class="dlfr117-panel"><div class="dlfr117-head"><div><small>BOOSTERS DE L’AVENTURE</small><h2>Boosters</h2><p>Chaque booster a ses probabilités visibles. Les doublons deviennent de la poussière ✧ pour la Forge.</p>${ladder()}</div>
@@ -550,7 +550,7 @@ function goalsView(){
  if(goalsTab==='quests')body=`<div class="dlfr117-quests">${progress.quests.map(q=>{const done=q.have>=q.target;return `<article class="dlfr117-quest ${done?'is-done':''}"><h4>${esc(questText(q))}</h4><div class="dlfr117-bar small"><i style="width:${q.have/q.target*100}%"></i></div><small>${fmt(q.have)} / ${fmt(q.target)}</small><p>Récompense : ${q.reward.xp} XP · ◆ ${q.reward.shards}${q.reward.keys?' · 🔑 1':''}${q.reward.dust?' · ✧ '+q.reward.dust:''}</p><div class="dlfr117-row">${done?`<button class="btn" type="button" data-v112-act="quest-claim" data-id="${q.id}">Réclamer</button>`:`<button class="btn subtle" type="button" data-v112-act="quest-reroll" data-id="${q.id}" ${progress.shards<rerollCost()?'disabled':''}>Changer · ◆ ${rerollCost()}</button>`}</div></article>`;}).join('')}</div><p class="dlfr117-muted">Une mission réclamée est aussitôt remplacée. Les récompenses grandissent avec ton niveau.</p>`;
  if(goalsTab==='achievements')body=`<div class="dlfr117-achievements">${ACHIEVEMENTS.map(a=>{const ok=progress.achievements[a.id],v=Math.min(a.value(),a.target);return `<article class="dlfr117-ach ${ok?'is-done':''}"><span>${ok?'🏆':'◌'}</span><div><h4>${esc(a.name)}</h4><p>${esc(a.desc)}</p><div class="dlfr117-bar small"><i style="width:${v/a.target*100}%"></i></div><small>${fmt(v)} / ${fmt(a.target)} · ${Object.entries(a.reward).map(([k,n])=>`${{keys:'🔑',dust:'✧',shards:'◆',xp:'XP'}[k]} ${n}`).join(' ')}${a.title?` · titre « ${esc(a.title)} »`:''}</small></div></article>`;}).join('')}</div>`;
  if(goalsTab==='sets')body=`<div class="dlfr117-sets">${SETS.map(s=>{const pr=setProgress(s),done=progress.sets[s.id],ready=!done&&pr.total&&pr.have>=pr.total;return `<article class="dlfr117-set ${done?'is-done':''}"><h4>${esc(s.name)}</h4><p>${s.finish?`Toutes en ${FIN_NAME[s.finish]} ou mieux`:s.stars?`Toutes à ★${s.stars} ou plus`:'Toutes les cartes de la série'}</p><div class="dlfr117-bar small"><i style="width:${pr.total?pr.have/pr.total*100:0}%"></i></div><small>${pr.have} / ${pr.total} · 🔑 ${s.reward.keys} · ✧ ${s.reward.dust} · +5 % ◆ permanents</small>${done?'<b class="dlfr117-ok">✓ Terminée</b>':`<button class="btn" type="button" data-v112-act="set-claim" data-id="${s.id}" ${ready?'':'disabled'}>Valider la série</button>`}</article>`;}).join('')}</div>`;
- if(goalsTab==='renaissance'){const g=renaissanceGain();body=`<div class="dlfr117-reborn"><div class="dlfr117-reborn-mark">✺</div><div><h3>Renaissance ${progress.prestige}/${MAX_PRESTIGE}</h3><p>À partir du niveau ${RENAISSANCE_LEVEL}, tu peux renaître : retour au niveau 1, talents remis à zéro, mais tu gardes toute ta collection, la poussière, les clés, les succès et les séries.</p><ul><li>Chaque ✺ : +10 % d’XP et d’éclats, +3 points de talent permanents.</li><li>Gain : 1 ✺ au niveau 60, +1 tous les 10 niveaux au-delà.</li><li>Bonus actuel : +${progress.prestige*10} % · ${progress.prestige*3} points de talent supplémentaires.</li></ul><button class="btn" type="button" data-v112-act="renaissance" ${g?'':'disabled'}>${g?`Renaître · +${g} ✺`:progress.prestige>=MAX_PRESTIGE?'Maximum atteint':`Disponible au niveau ${RENAISSANCE_LEVEL}`}</button></div></div>`;}
+ if(goalsTab==='renaissance'){const g=renaissanceGain();body=`<div class="dlfr117-reborn"><div class="dlfr117-reborn-mark">✺</div><div><h3>Renaissance ${progress.prestige}/${MAX_PRESTIGE}</h3><p>À partir du niveau ${RENAISSANCE_LEVEL}, tu peux renaître : retour au niveau 1, talents remis à zéro, mais tu gardes toute ta collection, la poussière, les clés, les succès et les séries.</p><ul><li>Chaque ✺ : +10 % d’XP et d’éclats, +3 points de talent permanents.</li><li>Gain : 1 ✺ au niveau ${RENAISSANCE_LEVEL}, +1 tous les 25 niveaux au-delà.</li><li>Bonus actuel : +${Math.round((prestMult()-1)*100)} % · ${progress.prestige*3} points de talent supplémentaires.</li></ul><button class="btn" type="button" data-v112-act="renaissance" ${g?'':'disabled'}>${g?`Renaître · +${g} ✺`:progress.prestige>=MAX_PRESTIGE?'Maximum atteint':`Disponible au niveau ${RENAISSANCE_LEVEL}`}</button></div></div>`;}
  return `<section class="dlfr117-panel"><div class="dlfr117-head"><div><small>OBJECTIFS</small><h2>Missions, succès & séries</h2><p>Missions du moment, succès et séries.</p></div></div><div class="dlfr117-tabs">${tabs.map(([k,t])=>`<button type="button" class="${goalsTab===k?'active':''}" data-v112-act="goals-tab" data-tab="${k}">${t}</button>`).join('')}</div>${body}</section>`;
 }
 function progressionPage(data){
@@ -839,7 +839,7 @@ const BUCKET='dlfr-cards', IMG_TYPES=['image/png','image/jpeg','image/webp','ima
 function setMsg(text,kind=''){catalog.msg=text;catalog.msgKind=kind;const el=document.getElementById('dlfr118Msg');if(el){el.textContent=text;el.className='dlfr118-msg '+(kind?'is-'+kind:'');}}
 function errText(e){const m=e?.message||String(e||'Erreur inconnue');return /duplicate key.*slug/i.test(m)?'Ce nom court (slug) est déjà utilisé par une autre collection.':/Accès refusé|42501|permission denied/i.test(m)?'Accès refusé : seuls les propriétaires et supermodérateurs peuvent modifier le catalogue.':m;}
 function applyCatalog(cols,cards){
- COLLECTIONS=(cols||[]).map(c=>({id:Number(c.id),slug:c.slug,name:c.name,description:c.description||'',color:c.color||'#8b5cf6',sort:Number(c.sort_order)||0,booster:c.booster_enabled!==false,boosterCost:Number(c.booster_cost)||80,boosterLevel:Number(c.booster_level)||1,boosterCount:Number(c.booster_count)||5,published:c.is_published!==false}));
+ COLLECTIONS=(cols||[]).map(c=>({id:Number(c.id),slug:c.slug,name:c.name,description:c.description||'',color:c.color||'#8b5cf6',sort:Number(c.sort_order)||0,booster:c.booster_enabled!==false,boosterCost:Number(c.booster_cost)||120,boosterLevel:Number(c.booster_level)||1,boosterCount:Number(c.booster_count)||5,published:c.is_published!==false}));
  CARDS.length=0;for(const r of cards||[])CARDS.push(mkCard(r));
  for(const id of [...owned.keys()])if(!get(id))owned.delete(id);
  for(const id of [...overrides.keys()])if(!get(id))overrides.delete(id);
@@ -872,7 +872,7 @@ function openCardEditor(id){
   :{name:'',type:'level',rarity:'Rare',collection:catalog.selCol,description:'',imageUrl:'',preview:'',inPacks:true,sort:(cardsOf(catalog.selCol).reduce((m,x)=>Math.max(m,x.sort),0)+1)};
  setMsg('');
 }
-function openColEditor(id){const c=id==='new'?null:colOf(id);catalog.editCol=c?c.id:'new';catalog.colDraft=c?{name:c.name,slug:c.slug,description:c.description,color:c.color,sort:c.sort,slugTouched:true,booster:c.booster!==false,boosterCost:c.boosterCost||80,boosterLevel:c.boosterLevel||1,boosterCount:c.boosterCount||5}:{name:'',slug:'',description:'',color:'#8b5cf6',sort:COLLECTIONS.reduce((m,x)=>Math.max(m,x.sort),0)+1,slugTouched:false,booster:true,boosterCost:80,boosterLevel:1,boosterCount:5};setMsg('');}
+function openColEditor(id){const c=id==='new'?null:colOf(id);catalog.editCol=c?c.id:'new';catalog.colDraft=c?{name:c.name,slug:c.slug,description:c.description,color:c.color,sort:c.sort,slugTouched:true,booster:c.booster!==false,boosterCost:c.boosterCost||120,boosterLevel:c.boosterLevel||1,boosterCount:c.boosterCount||5}:{name:'',slug:'',description:'',color:'#8b5cf6',sort:COLLECTIONS.reduce((m,x)=>Math.max(m,x.sort),0)+1,slugTouched:false,booster:true,boosterCost:120,boosterLevel:1,boosterCount:5};setMsg('');}
 function draftCard(){const d=catalog.draft||{};return {id:catalog.editCard==='new'?0:catalog.editCard,name:d.name||'Nouvelle carte',rarity:d.rarity||'Rare',type:d.type||'level',series:colOf(d.collection)?.name||'',image:d.preview||(validUrl(d.imageUrl)||''),description:d.description||''};}
 function previewHtml(){return figure(draftCard(),srcData(),false,{finish:0,stars:0});}
 function refreshCatPreview(){const el=document.getElementById('dlfr118Preview');if(el)el.innerHTML=previewHtml();}
@@ -944,7 +944,7 @@ function saveCollection(){
  withBusy('Enregistrement de la collection…',async()=>{
   const {data,error}=await DB.rpc('dlfr_cards_admin_save_collection',{p_id:old?old.id:null,p_slug:slug,p_name:name,p_description:safeText(d.description,400),p_color:d.color,p_sort:Number(d.sort)||0});
   if(error)throw error;
-  const bz=await DB.rpc('dlfr_cards_admin_set_collection_booster',{p_id:Number(data),p_enabled:d.booster!==false,p_cost:Math.round(Number(d.boosterCost)||80),p_level:Math.round(Number(d.boosterLevel)||1),p_count:Math.round(Number(d.boosterCount)||5)});
+  const bz=await DB.rpc('dlfr_cards_admin_set_collection_booster',{p_id:Number(data),p_enabled:d.booster!==false,p_cost:Math.round(Number(d.boosterCost)||120),p_level:Math.round(Number(d.boosterLevel)||1),p_count:Math.round(Number(d.boosterCount)||5)});
   if(bz.error)throw bz.error;
   log(`${old?'Collection modifiée':'Collection créée'} : ${name}`);
   catalog.selCol=Number(data);catalog.editCol=null;catalog.colDraft=null;await loadCatalog();setMsg(old?'Collection enregistrée ✓':'Collection créée ✓','ok');
@@ -999,8 +999,8 @@ function catalogView(data){
   <div class="dlfr118-row"><label>Couleur<input type="color" data-v118-col="color" value="${esc(cd.color)}"></label><label>Ordre<input type="number" data-v118-col="sort" value="${esc(cd.sort)}" min="-9999" max="9999"></label></div>
   <fieldset class="dlfr147-booster"><legend>Booster de la collection (mode Aventure)</legend>
    <label class="dlfr147-check"><input type="checkbox" data-v118-col="booster" ${cd.booster!==false?'checked':''}> Proposer un booster avec uniquement les cartes de cette collection</label>
-   <div class="dlfr118-row"><label>Prix (éclats ◆)<input type="number" data-v118-col="boosterCost" min="1" max="100000" value="${esc(cd.boosterCost??80)}"></label><label>Niveau requis<input type="number" data-v118-col="boosterLevel" min="1" max="200" value="${esc(cd.boosterLevel??1)}"></label><label>Cartes<input type="number" data-v118-col="boosterCount" min="1" max="10" value="${esc(cd.boosterCount??5)}"></label></div>
-   <small>Chances : Commun 68,3 % · Rare 26,4 % · Épique 4,6 % · Légendaire 0,55 % · Mythique 0,095 % · Ultra 0,005 %. Il apparaît dès que la collection a au moins 3 cartes « dans les boosters ».</small></fieldset>
+   <div class="dlfr118-row"><label>Prix (éclats ◆)<input type="number" data-v118-col="boosterCost" min="1" max="100000" value="${esc(cd.boosterCost??120)}"></label><label>Niveau requis<input type="number" data-v118-col="boosterLevel" min="1" max="200" value="${esc(cd.boosterLevel??1)}"></label><label>Cartes<input type="number" data-v118-col="boosterCount" min="1" max="10" value="${esc(cd.boosterCount??5)}"></label></div>
+   <small>Chances : Commun 68,3 % · Rare 26,4 % · Épique 4,6 % · Légendaire 0,55 % · Mythique 0,095 % · Ultra 1 sur 15 000. Il apparaît dès que la collection a au moins 3 cartes « dans les boosters ».</small></fieldset>
   <div class="dlfr118-actions"><button class="btn" type="submit" ${dis}>${catalog.editCol==='new'?'Créer la collection':'Enregistrer'}</button><button class="btn subtle" type="button" data-v112-act="cat-col-cancel">Annuler</button></div></form>`:'';
  const cardForm=d?`<div class="dlfr118-editor"><form class="dlfr118-form" id="dlfr118CardForm" autocomplete="off"><h3>${catalog.editCard==='new'?'Nouvelle carte':'Modifier #'+idString(catalog.editCard)}</h3>
   <label>Nom<input data-v118-card="name" maxlength="80" required value="${esc(d.name)}" placeholder="Ex. : Oblivion"><small id="dlfr148Dup" class="${dupState().cls}" aria-live="polite">${dupState().html}</small></label>
