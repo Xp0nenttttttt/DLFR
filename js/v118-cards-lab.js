@@ -34,7 +34,7 @@ function mkCard(r){const col=COLLECTIONS.find(c=>c.id===Number(r.collection_id))
 const fallbackCards=()=>SOURCE.map(([name,rarity,type],i)=>mkCard({id:i+1,name,rarity,card_type:type,collection_id:i<20?1:i<35?2:i<45?3:4,sort_order:i+1}));
 const CARDS=fallbackCards();
 const rarities=['Commun','Rare','Épique','Légendaire','Mythique','Ultra']; // V149 : Ultra, au-dessus de Mythique
-const FESTIVE='Festive',ALL_RARITIES=[...rarities,FESTIVE]; // V139 : rareté spéciale du calendrier de l'Avent
+const FESTIVE='Festive',SECRET='Secrète',SECRET_RATE=1/1000000,ALL_RARITIES=[...rarities,SECRET,FESTIVE]; // V155 : cartes secrètes (1 sur 1 000 000) // V139 : rareté spéciale du calendrier de l'Avent
 const MAX_IMPORT=250;
 let gate=false, view='official', filter='all', query='', selected=2, forgeSel=0, goalsTab='quests';
 let DB=null;
@@ -175,7 +175,7 @@ const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const idString=i=>String(i).padStart(3,'0');
 const normalize=s=>String(s||'').toLocaleLowerCase('fr').normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
 const rarity=c=>overrides.get(c.id)||c.rarity;
-const tierOf=c=>rarity(c)===FESTIVE?3:Math.max(0,rarities.indexOf(rarity(c)));
+const tierOf=c=>rarity(c)===FESTIVE?3:rarity(c)===SECRET?5:Math.max(0,rarities.indexOf(rarity(c)));
 const fmt=n=>Math.round(n).toLocaleString('fr-FR');
 const has=id=>(owned.get(id)?.count||0)>0;
 const rank=id=>progress.skills[id]||0;
@@ -212,14 +212,15 @@ function figure(card,data,compact=false,opts={}){
  const o=opts.official?null:owned.get(card.id),n=o?.count||0;
  const finish=opts.finish??o?.finish??0, stars=opts.stars??o?.stars??0;
  const picture=imageFor(card,data);
- const r=opts.official?card.rarity:rarity(card),fest=r===FESTIVE,t=fest?3:Math.max(0,rarities.indexOf(r)),slug=normalize(r).replace(/[^a-z]/g,'');
+ const r=opts.official?card.rarity:rarity(card),fest=r===FESTIVE,sec=r===SECRET,t=fest?3:sec?5:Math.max(0,rarities.indexOf(r)),slug=normalize(r).replace(/[^a-z]/g,'');
  const sym=card.type==='level'?'◆':card.type==='player'?'★':'✦';
  const has=opts.official?!!opts.owned:!!(n||opts.finish!==undefined||opts.owned);
+ if(sec&&!has&&!editor)return `<div class="dlfr112-card dlfr131-card dlfr112-secrete is-mystery t5 dlfr112-missing ${compact?'dlfr112-small':''}"><div class="c131-frame"><div class="c131-head"><span class="c131-type">??? SECRÈTE</span><b class="c131-id">#???</b></div><div class="dlfr112-art c131-art"><span class="c131-sym" aria-hidden="true">?</span><span class="c131-gem" title="Carte secrète · 1 chance sur 1 000 000">?</span></div><div class="c131-plate"><strong>???</strong><span class="c131-rar"><span>Secrète</span></span></div></div><i class="c131-foil" aria-hidden="true"></i></div>`;
  return `<div class="dlfr112-card dlfr131-card dlfr112-${slug} t${t} ${finish?'dlfr112-holo dlfr117-f-'+FIN[finish]:''} ${has?'dlfr112-has':'dlfr112-missing'} ${compact?'dlfr112-small':''}" data-tilt>
    <div class="c131-frame">
     <div class="c131-head"><span class="c131-type">${sym} ${TYPE_LABEL[card.type]||'CARTE'}</span><b class="c131-id">#${idString(card.id)}</b></div>
-    <div class="dlfr112-art c131-art">${picture?`<img loading="lazy" src="${esc(picture)}" alt="Visuel ${esc(card.name)}" onerror="this.remove()">`:`<span class="c131-sym" aria-hidden="true">${sym}</span>`}<span class="c131-gem" title="${fest?'Rareté spéciale · calendrier de l’Avent':`Rareté ${t+1}/${rarities.length}`}">${fest?'❄':t+1}</span>${has?'':'<span class="c131-lock" aria-hidden="true">?</span>'}</div>
-    <div class="c131-plate"><strong title="${esc(card.name)}">${esc(card.name)}</strong><span class="c131-rar">${fest?'<i class="c131-pips c139-snow" aria-hidden="true">❄❄❄❄❄</i>':pipsHTML(t)}<span>${esc(r)}${finish?' · ✧ '+FIN_NAME[finish]:''}</span></span></div>
+    <div class="dlfr112-art c131-art">${picture?`<img loading="lazy" src="${esc(picture)}" alt="Visuel ${esc(card.name)}" onerror="this.remove()">`:`<span class="c131-sym" aria-hidden="true">${sym}</span>`}<span class="c131-gem" title="${fest?'Rareté spéciale · calendrier de l’Avent':sec?'Carte secrète · 1 chance sur 1 000 000':`Rareté ${t+1}/${rarities.length}`}">${fest?'❄':sec?'?':t+1}</span>${has?'':'<span class="c131-lock" aria-hidden="true">?</span>'}</div>
+    <div class="c131-plate"><strong title="${esc(card.name)}">${esc(card.name)}</strong><span class="c131-rar">${fest?'<i class="c131-pips c139-snow" aria-hidden="true">❄❄❄❄❄</i>':sec?'<i class="c131-pips c155-sec" aria-hidden="true">??????</i>':pipsHTML(t)}<span>${esc(r)}${finish?' · ✧ '+FIN_NAME[finish]:''}</span></span></div>
    </div>
    <i class="c131-foil" aria-hidden="true"></i><i class="c131-glare" aria-hidden="true"></i>${finish===4?'<span class="c150-shiny" aria-label="Shiny">✨ SHINY</span>':''}
    ${stars?`<span class="dlfr117-stars" aria-label="${stars} étoiles">${'★'.repeat(stars)}</span>`:''}
@@ -228,7 +229,7 @@ function figure(card,data,compact=false,opts={}){
 }
 // Échelle des raretés (de la plus courante à la plus rare).
 function ladder(rates){
- return `<div class="c131-ladder" role="list" aria-label="Raretés, de la plus courante à la plus rare">${rarities.map((r,t)=>`<span class="c131-step t${t}" role="listitem"><b>${TIER_GEM[t]}</b><span><strong>${esc(r)}</strong>${pipsHTML(t)}${rates?`<small>${esc(rates[t])} %</small>`:''}</span></span>${t<rarities.length-1?'<i class="c131-arrow" aria-hidden="true">›</i>':''}`).join('')}<span class="c131-ladder-note">de la plus courante à la plus rare</span><span class="c131-step c139-step-festive" title="Rareté spéciale : uniquement dans le calendrier de l’Avent"><b>❄</b><span><strong>Festive</strong><small>Calendrier de l’Avent</small></span></span></div>`;
+ return `<div class="c131-ladder" role="list" aria-label="Raretés, de la plus courante à la plus rare">${rarities.map((r,t)=>`<span class="c131-step t${t}" role="listitem"><b>${TIER_GEM[t]}</b><span><strong>${esc(r)}</strong>${pipsHTML(t)}${rates?`<small>${esc(rates[t])} %</small>`:''}</span></span>${t<rarities.length-1?'<i class="c131-arrow" aria-hidden="true">›</i>':''}`).join('')}<span class="c131-ladder-note">de la plus courante à la plus rare</span><span class="c131-step c155-step-secret" title="Carte secrète : 1 chance sur 1 000 000, cachée tant qu’on ne l’a pas"><b>?</b><span><strong>Secrète</strong><small>1 sur 1 000 000</small></span></span><span class="c131-step c139-step-festive" title="Rareté spéciale : uniquement dans le calendrier de l’Avent"><b>❄</b><span><strong>Festive</strong><small>Calendrier de l’Avent</small></span></span></div>`;
 }
 function inventoryUnique(){return [...owned.values()].filter(v=>v.count>0).length;}
 function status(){return `${inventoryUnique()} / ${CARDS.length} cartes différentes · ${[...owned.values()].reduce((a,b)=>a+b.count,0)} exemplaires`;}
@@ -348,7 +349,7 @@ function claimExpedition(i){
   parts.push(`+${addShards(d.shards*(1+.08*rank('ex1'))*shardMult())} ◆`,`+${addXP(d.xp*xpMult())} XP`);
   if(d.dust)parts.push(`+${addDust(d.dust*dustMult())} ✧`);
   const kc=d.key+.05*rank('ex4');const keys=Math.floor(kc)+(Math.random()<kc%1?1:0);if(keys){progress.keys+=keys;parts.push(`+${keys} 🔑`);}
-  if(d.card&&Math.random()<d.card&&packable().length){const rare=packable().filter(x=>tierOf(x)>=1),pool=rare.length?rare:packable();const tw=[0,86,12,1.6,.2,.00667],tiers=[...new Set(pool.map(tierOf))];let tr=Math.random()*tiers.reduce((a,t)=>a+tw[t],0),tt=tiers[0];for(const t of tiers.sort((a,b)=>a-b)){tr-=tw[t];if(tr<=0){tt=t;break;}}const card=pick(pool.filter(x=>tierOf(x)===tt));const isNew=!has(card.id);const f=rollFinish({});give(card.id,1,f);registerPull(card,f,isNew);parts.push(`carte ${card.name}${isNew?' (nouvelle !)':''}`);}
+  if(d.card&&Math.random()<d.card&&packable().length){const rare=packable().filter(x=>tierOf(x)>=1),pool=rare.length?rare:packable();const tw=[0,86,12,1.6,.2,.00667],tiers=[...new Set(pool.map(tierOf))];let tr=Math.random()*tiers.reduce((a,t)=>a+tw[t],0),tt=tiers[0];for(const t of tiers.sort((a,b)=>a-b)){tr-=tw[t];if(tr<=0){tt=t;break;}}const card=secretRoll()||pick(pool.filter(x=>tierOf(x)===tt));const isNew=!has(card.id);const f=rollFinish({});give(card.id,1,f);registerPull(card,f,isNew);parts.push(`carte ${card.name}${isNew?' (nouvelle !)':''}`);}
  }
  S().expeditions++;emit('expeditions');
  const txt=(times>1?'Récolte double ! ':'')+parts.join(' · ');
@@ -358,7 +359,9 @@ function claimAllExpeditions(){let n=0;for(let i=progress.camps.length-1;i>=0;i-
 
 // ============================================================ Tirages
 const colLive=id=>COLLECTIONS.find(c=>c.id===id)?.published!==false; // V150 : collections en brouillon exclues
-function packable(){return CARDS.filter(c=>c.inPacks&&c.rarity!==FESTIVE&&colLive(c.collectionId));}
+function packable(){return CARDS.filter(c=>c.inPacks&&c.rarity!==FESTIVE&&c.rarity!==SECRET&&colLive(c.collectionId));}
+function secretPool(){return CARDS.filter(c=>c.inPacks&&c.rarity===SECRET&&colLive(c.collectionId));}
+function secretRoll(pack){const p=secretPool().filter(c=>!pack?.filter||pack.filter(c));return p.length&&Math.random()<SECRET_RATE?pick(p):null;}
 function poolFor(pack){const base=packable(),p=base.filter(c=>!pack.filter||pack.filter(c));return p.length?p:base;}
 function weights(pack){
  const pool=poolFor(pack),n=luck();
@@ -396,7 +399,7 @@ function openPack(id){
   const tier=chooseTier(pack,minT);
   let choices=pool.filter(c=>tierOf(c)===tier);
   if(last&&rank('ma5')){const missing=choices.filter(c=>!has(c.id));if(missing.length)choices=missing;}
-  const card=pick(choices.length?choices:pool);const t=tierOf(card);
+  const card=secretRoll(pack)||pick(choices.length?choices:pool);const t=tierOf(card);
   progress.pity.leg=t>=3?0:progress.pity.leg+1;progress.pity.myth=t>=4?0:progress.pity.myth+1;
   const isNew=!has(card.id),finish=rollFinish(pack);
   give(card.id,1,finish);registerPull(card,finish,isNew);
@@ -501,7 +504,7 @@ function boostersView(){
    const locked=p.level<pack.level,afford=canAfford(pack.cost),w=weights(pack),g=packGuarantee(pack);
    return `<article class="dlfr117-pack ${locked?'is-locked':''}"><div class="dlfr117-pack-stage">${packArt(pack)}${locked?`<span class="dlfr117-lock">🔒 Niveau ${pack.level}</span>`:''}</div>
     <h3>${esc(pack.name)}</h3><p>${esc(pack.subtitle)}</p>
-    <div class="dlfr117-odds">${rarities.map((r,i)=>w[i]>0?`<span class="t${i}"><i></i>${esc(r)} ${fmtPercent(w[i])}</span>`:'').join('')}</div>
+    <div class="dlfr117-odds">${rarities.map((r,i)=>w[i]>0?`<span class="t${i}"><i></i>${esc(r)} ${fmtPercent(w[i])}</span>`:'').join('')}${secretPool().some(c=>!pack.filter||pack.filter(c))?'<span class="c155-odd"><i></i>??? 1 sur 1 000 000</span>':''}</div>
     <small>${packCount(pack)} cartes${g?` · ${rarities[g]} ou mieux garantie`:''}${pack.finishBoost?` · finitions ×${pack.finishBoost}`:''}</small>
     <button type="button" class="btn" data-v112-act="open-pack" data-pack="${pack.id}" ${locked||!afford?'disabled':''}>${locked?'Verrouillé':afford?`Ouvrir · ${costText(pack.cost)}`:`${costText(pack.cost)} requis`}</button></article>`;}).join('')}</div>
   ${p.reveals.length?`<div class="dlfr117-sub"><h3>Dernier booster</h3><div class="dlfr117-mini-grid">${p.reveals.map(d=>{const c=get(d.id);return c?`<div>${figure(c,srcData(),true,{finish:d.finish})}<span class="${d.isNew?'is-new':''}">${d.isNew?'Nouvelle':'Doublon'} · +${d.shards} ◆${d.dust?` +${d.dust} ✧`:''}</span></div>`:'';}).join('')}</div></div>`:''}
@@ -665,7 +668,7 @@ function renderOpening(){
 }
 function bannerFor(d){
  const r=cardOf(d)?.rarity===FESTIVE?FESTIVE:rarities[d.tier];
- return `<div class="o-ann t${d.tier}"><span class="o-ann-rarity">${TIER_GEM[d.tier]} ${esc(r.toUpperCase())} ${pipsHTML(d.tier)}${d.finish?` · ${FIN_NAME[d.finish].toUpperCase()}`:''}</span><span class="o-ann-rank">${r===FESTIVE?'Édition spéciale · calendrier de l’Avent':`${['La plus courante','Peu courante','Rare','Très rare','Extrêmement rare','La plus rare de toutes'][d.tier]} · rareté ${d.tier+1}/${rarities.length}`}</span><strong>${esc(cardOf(d)?.name||'')}</strong><em class="${d.isNew?'is-new':''}">${OPEN.st?.meta?.real?(d.isNew?'✦ NOUVELLE CARTE':`DOUBLON · recyclable +${d.value} ✦`):`${d.isNew?'✦ NOUVELLE CARTE':'DOUBLON'} · +${d.shards} ◆${d.dust?` · +${d.dust} ✧`:''}${d.pity?' · GARANTIE ACTIVÉE':''}`}</em></div>`;
+ return `<div class="o-ann t${d.tier}"><span class="o-ann-rarity">${TIER_GEM[d.tier]} ${esc(r.toUpperCase())} ${pipsHTML(d.tier)}${d.finish?` · ${FIN_NAME[d.finish].toUpperCase()}`:''}</span><span class="o-ann-rank">${r===FESTIVE?'Édition spéciale · calendrier de l’Avent':r===SECRET?'CARTE SECRÈTE · 1 chance sur 1 000 000':`${['La plus courante','Peu courante','Rare','Très rare','Extrêmement rare','La plus rare de toutes'][d.tier]} · rareté ${d.tier+1}/${rarities.length}`}</span><strong>${esc(cardOf(d)?.name||'')}</strong><em class="${d.isNew?'is-new':''}">${OPEN.st?.meta?.real?(d.isNew?'✦ NOUVELLE CARTE':`DOUBLON · recyclable +${d.value} ✦`):`${d.isNew?'✦ NOUVELLE CARTE':'DOUBLON'} · +${d.shards} ◆${d.dust?` · +${d.dust} ✧`:''}${d.pity?' · GARANTIE ACTIVÉE':''}`}</em></div>`;
 }
 async function revealCurrent(){
  const st=OPEN.st;if(!st||st.busy||st.flipped)return;st.busy=true;

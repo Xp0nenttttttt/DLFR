@@ -1,0 +1,20 @@
+DLFR V155 — Cartes secrètes (1 chance sur 1 000 000)
+====================================================
+(Inclut V154 et avant — lis aussi INSTALLATION_V154.txt et V152. Base de données : DÉJÀ
+ APPLIQUÉE — supabase/155_CARTES_SECRETES.sql = archive.)
+
+⚠ Mets cette version en ligne AVANT de créer une carte secrète : l'ancienne version du site
+traiterait la carte comme une Commune (même souci que GRIEF).
+
+Créer une carte secrète : ✎ Catalogue → nouvelle carte → Rareté « Secrète », case
+« dans les boosters » cochée, dans une collection publiée.
+
+ - Chaque carte tirée (boosters du mode Aventure et cartes d'expédition) a 1 chance sur
+   1 000 000 d'être une carte secrète. Aucune garantie, aucun talent ne l'augmente.
+ - Dans un booster de collection, seules les cartes secrètes de cette collection peuvent sortir.
+ - Tant qu'un joueur ne l'a pas, la carte apparaît comme « ??? » (nom, image et numéro cachés).
+   Les propriétaires / supermodos la voient en entier.
+ - Style unique : cadre arc-en-ciel animé, fond noir, nom arc-en-ciel. Les boosters affichent
+   « ??? 1 sur 1 000 000 » quand une carte secrète peut en sortir.
+
+Fichiers : index.html, js/v118-cards-lab.js, js/v127-cards.js, css/v131-cards.css

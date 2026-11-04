@@ -5,7 +5,7 @@
 (()=>{'use strict';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const RAR=['Commun','Rare','Épique','Légendaire','Mythique','Ultra'];
-const VALUE={Commun:2,Rare:5,'Épique':15,'Légendaire':40,Mythique:120,Ultra:400,Festive:60};
+const VALUE={Commun:2,Rare:5,'Épique':15,'Légendaire':40,Mythique:120,Ultra:400,'Secrète':1000,Festive:60};
 const slug=r=>String(r||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
 const S={ctx:null,cards:[],collections:[],status:null,board:[],owners:{},loading:false,loaded:false,error:'',busy:false,filter:'all',timer:0};
 const LAB=()=>window.DLFR_CARDS_LAB;
