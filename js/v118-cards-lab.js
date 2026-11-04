@@ -119,7 +119,7 @@ const QUEST_POOL=[
  {type:'epic',lvl:3,base:[1,3],text:n=>`Obtenir ${n} cartes Épiques ou mieux`},
  {type:'dust',lvl:4,base:[40,90],scale:true,text:n=>`Gagner ${n} poussière ✧`},
  {type:'spend',lvl:2,base:[80,160],scale:true,text:n=>`Dépenser ${n} éclats ◆`},
- {type:'forge',lvl:5,base:[1,2],text:n=>`Améliorer ou fabriquer ${n} carte${n>1?'s':''} à la Forge`},
+ {type:'forge',lvl:5,base:[1,2],text:n=>`Améliorer ${n} carte${n>1?'s':''} à la Forge`},
  {type:'finish',lvl:8,base:[1,1],text:()=>'Obtenir une carte Holo ou mieux'}
 ];
 const S=()=>progress.stats;
@@ -137,8 +137,6 @@ const ACHIEVEMENTS=[
  {id:'fin3',name:'Ténèbres polies',desc:'Obtenir une carte Obsidienne',value:()=>S().finishes[3],target:1,reward:{keys:3},title:'Obsidien'},
  {id:'st1',name:'Première étoile',desc:'Améliorer une carte à ★1',value:()=>maxStars(),target:1,reward:{dust:40}},
  {id:'st5',name:'Supernova',desc:'Porter une carte à ★5',value:()=>maxStars(),target:5,reward:{keys:3},title:'Supernova'},
- {id:'cr1',name:'Artisan',desc:'Fabriquer 1 carte',value:()=>S().crafted,target:1,reward:{dust:40}},
- {id:'cr2',name:'Maître artisan',desc:'Fabriquer 10 cartes',value:()=>S().crafted,target:10,reward:{keys:2}},
  ...[[10,{keys:1}],[25,{keys:2}],[50,{keys:3},'Demon Slayer'],[75,{keys:5}],[100,{keys:10},'Grand Démon']].map(([n,reward,title])=>({id:'lv'+n,name:`Niveau ${n}`,desc:`Atteindre le niveau ${n}`,value:()=>Math.max(progress.level,S().bestLevel),target:n,reward,title})),
  {id:'set1',name:'Série terminée',desc:'Terminer une série',value:()=>Object.keys(progress.sets).length,target:1,reward:{keys:1}},
  {id:'set8',name:'Encyclopédiste',desc:'Terminer toutes les séries',value:()=>Object.keys(progress.sets).length,get target(){return SETS.length;},reward:{keys:15},title:'Encyclopédiste'},
@@ -390,7 +388,7 @@ function starCost(card,v){const s=v.stars||0;if(s>=5)return null;const t=tierOf(
 function upgradeCard(id){const c=get(id),v=owned.get(Number(id));if(!c||!v)return;const k=starCost(c,v);if(!k||v.count-1<k.copies||progress.dust<k.dust)return;
  v.count-=k.copies;progress.dust-=k.dust;v.stars=(v.stars||0)+1;S().upgraded++;emit('forge');log(`${c.name} passe à ★${v.stars}.`);toast('Forge',`${c.name} atteint ★${v.stars}`,'forge');}
 function craftCost(c){return Math.round(CRAFT[tierOf(c)]*forgeDiscount());}
-function craftCard(id){const c=get(id);if(c&&c.rarity===FESTIVE){toast('Forge','Les cartes Festive ne s’obtiennent que dans le calendrier de l’Avent.','info');return;}if(!c||has(c.id)||progress.dust<craftCost(c))return;progress.dust-=craftCost(c);give(c.id);S().crafted++;registerPull(c,0,true);emit('forge');log(`Carte fabriquée : ${c.name}.`);toast('Forge',`${c.name} fabriquée`,'forge');}
+function craftCard(){/* V143 : fabrication de cartes supprimée (trop avantageuse) */}
 function recycleSpare(){let gained=0;for(const [id,v] of owned){const c=get(id);if(!c||(v.stars||0)<5||v.count<=1)continue;gained+=Math.round(DUST_DUP[tierOf(c)]*.5*(v.count-1));v.count=1;}if(gained){addDust(gained);log(`Recyclage : +${gained} ✧.`);}return gained;}
 
 // ============================================================ Renaissance
@@ -418,10 +416,23 @@ function hud(){
    <label class="dlfr117-title">Titre <select data-v117-field="title"><option value="">— aucun —</option>${tl.map(x=>`<option ${p.title===x?'selected':''}>${esc(x)}</option>`).join('')}</select></label></div>
   <div class="dlfr117-wallet">
    <span title="Éclats : paquets et talents"><b>◆</b>${fmt(p.shards)}</span>
-   <span title="Poussière : forge (étoiles et fabrication)"><b>✧</b>${fmt(p.dust)}</span>
+   <span title="Poussière : étoiles à la Forge"><b>✧</b>${fmt(p.dust)}</span>
    <span title="Clés de Démon : coffres spéciaux"><b>🔑</b>${fmt(p.keys)}</span>
    <span title="Puissance de collection"><b>⚡</b>${fmt(collectionPower())} <small>P${powerTier()}</small></span>
   </div></div>`;
+}
+// V143 — Paliers de puissance bien visibles (piste à 9 étapes, bonus actuel et prochain).
+function powerTrack(){
+ const pw=collectionPower(),t=powerTier(),max=POWER_TIERS.length,next=POWER_TIERS[t],prev=t?POWER_TIERS[t-1]:0;
+ const PERK={3:'🔑 ×1',6:'🔑 ×3',9:'🔑 ×6 · titre « Puissance absolue »'};
+ const seg=next?Math.min(1,(pw-prev)/(next-prev)):1,fill=Math.min(100,(t+seg)/max*100);
+ return `<section class="dlfr143-track" aria-label="Paliers de puissance de collection">
+  <div class="dlfr143-track-head"><div><small>PALIERS DE PUISSANCE</small><strong>⚡ ${fmt(pw)} <span>· Palier ${t} / ${max}</span></strong></div>
+   <div class="dlfr143-track-now"><b>+${t*3} %</b><span>éclats & XP</span></div>
+   <div class="dlfr143-track-next">${next?`<b>${fmt(next-pw)} ⚡</b><span>avant le palier ${t+1} (+${(t+1)*3} %)</span>`:'<b>MAX</b><span>Tous les paliers atteints</span>'}</div></div>
+  <div class="dlfr143-rail"><i style="width:${fill}%"></i>${POWER_TIERS.map((v,i)=>`<span class="dlfr143-node ${i<t?'is-done':i===t?'is-next':''}" style="left:${(i+1)/max*100}%" title="Palier ${i+1} : ${fmt(v)} ⚡ · +${(i+1)*3} % éclats & XP${PERK[i+1]?' · récompense '+PERK[i+1]:''}"><em>${i+1}</em><small>${fmt(v)}</small>${PERK[i+1]?`<u>${PERK[i+1].split(' · ')[0]}</u>`:''}</span>`).join('')}</div>
+  <p>La puissance monte avec chaque <b>nouvelle carte</b> (plus la rareté est haute, plus elle compte), chaque <b>étoile ★</b> gagnée à la Forge et chaque <b>finition</b> (Holo, etc.).</p>
+ </section>`;
 }
 function packArt(pack,size=''){
  return `<div class="dlfr117-booster b-${pack.theme} ${size}" aria-hidden="true"><div class="b-crimp"></div><div class="b-body"><div class="b-pattern"></div><div class="b-glow"></div><div class="b-logo">DLFR <b>CARDS</b></div><div class="b-emblem">${pack.emblem}</div><div class="b-name">${esc(pack.name)}</div><div class="b-meta">${pack.real?pack.count:packCount(pack)} CARTE${(pack.real?pack.count:packCount(pack))>1?'S':''} · ORIGINS</div><div class="b-foil"></div></div><div class="b-crimp b-bottom"></div></div>`;
@@ -469,12 +480,11 @@ function forgeView(data){
  const list=CARDS.filter(c=>has(c.id)).sort((a,b)=>tierOf(b)-tierOf(a)||a.id-b.id);
  if(!list.find(c=>c.id===forgeSel))forgeSel=list[0]?.id||0;
  const cur=get(forgeSel),v=cur&&owned.get(cur.id),k=cur&&v?starCost(cur,v):null;
- const missing=CARDS.filter(c=>!has(c.id)).sort((a,b)=>tierOf(a)-tierOf(b)||a.id-b.id);
- return `<section class="dlfr117-panel"><div class="dlfr117-head"><div><small>FORGE</small><h2>Étoiles & fabrication</h2><p>Consomme des doublons et de la poussière ✧ pour faire monter une carte jusqu’à ★5. Chaque étoile augmente ta puissance de collection, qui donne des bonus permanents.</p></div><div class="dlfr117-slots"><b>⚡ ${fmt(collectionPower())}</b><span>Palier ${powerTier()} / ${POWER_TIERS.length}</span><small>${powerTier()<POWER_TIERS.length?`Prochain palier à ${POWER_TIERS[powerTier()]}`:'Palier maximal'} · +${powerTier()*3} % éclats & XP</small></div></div>
+ return `<section class="dlfr117-panel"><div class="dlfr117-head"><div><small>FORGE</small><h2>Étoiles</h2><p>Consomme des doublons et de la poussière ✧ pour faire monter une carte jusqu’à ★5. Chaque étoile augmente ta puissance de collection, qui donne des bonus permanents.</p></div><div class="dlfr117-slots"><b>⚡ ${fmt(collectionPower())}</b><span>Palier ${powerTier()} / ${POWER_TIERS.length}</span><small>${powerTier()<POWER_TIERS.length?`Prochain palier à ${POWER_TIERS[powerTier()]}`:'Palier maximal'} · +${powerTier()*3} % éclats & XP</small></div></div>
   ${list.length?`<div class="dlfr117-forge"><div class="dlfr117-forge-list">${list.map(c=>{const o=owned.get(c.id),sc=starCost(c,o),ready=sc&&o.count-1>=sc.copies&&progress.dust>=sc.dust;return `<button type="button" class="dlfr117-forge-item ${c.id===forgeSel?'is-current':''} ${ready?'is-ready':''}" data-v112-act="forge-select" data-id="${c.id}"><span class="t${tierOf(c)}">${esc(c.name)}</span><small>${'★'.repeat(o.stars||0)}${'☆'.repeat(5-(o.stars||0))} · ×${o.count}</small></button>`;}).join('')}</div>
    <div class="dlfr117-forge-main">${cur?`<div class="dlfr117-forge-card">${figure(cur,data)}</div><div class="dlfr117-forge-info"><h3>${esc(cur.name)}</h3><p>${esc(rarity(cur))} · ${FIN_NAME[v.finish||0]} · ★${v.stars||0}/5</p>
     ${k?`<ul class="dlfr117-reqs"><li class="${v.count-1>=k.copies?'ok':''}">Doublons : ${v.count-1} / ${k.copies}</li><li class="${progress.dust>=k.dust?'ok':''}">Poussière : ${fmt(progress.dust)} / ${fmt(k.dust)} ✧</li></ul><button class="btn" type="button" data-v112-act="upgrade" data-id="${cur.id}" ${v.count-1>=k.copies&&progress.dust>=k.dust?'':'disabled'}>Forger ★${(v.stars||0)+1}</button>`:'<p class="dlfr117-done">★★★★★ Étoiles maximales</p>'}</div>`:''}</div></div>`:'<p class="dlfr117-empty">Ouvre des boosters pour remplir la Forge.</p>'}
-  <div class="dlfr117-sub"><h3>Fabriquer une carte manquante</h3><p class="dlfr117-muted">${missing.length?`${missing.length} carte${missing.length>1?'s':''} manquante${missing.length>1?'s':''}.`:'Ta collection est complète.'}</p><div class="dlfr117-craft">${missing.slice(0,60).map(c=>`<button type="button" class="dlfr117-craft-item t${tierOf(c)}" data-v112-act="craft" data-id="${c.id}" ${progress.dust<craftCost(c)?'disabled':''}><span>${esc(c.name)}</span><small>${esc(rarity(c))} · ✧ ${fmt(craftCost(c))}</small></button>`).join('')}</div>
+  <div class="dlfr117-sub"><h3>Doublons des cartes ★5</h3><p class="dlfr117-muted">Une carte ★5 ne peut plus monter : ses doublons peuvent être recyclés en poussière ✧.</p>
    <button class="btn subtle" type="button" data-v112-act="recycle">Recycler les doublons des cartes ★5</button></div>
  </section>`;
 }
@@ -490,7 +500,7 @@ function goalsView(){
 function progressionPage(data){
  ensureQuests();
  const inner=view==='packs'?boostersView():view==='expeditions'?expeditionsView():view==='talents'?talentsView():view==='forge'?forgeView(data):goalsView();
- return `<div class="dlfr117-game">${hud()}${inner}
+ return `<div class="dlfr117-game">${hud()}${powerTrack()}${inner}
   <div class="dlfr117-footer"><p>Ta partie est sauvegardée automatiquement sur ton compte.${editor?' Importer une sauvegarde passe la session en <strong>mode test</strong> (plus de sauvegarde automatique jusqu’au rechargement).':''}</p><div class="dlfr113-create-buttons"><button class="btn subtle" data-v112-act="export-session" type="button">↓ Exporter ma partie</button>${editor?'<button class="btn subtle" data-v112-act="open-session-import" type="button">↑ Importer (test)</button>':''}<input type="file" id="dlfr114SessionFile" accept="application/json,.json" hidden></div></div></div>`;
 }
 
@@ -1083,7 +1093,6 @@ function handleClick(event){
  else if(act==='forge-select'){forgeSel=Number(b.dataset.id);}
  else if(act==='forge-open'){forgeSel=Number(b.dataset.id);view='forge';}
  else if(act==='upgrade'){upgradeCard(b.dataset.id);}
- else if(act==='craft'){craftCard(b.dataset.id);}
  else if(act==='recycle'){const n=recycleSpare();if(!n)toast('Forge','Aucun doublon à recycler (seulement les cartes ★5).','info');}
  else if(act==='goals-tab'){goalsTab=b.dataset.tab;}
  else if(act==='quest-claim'){claimQuest(b.dataset.id);}

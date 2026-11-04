@@ -163,3 +163,23 @@ html.dark .c131-step.t0,.dlfr117-panel .c131-step.t0,.dlfr117-game .c131-step.t0
 .dlfr141-leave{margin-left:10px;background:#fff!important;color:#7a2d00!important;border:0!important;font-weight:800}
 .dlfr141-testtag{flex-basis:100%;font-size:.78rem;font-weight:700;color:#ffb27a;opacity:.9}
 .dlfr141-savebox{display:flex;align-items:center;flex-wrap:wrap;gap:8px;justify-content:flex-end}.dlfr141-savebox .dlfr141-leave{margin-left:0}
+/* V143 — piste des paliers de puissance */
+.dlfr143-track{margin:14px 0 18px;padding:18px 20px 16px;border-radius:20px;background:linear-gradient(135deg,rgba(255,170,60,.14),rgba(140,90,255,.14));border:1px solid rgba(255,190,90,.35);color:#fff}
+.dlfr143-track-head{display:flex;flex-wrap:wrap;gap:14px 28px;align-items:center;justify-content:space-between}
+.dlfr143-track-head small{display:block;font-size:.7rem;letter-spacing:.16em;font-weight:800;color:#ffc46b}
+.dlfr143-track-head strong{font-size:1.6rem;font-weight:900}.dlfr143-track-head strong span{font-size:1rem;opacity:.75;font-weight:700}
+.dlfr143-track-now,.dlfr143-track-next{display:flex;flex-direction:column;align-items:flex-start;padding:8px 14px;border-radius:12px;background:rgba(0,0,0,.25)}
+.dlfr143-track-now b{color:#7dffb0;font-size:1.25rem}.dlfr143-track-next b{color:#ffc46b;font-size:1.25rem}
+.dlfr143-track-now span,.dlfr143-track-next span{font-size:.78rem;opacity:.8}
+.dlfr143-rail{position:relative;height:12px;margin:34px 14px 42px 4px;border-radius:99px;background:rgba(255,255,255,.12)}
+.dlfr143-rail>i{position:absolute;inset:0 auto 0 0;border-radius:inherit;background:linear-gradient(90deg,#ff8a3d,#ffd25e);box-shadow:0 0 14px rgba(255,180,70,.7);transition:width .6s}
+.dlfr143-node{position:absolute;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center}
+.dlfr143-node em{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;font-style:normal;font-weight:900;font-size:.85rem;background:#2a2340;border:2px solid rgba(255,255,255,.3);color:rgba(255,255,255,.7)}
+.dlfr143-node.is-done em{background:linear-gradient(135deg,#ffb347,#ff7a2f);border-color:#ffe2a8;color:#2a1300}
+.dlfr143-node.is-next em{border-color:#ffd25e;color:#ffd25e;box-shadow:0 0 0 4px rgba(255,210,94,.25);animation:dlfr143pulse 1.6s infinite}
+.dlfr143-node small{position:absolute;top:32px;font-size:.72rem;font-weight:700;opacity:.8;white-space:nowrap}
+.dlfr143-node u{position:absolute;bottom:32px;text-decoration:none;font-size:.72rem;white-space:nowrap;padding:1px 6px;border-radius:8px;background:rgba(0,0,0,.35)}
+.dlfr143-track p{margin:0;font-size:.85rem;opacity:.82}
+@keyframes dlfr143pulse{50%{box-shadow:0 0 0 8px rgba(255,210,94,.08)}}
+@media (max-width:600px){.dlfr143-node small{display:none}.dlfr143-node em{width:22px;height:22px;font-size:.72rem}.dlfr143-node u{font-size:.62rem}.dlfr143-track-head strong{font-size:1.3rem}}
+@media (prefers-reduced-motion:reduce){.dlfr143-node.is-next em{animation:none}}

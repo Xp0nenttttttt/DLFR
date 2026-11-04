@@ -1,0 +1,17 @@
+DLFR V143 — Forge sans fabrication + paliers de puissance bien visibles
+======================================================================
+(Inclut tout V142 : plus de limite de 120 cartes / jour, confirmation des outils de test,
+ bouton « ↺ Revenir à ma partie ». Aucune nouvelle requête SQL.)
+
+Forge
+ - La fabrication de cartes manquantes avec la poussière ✧ est supprimée.
+   Il ne reste que les étoiles ★ et le recyclage des doublons des cartes ★5.
+ - Succès « Artisan » / « Maître artisan » retirés ; quête « Améliorer N cartes ».
+
+Paliers de puissance
+ - Nouvelle piste en haut de tous les onglets du mode Aventure : 9 paliers numérotés
+   avec leur seuil, le palier suivant qui pulse, les récompenses (🔑) aux paliers 3, 6, 9,
+   le bonus actuel (+X % éclats & XP) et ce qu'il manque avant le prochain palier.
+ - Explique comment gagner de la puissance (nouvelles cartes, étoiles, finitions).
+
+Fichiers : index.html, js/v118-cards-lab.js, css/v131-cards.css
