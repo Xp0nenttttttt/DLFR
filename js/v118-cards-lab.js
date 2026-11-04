@@ -406,7 +406,7 @@ function hud(){
   </div></div>`;
 }
 function packArt(pack,size=''){
- return `<div class="dlfr117-booster b-${pack.theme} ${size}" aria-hidden="true"><div class="b-crimp"></div><div class="b-body"><div class="b-pattern"></div><div class="b-glow"></div><div class="b-logo">DLFR <b>CARDS</b></div><div class="b-emblem">${pack.emblem}</div><div class="b-name">${esc(pack.name)}</div><div class="b-meta">${packCount(pack)} CARTES · ORIGINS</div><div class="b-foil"></div></div><div class="b-crimp b-bottom"></div></div>`;
+ return `<div class="dlfr117-booster b-${pack.theme} ${size}" aria-hidden="true"><div class="b-crimp"></div><div class="b-body"><div class="b-pattern"></div><div class="b-glow"></div><div class="b-logo">DLFR <b>CARDS</b></div><div class="b-emblem">${pack.emblem}</div><div class="b-name">${esc(pack.name)}</div><div class="b-meta">${pack.real?pack.count:packCount(pack)} CARTES · ORIGINS</div><div class="b-foil"></div></div><div class="b-crimp b-bottom"></div></div>`;
 }
 function fmtPercent(n){return (n*100).toLocaleString('fr-FR',{maximumFractionDigits:n<.01?2:1})+' %';}
 function boostersView(){
@@ -525,6 +525,7 @@ async function importSession(file){
 const OPEN={st:null,el:null,canvas:null,ctx:null,parts:[],raf:0,sound:false,audio:null,last:0,w:0,h:0};
 const reducedMotion=()=>window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 const wait=ms=>new Promise(r=>setTimeout(r,reducedMotion()?Math.min(ms,120):ms));
+const cardOf=d=>d.card||get(d.id);
 function startOpening(pack,draws,meta){
  // Les meilleures cartes à la fin, pour le suspense.
  const order=draws.map((d,i)=>({...d,k:i})).sort((a,b)=>(a.tier*10+a.finish)-(b.tier*10+b.finish)||a.k-b.k);
@@ -548,7 +549,7 @@ function unmountOpening(silent){
  cancelAnimationFrame(OPEN.raf);OPEN.raf=0;OPEN.parts=[];
  if(OPEN.el){OPEN.el.remove();OPEN.el=null;}
  document.documentElement.classList.remove('dlfr117-noscroll');
- if(!silent){OPEN.st=null;repaint();}
+ if(!silent){const m=OPEN.st?.meta;OPEN.st=null;if(m?.real)m.onClose?.();else repaint();}
 }
 function setOpening(sel,html){const n=OPEN.el?.querySelector(sel);if(n)n.innerHTML=html;}
 function cardBack(tier){return `<div class="o-back-art aura-${tier}"><div class="o-back-ring"></div><span>DLFR</span><b>◆</b><small>CARDS · ORIGINS</small></div>`;}
@@ -565,7 +566,7 @@ function renderOpening(){
  }else if(st.stage==='opening'){
   setOpening('.o-buttons','');setOpening('.o-hint','');
  }else if(st.stage==='cards'){
-  const d=st.draws[st.i],card=get(d.id),left=n-st.i-1;
+  const d=st.draws[st.i],card=cardOf(d),left=n-st.i-1;
   setOpening('.o-stage',`<div class="o-deck">${Array.from({length:Math.min(4,left)},(_,k)=>`<div class="o-ghost" style="--k:${k+1}">${cardBack(0)}</div>`).join('')}
    <div class="o-card t${d.tier} f${d.finish} is-entering" data-o="card" tabindex="0" aria-label="Carte à révéler"><div class="o-card-inner"><div class="o-face o-back">${cardBack(d.tier)}</div><div class="o-face o-front">${card?figure(card,data,false,{finish:d.finish,stars:0}):''}<div class="o-glare"></div></div></div></div></div>`);
   setOpening('.o-banner','');
@@ -577,7 +578,7 @@ function renderOpening(){
 }
 function bannerFor(d){
  const r=rarities[d.tier];
- return `<div class="o-ann t${d.tier}"><span class="o-ann-rarity">${esc(r.toUpperCase())}${d.finish?` · ${FIN_NAME[d.finish].toUpperCase()}`:''}</span><strong>${esc(get(d.id)?.name||'')}</strong><em class="${d.isNew?'is-new':''}">${d.isNew?'✦ NOUVELLE CARTE':'DOUBLON'} · +${d.shards} ◆${d.dust?` · +${d.dust} ✧`:''}${d.pity?' · GARANTIE ACTIVÉE':''}</em></div>`;
+ return `<div class="o-ann t${d.tier}"><span class="o-ann-rarity">${esc(r.toUpperCase())}${d.finish?` · ${FIN_NAME[d.finish].toUpperCase()}`:''}</span><strong>${esc(cardOf(d)?.name||'')}</strong><em class="${d.isNew?'is-new':''}">${OPEN.st?.meta?.real?(d.isNew?'✦ NOUVELLE CARTE':`DOUBLON · recyclable +${d.value} ✦`):`${d.isNew?'✦ NOUVELLE CARTE':'DOUBLON'} · +${d.shards} ◆${d.dust?` · +${d.dust} ✧`:''}${d.pity?' · GARANTIE ACTIVÉE':''}`}</em></div>`;
 }
 async function revealCurrent(){
  const st=OPEN.st;if(!st||st.busy||st.flipped)return;st.busy=true;
@@ -594,13 +595,13 @@ async function revealCurrent(){
  setOpening('.o-banner',bannerFor(d));
  const last=st.i===st.draws.length-1;
  setOpening('.o-buttons',`<button type="button" class="o-btn o-primary" data-o="next">${last?'Voir le bilan':'Carte suivante'}</button>`);
- setOpening('.o-hint',d.isNew?'Elle rejoint ta collection.':'Doublon : converti en poussière ✧ pour la Forge.');
+ setOpening('.o-hint',d.isNew?'Elle rejoint ta collection.':st.meta?.real?'Doublon : tu pourras le recycler en Wayllings dorés.':'Doublon : converti en poussière ✧ pour la Forge.');
  OPEN.el.querySelector('.o-primary')?.focus({preventScroll:true});
  await wait(380);st.busy=false;
 }
 async function nextCard(){
  const st=OPEN.st;if(!st||st.busy)return;st.busy=true;
- const d=st.draws[st.i],cardEl=OPEN.el.querySelector('.o-card'),card=get(d.id);
+ const d=st.draws[st.i],cardEl=OPEN.el.querySelector('.o-card'),card=cardOf(d);
  cardEl?.classList.add('is-leaving');
  const tray=OPEN.el.querySelector('.o-tray');if(tray&&card){const t=document.createElement('div');t.className=`o-tray-item t${d.tier}`;t.innerHTML=figure(card,srcData(),true,{finish:d.finish});tray.append(t);}
  OPEN.el.classList.remove('rays-1','rays-2','rays-3','rays-4');
@@ -655,10 +656,24 @@ function openingClick(e){
  else if(a==='card'){if(OPEN.st.stage==='cards')primaryAction();}
  else if(a==='skip')skipAll();
  else if(a==='close')closeOpening();
- else if(a==='again'){const id=OPEN.st.pack.id;unmountOpening(true);OPEN.st=null;if(!openPack(id))repaint();}
+ else if(a==='again'){if(OPEN.st.meta?.real){const m=OPEN.st.meta;unmountOpening(true);OPEN.st=null;m.onAgain?.();return;}const id=OPEN.st.pack.id;unmountOpening(true);OPEN.st=null;if(!openPack(id))repaint();}
  else if(a==='sound'){OPEN.sound=!OPEN.sound;b.textContent=OPEN.sound?'🔊 Son':'🔇 Son';b.setAttribute('aria-pressed',String(OPEN.sound));if(OPEN.sound)sfx('flip');}
 }
+function renderRealSummary(){
+ const st=OPEN.st,m=st.meta,draws=st.draws,data=m.data||{},news=draws.filter(d=>d.isNew).length,dup=draws.filter(d=>!d.isNew).reduce((n,d)=>n+d.value,0);
+ const best=draws.reduce((a,d)=>d.tier>a.tier?d:a,draws[0]);
+ setOpening('.o-stage',`<div class="o-summary"><h3>${news} nouvelle${news>1?'s':''} carte${news>1?'s':''} · ${draws.length-news} doublon${draws.length-news>1?'s':''}</h3>
+  <div class="o-sum-grid">${draws.map((d,k)=>{const c=cardOf(d);return c?`<div class="o-sum-card t${d.tier} ${d===best&&d.tier>=2?'is-best':''}" style="--k:${k}">${figure(c,data,true,{finish:0})}<span class="${d.isNew?'is-new':''}">${d.isNew?'NOUVELLE':'DOUBLON'}</span></div>`:'';}).join('')}</div>
+  <div class="o-gains"><div><b data-count="${news}">0</b><span>nouvelle${news>1?'s':''}</span></div><div><b data-count="${dup}">0</b><span>✦ recyclables</span></div><div><b data-count="${Number(m.balance)||0}">0</b><span>✦ solde</span></div></div>
+  ${(m.bonuses||[]).map(b=>`<div class="o-levelup"><b>COLLECTION COMPLÈTE !</b><span>${esc(b.collection)}</span><small>+${esc(b.coins)} Wayllings dorés</small></div>`).join('')}
+  <p class="o-pity">Les doublons se recyclent en Wayllings dorés depuis ta collection.</p></div>`);
+ setOpening('.o-banner','');
+ setOpening('.o-buttons',`${m.againLabel?`<button type="button" class="o-btn" data-o="again">${esc(m.againLabel)}</button>`:''}<button type="button" class="o-btn o-primary" data-o="close">Terminer</button>`);
+ setOpening('.o-hint','Échap ou Espace pour fermer');
+ OPEN.el.querySelectorAll('[data-count]').forEach(el=>countUp(el,Number(el.dataset.count)));
+}
 function renderSummary(){
+ if(OPEN.st?.meta?.real)return renderRealSummary();
  const st=OPEN.st,data=srcData(),m=st.meta,draws=st.draws;
  const shards=draws.reduce((n,d)=>n+d.shards,0),dust=draws.reduce((n,d)=>n+d.dust,0),news=draws.filter(d=>d.isNew).length;
  const best=draws.reduce((a,d)=>d.tier>a.tier||(d.tier===a.tier&&d.finish>a.finish)?d:a,draws[0]);
@@ -1036,7 +1051,7 @@ document.addEventListener('keydown',event=>{
 });
 // Minuterie : met à jour les camps sans redessiner la page ; ferme l'ouverture si on quitte le labo.
 setInterval(()=>{
- if(OPEN.el&&!document.getElementById('dlfr112Lab')){OPEN.st=null;unmountOpening(true);}
+ if(OPEN.el&&!OPEN.st?.meta?.real&&!document.getElementById('dlfr112Lab')){OPEN.st=null;unmountOpening(true);}
  const lab=document.getElementById('dlfr112Lab');if(!lab)return;
  lab.querySelectorAll('[data-v117-camp]').forEach(row=>{const c=progress.camps[Number(row.dataset.v117Camp)];if(!c)return;const left=Math.max(0,c.end-Date.now());
   const bar=row.querySelector('[data-v117-bar]');if(bar)bar.style.width=Math.min(100,(Date.now()-c.start)/(c.end-c.start)*100)+'%';
@@ -1054,6 +1069,13 @@ window.DLFR_CARDS_LAB={
   gate=true;if(DB&&catalog.status==='local')loadCatalog();
  },
  view(data){if(!gate)return '<p>Accès réservé.</p>';this.__sourceData=data;return viewPage(data);},
+ // V127 — ouverture réelle (tirage fait par Supabase) : on ne rejoue que la mise en scène.
+ mkCard,
+ figure:(card,data,compact=false,opts={})=>figure(card,data,compact,opts),
+ playReal(pack,draws,meta={}){
+  const T={'Commun':0,'Rare':1,'Épique':2,'Légendaire':3,'Mythique':4};
+  startOpening({id:'real',theme:'violet',emblem:'✦',count:draws.length,...pack,real:true},draws.map(d=>({id:d.card.id,card:d.card,tier:T[d.card.rarity]??0,finish:0,isNew:!!d.isNew,value:Number(d.value)||0,shards:0,dust:0})),{...meta,real:true});
+ },
  get stats(){return {unique:inventoryUnique(),total:CARDS.length,level:progress.level,power:collectionPower(),catalog:catalog.status,volatile:true};}
 };
 })();

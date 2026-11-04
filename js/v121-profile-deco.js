@@ -18,7 +18,11 @@ const INFO={
  frame_celestial:{name:'Ascension Céleste',text:'Auréole dorée et rayons divins.'},
  frame_glitch:{name:'Cadre Désynchronisé',text:'Contour qui saute entre cyan et magenta.'},
  badge_spark:{name:'Éclat hebdomadaire',text:'Médaille étincelante à côté du pseudo.'},
- badge_flame:{name:'Flamme éternelle',text:'Médaille enflammée à côté du pseudo.'}
+ badge_flame:{name:'Flamme éternelle',text:'Médaille enflammée à côté du pseudo.'},
+ name_or:{name:'Pseudo doré',text:'Ton pseudo en or brillant.'},name_ocean:{name:'Pseudo Océan',text:'Dégradé turquoise vers bleu profond.'},
+ name_sunset:{name:'Pseudo Crépuscule',text:'Dégradé orange, rose et violet.'},name_aurora:{name:'Pseudo Aurore',text:'Dégradé animé de l’aurore boréale.'},
+ name_neon:{name:'Pseudo Néon',text:'Pseudo lumineux rose et cyan.'},name_inferno:{name:'Pseudo Brasier',text:'Flammes animées sur ton pseudo.'},
+ name_galaxy:{name:'Pseudo Galaxie',text:'Nébuleuse animée et scintillements.'},name_frost:{name:'Pseudo Givre de Noël',text:'Édition limitée : pseudo givré.'}
 };
 const TIER_TEXT=['','I · Originel','II · Éveillé','III · Légendaire'];
 const safe=items=>(Array.isArray(items)?items:[]).filter(x=>/^[a-z0-9_]+$/.test(String(x?.item_key||'')));
@@ -33,6 +37,7 @@ function cls(items){
  if(b)c.push('pd-banner',`pd-${b.item_key}`);
  if(f)c.push('pd-frame',`pd-${f.item_key}`);
  for(const x of list)if(x.item_key.startsWith('badge_'))c.push(`pd-${x.item_key}`);
+ const n=list.find(x=>x.item_key.startsWith('name_'));if(n)c.push('pd-pname',`pd-${n.item_key}`); // V127 : couleur de pseudo
  return c.join(' ');
 }
 // Calque décoratif de la bannière : éléments génériques que le CSS met en scène.
@@ -62,6 +67,7 @@ function preview(itemKey,tier=3,emoji='✦'){
  const k=String(itemKey||'');if(!/^[a-z0-9_]+$/.test(k))return '';
  const item={item_key:k,category:k.split('_')[0],tier,emoji};
  const isBanner=k.startsWith('banner_'),isFrame=k.startsWith('frame_'),isBadge=k.startsWith('badge_');
+ if(k.startsWith('name_'))return `<span class="pd-mini pd-mini-name-only ${cls([item])}" aria-hidden="true"><span class="dlfr-pname">Pseudo</span></span>`;
  return `<span class="pd-mini ${cls([item])}" aria-hidden="true"><span class="pd-hero pd-mini-hero ${isBanner?'':'pd-neutral'}">${isBanner?layer([item],12):''}<span class="pd-mini-id"><span class="dlfr27-frame pd-mini-frame"><span class="pd-mini-av">${isBadge?'':'Z'}</span></span><span class="pd-mini-name">${isFrame||isBanner?'Joueur':''}${isBadge?medals([item]):''}</span></span></span></span>`;
 }
 // Encart « Récompenses exposées » de la page profil.
@@ -69,12 +75,12 @@ function panel(items){
  const list=safe(items);if(!list.length)return '';
  return `<div class="pd-panel"><div class="pd-panel-head"><b>✦ Décorations exposées</b><span>${list.length} équipée${list.length>1?'s':''}</span></div><div class="pd-panel-grid">${list.map(x=>{
   const prestige=PRESTIGE.has(x.item_key),t=tierOf(x),info=INFO[x.item_key]||{};
-  return `<article class="pd-card ${prestige?'is-prestige':''}"><div class="pd-card-art">${preview(x.item_key,3,x.emoji)}</div><div class="pd-card-copy"><small>${esc({banner:'Bannière',frame:'Cadre',badge:'Badge'}[x.category]||'Décoration')}</small><strong>${esc(x.emoji||'')} ${esc(x.label||info.name||x.item_key)}</strong><p>${esc(info.text||'Décoration cosmétique équipée.')}</p></div></article>`;}).join('')}</div></div>`;
+  return `<article class="pd-card ${prestige?'is-prestige':''}"><div class="pd-card-art">${preview(x.item_key,3,x.emoji)}</div><div class="pd-card-copy"><small>${esc({banner:'Bannière',frame:'Cadre',badge:'Badge',name:'Couleur de pseudo'}[x.category]||'Décoration')}</small><strong>${esc(x.emoji||'')} ${esc(x.label||info.name||x.item_key)}</strong><p>${esc(info.text||'Décoration cosmétique équipée.')}</p></div></article>`;}).join('')}</div></div>`;
 }
 // Petites icônes des décorations équipées (classement de la page Statistiques).
 function icons(items){
  const list=safe(items);if(!list.length)return '';
- const order={banner:0,frame:1,badge:2};
+ const order={banner:0,frame:1,badge:2,name:3};
  return `<span class="pd-icons">${list.slice().sort((a,b)=>(order[a.category]??3)-(order[b.category]??3)).map(x=>`<span class="pd-icon pd-icon-${esc(x.category)} pd-icon-${esc(x.item_key)}" title="${esc(INFO[x.item_key]?.name||x.label||'')}" aria-label="${esc(INFO[x.item_key]?.name||x.label||'')}">${esc(x.emoji||'✦')}</span>`).join('')}</span>`;
 }
 window.DLFR_DECO={PRESTIGE,INFO,safe,cls,layer,medals,icons,apply,preview,panel};

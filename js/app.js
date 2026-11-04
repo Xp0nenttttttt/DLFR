@@ -686,7 +686,7 @@ function setNavDrawer(open){
 }
 const PAGE_INFO={list:['Niveaux','Demonlist'],demon:['Niveaux','Demonlist'],archive:['Niveaux','Archives'],unbeaten:['Niveaux','Niveaux non vérifiés'],history:['Niveaux','Historique des records'],calculator:['Niveaux','Calculateur de points'],
  stats:['Joueurs','Statistiques & classement'],players:['Joueurs','Profils des joueurs'],player:['Joueurs','Profils des joueurs','players'],honors:['Joueurs','Palmarès & exploits'],hall:['Joueurs','Palmarès & exploits','honors'],achievements:['Joueurs','Palmarès & exploits','honors'],regions:['Joueurs','Carte de France'],clans:['Joueurs','Clans'],
- news:['Communauté','Actualités'],activity:['Communauté','Vie communautaire'],packs:['Communauté','Level Packs'],shop:['','Boutique'],
+ cards:['','DLFR Cards'],news:['Communauté','Actualités'],activity:['Communauté','Vie communautaire'],packs:['Communauté','Level Packs'],shop:['','Boutique'],
  'my-profile':['Mon espace','Mon profil'],'my-submissions':['Mon espace','Mes soumissions'],'submit-record':['Mon espace','Soumettre un record'],admin:['Mon espace','Modération'],'cards-lab':['Mon espace','DLFR Cards · Laboratoire']};
 function navSync(page){
  const h=document.querySelector('.dlfr126-header');if(!h)return;
@@ -1008,14 +1008,18 @@ async function v81RewardsRender(){
  const area=document.getElementById('v81-rewards');if(!area||!db)return;
  const seq=++v81Request;
  try{
-  const [sr,cr]=await Promise.all([db.rpc('dlfr_rewards_status'),db.from('dlfr_reward_catalog').select('item_key,label,description,emoji,category,price').eq('active',true).order('price')]);
+  const inShop=!!area.closest('.dlfr109-shop');
+  const [sr,cr,ir,gr]=await Promise.all([db.rpc('dlfr_rewards_status'),db.from('dlfr_reward_catalog').select('*').eq('active',true).order('price'),
+    inShop?db.rpc('dlfr_shop_info'):Promise.resolve({data:null}),inShop&&state.session?db.rpc('dlfr_reward_gifts_inbox',{p_mark_seen:false}):Promise.resolve({data:[]})]);
   if(sr.error)throw sr.error;if(cr.error)throw cr.error;
   if(seq!==v81Request||!area.isConnected)return;
   const status=sr.data||{},owns=new Set(status.inventory||[]),equip=status.equipped||{};
   v96ApplyHalloweenStatus(status);
-  if(area.closest('.dlfr109-shop')){
-   area.innerHTML=dlfr109ShopContent(status,cr.data||[],owns,equip);
+  if(inShop){
+   SHOP127.items=cr.data||[];SHOP127.info=ir.error?null:ir.data;
+   area.innerHTML=dlfr109ShopContent(status,cr.data||[],owns,equip,SHOP127.info,gr.error?[]:(gr.data||[]));
    dlfr109ApplyFilters();
+   if((gr.data||[]).some(g=>!g.seen))db.rpc('dlfr_reward_gifts_inbox',{p_mark_seen:true}).then(()=>{},()=>{});
    return;
   }
   area.innerHTML=`<div class="v81-header"><b>✦ DLFR Rewards</b><span>✦ ${wayllingLabel(status.balance??0)} · 🔥 ${esc(status.streak??0)} semaine(s) de série</span></div>
@@ -1031,7 +1035,10 @@ async function v81RewardsRender(){
 let dlfr109Category='all';
 let dlfr109Collection=false;
 let dlfr109Search='';
-const dlfr109Cats={all:'Tous les objets',frame:'Cadres',banner:'Bannières',badge:'Badges',theme:'Thèmes'};
+const dlfr109Cats={all:'Tous les objets',name:'Pseudos',frame:'Cadres',banner:'Bannières',badge:'Badges',theme:'Thèmes'};
+const SHOP127={items:[],info:null};
+const RARITY_SLUG=r=>String(r||'Commun').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+const frDate=d=>{try{return new Date(d).toLocaleDateString('fr-FR',{day:'numeric',month:'long'});}catch{return '';}};
 function dlfr109ApplyFilters(){
  const root=document.querySelector('.dlfr109-shop');
  if(!root)return;
@@ -1057,7 +1064,7 @@ function shopPage(){
  <header class="dlfr109-shop-hero">
   <div class="dlfr109-hero-copy"><span class="kicker">✦ Cosmétique DLFR</span>
    <h1 id="dlfr109-title">La boutique</h1>
-   <p>Personnalise ta fiche avec des cadres, des bannières, des badges et des thèmes. Tes points de classement ne changent pas.</p>
+   <p>Personnalise ta fiche avec des couleurs de pseudo, des cadres, des bannières, des badges et des thèmes, ou offre-les à tes amis. Tes points de classement ne changent pas.</p>
   </div>
   <aside id="v80-weekly" class="v80-weekly dlfr111-weekly-card" aria-label="Niveau de la semaine" aria-live="polite">
    <span class="dlfr111-weekly-eyebrow">✦ Défi hebdomadaire</span>
@@ -1068,7 +1075,7 @@ function shopPage(){
  <p class="dlfr109-shop-footnote">Les achats et équipements sont enregistrés sur ton compte DLFR. Les objets d'essai du propriétaire ne coûtent aucun Waylling doré.</p>
  </section>`;
 }
-function dlfr109ShopContent(status,items,owns,equip){
+function dlfr109ShopContent(status,items,owns,equip,info=null,gifts=[]){
  const inventory=new Set([...(status.inventory||[]),...(status.test_inventory||[])]);
  const signed=!!status.signed_in;
  const all=Array.isArray(items)?items:[];
@@ -1078,28 +1085,39 @@ function dlfr109ShopContent(status,items,owns,equip){
    const n=id==='all'?all.length:all.filter(item=>item.category===id).length;
    return `<button type="button" data-shop-filter="${id}" class="dlfr109-filter" aria-pressed="false">${label}<span>${n}</span></button>`;
  }).join('');
- const cards=all.map(item=>{
+ const meta=new Map((info?.items||[]).map(x=>[x.item_key,x])),rotation=new Set(info?.rotation||[]);
+ const cardOf=(item,featured=false)=>{
    const test=(status.test_inventory||[]).includes(item.item_key);
    const owned=owns.has(item.item_key)||test;
    const equipped=equip[item.category]===item.item_key;
-   const price=Number(item.price)||0;
+   const m=meta.get(item.item_key)||{},base=Number(item.price)||0,price=Number(m.price_now??base)||base,discounted=price<base;
+   const from=item.available_from?new Date(item.available_from):null,until=item.available_until?new Date(item.available_until):null;
+   const soon=from&&from>new Date(),over=until&&until<=new Date(),limited=!!(from||until),buyable=!soon&&!over;
    const category=dlfr109Cats[item.category]||'Cosmétique';
+   const giftBtn=signed&&buyable?`<button type="button" class="btn small subtle dlfr127-gift-btn" data-gift-item="${esc(item.item_key)}" title="Offrir cet objet à un autre joueur">🎁</button>`:'';
    const desc=item.category==='badge'?esc(DECO.INFO?.[item.item_key]?.text||item.description||'Un badge décoratif à exposer sur ton profil.'):
      item.category==='theme'?esc(THEMES.byItem.get(item.item_key)?.desc||item.description||'Change les couleurs et l’ambiance de ton site.'):
-     item.category==='frame'?esc(DECO.INFO?.[item.item_key]?.text||'Un cadre à mettre en valeur sur ta fiche.'):esc(DECO.INFO?.[item.item_key]?.text||'Une bannière pour personnaliser ton profil.');
+     item.category==='frame'?esc(DECO.INFO?.[item.item_key]?.text||'Un cadre à mettre en valeur sur ta fiche.'):item.category==='name'?esc(item.description||DECO.INFO?.[item.item_key]?.text||'Une couleur pour ton pseudo.'):esc(DECO.INFO?.[item.item_key]?.text||'Une bannière pour personnaliser ton profil.');
    let action='';
    if(!signed)action=`${item.category==='theme'&&THEMES.byItem.has(item.item_key)?`<button type="button" class="btn small subtle dlfr120-try" data-theme-try="${esc(THEMES.byItem.get(item.item_key).id)}">Essayer</button>`:''}<a data-nav class="btn small" href="${url('my-profile')}">Se connecter</a>`;
-   else if(owned)action=`<button type="button" class="btn small ${equipped?'subtle':''}" data-v81-equip="${esc(item.item_key)}" data-v81-category="${esc(item.category)}" data-v81-unequip="${equipped}">${equipped?'Retirer':'Équiper'}</button>`;
-   else action=`${item.category==='theme'&&THEMES.byItem.has(item.item_key)?`<button type="button" class="btn small subtle dlfr120-try" data-theme-try="${esc(THEMES.byItem.get(item.item_key).id)}">Essayer</button>`:''}<button type="button" class="btn small" data-v81-buy="${esc(item.item_key)}" ${Number(status.balance)<price?'disabled title="Solde insuffisant"':''}>Acheter</button>`;
-   const catClass=/^(frame|banner|badge|theme)$/.test(item.category)?item.category:'other';
-   return `<article class="dlfr109-item v81-item v90-shop-item v90-item-${esc(item.item_key)}" data-shop-item data-shop-category="${esc(item.category)}" data-shop-owned="${owned}" data-shop-search="${esc(String(item.label||'').toLocaleLowerCase('fr'))}">
-    <div class="dlfr109-item-art dlfr109-category-${catClass}">${item.category==='theme'&&THEMES.byItem.has(item.item_key)?THEMES.swatch(item.item_key):/^(frame|banner|badge)$/.test(item.category)&&DECO.preview(item.item_key,3,item.emoji)?DECO.preview(item.item_key,3,item.emoji):'<span class="v90-swatch" aria-hidden="true"></span>'}<span class="dlfr109-art-emoji" aria-hidden="true">${esc(item.emoji||'✦')}</span></div>
-    <div class="dlfr109-item-content"><div class="dlfr109-item-label"><span class="dlfr109-category">${esc(category)}</span>${equipped?'<span class="dlfr109-pill dlfr109-equipped">✓ Équipé</span>':owned?'<span class="dlfr109-pill">Possédé</span>':''}</div>
+   else if(owned)action=`${giftBtn}<button type="button" class="btn small ${equipped?'subtle':''}" data-v81-equip="${esc(item.item_key)}" data-v81-category="${esc(item.category)}" data-v81-unequip="${equipped}">${equipped?'Retirer':'Équiper'}</button>`;
+   else if(!buyable)action=`<span class="small muted">${soon?'Disponible le '+esc(frDate(from)):'Édition terminée'}</span>`;
+   else action=`${giftBtn}${item.category==='theme'&&THEMES.byItem.has(item.item_key)?`<button type="button" class="btn small subtle dlfr120-try" data-theme-try="${esc(THEMES.byItem.get(item.item_key).id)}">Essayer</button>`:''}<button type="button" class="btn small" data-v81-buy="${esc(item.item_key)}" ${Number(status.balance)<price?'disabled title="Solde insuffisant"':''}>Acheter</button>`;
+   const catClass=/^(frame|banner|badge|theme|name)$/.test(item.category)?item.category:'other';
+   return `<article class="dlfr109-item v81-item v90-shop-item v90-item-${esc(item.item_key)} ${discounted?'is-deal':''} ${limited?'is-limited':''}" data-rarity="${esc(RARITY_SLUG(item.rarity))}" ${featured?'':`data-shop-item data-shop-category="${esc(item.category)}" data-shop-owned="${owned}" data-shop-search="${esc(String(item.label||'').toLocaleLowerCase('fr'))}"`}>
+    <div class="dlfr109-item-art dlfr109-category-${catClass}">${item.category==='theme'&&THEMES.byItem.has(item.item_key)?THEMES.swatch(item.item_key):/^(frame|banner|badge|name)$/.test(item.category)&&DECO.preview(item.item_key,3,item.emoji)?DECO.preview(item.item_key,3,item.emoji):'<span class="v90-swatch" aria-hidden="true"></span>'}<span class="dlfr109-art-emoji" aria-hidden="true">${esc(item.emoji||'✦')}</span>${discounted?`<span class="dlfr127-deal">−${esc(info?.discount||25)} %</span>`:''}</div>
+    <div class="dlfr109-item-content"><div class="dlfr109-item-label"><span class="dlfr109-category">${esc(category)}</span><span class="dlfr127-rarity">${esc(item.rarity||'Commun')}</span>${equipped?'<span class="dlfr109-pill dlfr109-equipped">✓ Équipé</span>':owned?'<span class="dlfr109-pill">Possédé</span>':''}</div>
     <h3>${esc(item.label)}</h3><p>${desc}</p>
+    ${limited?`<span class="dlfr127-limited">⏳ Édition limitée${until?` · jusqu’au ${esc(frDate(until))}`:''}${soon?` · dès le ${esc(frDate(from))}`:''}</span>`:''}
     ${test?'<span class="dlfr109-test-note">Essai propriétaire actif</span>':''}</div>
-    <div class="dlfr109-item-bottom"><strong class="dlfr109-price">✦ ${owned?'Dans ta collection':wayllingLabel(price)}</strong>${action}</div>
+    <div class="dlfr109-item-bottom"><strong class="dlfr109-price">✦ ${owned?'Dans ta collection':`${discounted?`<s>${esc(base)}</s> `:''}${wayllingLabel(price)}`}</strong>${action}</div>
    </article>`;
- }).join('');
+ };
+ const cards=all.map(item=>cardOf(item)).join('');
+ const featured=all.filter(item=>rotation.has(item.item_key));
+ const ends=info?.rotation_ends?new Date(info.rotation_ends):null,days=ends?Math.max(0,Math.ceil((ends-Date.now())/86400000)):0;
+ const unseen=(gifts||[]).filter(g=>!g.seen);
+ const history=Array.isArray(status.history)?status.history:[];
  return `<div class="dlfr109-wallet" role="group" aria-label="Ma collection et ma monnaie">
   <div class="dlfr109-wallet-primary"><span class="dlfr109-wallet-icon">✦</span><div><span>Mes Wayllings dorés</span><strong>${signed?esc(status.balance??0):'—'}</strong></div></div>
   <div class="dlfr109-wallet-stat"><span>Objets possédés</span><strong>${signed?ownedCount:'—'} <small>/ ${all.length}</small></strong></div>
@@ -1107,6 +1125,17 @@ function dlfr109ShopContent(status,items,owns,equip){
   <div class="dlfr109-wallet-stat"><span>Série hebdomadaire</span><strong>🔥 ${signed?esc(status.streak??0):'—'}</strong></div>
  </div>
  ${!signed?`<div class="dlfr109-guest-note"><span>Connecte-toi pour acheter des objets et afficher ta collection.</span><a data-nav class="btn small" href="${url('my-profile')}">Accéder à mon compte</a></div>`:''}
+ ${unseen.length?`<div class="dlfr127-gifts" role="status">${unseen.map(g=>`<div class="dlfr127-gift"><span class="dlfr127-gift-ico" aria-hidden="true">🎁</span><div><b>${esc(g.from)} t’a offert « ${esc(g.label)} » ${esc(g.emoji||'')}</b>${g.message?`<p>« ${esc(g.message)} »</p>`:''}<small>L’objet est déjà dans ta collection : clique sur « Équiper » pour l’utiliser.</small></div></div>`).join('')}</div>`:''}
+ <div class="dlfr127-earn">
+  <div class="dlfr127-earn-copy"><h2>Gagner des Wayllings dorés</h2><ul>
+   <li><span>🏁</span><div><b>Défi de la semaine</b><small>Bats le niveau de la semaine (encadré en haut).</small></div></li>
+   <li><span>📦</span><div><b>Level Packs</b><small>Chaque pack terminé rapporte selon sa difficulté. <a data-nav href="${url('packs')}">Voir les packs</a></small></div></li>
+   <li><span>🃏</span><div><b>DLFR Cards</b><small>Booster gratuit chaque jour, doublons recyclés, bonus de collection complète.</small></div></li>
+   <li><span>🎁</span><div><b>Cadeaux</b><small>Un ami peut t’offrir un objet avec le bouton 🎁.</small></div></li></ul></div>
+  <a class="dlfr127-booster-promo" data-nav href="${url('cards')}"><span class="dlfr127-booster-art" aria-hidden="true"><b>DLFR</b><i>CARDS</i><em>◆</em></span><span><small>Boosters DLFR Cards</small><b>1 booster gratuit / jour</b><span>ou ${esc(info?.booster_price??150)} ✦ le booster de 5 cartes</span><em>Ouvrir mes boosters →</em></span></a>
+ </div>
+ ${featured.length?`<section class="dlfr127-rotation" aria-labelledby="dlfr127RotTitle"><div class="dlfr127-rot-head"><div><span class="kicker">Sélection de la semaine</span><h2 id="dlfr127RotTitle">−${esc(info?.discount||25)} % sur ces objets</h2></div><span class="dlfr127-rot-timer">⏱ ${days<=1?'Dernier jour':`Encore ${days} jours`}</span></div><div class="dlfr109-grid dlfr127-rot-grid">${featured.map(item=>cardOf(item,true)).join('')}</div></section>`:''}
+ ${signed&&history.length?`<details class="dlfr127-history"><summary>📜 Historique de mes Wayllings dorés</summary><ul>${history.map(h=>`<li><span>${esc(h.note||'')}</span><time>${esc(h.at?new Date(h.at).toLocaleDateString('fr-FR'):'')}</time><b class="${Number(h.amount)>=0?'is-plus':'is-minus'}">${Number(h.amount)>=0?'+':''}${esc(h.amount)} ✦</b></li>`).join('')}</ul></details>`:''}
  <div class="dlfr109-shop-heading"><div><span class="kicker">Collection cosmétique</span><h2>Découvre les objets</h2></div><span class="dlfr109-product-count"><b id="dlfr109-visible">${all.length}</b> objets affichés</span></div>
  <div class="dlfr109-shop-controls"><div class="dlfr109-categories" role="group" aria-label="Catégorie de produits">${filters}</div><div class="dlfr109-shop-tools"><label class="dlfr109-search"><span aria-hidden="true">⌕</span><input id="dlfr109-search" type="search" placeholder="Rechercher un objet…" aria-label="Rechercher un objet" value="${esc(dlfr109Search)}" autocomplete="off"></label><button type="button" data-shop-owned aria-pressed="false" class="dlfr109-mycollection">✧ Ma collection</button></div></div>
  <div class="dlfr109-grid" id="dlfr109-grid">${cards}</div>
@@ -1565,7 +1594,7 @@ function statProfile(p){if(!p)return '<div class="stats-profile empty">Sélectio
   .map(([n,v])=>`<a class="social-link" target="_blank" rel="noopener noreferrer" href="${esc(http(v))}">${n} ↗</a>`).join('');
  return `<div class="stats-profile dlfr20-profile" style="--dlfr20-accent:${esc(COMMUNITY.hex((state.data.dlfr_profile_preferences||[]).find(x=>x.player_key===p.player_key)?.accent_color))}"><div class="profile-hero">${banner?`<img class="profile-cover-img" src="${esc(banner)}" alt="" aria-hidden="true">`:''}
     <div class="profile-hero-inner">${framedAvatar(p.player_key,avatar?`<img class="profile-avatar" src="${esc(avatar)}" alt="Avatar de ${esc(p.display_name||p.username)}">`:`<div class="profile-avatar profile-avatar-fallback" aria-hidden="true">${esc((p.display_name||p.username||'?').slice(0,1).toUpperCase())}</div>`)}
-      <div class="profile-hero-copy"><span class="profile-pretitle">Profil joueur · ${p.has_account?'Compte':'Sans compte'}</span><strong>${flag(p.country_code)} ${esc(p.display_name||p.username)}${emblemHTML(p.player_key,'lg')}</strong>${regionIdentity(p)}<span>${p.hardest?'Hardest : '+esc(hardestLabel(p)):'Aucun hardest connu'}</span></div>
+      <div class="profile-hero-copy"><span class="profile-pretitle">Profil joueur · ${p.has_account?'Compte':'Sans compte'}</span><strong>${flag(p.country_code)} <span class="dlfr-pname">${esc(p.display_name||p.username)}</span>${emblemHTML(p.player_key,'lg')}</strong>${regionIdentity(p)}<span>${p.hardest?'Hardest : '+esc(hardestLabel(p)):'Aucun hardest connu'}</span></div>
     </div></div>
  ${isSuspended?'<p class="notice warning"><b>Profil suspendu en démonstration</b> — cette sanction n’affecte pas l’authentification réelle.</p>':''}<h2 class="player-title">${flag(p.country_code)} ${esc(p.display_name||p.username)} ${!p.has_account?'<span class="tag">Sans compte</span>':''}</h2><div class="profile-region-line">${regionIdentity(p)}</div><div style="text-align:center;margin-bottom:8px">${p.clan?` <a class="tag clan-profile-link" href="${url('clans')}" data-nav>Clan : ${esc(state.data.clans.find(c=>Number(c.id)===Number(p.clan.clan_id))?.tag||'—')}</a>`:''}</div>
  <div class="statboxes">${box('Classement Demonlist',rankedStr)}${box('Points totaux',fmt(p.score))}${box('Hardest (complété ou vérifié)',hardestLabel(p))}</div>
@@ -1649,7 +1678,9 @@ function packPage(){
  const packs=(state.data.dlfr_level_packs||[]).filter(p=>p.is_published||state.staff).sort((a,b)=>Number(b.is_published)-Number(a.is_published)||Number(a.id)-Number(b.id));
  const levelById=new Map((state.data.demons||[]).map(d=>[Number(d.id),d]));
  const me=state.ownKey||'';
+ loadPackCoins();
  const cards=packs.map(p=>{
+   const coins=Number(state.packCoins?.[p.id]?.coins)||0;
    const pr=window.DLFR_LEVEL_PACKS.progress(state.data,p,me);
    const artwork=imageLink(p.banner_url);
    const rewardType=p.reward_kind==='title'?'Tag / titre':'Badge + cadre';
@@ -1659,17 +1690,25 @@ function packPage(){
       return `<li class="${done?'is-complete':''}"><span>${done?'✓':'○'}</span> ${d?`<a data-nav href="${url('demon',{id:d.id})}">${esc(d.name)}</a>`:`<span class="muted">Niveau indisponible (#${esc(item.demon_id)})</span>`}</li>`;
    }).join('');
    const canClaim=!!me&&!!state.session&&pr.done&&!pr.claimed&&p.is_published;
-   return `<article class="dlfr27-pack"><div class="dlfr27-pack-banner">${artwork?`<img src="${esc(artwork)}" loading="lazy" alt="">`:''}<span>${p.reward_kind==='title'?'♛':'✦'}</span></div><div class="dlfr27-pack-main"><div class="dlfr27-pack-title"><h2>${esc(p.title)}</h2><span class="tag">${esc(rewardType)} · ${esc(p.reward_label)}</span>${!p.is_published?'<span class="tag">Brouillon</span>':''}</div><p>${esc(p.description||'Un défi composé de plusieurs niveaux.')}</p><div class="dlfr27-pack-progress"><div class="dlfr27-pack-track"><i style="width:${pr.total?100*pr.earned/pr.total:0}%"></i></div><strong>${me?`${pr.earned}/${pr.total}`:`${pr.total} niveaux`}</strong></div><ol class="dlfr27-pack-levels">${steps}</ol>${pr.claimed?'<p class="dlfr27-pack-earned">✓ Récompense obtenue</p>':canClaim?`<button type="button" class="btn" data-claim-pack="${p.id}">Réclamer ma récompense</button>`:!me?'<p class="small muted">Connecte ton profil DLFR pour suivre ta progression.</p>':pr.done?'<p class="small muted">Connecte-toi pour réclamer cette récompense.</p>':''}</div></article>`;
+   return `<article class="dlfr27-pack"><div class="dlfr27-pack-banner">${artwork?`<img src="${esc(artwork)}" loading="lazy" alt="">`:''}<span>${p.reward_kind==='title'?'♛':'✦'}</span></div><div class="dlfr27-pack-main"><div class="dlfr27-pack-title"><h2>${esc(p.title)}</h2><span class="tag">${esc(rewardType)} · ${esc(p.reward_label)}</span>${coins?`<span class="tag dlfr127-coins" title="Wayllings dorés gagnés en terminant ce pack">✦ +${esc(coins)} Wayllings dorés</span>`:''}${!p.is_published?'<span class="tag">Brouillon</span>':''}</div><p>${esc(p.description||'Un défi composé de plusieurs niveaux.')}</p><div class="dlfr27-pack-progress"><div class="dlfr27-pack-track"><i style="width:${pr.total?100*pr.earned/pr.total:0}%"></i></div><strong>${me?`${pr.earned}/${pr.total}`:`${pr.total} niveaux`}</strong></div><ol class="dlfr27-pack-levels">${steps}</ol>${pr.claimed?'<p class="dlfr27-pack-earned">✓ Récompense obtenue</p>':canClaim?`<button type="button" class="btn" data-claim-pack="${p.id}">Réclamer ma récompense</button>`:!me?'<p class="small muted">Connecte ton profil DLFR pour suivre ta progression.</p>':pr.done?'<p class="small muted">Connecte-toi pour réclamer cette récompense.</p>':''}</div></article>`;
  }).join('');
- return `${templateNotice()}<section class="paper dlfr27-packs-page"><div class="v2-intro"><span class="kicker">Communauté · défis</span><h1>Level Packs</h1><p>Des collections de niveaux créées par la modération. Termine chacun des niveaux avec une complétion validée à 100 % pour débloquer un tag ou un badge spécial.</p></div><div class="dlfr27-packs-grid">${cards||'<p class="empty">Aucun pack publié pour le moment.</p>'}</div><p class="small muted">Les récompenses doivent être réclamées après validation des records. Les pseudos historiques doivent être correctement rapprochés pour être comptabilisés.</p></section>`;
+ return `${templateNotice()}<section class="paper dlfr27-packs-page"><div class="v2-intro"><span class="kicker">Communauté · défis</span><h1>Level Packs</h1><p>Des collections de niveaux créées par la modération. Termine chacun des niveaux avec une complétion validée à 100 % pour débloquer un tag ou un badge spécial, et des <b>Wayllings dorés</b> (plus le pack est difficile, plus il rapporte) à dépenser dans la <a data-nav href="${url('shop')}">boutique</a>.</p></div><div class="dlfr27-packs-grid">${cards||'<p class="empty">Aucun pack publié pour le moment.</p>'}</div><p class="small muted">Les récompenses doivent être réclamées après validation des records. Les pseudos historiques doivent être correctement rapprochés pour être comptabilisés.</p></section>`;
+}
+// V127 — Wayllings dorés de chaque pack (calcul serveur selon la difficulté).
+let packCoinsLoading=false;
+function loadPackCoins(){
+ if(state.packCoins||packCoinsLoading||!db)return;packCoinsLoading=true;
+ db.rpc('dlfr_level_packs_coins').then(({data,error})=>{packCoinsLoading=false;state.packCoins=error?{}:(data||{});if(!error)render();}).catch(()=>{packCoinsLoading=false;state.packCoins={};});
 }
 function packModerationEditor(){
+ loadPackCoins();
  if(!state.packsReady)return '<section class="admin-card" data-admin-section="packs"><p class="notice warning">L’édition des Level Packs n’est pas disponible pour le moment.</p></section>';
  const levels=(state.data.demons||[]).filter(d=>d.is_public!==false&&!d.legacy&&!d.unrated&&(state.staffRole!=='nlw'||Number(d.position)>150&&Number(d.position)<100000000)).sort((a,b)=>Number(a.position)-Number(b.position));
  const packs=(state.data.dlfr_level_packs||[]).slice().sort((a,b)=>Number(b.id)-Number(a.id));
  return `<section class="admin-card dlfr27-pack-editor" data-admin-section="packs"><h2>Créer / modifier un Level Pack</h2><p class="small muted">Choisis de 2 à 30 niveaux publics. Les récompenses sont attribuées après validation des niveaux à 100 %. Les niveaux et la récompense sont verrouillés dès le premier gain.</p>
  <label class="field">Pack à modifier<select id="dlfr27PackSelect"><option value="">＋ Nouveau Level Pack</option>${packs.map(p=>`<option value="${esc(p.id)}">${esc(p.title)}${p.is_published?'':' · brouillon'}</option>`).join('')}</select></label>
  <form data-form="levelPackEditor"><input type="hidden" name="pack_id"><label class="field">Nom du pack<input name="title" required maxlength="110" placeholder="Ex. Les étoiles de la NLW"></label><label class="field">Description<textarea name="description" maxlength="1500" rows="3"></textarea></label><label class="field">Bannière (URL HTTPS, facultative)<input type="url" name="banner_url" maxlength="500"></label><div class="two-col"><label class="field">Type de récompense<select name="reward_kind"><option value="badge">Badge et cadre de profil</option><option value="title">Tag / titre officiel</option></select></label><label class="field">Nom de la récompense<input name="reward_label" required maxlength="80" placeholder="Explorateur de la NLW"></label></div>
+ <label class="field">Wayllings dorés gagnés <span class="muted small">(laisser vide = calcul automatique selon la difficulté des niveaux)</span><input type="number" name="reward_coins" min="0" max="10000" step="10" placeholder="Automatique" ${['owner','editor','supermoderator','moderator'].includes(state.staffRole)?'':'disabled title="Réservé aux modérateurs"'}></label>
  <label class="field">Rechercher un niveau<input type="search" id="dlfr27PackLevelSearch" placeholder="Filtrer par nom ou rang"></label><div class="dlfr27-pack-level-picker">${levels.map(d=>`<label data-pack-level-row data-search="${esc(key(d.name+' '+d.position))}"><input type="checkbox" name="level_ids" value="${esc(d.id)}"><span>${Number(d.position)>150?'NLW #'+esc(Number(d.position)-150):'#'+esc(d.position)} · ${esc(d.name)}</span></label>`).join('')}</div><label class="field"><input type="checkbox" name="is_published"> Publier le pack</label><button class="btn" type="submit">Enregistrer le pack</button></form><p class="small muted">Un modérateur NLW ne peut créer des packs qu'avec les niveaux NLW. Les permissions sont vérifiées côté Supabase.</p></section>`;
 }
 function fillPackEditor(id){
@@ -1680,6 +1719,7 @@ function fillPackEditor(id){
  form.elements.pack_id.value=p.id;
  for(const field of ['title','description','banner_url','reward_kind','reward_label'])form.elements[field].value=p[field]||'';
  form.elements.is_published.checked=!!p.is_published;
+ if(form.elements.reward_coins){form.elements.reward_coins.value=p.reward_coins??'';form.elements.reward_coins.placeholder=`Automatique (${state.packCoins?.[p.id]?.coins??'…'})`;}
  const selected=new Set((state.data.dlfr_level_pack_levels||[]).filter(x=>Number(x.pack_id)===Number(p.id)).map(x=>Number(x.demon_id)));
  form.querySelectorAll('input[name="level_ids"]').forEach(x=>{x.checked=selected.has(Number(x.value));});
 }
@@ -1689,12 +1729,16 @@ async function savePackForm(form){
  const existing=(state.data.dlfr_level_pack_claims||[]).some(x=>Number(x.pack_id)===Number(f.get('pack_id')));
  if(existing){const ordered=(state.data.dlfr_level_pack_levels||[]).filter(x=>Number(x.pack_id)===Number(f.get('pack_id'))).sort((a,b)=>Number(a.sort_order)-Number(b.sort_order)).map(x=>Number(x.demon_id));if(selected.length===ordered.length&&selected.every(x=>ordered.includes(x)))selected=ordered;}
  if(selected.length<2||selected.length>30)throw Error('Sélectionne 2 à 30 niveaux.');
- const {error}=await db.rpc('dlfr_save_level_pack',{
+ const {data:packId,error}=await db.rpc('dlfr_save_level_pack',{
    p_pack_id:Number(f.get('pack_id'))||null,p_title:String(f.get('title')||''),p_description:String(f.get('description')||''),
    p_banner_url:String(f.get('banner_url')||''),p_reward_kind:String(f.get('reward_kind')||''),
    p_reward_label:String(f.get('reward_label')||''),p_level_ids:selected,p_is_published:f.has('is_published')
  });
  if(error)throw Error(error.message);
+ const rawCoins=String(f.get('reward_coins')??'').trim(),old=(state.data.dlfr_level_packs||[]).find(x=>Number(x.id)===Number(packId));
+ const wanted=rawCoins===''?null:Math.max(0,Math.min(10000,Math.round(Number(rawCoins))));
+ if(form.elements.reward_coins&&!form.elements.reward_coins.disabled&&(old?.reward_coins??null)!==wanted){const r=await db.rpc('dlfr_set_level_pack_coins',{p_pack_id:Number(packId),p_coins:wanted});if(r.error)throw Error('Wayllings du pack : '+r.error.message);}
+ state.packCoins=null;
  await Promise.all(packTables.map(async table=>{state.data[table]=await readAll(table);}));
  optionalStatus.packs='ready';state.packsReady=true;
  toast('Level Pack enregistré !');render();
@@ -1703,7 +1747,8 @@ async function claimPack(packId){
  if(!state.session||!state.ownKey)throw Error('Connecte ton profil DLFR.');
  const {error}=await db.rpc('dlfr_claim_level_pack',{p_pack_id:Number(packId)});
  if(error)throw Error(error.message);
- await refreshLiveData();toast('Récompense obtenue !');render();
+ const coins=Number(state.packCoins?.[packId]?.coins)||0;
+ await refreshLiveData();toast(coins?`Récompense obtenue ! +${coins} Wayllings dorés ✦`:'Récompense obtenue !');render();
 }
 async function saveFrame(form){
  if(!state.session||!state.ownKey)throw Error('Compte joueur non connecté.');
@@ -1735,7 +1780,7 @@ function playersPage(){
    const avatar=avatarOf(p.player_key,profile);
    return `<a class="dlfr24-player-card ${p.has_account?'':'unclaimed'} ${v90Cls(V90_FX.items[p.player_key])}" data-nav href="${url('player',{player:p.player_key})}" data-profile-search="${esc(key(fullName(p)))}">
      ${framedAvatar(p.player_key,`<span class="dlfr24-player-avatar">${avatar?`<img loading="lazy" src="${esc(avatar)}" alt="">`:esc(fullName(p).slice(0,1).toUpperCase()||'?')}</span>`)}
-     <span class="dlfr24-player-info"><strong>${flag(p.country_code)} ${esc(fullName(p))}${emblemHTML(p.player_key)}</strong><small>${p.rank?'#'+p.rank+' · ':''}${fmt(p.score)} pts · ${p.has_account?'Compte lié':'Sans compte'}</small></span><span aria-hidden="true">↗</span></a>`;
+     <span class="dlfr24-player-info"><strong>${flag(p.country_code)} <span class="dlfr-pname">${esc(fullName(p))}</span>${emblemHTML(p.player_key)}</strong><small>${p.rank?'#'+p.rank+' · ':''}${fmt(p.score)} pts · ${p.has_account?'Compte lié':'Sans compte'}</small></span><span aria-hidden="true">↗</span></a>`;
  }).join('');
  return `${templateNotice()}<section class="paper dlfr24-directory"><div class="dlfr24-directory-head"><div><span class="kicker">Communauté</span><h1>Profils des joueurs</h1><p class="muted">Retrouve la fiche publique d’un joueur sans passer par les statistiques.</p></div><a class="btn subtle small" data-nav href="${url('stats')}">Voir les classements</a></div><label class="filterbox"><span aria-hidden="true">⌕</span><input id="dlfr24ProfileSearch" type="search" placeholder="Chercher un joueur…" aria-label="Rechercher un profil"></label><div id="dlfr24PlayerList" class="dlfr24-player-grid">${items}</div><p class="muted small" id="dlfr24NoProfiles" hidden>Aucun joueur ne correspond à cette recherche.</p></section>`;
 }
@@ -1754,7 +1799,7 @@ function statsProfilePreview(p){
  return `<article class="dlfr251-preview ${v90Cls(fxItems)}" style="--dlfr251-accent:${esc(accent)}" aria-label="Aperçu de ${esc(name)}">
    <div class="dlfr251-preview-banner ${(fxItems||[]).some(x=>String(x.item_key).startsWith('banner_'))?'pd-hero':''}">${banner?`<img loading="lazy" src="${esc(banner)}" alt="">`:''}${v90LayerHTML(fxItems)}</div>
    <div class="dlfr251-preview-content">
-    <div class="dlfr251-preview-identity">${framedAvatar(p.player_key,`<span class="dlfr251-preview-avatar">${avatar?`<img loading="lazy" src="${esc(avatar)}" alt="Avatar de ${esc(name)}">`:`<span aria-hidden="true">${esc(initial)}</span>`}</span>`)}<div class="dlfr251-preview-name"><h3 class="${fxItems?.length?'pd-name':''}">${flag(p.country_code)} ${esc(name)}${emblemHTML(p.player_key,'lg')}${DECO.medals(fxItems)}</h3><p class="muted small">${p.has_account?'Compte DLFR':'Profil non revendiqué'} ${p.country_code==='FR'?`· ${esc(GEO.regionInfo(regionFor(p))?.name||'France')}`:''}</p></div></div>
+    <div class="dlfr251-preview-identity">${framedAvatar(p.player_key,`<span class="dlfr251-preview-avatar">${avatar?`<img loading="lazy" src="${esc(avatar)}" alt="Avatar de ${esc(name)}">`:`<span aria-hidden="true">${esc(initial)}</span>`}</span>`)}<div class="dlfr251-preview-name"><h3 class="${fxItems?.length?'pd-name':''}">${flag(p.country_code)} <span class="dlfr-pname">${esc(name)}</span>${emblemHTML(p.player_key,'lg')}${DECO.medals(fxItems)}</h3><p class="muted small">${p.has_account?'Compte DLFR':'Profil non revendiqué'} ${p.country_code==='FR'?`· ${esc(GEO.regionInfo(regionFor(p))?.name||'France')}`:''}</p></div></div>
     ${featured?`<p class="dlfr251-preview-title">✦ ${esc(featured.label)}</p>`:''}
     <div class="dlfr251-preview-stats">${box('Rang DLFR',p.rank?'#'+p.rank:'—')}${box('Points Top 150',fmt(p.score))}${box('Points NLW',fmt(p.nlwScore||0))}${box('Rang NLW',p.nlwRank?'#'+p.nlwRank:'—')}${box('Hardest',hardestLabel(p))}${box('Main List',mainCount)}${box('Extended',extendedCount)}${box('NLW',p.beyond.length)}</div>
     ${profile.bio?`<p class="dlfr251-preview-bio">${esc(profile.bio)}</p>`:''}
@@ -1795,7 +1840,7 @@ function statsPage(){const users=ranked().filter(statsPlayerVisible);const count
  if(state.statsTab==='compare'){const a=chosen||users[0],b=users.find(p=>p.player_key===state.comparePlayer)||users.find(p=>p.player_key!==a?.player_key);return top+`<div class="compare-panel"><div class="compare-selects"><label>Joueur A <select id="compareA">${users.map(p=>`<option value="${esc(p.player_key)}" ${p.player_key===a?.player_key?'selected':''}>${esc(fullName(p))}</option>`).join('')}</select></label><label>Joueur B <select id="compareB">${users.filter(p=>p.player_key!==a?.player_key).map(p=>`<option value="${esc(p.player_key)}" ${p.player_key===b?.player_key?'selected':''}>${esc(fullName(p))}</option>`).join('')}</select></label></div>${a?comparison(a,b):'<p class="empty">Pas de joueurs.</p>'}</div></section>`;}
  return top+`<div class="dlfr24-stats-ranking dlfr251-stats-layout"><div class="ranking-panel"><div class="kicker">International</div><div class="country-select-row"><span id="countryFilterPreview">${flag(state.country)}</span><select id="countryFilter" aria-label="Filtrer par pays">${countries.map(c=>`<option value="${esc(c)}" ${c===state.country?'selected':''}>${c==='MONDE'?'MONDE - International':GEO.countryName(c)+' ('+esc(c)+')'}</option>`).join('')}</select></div>${state.country==='FR'?`<div class="country-select-row"><span>${GEO.regionImage(state.region)}</span><select id="regionFilter" aria-label="Filtrer par région française"><option value="ALL">Toutes les régions</option>${GEO.regions.map(r=>`<option value="${r.code}" ${state.region===r.code?'selected':''}>${esc(r.name)}</option>`).join('')}</select></div>`:''}<label class="filterbox" style="margin-top:9px"><span>⌕</span><input type="search" id="playerSearch" placeholder="Rechercher un joueur…" value="${esc(state.keyword)}"></label><div class="rank-list" id="rankList">${rankRows(filtered,chosen)}</div><p class="muted small">Clique sur un joueur pour afficher son aperçu. Ouvre ensuite sa fiche complète depuis la carte à droite. Les profils sans compte apparaissent en gris.</p></div><aside id="dlfr251StatsPreview" class="dlfr251-preview-column" aria-live="polite">${statsProfilePreview(chosen)}</aside></div></section>`;
 }
-function rankRows(users,chosen,mode='main'){return users.length?users.map(p=>`<button type="button" data-stats-preview="${esc(p.player_key)}" aria-pressed="${p.player_key===chosen?.player_key}" class="rank-item ${p.has_account?'':'unclaimed'} ${p.player_key===chosen?.player_key?'selected':''} ${v90Cls(V90_FX.items[p.player_key])}"><span class="rank-num">#${mode==='nlw'?(p.nlwRank||'-'):(p.rank||'-')}</span><span class="rank-name">${flag(p.country_code)} ${regionFlag(p)} ${esc(p.display_name||p.username)}${emblemHTML(p.player_key,'sm')}${(DECO.icons||DECO.medals)(V90_FX.items[p.player_key])}</span><span class="rank-score">${fmt(mode==='nlw'?p.nlwScore:p.score)}</span></button>`).join(''):'<div class="empty">Aucun joueur trouvé.</div>';}
+function rankRows(users,chosen,mode='main'){return users.length?users.map(p=>`<button type="button" data-stats-preview="${esc(p.player_key)}" aria-pressed="${p.player_key===chosen?.player_key}" class="rank-item ${p.has_account?'':'unclaimed'} ${p.player_key===chosen?.player_key?'selected':''} ${v90Cls(V90_FX.items[p.player_key])}"><span class="rank-num">#${mode==='nlw'?(p.nlwRank||'-'):(p.rank||'-')}</span><span class="rank-name">${flag(p.country_code)} ${regionFlag(p)} <span class="dlfr-pname">${esc(p.display_name||p.username)}</span>${emblemHTML(p.player_key,'sm')}${(DECO.icons||DECO.medals)(V90_FX.items[p.player_key])}</span><span class="rank-score">${fmt(mode==='nlw'?p.nlwScore:p.score)}</span></button>`).join(''):'<div class="empty">Aucun joueur trouvé.</div>';}
 function demonPage(){
  const id=Number(new URLSearchParams(location.search).get('id'));
  const d=catalog().find(x=>Number(x.id)===id);
@@ -2711,13 +2756,14 @@ function render(){
  if(page==='admin'&&state.adminTab==='requests'&&state.staff&&state.session?.user?.id&&!ownerPreviewActive()&&!state.reversalReady&&!state.reversalLoading)void loadReversalList();
  // Activer le rendu du labo seulement après validation Supabase.
  if(window.DLFR_CARDS_LAB)window.DLFR_CARDS_LAB.setGate(!!(state.cardsLabAccess&&state.session));
- const content=page==='cards-lab'?((state.cardsLabAccess&&state.session&&window.DLFR_CARDS_LAB)?window.DLFR_CARDS_LAB.view(state.data):'<section class="center-panel"><h2>Laboratoire privé</h2><p>Ce prototype est réservé au compte propriétaire autorisé. Connecte-toi avec ton compte habituel pour y accéder.</p><a class="btn subtle" href="?page=my-profile" data-nav>Mon compte</a></section>'):page==='archive'?archivePage():page==='stats'?statsPage():page==='player'?playerPage():page==='players'?playersPage():page==='my-profile'?selfProfilePage():page==='shop'?shopPage():page==='my-submissions'?mySubmissionsPage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():page==='packs'?packPage():page==='regions'?regionsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;
+ const content=page==='cards-lab'?((state.cardsLabAccess&&state.session&&window.DLFR_CARDS_LAB)?window.DLFR_CARDS_LAB.view(state.data):'<section class="center-panel"><h2>Laboratoire privé</h2><p>Ce prototype est réservé au compte propriétaire autorisé. Connecte-toi avec ton compte habituel pour y accéder.</p><a class="btn subtle" href="?page=my-profile" data-nav>Mon compte</a></section>'):page==='archive'?archivePage():page==='stats'?statsPage():page==='player'?playerPage():page==='players'?playersPage():page==='my-profile'?selfProfilePage():page==='shop'?shopPage():page==='cards'?(window.DLFR_CARDS?.page()||'<p class="notice warning">DLFR Cards indisponible.</p>'):page==='my-submissions'?mySubmissionsPage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():page==='packs'?packPage():page==='regions'?regionsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;
  // V112 — le lien privé ne doit être visible que lorsque le serveur a autorisé ce compte.
  const cardsLabNav=document.getElementById('dlfr112PrivateNav');
  if(cardsLabNav) cardsLabNav.hidden=!(state.cardsLabAccess&&state.session);
  // Donner un accès clair à l'inscription et à la connexion, sans modifier la navigation existante.
  try{navSync(page);}catch{}
- if(page==='shop'){v80WeeklyRender();v81RewardsRender();}if(page==='admin'&&state.adminTab==='weekly'&&state.staffRole==='owner'&&!ownerPreviewActive())v86AdminLoad();
+ if(page==='shop'){v80WeeklyRender();v81RewardsRender();}
+ if(page==='cards'&&LIVE&&db)window.DLFR_CARDS?.mount({db,session:state.session?.user?.id||null,data:state.data,toast});if(page==='admin'&&state.adminTab==='weekly'&&state.staffRole==='owner'&&!ownerPreviewActive())v86AdminLoad();
  if(page==='player'||(page==='my-profile'&&document.getElementById('v81-profile-rewards')))v81ProfileRewards();if(page==='stats'||page==='players')v90LoadFx();
  if(page==='admin'&&state.staffRole==='owner'){
    const switcher=document.createElement('section');switcher.className='paper owner-role-switcher';
@@ -3230,6 +3276,33 @@ function v96EnsureHalloweenTheme(){
 function refreshUnrated(){document.documentElement.classList.toggle('unrated-mode',state.unrated);const button=$('unratedToggle');button.textContent=state.unrated?'◈ UNRATED ON':'◈ UNRATED OFF';button.setAttribute('aria-pressed',String(state.unrated));}
 function bootEvents(){
  setupDiscordServerLink();
+ // V127 — offrir un objet de la boutique.
+ document.addEventListener('click',ev=>{
+   const g=ev.target.closest('[data-gift-item]');if(!g)return;ev.preventDefault();
+   const item=SHOP127.items.find(x=>x.item_key===g.dataset.giftItem);if(!item)return;
+   const m=(SHOP127.info?.items||[]).find(x=>x.item_key===item.item_key),price=Number(m?.price_now??item.price)||0;
+   const own=state.ownKey;
+   const players=(state.data.players||[]).filter(p=>p.player_key!==own&&(p.has_account||(state.data.player_profile_owners||[]).some(o=>o.player_key===p.player_key)));
+   let dlg=document.getElementById('dlfr127Gift');if(dlg)dlg.remove();
+   dlg=document.createElement('dialog');dlg.id='dlfr127Gift';dlg.className='dlfr127-dialog';
+   dlg.innerHTML=`<form method="dialog" class="dlfr127-gift-form"><h2>🎁 Offrir « ${esc(item.label)} »</h2><p class="muted small">Le joueur le reçoit tout de suite dans sa collection. Coût : <b>${esc(price)} ✦</b> débités de ton solde.</p>
+    <label class="field">Joueur<input name="player" list="dlfr127GiftPlayers" required autocomplete="off" placeholder="Pseudo du joueur"></label><datalist id="dlfr127GiftPlayers">${players.slice(0,2000).map(p=>`<option value="${esc(p.display_name||p.username||p.player_key)}"></option>`).join('')}</datalist>
+    <label class="field">Message (facultatif)<input name="message" maxlength="200" placeholder="Bravo pour ton record !"></label>
+    <p class="dlfr127-gift-err" role="alert" hidden></p>
+    <div class="dlfr127-gift-actions"><button type="button" class="btn subtle" data-gift-cancel>Annuler</button><button type="submit" class="btn" data-gift-send>Offrir pour ${esc(price)} ✦</button></div></form>`;
+   document.body.append(dlg);dlg.showModal();dlg.querySelector('input[name=player]').focus();
+   dlg.querySelector('[data-gift-cancel]').onclick=()=>dlg.close();
+   dlg.addEventListener('close',()=>dlg.remove());
+   dlg.querySelector('form').addEventListener('submit',async e=>{
+     e.preventDefault();const f=e.target,err=f.querySelector('.dlfr127-gift-err'),btn=f.querySelector('[data-gift-send]');
+     const typed=key(f.player.value),target=players.find(p=>key(p.display_name||'')===typed||key(p.username||'')===typed||key(p.player_key)===typed);
+     if(!target){err.textContent='Joueur introuvable ou sans compte DLFR. Choisis un pseudo dans la liste.';err.hidden=false;return;}
+     btn.disabled=true;err.hidden=true;
+     try{const {error}=await db.rpc('dlfr_reward_gift',{p_item_key:item.item_key,p_player_key:target.player_key,p_message:f.message.value||null});if(error)throw error;
+       dlg.close();toast(`Cadeau envoyé à ${target.display_name||target.username} ! 🎁`);v81RewardsRender();}
+     catch(x){err.textContent=x.message||'Envoi impossible.';err.hidden=false;btn.disabled=false;}
+   });
+ });
  // V126 — onglets de « Mon profil » et choix d'images.
  document.addEventListener('click',ev=>{
    const t=ev.target.closest('[data-self-tab]');
