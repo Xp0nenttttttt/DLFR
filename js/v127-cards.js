@@ -23,7 +23,7 @@ async function load(force=false){
    db.rpc('dlfr_cards_status'),db.rpc('dlfr_cards_leaderboard'),db.rpc('dlfr_cards_owner_counts')]);
   if(c.error)throw c.error;if(k.error)throw k.error;if(st.error)throw st.error;
   S.board=lb.error?[]:(lb.data||[]);S.owners=oc.error?{}:(oc.data||{});
-  S.collections=c.data||[];S.cards=(k.data||[]).map(r=>({row:r,card:toCard(r)}));S.status=st.data||{};S.loaded=true;S.error='';
+  S.collections=(c.data||[]).filter(x=>x.is_published!==false);{const live=new Set(S.collections.map(x=>Number(x.id)));S.cards=(k.data||[]).filter(r=>live.has(Number(r.collection_id))).map(r=>({row:r,card:toCard(r)}));}S.status=st.data||{};S.loaded=true;S.error='';
  }catch(e){S.error=e.message||'Chargement impossible.';}
  finally{S.loading=false;paint();}
 }

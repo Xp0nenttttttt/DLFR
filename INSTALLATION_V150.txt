@@ -1,0 +1,23 @@
+DLFR V150 — Collections « en préparation » + cartes Shiny
+=========================================================
+(Inclut V149 et avant. Base de données : DÉJÀ APPLIQUÉE — supabase/150_COLLECTIONS_BROUILLON.sql = archive.)
+
+Collections en préparation (onglet ✎ Catalogue, propriétaires / supermodos)
+ - Une nouvelle collection est créée EN PRÉPARATION : elle et ses cartes sont invisibles
+   pour les joueurs (le serveur ne les leur envoie même pas), ne sortent d'aucun booster ni
+   expédition et ne comptent pas pour les bonus de collection. Toi, tu les vois et tu peux
+   les préparer tranquillement (étiquette orange « brouillon »).
+ - Bouton vert « ✓ Publier la collection » quand elle est terminée ; « 🚧 Repasser en
+   préparation » pour la retirer (les cartes déjà obtenues restent aux joueurs).
+ - Les collections existantes (Série 1, Série 2, calendrier) restent publiées.
+ - Attention : une carte d'une collection en préparation mise dans le calendrier de l'Avent
+   ne s'affichera pas chez les joueurs. Publie la collection avant décembre.
+
+Cartes Shiny ✨ (mode Aventure)
+ - Nouvelle finition, la plus rare : environ 1 carte sur 1 000 (×1,5 / ×2 dans les boosters
+   Prestige, Démoniaque et Mythique). Couleurs inversées du visuel, paillettes, halo blanc
+   et étiquette « ✨ SHINY ».
+ - Vaut ×3 en puissance de collection. Succès « Première Shiny » : 5 🔑 + 1 000 ✧ et le
+   titre « Shiny ».
+
+Fichiers : index.html, js/v118-cards-lab.js, js/v127-cards.js, css/v131-cards.css

@@ -52,8 +52,8 @@ const CRAFT=[40,100,260,800,2400,8000];             // coût de fabrication d'un
 const STAR_COPIES=[1,2,3,5,8];                 // doublons consommés pour ★1…★5
 const STAR_DUST=[15,35,80,180,400];            // poussière de base pour ★1…★5
 const STAR_FACTOR=[1,1.5,2.5,4,6,9];
-const FIN=['none','holo','prism','obsidian'], FIN_NAME=['Standard','Holo','Prismatique','Obsidienne'];
-const FIN_MULT=[1,1.25,1.6,2.2], FIN_BASE=[0,.06,.012,.0025];
+const FIN=['none','holo','prism','obsidian','shiny'], FIN_NAME=['Standard','Holo','Prismatique','Obsidienne','Shiny']; // V150 : Shiny
+const FIN_MULT=[1,1.25,1.6,2.2,3], FIN_BASE=[0,.06,.012,.0025,.001];
 const POWER_TIERS=[20,50,100,180,300,480,720,1000,1400];
 const TIER_COLORS=['#c9d1e0','#5fb2ff','#b980ff','#ffc247','#ff5fa2','#fff1b8'];
 const RANKS=[[1,'Easy','#7fd4ff'],[5,'Normal','#7bf0a0'],[10,'Hard','#ffd36b'],[16,'Harder','#ff9e5e'],[24,'Insane','#ff6fa8'],[32,'Easy Demon','#c58bff'],[42,'Medium Demon','#a67bff'],[54,'Hard Demon','#ff5f5f'],[68,'Insane Demon','#ff3d7a'],[84,'Extreme Demon','#ff2a2a'],[100,'Grand Démon','#ffe27a']];
@@ -133,9 +133,10 @@ const ACHIEVEMENTS=[
  {id:'myt1',name:'Première Mythique',desc:'Obtenir une carte Mythique',value:()=>S().tiers[4],target:1,reward:{keys:1},title:'Chanceux'},
  {id:'myt2',name:'10 Mythiques',desc:'Obtenir 10 cartes Mythiques',value:()=>S().tiers[4],target:10,reward:{keys:4}},
  {id:'ult1',name:'Première Ultra',desc:'Obtenir une carte Ultra',value:()=>S().tiers[5]||0,target:1,reward:{keys:10,dust:2000},title:'Ultra'},
- {id:'fin1',name:'Première Holo',desc:'Obtenir une carte Holo',value:()=>S().finishes[1]+S().finishes[2]+S().finishes[3],target:1,reward:{dust:50}},
+ {id:'fin1',name:'Première Holo',desc:'Obtenir une carte Holo',value:()=>S().finishes[1]+S().finishes[2]+S().finishes[3]+(S().finishes[4]||0),target:1,reward:{dust:50}},
  {id:'fin2',name:'Arc-en-ciel',desc:'Obtenir une carte Prismatique',value:()=>S().finishes[2]+S().finishes[3],target:1,reward:{keys:1}},
  {id:'fin3',name:'Première Obsidienne',desc:'Obtenir une carte Obsidienne',value:()=>S().finishes[3],target:1,reward:{keys:3},title:'Obsidien'},
+ {id:'fin4',name:'Première Shiny',desc:'Obtenir une carte Shiny',value:()=>S().finishes[4]||0,target:1,reward:{keys:5,dust:1000},title:'Shiny'},
  {id:'st1',name:'Première étoile',desc:'Améliorer une carte à ★1',value:()=>maxStars(),target:1,reward:{dust:40}},
  {id:'st5',name:'Carte ★5',desc:'Porter une carte à ★5',value:()=>maxStars(),target:5,reward:{keys:3},title:'Maître forgeron'},
  ...[[10,{keys:1}],[25,{keys:2}],[50,{keys:3},'Demon Slayer'],[75,{keys:5}],[100,{keys:10},'Grand Démon']].map(([n,reward,title])=>({id:'lv'+n,name:`Niveau ${n}`,desc:`Atteindre le niveau ${n}`,value:()=>Math.max(progress.level,S().bestLevel),target:n,reward,title})),
@@ -146,7 +147,7 @@ const ACHIEVEMENTS=[
  ...[[10,{dust:60}],[50,{keys:2}],[150,{keys:5},'Infatigable']].map(([n,reward,title])=>({id:'qs'+n,name:`${n} missions`,desc:`Accomplir ${n} missions`,value:()=>S().quests,target:n,reward,title})),
  ...[[3,{keys:1}],[6,{keys:3}],[9,{keys:6},'Puissance absolue']].map(([n,reward,title])=>({id:'pw'+n,name:`Puissance ${n}`,desc:`Atteindre le palier de puissance ${n}`,value:()=>powerTier(),target:n,reward,title}))
 ];
-const newStats=()=>({packs:0,expeditions:0,pulled:0,newCards:0,tiers:[0,0,0,0,0,0],finishes:[0,0,0,0],crafted:0,upgraded:0,quests:0,shardsEarned:0,bestLevel:1});
+const newStats=()=>({packs:0,expeditions:0,pulled:0,newCards:0,tiers:[0,0,0,0,0,0],finishes:[0,0,0,0,0],crafted:0,upgraded:0,quests:0,shardsEarned:0,bestLevel:1});
 const freshProgress=()=>({xp:0,level:1,shards:35,dust:0,keys:0,prestige:0,skills:{},camps:[],quests:[],achievements:{},sets:{},pity:{leg:0,myth:0},stats:newStats(),title:'',reveals:[],questSeed:0});
 const progress=freshProgress();
 
@@ -202,7 +203,7 @@ function figure(card,data,compact=false,opts={}){
     <div class="dlfr112-art c131-art">${picture?`<img loading="lazy" src="${esc(picture)}" alt="Visuel ${esc(card.name)}" onerror="this.remove()">`:`<span class="c131-sym" aria-hidden="true">${sym}</span>`}<span class="c131-gem" title="${fest?'Rareté spéciale · calendrier de l’Avent':`Rareté ${t+1}/${rarities.length}`}">${fest?'❄':t+1}</span>${has?'':'<span class="c131-lock" aria-hidden="true">?</span>'}</div>
     <div class="c131-plate"><strong title="${esc(card.name)}">${esc(card.name)}</strong><span class="c131-rar">${fest?'<i class="c131-pips c139-snow" aria-hidden="true">❄❄❄❄❄</i>':pipsHTML(t)}<span>${esc(r)}${finish?' · ✧ '+FIN_NAME[finish]:''}</span></span></div>
    </div>
-   <i class="c131-foil" aria-hidden="true"></i><i class="c131-glare" aria-hidden="true"></i>
+   <i class="c131-foil" aria-hidden="true"></i><i class="c131-glare" aria-hidden="true"></i>${finish===4?'<span class="c150-shiny" aria-label="Shiny">✨ SHINY</span>':''}
    ${stars?`<span class="dlfr117-stars" aria-label="${stars} étoiles">${'★'.repeat(stars)}</span>`:''}
    ${n&&opts.finish===undefined&&!opts.hideCount&&!opts.official?`<span class="dlfr112-count">×${n}</span>`:''}
   </div>`;
@@ -334,7 +335,8 @@ function claimExpedition(i){
 function claimAllExpeditions(){let n=0;for(let i=progress.camps.length-1;i>=0;i--)if(Date.now()>=progress.camps[i].end){claimExpedition(i);n++;}return n;}
 
 // ============================================================ Tirages
-function packable(){return CARDS.filter(c=>c.inPacks&&c.rarity!==FESTIVE);}
+const colLive=id=>COLLECTIONS.find(c=>c.id===id)?.published!==false; // V150 : collections en brouillon exclues
+function packable(){return CARDS.filter(c=>c.inPacks&&c.rarity!==FESTIVE&&colLive(c.collectionId));}
 function poolFor(pack){const base=packable(),p=base.filter(c=>!pack.filter||pack.filter(c));return p.length?p:base;}
 function weights(pack){
  const pool=poolFor(pack),n=luck();
@@ -354,9 +356,11 @@ function chooseTier(pack,minTier){
 function rollFinish(pack){
  const m=(1+.25*rank('fo2'))*(pack.finishBoost||1),r=Math.random();
  const obs=(progress.level>=30||progress.prestige>0)?FIN_BASE[3]*m*(rank('fo6')?2:1):0,pri=FIN_BASE[2]*m*(rank('fo6')?1.5:1),hol=FIN_BASE[1]*m;
- return r<obs?3:r<obs+pri?2:r<obs+pri+hol?1:0;
+ const shi=FIN_BASE[4]*(pack.finishBoost||1); // ~1 carte sur 1 000 : une Shiny
+ if(r<shi)return 4;const r2=r-shi;
+ return r2<obs?3:r2<obs+pri?2:r2<obs+pri+hol?1:0;
 }
-function registerPull(card,finish,isNew){const t=tierOf(card),s=S();s.pulled++;s.tiers[t]=(s.tiers[t]||0)+1;s.finishes[finish]++;if(isNew){s.newCards++;emit('new');}if(t>=2)emit('epic');if(finish>0)emit('finish');}
+function registerPull(card,finish,isNew){const t=tierOf(card),s=S();s.pulled++;s.tiers[t]=(s.tiers[t]||0)+1;s.finishes[finish]=(s.finishes[finish]||0)+1;if(isNew){s.newCards++;emit('new');}if(t>=2)emit('epic');if(finish>0)emit('finish');}
 function openPack(id){
  const pack=allPacks().find(p=>p.id===id);
  if(!pack||OPEN.st||progress.level<pack.level||!canAfford(pack.cost))return false;
@@ -546,7 +550,7 @@ function restoreSession(x,interactive){
   const ids=new Set(CARDS.map(c=>c.id));
   const inv=[];for(const row of x.owned){
    const finish=x.version===1?(row.holo===true?1:0):row.finish,stars=x.version===1?0:row.stars;
-   if(!I(row?.id,100000000,1)||!I(row.count,10000,1)||!I(finish,3)||!I(stars,5))throw new Error('Inventaire invalide');if(!ids.has(row.id)){skipped++;continue;}inv.push([row.id,{count:row.count,finish,stars,holo:finish>0}]);}
+   if(!I(row?.id,100000000,1)||!I(row.count,10000,1)||!I(finish,4)||!I(stars,5))throw new Error('Inventaire invalide');if(!ids.has(row.id)){skipped++;continue;}inv.push([row.id,{count:row.count,finish,stars,holo:finish>0}]);}
   const rares=[];for(const e of x.overrides){if(!Array.isArray(e)||!rarities.includes(e[1]))throw new Error('Rareté invalide');if(ids.has(e[0]))rares.push(e);}
   const p=x.progress;if(!p||typeof p!=='object')throw new Error('Progression absente');
   let np=freshProgress();
@@ -806,7 +810,7 @@ const BUCKET='dlfr-cards', IMG_TYPES=['image/png','image/jpeg','image/webp','ima
 function setMsg(text,kind=''){catalog.msg=text;catalog.msgKind=kind;const el=document.getElementById('dlfr118Msg');if(el){el.textContent=text;el.className='dlfr118-msg '+(kind?'is-'+kind:'');}}
 function errText(e){const m=e?.message||String(e||'Erreur inconnue');return /duplicate key.*slug/i.test(m)?'Ce nom court (slug) est déjà utilisé par une autre collection.':/Accès refusé|42501|permission denied/i.test(m)?'Accès refusé : seuls les propriétaires et supermodérateurs peuvent modifier le catalogue.':m;}
 function applyCatalog(cols,cards){
- COLLECTIONS=(cols||[]).map(c=>({id:Number(c.id),slug:c.slug,name:c.name,description:c.description||'',color:c.color||'#8b5cf6',sort:Number(c.sort_order)||0,booster:c.booster_enabled!==false,boosterCost:Number(c.booster_cost)||80,boosterLevel:Number(c.booster_level)||1,boosterCount:Number(c.booster_count)||5}));
+ COLLECTIONS=(cols||[]).map(c=>({id:Number(c.id),slug:c.slug,name:c.name,description:c.description||'',color:c.color||'#8b5cf6',sort:Number(c.sort_order)||0,booster:c.booster_enabled!==false,boosterCost:Number(c.booster_cost)||80,boosterLevel:Number(c.booster_level)||1,boosterCount:Number(c.booster_count)||5,published:c.is_published!==false}));
  CARDS.length=0;for(const r of cards||[])CARDS.push(mkCard(r));
  for(const id of [...owned.keys()])if(!get(id))owned.delete(id);
  for(const id of [...overrides.keys()])if(!get(id))overrides.delete(id);
@@ -960,7 +964,7 @@ function catalogView(data){
  if(!DB||st==='local'||st==='error')return `<div class="dlfr117-game dlfr118-cat"><section class="dlfr117-panel"><div class="dlfr117-head"><div><small>CATALOGUE OFFICIEL</small><h2>Cartes & collections</h2><p>${st==='error'?'Le catalogue n’a pas pu être chargé : '+esc(catalog.error):'Connexion impossible : catalogue de secours, en lecture seule.'}</p></div>${badge}</div>${DB?'<button class="btn" type="button" data-v112-act="cat-reload">Réessayer</button>':''}</section></div>`;
  const d=catalog.draft,cd=catalog.colDraft;
  const colForm=cd?`<form class="dlfr118-form" id="dlfr118ColForm" autocomplete="off"><h3>${catalog.editCol==='new'?'Nouvelle collection':'Modifier la collection'}</h3>
-  <label>Nom<input data-v118-col="name" maxlength="60" required value="${esc(cd.name)}" placeholder="Ex. : French Legends"></label>
+  ${catalog.editCol==='new'?'<p class="dlfr150-banner">🚧 Une nouvelle collection est créée <b>en préparation</b> : invisible pour les joueurs tant que tu ne l’as pas publiée.</p>':''}<label>Nom<input data-v118-col="name" maxlength="60" required value="${esc(cd.name)}" placeholder="Ex. : French Legends"></label>
   <label>Nom court (identifiant)<input data-v118-col="slug" maxlength="40" value="${esc(cd.slug)}" placeholder="french-legends"><small>Minuscules, chiffres et tirets.</small></label>
   <label>Description<textarea data-v118-col="description" maxlength="400" rows="2">${esc(cd.description)}</textarea></label>
   <div class="dlfr118-row"><label>Couleur<input type="color" data-v118-col="color" value="${esc(cd.color)}"></label><label>Ordre<input type="number" data-v118-col="sort" value="${esc(cd.sort)}" min="-9999" max="9999"></label></div>
@@ -984,10 +988,11 @@ function catalogView(data){
   <div class="dlfr117-head"><div><small>CATALOGUE OFFICIEL</small><h2>Cartes & collections</h2><p>Réservé aux propriétaires et supermodos. Chaque modification s’applique tout de suite pour tous les joueurs.</p></div><div class="dlfr118-top">${badge}<div class="dlfr118-actions"><button class="btn subtle" type="button" data-v112-act="cat-reload" ${dis}>↻ Recharger</button><button class="btn subtle" type="button" data-v112-act="cat-export">↓ Sauvegarde JSON</button></div></div></div>
   <p class="dlfr118-msg ${catalog.msgKind?'is-'+catalog.msgKind:''}" id="dlfr118Msg" role="status" aria-live="polite">${esc(catalog.msg)}</p>
   <div class="dlfr118-layout"><aside class="dlfr118-cols"><h3>Collections <span>${COLLECTIONS.length}</span></h3>
-   ${COLLECTIONS.map(c=>`<button type="button" class="dlfr118-col ${c.id===catalog.selCol?'is-current':''}" data-v112-act="cat-col" data-id="${c.id}" style="--cc:${esc(c.color)}"><i></i><span>${esc(c.name)}</span><b>${cardsOf(c.id).length}</b></button>`).join('')||'<p class="dlfr117-muted">Aucune collection.</p>'}
+   ${COLLECTIONS.map(c=>`<button type="button" class="dlfr118-col ${c.id===catalog.selCol?'is-current':''}" data-v112-act="cat-col" data-id="${c.id}" style="--cc:${esc(c.color)}"><i></i><span>${esc(c.name)}${c.published===false?' <em class="dlfr150-draft">brouillon</em>':''}</span><b>${cardsOf(c.id).length}</b></button>`).join('')||'<p class="dlfr117-muted">Aucune collection.</p>'}
    <button type="button" class="btn" data-v112-act="cat-col-new" ${dis}>+ Nouvelle collection</button>${colForm}</aside>
-   <div class="dlfr118-main">${col?`<div class="dlfr118-col-head" style="--cc:${esc(col.color)}"><div><h3>${esc(col.name)} <small>/${esc(col.slug)}</small></h3>${col.description?`<p>${esc(col.description)}</p>`:''}<small>${list.length} carte${list.length>1?'s':''} · ${list.filter(c=>!c.inPacks).length} hors boosters</small></div>
-     <div class="dlfr118-actions"><button class="btn" type="button" data-v112-act="cat-card-new" ${dis}>+ Nouvelle carte</button><button class="btn subtle" type="button" data-v112-act="cat-col-edit" ${dis}>✎ Modifier</button><button class="btn subtle" type="button" data-v112-act="cat-import" ${dis}>↑ Importer des cartes (JSON)</button><input type="file" id="dlfr118ImportFile" accept="application/json,.json" hidden><button class="btn danger" type="button" data-v112-act="cat-col-delete" ${dis}>Supprimer la collection</button></div></div>
+   <div class="dlfr118-main">${col?`<div class="dlfr118-col-head" style="--cc:${esc(col.color)}"><div><h3>${esc(col.name)} <small>/${esc(col.slug)}</small></h3>${col.description?`<p>${esc(col.description)}</p>`:''}<small>${list.length} carte${list.length>1?'s':''} · ${list.filter(c=>!c.inPacks).length} hors boosters</small>
+      ${col.published===false?`<p class="dlfr150-banner">🚧 <b>En préparation</b> : cette collection et ses cartes sont invisibles pour les joueurs et ne sortent d’aucun booster. Publie-la quand elle est terminée.</p>`:''}</div>
+     <div class="dlfr118-actions">${col.published===false?`<button class="btn dlfr150-publish" type="button" data-v112-act="cat-col-publish" data-on="1" ${dis}>✓ Publier la collection</button>`:`<button class="btn subtle" type="button" data-v112-act="cat-col-publish" data-on="0" ${dis}>🚧 Repasser en préparation</button>`}<button class="btn" type="button" data-v112-act="cat-card-new" ${dis}>+ Nouvelle carte</button><button class="btn subtle" type="button" data-v112-act="cat-col-edit" ${dis}>✎ Modifier</button><button class="btn subtle" type="button" data-v112-act="cat-import" ${dis}>↑ Importer des cartes (JSON)</button><input type="file" id="dlfr118ImportFile" accept="application/json,.json" hidden><button class="btn danger" type="button" data-v112-act="cat-col-delete" ${dis}>Supprimer la collection</button></div></div>
      ${cardForm}
      <div class="dlfr118-grid">${list.map(c=>`<button type="button" class="dlfr112-pick ${catalog.editCard===c.id?'is-current':''}" data-v112-act="cat-card" data-id="${c.id}" aria-label="Modifier ${esc(c.name)}">${figure(c,data,true,{finish:0,stars:0})}<span class="dlfr112-pick-label">#${idString(c.id)}${c.inPacks?'':' · hors boosters'}</span></button>`).join('')||'<p class="dlfr117-empty">Collection vide. Ajoute une première carte.</p>'}</div>`
     :(cardForm||'<p class="dlfr117-empty">Crée une collection pour commencer.</p>')}</div></div>
@@ -1123,6 +1128,9 @@ function handleClick(event){
   else if(act==='cat-col-edit')openColEditor(catalog.selCol);
   else if(act==='cat-col-cancel'){catalog.editCol=null;catalog.colDraft=null;}
   else if(act==='cat-col-delete'){deleteCollection();return;}
+  else if(act==='cat-col-publish'){const c=colOf(catalog.selCol),on=b.dataset.on==='1';if(!c)return;
+   if(!confirm(on?`Publier « ${c.name} » ?\n\nSes ${cardsOf(c.id).length} carte(s) deviennent visibles pour tous les joueurs et peuvent sortir des boosters.`:`Repasser « ${c.name} » en préparation ?\n\nElle disparaîtra pour les joueurs (les cartes déjà obtenues restent dans leur inventaire).`))return;
+   withBusy(on?'Publication…':'Mise en préparation…',async()=>{const {error}=await DB.rpc('dlfr_cards_admin_publish_collection',{p_id:c.id,p_published:on});if(error)throw error;log(`${c.name} : ${on?'publiée':'en préparation'}`);await loadCatalog();setMsg(on?'Collection publiée ✓':'Collection repassée en préparation','ok');});return;}
   else if(act==='cat-card-new')openCardEditor('new');
   else if(act==='cat-card'){openCardEditor(Number(b.dataset.id));}
   else if(act==='cat-card-open'){const c=get(b.dataset.id);if(!c)return;view='catalog';catalog.selCol=c.collectionId;openCardEditor(c.id);}
@@ -1156,7 +1164,7 @@ function handleClick(event){
  else if(act==='open-session-import'){document.getElementById('dlfr114SessionFile')?.click();return;}
  else if(act==='give'){give(b.dataset.id);log(`+1 ${get(b.dataset.id)?.name}`);}
  else if(act==='take'){if(take(b.dataset.id))log(`−1 ${get(b.dataset.id)?.name}`);}
- else if(act==='holo'){const card=owned.get(Number(b.dataset.id));if(card){card.finish=((card.finish||0)+1)%4;card.holo=card.finish>0;log(`Finition modifiée : ${get(b.dataset.id)?.name} → ${FIN_NAME[card.finish]}`);}}
+ else if(act==='holo'){const card=owned.get(Number(b.dataset.id));if(card){card.finish=((card.finish||0)+1)%5;card.holo=card.finish>0;log(`Finition modifiée : ${get(b.dataset.id)?.name} → ${FIN_NAME[card.finish]}`);}}
  else if(act==='all'){for(const c of CARDS)if(!has(c.id))give(c.id);log('Collection complète ajoutée pour ce test.');}
  else if(act==='holo-all'){for(const v of owned.values()){v.finish=Math.max(1,v.finish||0);v.holo=true;}log('Toutes les cartes possédées passent en Holo.');}
  else if(act==='reset'){if(!confirm('Réinitialiser toute la progression de test ? Le catalogue n’est pas modifié.'))return;reset();}
