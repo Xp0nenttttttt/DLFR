@@ -121,3 +121,13 @@ html.dark .dlfr127-coins{color:#ffc95c!important}
 .dlfr127-fallback-card{aspect-ratio:3/4;border-radius:12px;display:grid;place-items:center;text-align:center;padding:8px;border:1px solid var(--line);background:var(--panel)}
 @media(max-width:980px){.dlfr127-actions{grid-template-columns:1fr}}
 @media(max-width:520px){.dlfr127-grid{grid-template-columns:repeat(auto-fill,minmax(104px,1fr))}.dlfr127-hero h1{font-size:24px}.dlfr127-col-meta{text-align:left;min-width:0;width:100%}}
+
+/* V129 — accès au mode Aventure + sauvegarde */
+.dlfr129-adventure-cta{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:14px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;text-decoration:none;transition:background .15s,transform .15s}
+.dlfr129-adventure-cta:hover{background:rgba(255,255,255,.2);transform:translateY(-1px)}
+.dlfr129-adventure-cta>span:first-child{font-size:26px}
+.dlfr129-adventure-cta b{display:block;font-size:14.5px}.dlfr129-adventure-cta small{font-size:11.5px;opacity:.8}
+.dlfr129-adventure-cta em{font-style:normal;font-weight:800;color:#ffd36b;margin-left:4px}
+.dlfr129-intro{margin:-4px 0 14px;font-size:13px;color:var(--muted);line-height:1.5}
+.dlfr129-intro a{color:var(--blue);font-weight:700}
+.dlfr112-demo-label.is-warn{background:#c2410c!important;color:#fff!important}

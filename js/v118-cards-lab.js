@@ -37,6 +37,9 @@ const rarities=['Commun','Rare','Épique','Légendaire','Mythique'];
 const MAX_IMPORT=250;
 let gate=false, view='album', filter='all', query='', selected=2, forgeSel=0, goalsTab='quests';
 let DB=null;
+// V129 — mode Aventure : ouvert à tous, sauvegardé par compte. Catalogue + outils de test : propriétaires et supermodos.
+let editor=false,userId=null;
+const SAVE={loaded:false,version:0,timer:0,saving:false,pending:false,status:'',tainted:false,conflict:false};
 const catalog={status:'local',error:'',selCol:1,editCard:null,editCol:null,draft:null,colDraft:null,busy:false,msg:'',msgKind:'',pendingFile:null};
 
 // ============================================================ RÈGLES DE PROGRESSION V117
@@ -196,7 +199,7 @@ function figure(card,data,compact=false,opts={}){
   </div>`;
 }
 function inventoryUnique(){return [...owned.values()].filter(v=>v.count>0).length;}
-function status(){return `${inventoryUnique()} / ${CARDS.length} cartes différentes · ${[...owned.values()].reduce((a,b)=>a+b.count,0)} exemplaires de test`;}
+function status(){return `${inventoryUnique()} / ${CARDS.length} cartes différentes · ${[...owned.values()].reduce((a,b)=>a+b.count,0)} exemplaires`;}
 function cardItem(c,data){const yes=has(c.id);return `<button type="button" class="dlfr112-pick ${selected===c.id?'is-current':''}" data-v112-act="select" data-id="${c.id}" aria-label="Voir ${esc(c.name)}">${figure(c,data,true)}<span class="dlfr112-pick-label">${yes?'Possédée · ':'Manquante · '}${esc(c.series)}</span></button>`;}
 function optionCard(c){return `<option value="${c.id}">${idString(c.id)} · ${esc(c.name)}</option>`;}
 function log(message){journal.push(message);if(journal.length>30)journal.shift();}
@@ -359,6 +362,7 @@ function openPack(id){
  log(`${pack.name} ouvert : ${count} cartes, +${draws.reduce((n,d)=>n+d.shards,0)} ◆, +${draws.reduce((n,d)=>n+d.dust,0)} ✧.`);
  // Les cartes sont attribuées UNE SEULE FOIS ici ; l'animation n'est qu'une mise en scène.
  startOpening(pack,draws,{before,xp,levels:levelUps.slice()});
+ scheduleSave();
  return true;
 }
 function simulate(packId,times=100){
@@ -411,7 +415,7 @@ function packArt(pack,size=''){
 function fmtPercent(n){return (n*100).toLocaleString('fr-FR',{maximumFractionDigits:n<.01?2:1})+' %';}
 function boostersView(){
  const p=progress;
- return `<section class="dlfr117-panel"><div class="dlfr117-head"><div><small>BOUTIQUE DU LABO</small><h2>Boosters</h2><p>Chaque booster a ses probabilités visibles. Les doublons deviennent de la poussière ✧ pour la Forge.</p></div>
+ return `<section class="dlfr117-panel"><div class="dlfr117-head"><div><small>BOOSTERS DE L’AVENTURE</small><h2>Boosters</h2><p>Chaque booster a ses probabilités visibles. Les doublons deviennent de la poussière ✧ pour la Forge.</p></div>
   <div class="dlfr117-pity"><div><span>Garantie Légendaire</span><b>${Math.max(1,legPity()-p.pity.leg)} carte${legPity()-p.pity.leg>1?'s':''}</b><div class="dlfr117-bar small"><i style="width:${p.pity.leg/legPity()*100}%"></i></div></div><div><span>Garantie Mythique</span><b>${Math.max(1,MYTH_PITY-p.pity.myth)} cartes</b><div class="dlfr117-bar small myth"><i style="width:${p.pity.myth/MYTH_PITY*100}%"></i></div></div></div></div>
   <div class="dlfr117-packs">${PACKS.map(pack=>{
    const locked=p.level<pack.level,afford=canAfford(pack.cost),w=weights(pack),g=packGuarantee(pack);
@@ -473,19 +477,22 @@ function progressionPage(data){
  ensureQuests();
  const inner=view==='packs'?boostersView():view==='expeditions'?expeditionsView():view==='talents'?talentsView():view==='forge'?forgeView(data):goalsView();
  return `<div class="dlfr117-game">${hud()}${inner}
-  <div class="dlfr117-footer"><p>Tout est temporaire. Exporte ta <strong>session de test</strong> pour la reprendre plus tard (les sessions V114–V116 sont acceptées).</p><div class="dlfr113-create-buttons"><button class="btn subtle" data-v112-act="export-session" type="button">↓ Exporter ma session</button><button class="btn subtle" data-v112-act="open-session-import" type="button">↑ Importer une session</button><input type="file" id="dlfr114SessionFile" accept="application/json,.json" hidden></div></div></div>`;
+  <div class="dlfr117-footer"><p>Ta partie est sauvegardée automatiquement sur ton compte.${editor?' Importer une sauvegarde passe la session en <strong>mode test</strong> (plus de sauvegarde automatique jusqu’au rechargement).':''}</p><div class="dlfr113-create-buttons"><button class="btn subtle" data-v112-act="export-session" type="button">↓ Exporter ma partie</button>${editor?'<button class="btn subtle" data-v112-act="open-session-import" type="button">↑ Importer (test)</button>':''}<input type="file" id="dlfr114SessionFile" accept="application/json,.json" hidden></div></div></div>`;
 }
 
 // ============================================================ Export / import de session
-function exportSession(){
- download({format:'dlfr-cards-session',version:2,exportedAt:new Date().toISOString(),customCards:[],owned:[...owned].map(([id,v])=>({id,count:v.count,finish:v.finish||0,stars:v.stars||0})),overrides:[...overrides],
-  progress:{...progress,reveals:[],skills:{...progress.skills},camps:progress.camps.map(c=>({...c})),quests:progress.quests.map(q=>({...q,reward:{...q.reward}})),achievements:{...progress.achievements},sets:{...progress.sets},pity:{...progress.pity},stats:{...progress.stats,tiers:[...progress.stats.tiers],finishes:[...progress.stats.finishes]}}},'DLFR_Cards_session_v117.json');
- log('Session exportée.');
+function sessionObject(){
+ return {format:'dlfr-cards-session',version:2,exportedAt:new Date().toISOString(),customCards:[],owned:[...owned].map(([id,v])=>({id,count:v.count,finish:v.finish||0,stars:v.stars||0})),overrides:[...overrides],
+  progress:{...progress,reveals:[],skills:{...progress.skills},camps:progress.camps.map(c=>({...c})),quests:progress.quests.map(q=>({...q,reward:{...q.reward}})),achievements:{...progress.achievements},sets:{...progress.sets},pity:{...progress.pity},stats:{...progress.stats,tiers:[...progress.stats.tiers],finishes:[...progress.stats.finishes]}}};
 }
+function exportSession(){download(sessionObject(),'DLFR_Cards_aventure.json');log('Sauvegarde exportée.');}
 async function importSession(file){
  if(!file||file.size>20000000){alert('Fichier de session trop volumineux (20 Mo maximum).');return;}
- try{
-  const x=JSON.parse(await file.text());
+ try{restoreSession(JSON.parse(await file.text()),true);}catch(error){alert('Import de session impossible : '+error.message);}
+}
+// Restaure une sauvegarde (fichier ou compte). Lève une erreur si le contenu est incohérent.
+function restoreSession(x,interactive){
+ {
   if(x?.format!=='dlfr-cards-session'||![1,2].includes(x.version)||!Array.isArray(x.owned)||!Array.isArray(x.overrides)||x.owned.length>5000||x.overrides.length>5000)throw new Error('Format invalide');
   const localCreations=Array.isArray(x.customCards)?x.customCards.length:0;let skipped=0;
   const I=(v,max,min=0)=>Number.isSafeInteger(v)&&v>=min&&v<=max;
@@ -514,11 +521,11 @@ async function importSession(file){
    Object.assign(np,{level:p.level,xp:p.xp,shards:p.shards,dust:p.dust,keys:p.keys,prestige:p.prestige,skills,camps:camps.map(c=>({dest:c.dest,start:c.start,end:c.end})),quests,questSeed:p.questSeed||0,
     achievements:flags(p.achievements,ACHIEVEMENTS),sets:flags(Object.fromEntries(Object.entries(p.sets||{}).map(([k,v])=>[['legends','modern','players','dlfr'].includes(k)?'col-'+k:k,v])),SETS),pity:{leg:I(p.pity?.leg,1000)?p.pity.leg:0,myth:I(p.pity?.myth,1000)?p.pity.myth:0},stats,title:typeof p.title==='string'?p.title.slice(0,40):''});
   }
-  if(!confirm('Restaurer cette session de test ? Les cartes et la progression actuelles seront remplacées.'))return;
+  if(interactive&&!confirm('Restaurer cette sauvegarde ? Les cartes et la progression actuelles seront remplacées.'))return;
   reset();for(const [id,v] of inv)owned.set(id,v);for(const [id,r] of rares)overrides.set(id,r);
   Object.assign(progress,np);ensureQuests();
-  log(`Session de test restaurée (format v${x.version}).${skipped?` ${skipped} carte(s) absentes du catalogue ignorées.`:''}${localCreations?` ${localCreations} création(s) locales V113 non reprises : importe-les dans l’onglet Catalogue.`:''}`);view='packs';repaint();
- }catch(error){alert('Import de session impossible : '+error.message);}
+  log(`Session de test restaurée (format v${x.version}).${skipped?` ${skipped} carte(s) absentes du catalogue ignorées.`:''}${localCreations?` ${localCreations} création(s) locales V113 non reprises : importe-les dans l’onglet Catalogue.`:''}`);if(interactive){SAVE.tainted=true;clearTimeout(SAVE.timer);SAVE.timer=0;view='packs';repaint();}
+ }
 }
 
 // ============================================================ OUVERTURE CINÉMATIQUE
@@ -750,7 +757,7 @@ function sfx(name,tier=0){
 // ============================================================ CATALOGUE SUPABASE (V118)
 const BUCKET='dlfr-cards', IMG_TYPES=['image/png','image/jpeg','image/webp','image/gif'], IMG_MAX=2000000;
 function setMsg(text,kind=''){catalog.msg=text;catalog.msgKind=kind;const el=document.getElementById('dlfr118Msg');if(el){el.textContent=text;el.className='dlfr118-msg '+(kind?'is-'+kind:'');}}
-function errText(e){const m=e?.message||String(e||'Erreur inconnue');return /duplicate key.*slug/i.test(m)?'Ce nom court (slug) est déjà utilisé par une autre collection.':/Accès refusé|42501|permission denied/i.test(m)?'Accès refusé : seul le compte administrateur du labo peut modifier le catalogue.':m;}
+function errText(e){const m=e?.message||String(e||'Erreur inconnue');return /duplicate key.*slug/i.test(m)?'Ce nom court (slug) est déjà utilisé par une autre collection.':/Accès refusé|42501|permission denied/i.test(m)?'Accès refusé : seuls les propriétaires et supermodérateurs peuvent modifier le catalogue.':m;}
 function applyCatalog(cols,cards){
  COLLECTIONS=(cols||[]).map(c=>({id:Number(c.id),slug:c.slug,name:c.name,description:c.description||'',color:c.color||'#8b5cf6',sort:Number(c.sort_order)||0}));
  CARDS.length=0;for(const r of cards||[])CARDS.push(mkCard(r));
@@ -901,7 +908,7 @@ function catalogView(data){
   <div class="dlfr118-actions"><button class="btn" type="submit" ${dis}>${catalog.editCard==='new'?'Créer la carte':'Enregistrer'}</button>${d.imageUrl||catalog.pendingFile?`<button class="btn subtle" type="button" data-v112-act="cat-clear-image">Retirer l’image</button>`:''}<button class="btn subtle" type="button" data-v112-act="cat-card-cancel">Fermer</button>${catalog.editCard!=='new'?`<button class="btn danger" type="button" data-v112-act="cat-card-delete" ${dis}>Supprimer la carte</button>`:''}</div></form>
   <aside class="dlfr118-preview"><small>APERÇU</small><div id="dlfr118Preview">${previewHtml()}</div></aside></div>`:'';
  return `<div class="dlfr117-game dlfr118-cat"><section class="dlfr117-panel">
-  <div class="dlfr117-head"><div><small>CATALOGUE OFFICIEL · SUPABASE</small><h2>Cartes & collections</h2><p>Les modifications sont enregistrées tout de suite dans Supabase, et seul ton compte peut les faire. Les inventaires et la progression du labo restent des essais.</p></div><div class="dlfr118-top">${badge}<div class="dlfr118-actions"><button class="btn subtle" type="button" data-v112-act="cat-reload" ${dis}>↻ Recharger</button><button class="btn subtle" type="button" data-v112-act="cat-export">↓ Sauvegarde JSON</button></div></div></div>
+  <div class="dlfr117-head"><div><small>CATALOGUE OFFICIEL · SUPABASE</small><h2>Cartes & collections</h2><p>Les modifications sont enregistrées tout de suite dans Supabase, et seuls les propriétaires et supermodérateurs peuvent les faire. Elles s’appliquent au mode Aventure et à la collection officielle de tous les joueurs.</p></div><div class="dlfr118-top">${badge}<div class="dlfr118-actions"><button class="btn subtle" type="button" data-v112-act="cat-reload" ${dis}>↻ Recharger</button><button class="btn subtle" type="button" data-v112-act="cat-export">↓ Sauvegarde JSON</button></div></div></div>
   <p class="dlfr118-msg ${catalog.msgKind?'is-'+catalog.msgKind:''}" id="dlfr118Msg" role="status" aria-live="polite">${esc(catalog.msg)}</p>
   <div class="dlfr118-layout"><aside class="dlfr118-cols"><h3>Collections <span>${COLLECTIONS.length}</span></h3>
    ${COLLECTIONS.map(c=>`<button type="button" class="dlfr118-col ${c.id===catalog.selCol?'is-current':''}" data-v112-act="cat-col" data-id="${c.id}" style="--cc:${esc(c.color)}"><i></i><span>${esc(c.name)}</span><b>${cardsOf(c.id).length}</b></button>`).join('')||'<p class="dlfr117-muted">Aucune collection.</p>'}
@@ -915,22 +922,24 @@ function catalogView(data){
 }
 
 // ============================================================ PAGE
-function tabs(){return [['album','Album'],['collection','Ma collection'],['packs','✦ Boosters'],['expeditions','Expéditions'],['talents','Talents'],['forge','Forge'],['goals','Objectifs'],['catalog','✎ Catalogue'],['exchanges','Échanges fictifs'],['control','Pouvoirs admin']];}
+function tabs(){const t=[['album','Album'],['collection','Ma collection'],['packs','✦ Boosters'],['expeditions','Expéditions'],['talents','Talents'],['forge','Forge'],['goals','Objectifs']];return editor?t.concat([['catalog','✎ Catalogue'],['exchanges','Échanges fictifs'],['control','Outils de test']]):t;}
 function filtered(){return CARDS.filter(c=>(view!=='collection'||has(c.id))&&(filter==='all'||filter==='owned'&&has(c.id)||filter==='missing'&&!has(c.id)||filter===c.type||filter==='col:'+c.collectionId)&&normalize(c.name+' '+c.series+' '+rarity(c)).includes(normalize(query)));}
 function albumView(data){
  const current=get(selected)||CARDS[0];
  if(!current)return '<section class="dlfr112-panel"><p>Le catalogue est vide. Ajoute des cartes dans l’onglet ✎ Catalogue.</p></section>';
  const cur=owned.get(current.id),currentCount=cur?.count||0;
- return `<div class="dlfr112-album-layout"><div class="dlfr112-gallery-pane"><div class="dlfr112-filters"><label>Affichage<select data-v112-field="filter">${[['all','Toutes les cartes'],['owned','Possédées'],['missing','Manquantes'],['level','Niveaux'],['player','Joueurs'],['dlfr','DLFR'],...COLLECTIONS.map(c=>['col:'+c.id,'Collection · '+c.name])].map(([v,t])=>`<option value="${esc(v)}" ${filter===v?'selected':''}>${esc(t)}</option>`).join('')}</select></label><label>Rechercher<input type="search" data-v112-field="search" placeholder="Nom ou rareté…" value="${esc(query)}"></label></div><div class="dlfr112-grid">${filtered().map(c=>cardItem(c,data)).join('')||'<p class="muted">Aucune carte pour ce filtre.</p>'}</div></div><aside class="dlfr112-detail"><div class="dlfr112-detail-inner">${figure(current,data)}<h3>${esc(current.name)}</h3><p>#${idString(current.id)} · ${esc(current.series)}${cur?` · ${FIN_NAME[cur.finish||0]} · ★${cur.stars||0}`:''}${current.inPacks?'':' · hors boosters'}</p>${current.description?`<p class="dlfr113-description">${esc(current.description)}</p>`:''}<div class="dlfr112-detail-actions"><button type="button" class="btn" data-v112-act="give" data-id="${current.id}">+ Recevoir 1 carte</button><button type="button" class="btn subtle" data-v112-act="take" data-id="${current.id}" ${currentCount?'':'disabled'}>− Retirer 1</button><button type="button" class="btn subtle" data-v112-act="holo" data-id="${current.id}" ${currentCount?'':'disabled'}>✧ Finition suivante (${FIN_NAME[((cur?.finish||0)+1)%4]})</button>${currentCount?`<button type="button" class="btn subtle" data-v112-act="forge-open" data-id="${current.id}">⚒ Ouvrir dans la Forge</button>`:''}${DB&&catalog.status==='ready'?`<button type="button" class="btn subtle" data-v112-act="cat-card-open" data-id="${current.id}">✎ Modifier dans le catalogue</button>`:''}</div><small>Ces actions sont réservées au labo ; aucune récompense n'est transférée à ton compte.</small></div></aside></div>`;
+ return `<div class="dlfr112-album-layout"><div class="dlfr112-gallery-pane"><div class="dlfr112-filters"><label>Affichage<select data-v112-field="filter">${[['all','Toutes les cartes'],['owned','Possédées'],['missing','Manquantes'],['level','Niveaux'],['player','Joueurs'],['dlfr','DLFR'],...COLLECTIONS.map(c=>['col:'+c.id,'Collection · '+c.name])].map(([v,t])=>`<option value="${esc(v)}" ${filter===v?'selected':''}>${esc(t)}</option>`).join('')}</select></label><label>Rechercher<input type="search" data-v112-field="search" placeholder="Nom ou rareté…" value="${esc(query)}"></label></div><div class="dlfr112-grid">${filtered().map(c=>cardItem(c,data)).join('')||'<p class="muted">Aucune carte pour ce filtre.</p>'}</div></div><aside class="dlfr112-detail"><div class="dlfr112-detail-inner">${figure(current,data)}<h3>${esc(current.name)}</h3><p>#${idString(current.id)} · ${esc(current.series)}${cur?` · ${FIN_NAME[cur.finish||0]} · ★${cur.stars||0}`:''}${current.inPacks?'':' · hors boosters'}</p>${current.description?`<p class="dlfr113-description">${esc(current.description)}</p>`:''}<div class="dlfr112-detail-actions">${editor?`<button type="button" class="btn" data-v112-act="give" data-id="${current.id}">+ Recevoir 1 carte</button><button type="button" class="btn subtle" data-v112-act="take" data-id="${current.id}" ${currentCount?'':'disabled'}>− Retirer 1</button><button type="button" class="btn subtle" data-v112-act="holo" data-id="${current.id}" ${currentCount?'':'disabled'}>✧ Finition suivante (${FIN_NAME[((cur?.finish||0)+1)%4]})</button>`:''}${currentCount?`<button type="button" class="btn subtle" data-v112-act="forge-open" data-id="${current.id}">⚒ Ouvrir dans la Forge</button>`:''}${editor&&DB&&catalog.status==='ready'?`<button type="button" class="btn subtle" data-v112-act="cat-card-open" data-id="${current.id}">✎ Modifier dans le catalogue</button>`:''}</div>${editor?"<small>Outils de test : utiliser + / − / finition passe la session en mode test (non sauvegardée).</small>":''}</div></aside></div>`;
 }
 function viewPage(data){
- if(!gate)return '<section class="paper"><h2>Laboratoire privé</h2><p>Accès refusé.</p></section>';
+ if(!gate)return '<section class="paper"><h2>DLFR Cards · Aventure</h2><p>Connecte-toi pour jouer : ta partie sera sauvegardée sur ton compte.</p><a class="btn" href="?page=my-profile" data-nav>Se connecter</a></section>';
+ if(!editor&&['catalog','exchanges','control'].includes(view))view='album';
  const current=get(selected)||CARDS[0];
  const prog=['packs','expeditions','talents','forge','goals'].includes(view),total=Math.max(1,CARDS.length);
  const src=catalog.status==='ready'||catalog.status==='empty'?'catalogue Supabase':catalog.status==='loading'?'chargement du catalogue…':'catalogue intégré (hors ligne)';
  return `<section class="dlfr112 dlfr117" id="dlfr112Lab">
-  <div class="dlfr112-header"><div><div class="dlfr112-eyebrow">DLFR CARDS · V118</div><h1>Atelier DLFR Cards</h1><p>${CARDS.length} cartes · ${COLLECTIONS.length} collections · ${src}${progress.title?` · <b>${esc(progress.title)}</b>`:''}</p></div><span class="dlfr112-demo-label">PROGRESSION DE TEST · NON SAUVEGARDÉE</span></div>
-  <div class="dlfr112-toolbar"><div class="dlfr112-summary"><b>${status()}</b><span>Progression de collection : ${Math.round(inventoryUnique()/total*100)} %</span><div class="dlfr112-meter"><span style="width:${inventoryUnique()/total*100}%"></span></div></div><div class="dlfr112-modes" role="tablist" aria-label="Espace de test">${tabs().map(([id,title])=>`<button type="button" role="tab" aria-selected="${view===id}" class="${view===id?'active':''}" data-v112-act="mode" data-mode="${id}">${title}${id==='expeditions'&&progress.camps.some(c=>Date.now()>=c.end)?' <i class="dlfr117-dot"></i>':''}${id==='goals'&&progress.quests.some(q=>q.have>=q.target)?' <i class="dlfr117-dot"></i>':''}</button>`).join('')}</div></div>
+  <div class="dlfr112-header"><div><div class="dlfr112-eyebrow">DLFR CARDS · MODE AVENTURE</div><h1>DLFR Cards · Aventure</h1><p>${CARDS.length} cartes · ${COLLECTIONS.length} collections · ${src}${progress.title?` · <b>${esc(progress.title)}</b>`:''}</p></div><span class="dlfr112-demo-label ${SAVE.tainted||SAVE.conflict?'is-warn':''}" id="dlfr129Save" aria-live="polite">${esc(saveLabel())}</span></div>
+  <p class="dlfr129-intro">Ouvre des boosters avec tes éclats ◆, pars en expédition, monte de niveau, améliore tes cartes à la Forge et débloque des talents. Ta partie est sauvegardée sur ton compte. Les ressources du mode Aventure restent dans le jeu (pas de Wayllings dorés) : ta <a href="?page=cards" data-nav>collection officielle</a> se remplit avec le booster du jour.</p>
+  <div class="dlfr112-toolbar"><div class="dlfr112-summary"><b>${status()}</b><span>Progression de collection : ${Math.round(inventoryUnique()/total*100)} %</span><div class="dlfr112-meter"><span style="width:${inventoryUnique()/total*100}%"></span></div></div><div class="dlfr112-modes" role="tablist" aria-label="Sections du mode Aventure">${tabs().map(([id,title])=>`<button type="button" role="tab" aria-selected="${view===id}" class="${view===id?'active':''}" data-v112-act="mode" data-mode="${id}">${title}${id==='expeditions'&&progress.camps.some(c=>Date.now()>=c.end)?' <i class="dlfr117-dot"></i>':''}${id==='goals'&&progress.quests.some(q=>q.have>=q.target)?' <i class="dlfr117-dot"></i>':''}</button>`).join('')}</div></div>
   ${prog?progressionPage(data):''}
   ${view==='album'||view==='collection'?albumView(data):''}
   ${view==='catalog'?catalogView(data):''}
@@ -943,13 +952,46 @@ function viewPage(data){
   ${journal.length?`<section class="dlfr112-panel dlfr112-log"><div class="dlfr112-section-head"><h2>Historique de cette session</h2><span class="muted small">Effacé au rechargement</span></div>${journal.slice(-6).reverse().map(x=>`<p>• ${esc(x)}</p>`).join('')}</section>`:''}
  </section>`;
 }
-function repaint(){const p=document.getElementById('dlfr112Lab');if(p){const y=window.scrollY;p.outerHTML=viewPage(srcData());window.scrollTo(0,y);}}
+async function loadSave(){
+ if(!DB||!userId)return;
+ const uid=userId;
+ try{
+  if(catalog.status==='local'||catalog.status==='loading')await loadCatalog();
+  const {data,error}=await DB.rpc('dlfr_adventure_load');if(error)throw error;
+  if(uid!==userId)return;
+  reset();
+  if(data?.save){try{restoreSession(data.save,false);}catch(e){console.warn('[DLFR Cards] Sauvegarde ignorée :',e);SAVE.status='Sauvegarde illisible : nouvelle partie.';}}
+  else{ensureQuests();}
+  SAVE.version=Number(data?.version)||0;SAVE.loaded=true;SAVE.conflict=false;SAVE.status=SAVE.status||'✓ Sauvegardé';
+ }catch(e){SAVE.status='Sauvegarde indisponible : ta progression ne sera pas enregistrée.';console.warn('[DLFR Cards] Chargement :',e);}
+ repaint();
+}
+function scheduleSave(){
+ if(!SAVE.loaded||SAVE.tainted||SAVE.conflict||!DB||!userId)return;
+ clearTimeout(SAVE.timer);SAVE.timer=setTimeout(flushSave,1200);setSaveLabel('Sauvegarde…');
+}
+async function flushSave(){
+ SAVE.timer=0;if(SAVE.tainted||SAVE.conflict||!SAVE.loaded){setSaveLabel(saveLabel());return;}
+ if(SAVE.saving){SAVE.pending=true;return;}
+ SAVE.saving=true;
+ try{const {data,error}=await DB.rpc('dlfr_adventure_save',{p_save:sessionObject(),p_version:SAVE.version});
+  if(error){if(/conflict/.test(error.message||'')){SAVE.conflict=true;SAVE.status='⚠ Progression modifiée dans un autre onglet : recharge la page.';}else throw error;}
+  else{SAVE.version=Number(data)||SAVE.version+1;SAVE.status='✓ Sauvegardé';}
+ }catch(e){SAVE.status='⚠ Échec de la sauvegarde, nouvel essai bientôt.';setTimeout(scheduleSave,8000);}
+ finally{SAVE.saving=false;setSaveLabel(saveLabel());if(SAVE.pending){SAVE.pending=false;scheduleSave();}}
+}
+function setSaveLabel(t){const el=document.getElementById('dlfr129Save');if(el){el.textContent=t;el.classList.toggle('is-warn',SAVE.tainted||SAVE.conflict);}}
+function saveLabel(){return SAVE.tainted?'SESSION DE TEST · NON SAUVEGARDÉE':!SAVE.loaded?(userId?'Chargement de ta partie…':'Connecte-toi pour sauvegarder'):SAVE.status||'✓ Sauvegardé';}
+window.addEventListener('beforeunload',e=>{if(SAVE.timer&&SAVE.loaded&&!SAVE.tainted&&!SAVE.conflict&&!SAVE.saving&&document.getElementById('dlfr112Lab')){clearTimeout(SAVE.timer);flushSave();}});
+function repaint(){scheduleSave();const p=document.getElementById('dlfr112Lab');if(p){const y=window.scrollY;p.outerHTML=viewPage(srcData());window.scrollTo(0,y);}}
 function reset(){owned.clear();overrides.clear();journal.length=0;selected=CARDS[0]?.id||0;query='';filter='all';Object.assign(progress,freshProgress());forgeSel=0;if(OPEN.st){OPEN.st=null;unmountOpening(true);}}
 function handleClick(event){
  const b=event.target.closest?.('[data-v112-act]');if(!b||!gate)return;
  if(!document.getElementById('dlfr112Lab')||b.closest('#dlfr117Open'))return;
  event.preventDefault();
  const act=b.dataset.v112Act;
+ const TEST=['give','take','holo','all','holo-all','cheat','cooldown-skip','skills-reset','reset','rarity','trade','open-session-import'];
+ if(TEST.includes(act)||act.startsWith('cat-')){if(!editor)return;if(TEST.includes(act)&&act!=='open-session-import'){SAVE.tainted=true;clearTimeout(SAVE.timer);SAVE.timer=0;}}
  if(act.startsWith('cat-')){
   if(act==='cat-reload'){loadCatalog();return;}
   if(act==='cat-export'){exportCatalog();return;}
@@ -1064,11 +1106,14 @@ document.addEventListener('change',handleChange);
 window.DLFR_CARDS_LAB={
  // Appelé par app.js juste après la création du client Supabase (même session que le site).
  setClient(client){DB=client||null;},
- setGate(value){
-  if(!value){if(gate||catalog.status!=='local'){gate=false;reset();view='album';useFallback();setMsg('');}return;}
-  gate=true;if(DB&&catalog.status==='local')loadCatalog();
+ setGate(value,uid=null){
+  if(!value){if(gate||catalog.status!=='local'){gate=false;userId=null;Object.assign(SAVE,{loaded:false,version:0,status:'',tainted:false,conflict:false});clearTimeout(SAVE.timer);reset();view='album';useFallback();setMsg('');}return;}
+  gate=true;
+  if(uid&&uid!==userId){userId=uid;Object.assign(SAVE,{loaded:false,version:0,status:'',tainted:false,conflict:false});loadSave();}
+  else if(DB&&catalog.status==='local')loadCatalog();
  },
- view(data){if(!gate)return '<p>Accès réservé.</p>';this.__sourceData=data;return viewPage(data);},
+ setEditor(value){const v=!!value;if(v!==editor){editor=v;if(!editor&&['catalog','exchanges','control'].includes(view))view='album';}},
+ view(data){this.__sourceData=data;return viewPage(data);},
  // V127 — ouverture réelle (tirage fait par Supabase) : on ne rejoue que la mise en scène.
  mkCard,
  figure:(card,data,compact=false,opts={})=>figure(card,data,compact,opts),
