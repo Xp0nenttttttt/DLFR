@@ -1,0 +1,18 @@
+DLFR V122 — CORRECTIFS DES DÉCORATIONS DE PROFIL
+================================================
+BASE : V121 (ce ZIP contient tous les fichiers V117 à V122).
+
+À METTRE SUR GITHUB PAGES :
+  - index.html, js/app.js, js/v121-profile-deco.js, css/v121-profile-deco.css (remplacer)
+  - + les autres fichiers du ZIP s'ils ne sont pas déjà en ligne
+  Puis Ctrl + F5 (les numéros de version ont changé pour vider le cache).
+
+CORRIGÉ :
+  1. Bannière personnelle du joueur (image de profil) : elle s'affichait en gros bloc au-dessus de
+     l'avatar et cachait les effets. Elle reste maintenant en fond de l'en-tête, à la bonne taille,
+     avec les effets de la bannière équipée par-dessus (teinte + animations).
+  2. Plus de paliers : chaque décoration affiche tous ses effets dès l'achat, pour tout le monde.
+     L'encart « Décorations exposées » ne montre plus de progression ; les descriptions du
+     catalogue Supabase ne parlent plus de paliers (déjà mis à jour).
+  3. Statistiques, classement de gauche : une petite icône par décoration équipée à côté du pseudo
+     (bannière = carré coloré, cadre = rond, badge = médaille).

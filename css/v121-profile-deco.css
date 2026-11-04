@@ -2,7 +2,11 @@
    Paliers de prestige : .pd-t1 / .pd-t2 / .pd-t3 (3 et 8 défis hebdo réclamés). */
 @property --pd-angle{syntax:'<angle>';inherits:false;initial-value:0deg}/* =================== SOCLE BANNIÈRE =================== */
 .pd-hero{position:relative;isolation:isolate;overflow:hidden}
-.pd-hero>:not(.pd-layer){position:relative;z-index:1}
+.pd-hero>:not(.pd-layer):not(.profile-cover-img){position:relative;z-index:1}
+/* Bannière personnelle du joueur : elle reste en fond, les effets passent par-dessus avec une teinte. */
+.pd-hero>.profile-cover-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1}
+.pd-hero:has(>.profile-cover-img)>.pd-layer{background:var(--pd-tint,rgba(0,0,0,.35))}
+.pd-banner_night{--pd-tint:linear-gradient(180deg,rgba(4,8,32,.62),rgba(43,27,94,.42))}.pd-banner_bloodmoon{--pd-tint:linear-gradient(180deg,rgba(40,3,8,.58),rgba(12,2,4,.5))}.pd-banner_glitch{--pd-tint:linear-gradient(120deg,rgba(4,5,13,.55),rgba(20,10,38,.45) 60%,rgba(3,22,25,.5))}.pd-banner_voidwalker{--pd-tint:radial-gradient(ellipse at 80% 50%,rgba(60,20,140,.35),rgba(4,2,12,.6) 70%)}
 .pd-layer{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
 .pd-layer>b{position:absolute;display:block}
 .pd-layer .pd-p{position:absolute;left:var(--x);top:var(--y);width:var(--s);height:var(--s);border-radius:50%;display:block}
@@ -156,3 +160,15 @@
 @media(max-width:600px){.pd-panel-grid{grid-template-columns:1fr}.pd-banner_voidwalker .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-b{right:-70px}.pd-banner_voidwalker .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-c{right:12px}.pd-banner_voidwalker .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-d{right:-58px}.pd-banner_bloodmoon .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-b{width:64px;height:64px;right:4%}.pd-banner_night .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-b{width:36px;height:36px;box-shadow:inset -10px 5px 0 0 #fff2c8}}
 .pd-frame_amethyst_crown .profile-hero,.pd-frame_celestial .profile-hero{padding-top:max(30px,23px)}
 @media(max-width:600px){.pd-frame_amethyst_crown .profile-hero,.pd-frame_celestial .profile-hero{padding-top:30px}.pd-banner_glitch .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-d::before{font-size:8px}}
+
+/* Icônes du classement (Statistiques, colonne de gauche) */
+.pd-icons{display:inline-flex;gap:3px;margin-left:6px;vertical-align:middle}
+.pd-icon{width:19px;height:19px;border-radius:6px;display:inline-grid;place-items:center;font-size:11px;line-height:1;background:rgba(127,127,160,.18);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+.pd-icon-banner_night{background:linear-gradient(135deg,#0c1442,#2b1b5e);box-shadow:0 0 6px rgba(120,140,255,.6)}
+.pd-icon-banner_bloodmoon{background:linear-gradient(135deg,#2b0509,#8c1d24);box-shadow:0 0 6px rgba(255,60,60,.6)}
+.pd-icon-banner_glitch{background:#05060f;box-shadow:-1px 0 0 #00fff0,1px 0 0 #ff2bd6}
+.pd-icon-banner_voidwalker{background:radial-gradient(circle,#000 30%,#5b3fb0);box-shadow:0 0 6px rgba(167,123,255,.7)}
+.pd-icon-frame{border-radius:50%;background:transparent;box-shadow:inset 0 0 0 2px #a77bff}
+.pd-icon-frame_aurora{box-shadow:inset 0 0 0 2px #5cc8ff}.pd-icon-frame_celestial{box-shadow:inset 0 0 0 2px #ffd76a,0 0 6px rgba(255,215,106,.6)}.pd-icon-frame_glitch{box-shadow:inset 0 0 0 2px #00fff0,1px 0 0 #ff2bd6}.pd-icon-frame_amethyst_crown{box-shadow:inset 0 0 0 2px #e3a83a}
+.pd-icon-badge_spark{border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff7d1,#ffd34d 60%,#c98a12)}
+.pd-icon-badge_flame{border-radius:50%;background:radial-gradient(circle at 50% 70%,#ffd27a,#ff6a1f 55%,#a3170a)}

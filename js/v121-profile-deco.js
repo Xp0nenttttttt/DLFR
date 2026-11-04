@@ -1,5 +1,6 @@
 /* DLFR V121 — décorations de profil redessinées (bannières, cadres, badges de la boutique).
  * Remplace l'affichage des effets V85/V89/V90 : nouvelles classes « pd-* », donc les anciens
+ * V121.1 : plus de paliers — chaque décoration affiche toujours tous ses effets.
  * styles ne s'appliquent plus. Les données viennent toujours de dlfr_rewards_public(_bulk).
  */
 (()=>{'use strict';
@@ -14,7 +15,7 @@ const INFO={
  frame_amethyst:{name:'Cadre Améthyste',text:'Bordure de gemme taillée violette avec reflet.'},
  frame_aurora:{name:'Cadre Aurore',text:'Bordure aux couleurs de l’aurore qui tourne lentement.'},
  frame_amethyst_crown:{name:'Couronne d’Améthyste',text:'Cadre de gemme surmonté d’une couronne d’or.'},
- frame_celestial:{name:'Ascension Céleste',text:'Auréole dorée, ailes de lumière et rayons divins.'},
+ frame_celestial:{name:'Ascension Céleste',text:'Auréole dorée et rayons divins.'},
  frame_glitch:{name:'Cadre Désynchronisé',text:'Contour qui saute entre cyan et magenta.'},
  badge_spark:{name:'Éclat hebdomadaire',text:'Médaille étincelante à côté du pseudo.'},
  badge_flame:{name:'Flamme éternelle',text:'Médaille enflammée à côté du pseudo.'}
@@ -27,7 +28,7 @@ function find(list,cat){return list.find(x=>x.category===cat||x.item_key.startsW
 // Classes à poser sur l'élément qui contient la bannière et/ou l'avatar.
 function cls(items){
  const list=safe(items);if(!list.length)return '';
- const c=['pd','pd-t'+maxTier(list)];
+ const c=['pd','pd-t3']; // pas de paliers : effets complets pour tous
  const b=find(list,'banner'),f=find(list,'frame');
  if(b)c.push('pd-banner',`pd-${b.item_key}`);
  if(f)c.push('pd-frame',`pd-${f.item_key}`);
@@ -68,9 +69,15 @@ function panel(items){
  const list=safe(items);if(!list.length)return '';
  return `<div class="pd-panel"><div class="pd-panel-head"><b>✦ Décorations exposées</b><span>${list.length} équipée${list.length>1?'s':''}</span></div><div class="pd-panel-grid">${list.map(x=>{
   const prestige=PRESTIGE.has(x.item_key),t=tierOf(x),info=INFO[x.item_key]||{};
-  return `<article class="pd-card ${prestige?'is-prestige':''}"><div class="pd-card-art">${preview(x.item_key,t,x.emoji)}</div><div class="pd-card-copy"><small>${esc({banner:'Bannière',frame:'Cadre',badge:'Badge'}[x.category]||'Décoration')}${prestige?' · Prestige':''}</small><strong>${esc(x.emoji||'')} ${esc(x.label||info.name||x.item_key)}</strong><p>${esc(info.text||'Décoration cosmétique équipée.')}</p>${prestige?`<div class="pd-tier"><span class="pd-pips" data-t="${t}"><i></i><i></i><i></i></span><em>Palier ${esc(TIER_TEXT[t])}</em></div><small class="pd-next">${t>=3?'Palier maximal atteint':t===2?'Palier III à 8 défis réclamés':'Palier II à 3 défis réclamés'}</small>`:''}</div></article>`;}).join('')}</div></div>`;
+  return `<article class="pd-card ${prestige?'is-prestige':''}"><div class="pd-card-art">${preview(x.item_key,3,x.emoji)}</div><div class="pd-card-copy"><small>${esc({banner:'Bannière',frame:'Cadre',badge:'Badge'}[x.category]||'Décoration')}</small><strong>${esc(x.emoji||'')} ${esc(x.label||info.name||x.item_key)}</strong><p>${esc(info.text||'Décoration cosmétique équipée.')}</p></div></article>`;}).join('')}</div></div>`;
 }
-window.DLFR_DECO={PRESTIGE,INFO,safe,cls,layer,medals,apply,preview,panel};
+// Petites icônes des décorations équipées (classement de la page Statistiques).
+function icons(items){
+ const list=safe(items);if(!list.length)return '';
+ const order={banner:0,frame:1,badge:2};
+ return `<span class="pd-icons">${list.slice().sort((a,b)=>(order[a.category]??3)-(order[b.category]??3)).map(x=>`<span class="pd-icon pd-icon-${esc(x.category)} pd-icon-${esc(x.item_key)}" title="${esc(INFO[x.item_key]?.name||x.label||'')}" aria-label="${esc(INFO[x.item_key]?.name||x.label||'')}">${esc(x.emoji||'✦')}</span>`).join('')}</span>`;
+}
+window.DLFR_DECO={PRESTIGE,INFO,safe,cls,layer,medals,icons,apply,preview,panel};
 // Reflet qui suit la souris sur les bannières.
 let raf=0;
 document.addEventListener('pointermove',ev=>{
