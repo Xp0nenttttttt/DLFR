@@ -117,7 +117,7 @@ const SKILLS=[
 let SETS=[];
 function rebuildSets(){
  const bySlug=s=>COLLECTIONS.find(c=>c.slug===s);
- SETS=[...COLLECTIONS.map(c=>({id:'col-'+c.slug,name:c.name,test:x=>x.collectionId===c.id,reward:{keys:2,dust:150}})),
+ SETS=[...COLLECTIONS.map(c=>({id:'col-'+c.slug,name:c.name,test:x=>x.collectionId===c.id&&countable(x),reward:{keys:2,dust:150}})),
   {id:'mythic',name:'Toutes les Mythiques',test:c=>c.rarity==='Mythique',reward:{keys:3,dust:300}},
   ...(bySlug('legends')?[{id:'holo-legends',name:bySlug('legends').name+' Holo',test:c=>c.slug==='legends',finish:1,reward:{keys:4,dust:600}}]:[]),
   ...(bySlug('players')?[{id:'prism-players',name:bySlug('players').name+' Prismatiques',test:c=>c.slug==='players',finish:2,reward:{keys:6,dust:1500}}]:[]),
@@ -137,7 +137,7 @@ const QUEST_POOL=[
 const S=()=>progress.stats;
 const ACHIEVEMENTS=[
  ...[[10,'Premiers pas',{dust:30}],[25,'Collectionneur',{keys:1}],[40,'Archiviste',{keys:2}]].map(([n,name,reward,title],i)=>({id:'col'+i,name,desc:`Posséder ${n} cartes différentes`,value:()=>CARDS.filter(c=>has(c.id)).length,target:n,reward,title})),
- {id:'col3',name:'Catalogue complet',desc:'Posséder toutes les cartes du catalogue',value:()=>CARDS.filter(c=>has(c.id)).length,get target(){return Math.max(1,CARDS.length);},reward:{keys:5,dust:500},title:'Gardien du catalogue'},
+ {id:'col3',name:'Catalogue complet',desc:'Posséder toutes les cartes du catalogue',value:()=>CARDS.filter(c=>countable(c)&&has(c.id)).length,get target(){return Math.max(1,CARDS.filter(countable).length);},reward:{keys:5,dust:500},title:'Gardien du catalogue'},
  ...[[10,'Déchireur',{dust:40}],[50,'Ouvreur assidu',{keys:1}],[150,'Usine à boosters',{keys:3}],[500,'Main d’or',{keys:8},'Main d’or']].map(([n,name,reward,title],i)=>({id:'pk'+i,name,desc:`Ouvrir ${n} paquets`,value:()=>S().packs,target:n,reward,title})),
  ...[[5,'Randonneur',{dust:30}],[25,'Aventurier',{keys:1}],[100,'Cartographe',{keys:3}],[300,'Nomade éternel',{keys:6},'Nomade']].map(([n,name,reward,title],i)=>({id:'ex'+i,name,desc:`Terminer ${n} expéditions`,value:()=>S().expeditions,target:n,reward,title})),
  {id:'leg1',name:'Première Légendaire',desc:'Obtenir une carte Légendaire',value:()=>S().tiers[3],target:1,reward:{dust:80}},
@@ -229,10 +229,10 @@ function figure(card,data,compact=false,opts={}){
 }
 // Échelle des raretés (de la plus courante à la plus rare).
 function ladder(rates){
- return `<div class="c131-ladder" role="list" aria-label="Raretés, de la plus courante à la plus rare">${rarities.map((r,t)=>`<span class="c131-step t${t}" role="listitem"><b>${TIER_GEM[t]}</b><span><strong>${esc(r)}</strong>${pipsHTML(t)}${rates?`<small>${esc(rates[t])} %</small>`:''}</span></span>${t<rarities.length-1?'<i class="c131-arrow" aria-hidden="true">›</i>':''}`).join('')}<span class="c131-ladder-note">de la plus courante à la plus rare</span><span class="c131-step c155-step-secret" title="Carte secrète : 1 chance sur 1 000 000, cachée tant qu’on ne l’a pas"><b>?</b><span><strong>Secrète</strong><small>1 sur 1 000 000</small></span></span><span class="c131-step c139-step-festive" title="Rareté spéciale : uniquement dans le calendrier de l’Avent"><b>❄</b><span><strong>Festive</strong><small>Calendrier de l’Avent</small></span></span></div>`;
+ return `<div class="c131-ladder" role="list" aria-label="Raretés, de la plus courante à la plus rare">${rarities.map((r,t)=>`<span class="c131-step t${t}" role="listitem"><b>${TIER_GEM[t]}</b><span><strong>${esc(r)}</strong>${pipsHTML(t)}${rates?`<small>${esc(rates[t])} %</small>`:''}</span></span>${t<rarities.length-1?'<i class="c131-arrow" aria-hidden="true">›</i>':''}`).join('')}<span class="c131-ladder-note">de la plus courante à la plus rare</span><span class="c131-step c139-step-festive" title="Rareté spéciale : uniquement dans le calendrier de l’Avent"><b>❄</b><span><strong>Festive</strong><small>Calendrier de l’Avent</small></span></span></div>`;
 }
 function inventoryUnique(){return [...owned.values()].filter(v=>v.count>0).length;}
-function status(){return `${inventoryUnique()} / ${CARDS.length} cartes différentes · ${[...owned.values()].reduce((a,b)=>a+b.count,0)} exemplaires`;}
+function status(){return `${inventoryUnique()} / ${shownCards().length} cartes différentes · ${[...owned.values()].reduce((a,b)=>a+b.count,0)} exemplaires`;}
 function cardItem(c,data){const yes=has(c.id);return `<button type="button" class="dlfr112-pick ${selected===c.id?'is-current':''}" data-v112-act="select" data-id="${c.id}" aria-label="Voir ${esc(c.name)}">${figure(c,data,true)}<span class="dlfr112-pick-label">${yes?'Possédée · ':'Manquante · '}${esc(c.series)}</span></button>`;}
 function optionCard(c){return `<option value="${c.id}">${idString(c.id)} · ${esc(c.name)}</option>`;}
 function log(message){journal.push(message);if(journal.length>30)journal.shift();}
@@ -360,6 +360,8 @@ function claimAllExpeditions(){let n=0;for(let i=progress.camps.length-1;i>=0;i-
 // ============================================================ Tirages
 const colLive=id=>COLLECTIONS.find(c=>c.id===id)?.published!==false; // V150 : collections en brouillon exclues
 function packable(){return CARDS.filter(c=>c.inPacks&&c.rarity!==FESTIVE&&c.rarity!==SECRET&&colLive(c.collectionId));}
+function shownCards(){return CARDS.filter(c=>c.rarity!==SECRET||editor||has(c.id));}
+const countable=c=>c.rarity!==SECRET; // les secrètes ne comptent dans aucune complétion
 function secretPool(){return CARDS.filter(c=>c.inPacks&&c.rarity===SECRET&&colLive(c.collectionId));}
 function secretRoll(pack){const p=secretPool().filter(c=>!pack?.filter||pack.filter(c));return p.length&&Math.random()<SECRET_RATE?pick(p):null;}
 function poolFor(pack){const base=packable(),p=base.filter(c=>!pack.filter||pack.filter(c));return p.length?p:base;}
@@ -504,7 +506,7 @@ function boostersView(){
    const locked=p.level<pack.level,afford=canAfford(pack.cost),w=weights(pack),g=packGuarantee(pack);
    return `<article class="dlfr117-pack ${locked?'is-locked':''}"><div class="dlfr117-pack-stage">${packArt(pack)}${locked?`<span class="dlfr117-lock">🔒 Niveau ${pack.level}</span>`:''}</div>
     <h3>${esc(pack.name)}</h3><p>${esc(pack.subtitle)}</p>
-    <div class="dlfr117-odds">${rarities.map((r,i)=>w[i]>0?`<span class="t${i}"><i></i>${esc(r)} ${fmtPercent(w[i])}</span>`:'').join('')}${secretPool().some(c=>!pack.filter||pack.filter(c))?'<span class="c155-odd"><i></i>??? 1 sur 1 000 000</span>':''}</div>
+    <div class="dlfr117-odds">${rarities.map((r,i)=>w[i]>0?`<span class="t${i}"><i></i>${esc(r)} ${fmtPercent(w[i])}</span>`:'').join('')}</div>
     <small>${packCount(pack)} cartes${g?` · ${rarities[g]} ou mieux garantie`:''}${pack.finishBoost?` · finitions ×${pack.finishBoost}`:''}</small>
     <button type="button" class="btn" data-v112-act="open-pack" data-pack="${pack.id}" ${locked||!afford?'disabled':''}>${locked?'Verrouillé':afford?`Ouvrir · ${costText(pack.cost)}`:`${costText(pack.cost)} requis`}</button></article>`;}).join('')}</div>
   ${p.reveals.length?`<div class="dlfr117-sub"><h3>Dernier booster</h3><div class="dlfr117-mini-grid">${p.reveals.map(d=>{const c=get(d.id);return c?`<div>${figure(c,srcData(),true,{finish:d.finish})}<span class="${d.isNew?'is-new':''}">${d.isNew?'Nouvelle':'Doublon'} · +${d.shards} ◆${d.dust?` +${d.dust} ✧`:''}</span></div>`:'';}).join('')}</div></div>`:''}
@@ -1033,7 +1035,7 @@ function catalogView(data){
 
 // ============================================================ PAGE
 function tabs(){const t=[...(window.DLFR_CARDS?[['official','★ Collection']]:[]),...(window.DLFR_ADVENT?[['advent','🎄 Avent']]:[]),['packs','✦ Boosters'],['expeditions','Expéditions'],['talents','Talents'],['forge','Forge'],['goals','Objectifs'],['album','Album'],['collection','Ma collection']];return editor?t.concat([['catalog','✎ Catalogue'],['exchanges','Échanges fictifs'],['control','Outils de test']]):t;}
-function filtered(){return CARDS.filter(c=>(view!=='collection'||has(c.id))&&(filter==='all'||filter==='owned'&&has(c.id)||filter==='missing'&&!has(c.id)||filter===c.type||filter==='col:'+c.collectionId)&&normalize(c.name+' '+c.series+' '+rarity(c)).includes(normalize(query)));}
+function filtered(){return shownCards().filter(c=>(view!=='collection'||has(c.id))&&(filter==='all'||filter==='owned'&&has(c.id)||filter==='missing'&&!has(c.id)||filter===c.type||filter==='col:'+c.collectionId)&&normalize(c.name+' '+c.series+' '+rarity(c)).includes(normalize(query)));}
 function albumView(data){
  const current=get(selected)||CARDS[0];
  if(!current)return '<section class="dlfr112-panel"><p>Le catalogue est vide. Ajoute des cartes dans l’onglet ✎ Catalogue.</p></section>';
@@ -1047,10 +1049,10 @@ function viewPage(data){
  if(view==='advent'&&!window.DLFR_ADVENT)view='official';
  if(!editor&&['catalog','exchanges','control'].includes(view))view='album';
  const current=get(selected)||CARDS[0];
- const prog=['packs','expeditions','talents','forge','goals'].includes(view),total=Math.max(1,CARDS.length);
+ const prog=['packs','expeditions','talents','forge','goals'].includes(view),total=Math.max(1,shownCards().length);
  const src=catalog.status==='loading'?'chargement…':catalog.status==='ready'||catalog.status==='empty'?'':'hors ligne';
  return `<section class="dlfr112 dlfr117" id="dlfr112Lab">
-  <div class="dlfr112-header"><div><div class="dlfr112-eyebrow">DLFR CARDS${view==='official'?' · COLLECTION':view==='advent'?' · CALENDRIER DE L’AVENT':' · MODE AVENTURE'}</div><h1>DLFR Cards</h1><p>${CARDS.length} cartes · ${COLLECTIONS.length} collections${src?` · ${src}`:''}${progress.title?` · <b>${esc(progress.title)}</b>`:''}</p></div><span class="dlfr141-savebox"><span class="dlfr112-demo-label ${SAVE.tainted||SAVE.conflict?'is-warn':''}" id="dlfr129Save" aria-live="polite" title="Sauvegarde du mode Aventure">Aventure · ${esc(saveLabel())}</span>${SAVE.tainted&&userId?'<button type="button" class="btn small dlfr141-leave" data-v112-act="leave-test">↺ Revenir à ma partie</button>':''}</span></div>
+  <div class="dlfr112-header"><div><div class="dlfr112-eyebrow">DLFR CARDS${view==='official'?' · COLLECTION':view==='advent'?' · CALENDRIER DE L’AVENT':' · MODE AVENTURE'}</div><h1>DLFR Cards</h1><p>${shownCards().length} cartes · ${COLLECTIONS.length} collections${src?` · ${src}`:''}${progress.title?` · <b>${esc(progress.title)}</b>`:''}</p></div><span class="dlfr141-savebox"><span class="dlfr112-demo-label ${SAVE.tainted||SAVE.conflict?'is-warn':''}" id="dlfr129Save" aria-live="polite" title="Sauvegarde du mode Aventure">Aventure · ${esc(saveLabel())}</span>${SAVE.tainted&&userId?'<button type="button" class="btn small dlfr141-leave" data-v112-act="leave-test">↺ Revenir à ma partie</button>':''}</span></div>
   <p class="dlfr129-intro">${view==='advent'?'Une case par jour du 1er au 25 décembre : cartes <b>Festive</b> et Wayllings dorés. Les jours ratés se rattrapent jusqu’au 31.':view==='official'?'Ta collection, ta vitrine et le classement. Les autres onglets, c’est le mode Aventure.':'Boosters avec tes éclats ◆, expéditions, Forge et talents. Les cartes gagnées vont dans ta collection.'}</p>
   <div class="dlfr112-toolbar">${view==='official'||view==='advent'?'':`<div class="dlfr112-summary"><b>Aventure · ${status()}</b><span>Progression : ${Math.round(inventoryUnique()/total*100)} %</span><div class="dlfr112-meter"><span style="width:${inventoryUnique()/total*100}%"></span></div></div>`}<div class="dlfr112-modes" role="tablist" aria-label="Sections du mode Aventure">${tabs().map(([id,title])=>`<button type="button" role="tab" aria-selected="${view===id}" class="${view===id?'active':''}" data-v112-act="mode" data-mode="${id}">${title}${id==='expeditions'&&progress.camps.some(c=>Date.now()>=c.end)?' <i class="dlfr117-dot"></i>':''}${id==='goals'&&progress.quests.some(q=>q.have>=q.target)?' <i class="dlfr117-dot"></i>':''}</button>`).join('')}</div></div>
   ${view==='official'?OFFICIAL:''}
@@ -1296,6 +1298,6 @@ window.DLFR_CARDS_LAB={
   const T={'Commun':0,'Rare':1,'Épique':2,'Légendaire':3,'Mythique':4,'Ultra':5,'Festive':3};
   startOpening({id:'real',theme:'violet',emblem:'✦',count:draws.length,...pack,real:true},draws.map(d=>({id:d.card.id,card:d.card,tier:T[d.card.rarity]??0,finish:0,isNew:!!d.isNew,value:Number(d.value)||0,shards:0,dust:0})),{...meta,real:true});
  },
- get stats(){return {unique:inventoryUnique(),total:CARDS.length,level:progress.level,power:collectionPower(),catalog:catalog.status,volatile:true};}
+ get stats(){return {unique:inventoryUnique(),total:shownCards().length,level:progress.level,power:collectionPower(),catalog:catalog.status,volatile:true};}
 };
 })();

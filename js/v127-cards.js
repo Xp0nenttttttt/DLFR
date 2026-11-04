@@ -45,7 +45,7 @@ function showcaseHTML(st){
 }
 function boardHTML(){
  if(!S.board.length)return '';
- const total=S.cards.length,me=S.ctx?.ownKey;
+ const total=S.cards.filter(x=>x.card.rarity!=='Secrète').length,me=S.ctx?.ownKey;
  return `<section class="dlfr137-board"><h3>🏆 Meilleurs collectionneurs</h3><p class="muted small">Cartes différentes de la collection officielle.</p><ol>${S.board.slice(0,10).map((r,i)=>`<li class="${r.player_key===me?'is-me':''}"><span class="dlfr137-rank">${i<3?['🥇','🥈','🥉'][i]:'#'+(i+1)}</span><a href="?page=player&player=${encodeURIComponent(r.player_key)}" data-nav>${esc(r.name)}</a><span class="dlfr137-bar"><i style="width:${total?Math.min(100,r.owned/total*100):0}%"></i></span><b>${r.owned} / ${total}</b><small>${r.mythic?`✺ ${r.mythic}`:''}${r.legendary?` ★ ${r.legendary}`:''}</small></li>`).join('')}</ol></section>`;
 }
 function zoom(id){
@@ -72,8 +72,8 @@ async function toggleShowcase(id){
  catch(e){S.ctx.toast?.(e.message||'Vitrine indisponible.');}
 }
 function view(){
- const st=S.status||{},signed=!!st.signed_in,inv=st.inventory||{},done=new Set((st.collections_done||[]).map(Number));
- const owned=S.cards.filter(x=>Number(inv[x.card.id])>0).length,total=S.cards.length;
+ const st=S.status||{},signed=!!st.signed_in,inv=st.inventory||{},VIS=S.cards.filter(x=>x.card.rarity!=='Secrète'||Number(inv[x.card.id])>0||Number(LAB()?.advCount?.(x.card.id))>0),done=new Set((st.collections_done||[]).map(Number));
+ const owned=VIS.filter(x=>Number(inv[x.card.id])>0).length,total=VIS.length;
  const dups=Object.values(st.recyclable||{}).reduce((n,v)=>n+(Number(v)||0),0),dupValue=Number(st.duplicates_value)||0;
  const price=Number(st.booster_price)||150,bal=Number(st.balance)||0;
  if(S.error)return `<div class="notice warning">DLFR Cards indisponible : ${esc(S.error)}</div>`;
@@ -81,7 +81,7 @@ function view(){
  const pityLeft=Math.max(1,80-(Number(st.pity)||0));
  const actions=signed?'':`<div class="dlfr127-guest"><b>Connecte-toi pour voir ta collection</b><a class="btn" data-nav href="?page=my-profile">Se connecter</a></div>`;
  const collections=S.collections.map(col=>{
-   const list=S.cards.filter(x=>Number(x.row.collection_id)===Number(col.id));if(!list.length)return '';
+   const list=VIS.filter(x=>Number(x.row.collection_id)===Number(col.id));if(!list.length)return '';
    const have=list.filter(x=>Number(inv[x.card.id])>0).length,bonus=list.length*40,complete=done.has(Number(col.id));
    const adv=id=>Number(LAB()?.advCount?.(id))||0,advOnly=list.filter(x=>!(Number(inv[x.card.id])>0)&&adv(x.card.id)>0).length;
    const shown=list.filter(x=>S.filter==='all'||(S.filter==='owned')===(Number(inv[x.card.id])>0||adv(x.card.id)>0));
