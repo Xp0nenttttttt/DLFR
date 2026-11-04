@@ -58,7 +58,6 @@ const RANKS=[[1,'Easy','#7fd4ff'],[5,'Normal','#7bf0a0'],[10,'Hard','#ffd36b'],[
 const PACKS=[
  {id:'start',name:'Découverte',count:3,cost:{shards:18},level:1,weights:[60,27,10,2.6,.4],guarantee:0,theme:'violet',emblem:'✦',subtitle:'Pour débuter la collection'},
  {id:'explore',name:'Explorateur',count:5,cost:{shards:60},level:3,weights:[40,35,18,5.5,1.5],guarantee:1,theme:'blue',emblem:'◆',subtitle:'Une carte Rare ou mieux garantie'},
- {id:'legends',name:'GD Legends',count:5,cost:{shards:90},level:7,weights:[40,33,19,6,2],guarantee:1,theme:'crimson',emblem:'♜',subtitle:'Uniquement la série Legends',filter:c=>c.slug==='legends'},
  {id:'players',name:'Joueurs FR',count:5,cost:{shards:90},level:11,weights:[40,33,19,6,2],guarantee:1,theme:'green',emblem:'★',subtitle:'Uniquement des cartes Joueur',filter:c=>c.type==='player'},
  {id:'prestige',name:'Prestige',count:5,cost:{shards:150},level:15,weights:[0,30,45,20,5],guarantee:2,theme:'gold',emblem:'♛',subtitle:'Une carte Épique ou mieux garantie',finishBoost:1.5},
  {id:'demon',name:'Coffre Démoniaque',count:6,cost:{keys:1},level:20,weights:[0,25,45,25,5],guarantee:3,theme:'demon',emblem:'🔑',subtitle:'Une Légendaire garantie · ouvert avec une clé',finishBoost:1.5},

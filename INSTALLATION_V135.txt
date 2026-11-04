@@ -1,0 +1,7 @@
+DLFR V135 — Retrait du booster « GD Legends »
+=============================================
+Le booster « GD Legends » (niveau 7, série Legends) est retiré du mode Aventure.
+Les autres boosters et les parties sauvegardées ne sont pas affectés.
+Aucune modification de la base de données.
+Fichiers : index.html, js/v118-cards-lab.js
+Le ZIP est cumulatif (V117 → V135) : copie tout à la racine du dépôt.
