@@ -1,0 +1,44 @@
+DLFR V127 — Wayllings dorés : Level Packs, DLFR Cards pour tous, nouvelle boutique
+==================================================================================
+
+Base de données : DÉJÀ APPLIQUÉE sur DLFR (supabase/127_ECONOMIE_TCG.sql = archive).
+Il suffit de déployer les fichiers du site.
+
+1) Level Packs → Wayllings dorés
+ - Chaque pack terminé rapporte des Wayllings selon la difficulté de ses niveaux
+   (Top 10 : 220 / niveau … NLW 601+ : 18 / niveau, minimum 100).
+   Packs actuels : de 100 (Apocalyptic trilogy) à 1 660 (Old top1).
+ - Montant affiché sur chaque pack. Les modérateurs peuvent le forcer dans
+   l'éditeur de pack (champ « Wayllings dorés », vide = automatique).
+ - Le pack déjà réclamé avant la mise à jour a été crédité (+100).
+
+2) DLFR Cards pour tous (menu « 🃏 Cartes »)
+ - Collection réelle, enregistrée sur le compte.
+ - 1 booster gratuit par jour (5 cartes, la 5e Rare ou mieux), ou 150 ✦ le booster.
+ - Probabilités : Commun 58 % · Rare 27 % · Épique 10 % · Légendaire 4 % · Mythique 1 %.
+   Légendaire garantie au plus tard toutes les 40 cartes.
+ - Doublons recyclés en Wayllings : 2 / 5 / 15 / 40 / 120 selon la rareté.
+ - Collection complète : 40 ✦ par carte de la collection (une fois).
+ - Même animation d'ouverture que le laboratoire.
+ - Le laboratoire privé de Spleen continue de fonctionner à part.
+
+3) Nouvelle grille de prix (par rareté)
+ Commun 200 · Rare 450 · Épique 900 · Légendaire 1 600 · Mythique 2 500.
+ Les joueurs ayant payé plus cher que le nouveau prix sont remboursés de la
+ différence (aucun cas aujourd'hui : tous les anciens achats coûtaient moins).
+
+4) Boutique
+ - Couleurs de pseudo (nouvelle catégorie « Pseudos ») : Doré, Océan, Crépuscule,
+   Aurore, Néon, Brasier, Galaxie, + Givre de Noël (édition limitée 1er déc → 6 janv).
+   Visibles dans les classements, l'aperçu Statistiques, la liste des joueurs et le profil.
+ - Sélection de la semaine : 3 objets à −25 %, qui changent chaque lundi.
+ - Éditions limitées : date de début / fin affichée, achat bloqué hors période.
+ - Offrir à un ami : bouton 🎁, le joueur reçoit l'objet + un message.
+ - Rubrique « Gagner des Wayllings dorés », encart Boosters, historique du solde.
+
+Fichiers : index.html, js/app.js, js/v118-cards-lab.js, js/v121-profile-deco.js,
+           js/v127-cards.js (nouveau), css/v127-economy.css (nouveau),
+           supabase/127_ECONOMIE_TCG.sql (archive)
+
+RAPPEL : supabase/123_BADGES_VERIFICATIONS.sql n'est toujours pas appliqué.
+Le ZIP est cumulatif (V117 → V127) : copie tout à la racine du dépôt.

@@ -1,0 +1,29 @@
+DLFR V124 — Emblème de profil
+==============================
+
+Nouveau : chaque joueur peut choisir UN badge qu'il possède comme « emblème ».
+Le logo (médaille) de ce badge s'affiche à côté de son pseudo :
+ - en haut de sa fiche publique et dans la bannière du profil ;
+ - dans le classement de la page Statistiques et dans l'aperçu à droite ;
+ - sur sa carte dans la liste des joueurs.
+Au survol : nom et description du badge.
+
+Pour le choisir : « Modifier mon profil » → section « Personnalisation & vitrines »
+→ « Mon emblème » (ou « Aucun »), puis Enregistrer.
+
+Base de données : DÉJÀ APPLIQUÉE sur DLFR (migration dlfr_124_embleme_badge).
+Le fichier supabase/124_EMBLEME_BADGE.sql est fourni pour archive seulement.
+La fonction refuse un badge que le joueur ne possède pas.
+
+Fichiers modifiés / ajoutés :
+ - index.html            (nouveau CSS + versions)
+ - js/app.js
+ - css/v124-emblem.css   (nouveau)
+ - supabase/124_EMBLEME_BADGE.sql (archive)
+
+RAPPEL : supabase/123_BADGES_VERIFICATIONS.sql (nouveaux badges + vérifications)
+n'est toujours PAS appliqué. Sans lui, les nouveaux badges de vérification ne
+sont pas attribués. Copie-le dans le SQL Editor de Supabase et exécute-le, ou
+dis-moi de réessayer et accepte la confirmation.
+
+Le ZIP est cumulatif (V117 → V124) : copie tout le contenu à la racine du dépôt.

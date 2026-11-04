@@ -55,9 +55,10 @@ function view(){
     <div class="dlfr127-col-meta"><b>${have} / ${list.length}</b><div class="dlfr127-bar"><i style="width:${list.length?have/list.length*100:0}%"></i></div><small>${complete?'✓ Bonus de collection obtenu':`Collection complète : +${bonus} ✦`}</small></div></header>
     <div class="dlfr127-grid">${shown.map(x=>{const q=Number(inv[x.card.id])||0;return `<div class="dlfr127-slot ${q?'is-owned':'is-missing'}" title="${esc(x.card.name)} · ${esc(x.card.rarity)}">${fig(x.card,q>0)}${q>1?`<span class="dlfr127-qty">×${q}</span><button type="button" class="dlfr127-recycle-one" data-cards-recycle="${x.card.id}" title="Recycler ${q-1} doublon(s)">♻ +${(q-1)*(VALUE[x.card.rarity]||2)}</button>`:''}</div>`;}).join('')||'<p class="muted small">Aucune carte dans ce filtre.</p>'}</div></section>`;
  }).join('');
- return `<header class="dlfr127-hero"><div><span class="kicker">Collection</span><h1>DLFR Cards</h1><p>Collectionne les niveaux, les joueurs et les moments de la DLFR. Les doublons et les collections complètes rapportent des <b>Wayllings dorés</b>.</p></div>
+ const embedded=!!document.querySelector('#dlfr127Cards.is-embedded');
+ return (embedded?`<div class="dlfr127-hero-stats is-compact"><div><span>Cartes</span><b>${signed?owned:'—'} <small>/ ${total}</small></b></div><div><span>Wayllings dorés</span><b>✦ ${signed?bal:'—'}</b></div>${signed?`<div><span>Légendaire garantie</span><b>${pityLeft} <small>carte${pityLeft>1?'s':''}</small></b></div>`:''}</div>`:`<header class="dlfr127-hero"><div><span class="kicker">Collection</span><h1>DLFR Cards</h1><p>Collectionne les niveaux, les joueurs et les moments de la DLFR. Les doublons et les collections complètes rapportent des <b>Wayllings dorés</b>.</p></div>
   <a class="dlfr129-adventure-cta" href="?page=cards-lab" data-nav><span aria-hidden="true">🗺️</span><span><b>Mode Aventure</b><small>Expéditions, talents, Forge, quêtes…</small></span><em>Jouer →</em></a>
-  <div class="dlfr127-hero-stats"><div><span>Cartes</span><b>${signed?owned:'—'} <small>/ ${total}</small></b></div><div><span>Wayllings dorés</span><b>✦ ${signed?bal:'—'}</b></div>${signed?`<div><span>Légendaire garantie</span><b>${pityLeft} <small>carte${pityLeft>1?'s':''}</small></b></div>`:''}</div></header>
+  <div class="dlfr127-hero-stats"><div><span>Cartes</span><b>${signed?owned:'—'} <small>/ ${total}</small></b></div><div><span>Wayllings dorés</span><b>✦ ${signed?bal:'—'}</b></div>${signed?`<div><span>Légendaire garantie</span><b>${pityLeft} <small>carte${pityLeft>1?'s':''}</small></b></div>`:''}</div></header>`)+`
   ${actions}
   <details class="dlfr127-odds"><summary>Probabilités et règles</summary><ul><li>Chaque carte : Commun 58 % · Rare 27 % · Épique 10 % · Légendaire 4 % · Mythique 1 %.</li><li>La 5e carte de chaque booster est Rare ou mieux.</li><li>Une carte Légendaire ou mieux est garantie au plus tard toutes les 40 cartes.</li><li>Recyclage d’un doublon : Commun 2 ✦ · Rare 5 ✦ · Épique 15 ✦ · Légendaire 40 ✦ · Mythique 120 ✦.</li><li>Collection complète : 40 ✦ par carte de la collection, une seule fois.</li></ul></details>
   <div class="dlfr127-filters" role="group" aria-label="Filtrer les cartes">${[['all','Toutes'],['owned','Possédées'],['missing','Manquantes']].map(([k,l])=>`<button type="button" data-cards-filter="${k}" class="${S.filter===k?'active':''}" aria-pressed="${S.filter===k}">${l}</button>`).join('')}</div>
@@ -100,6 +101,7 @@ document.addEventListener('click',ev=>{
 });
 window.DLFR_CARDS={
  page(){return '<section class="dlfr127-cards" id="dlfr127Cards" aria-live="polite"><div class="dlfr127-loading">Chargement de ta collection…</div></section>';},
+ refresh(){if(!S.ctx)return;if(S.loaded)paint();else load();},
  mount(ctx){const sessionChanged=S.ctx&&S.ctx.session!==ctx.session;S.ctx=ctx;if(sessionChanged)S.loaded=false;if(S.loaded)paint();else load();},
  reset(){S.loaded=false;S.status=null;}
 };

@@ -1,0 +1,33 @@
+DLFR V119 — ANONYMISATION DE DRAXIT + ASTÉRISQUE SUR LES CRÉDITS « ANONYME »
+============================================================================
+BASE : V118 (ce ZIP contient aussi les fichiers V117/V118 si tu ne les as pas encore mis en ligne).
+
+DÉJÀ FAIT DANS SUPABASE (rien à exécuter) :
+  - Vérifications passées sur le profil « Anonyme » existant : Keres, Starlight Summit, Aerial Gleam,
+    Pagoda, court circuit, Virtual Stigmata.
+  - MINUSdry rattachée au profil tgm05 (texte « [MOAR]TGM05 » inchangé).
+  - « Premier record français » : Drax → Anonyme sur 10 niveaux (Pagoda, court circuit, reverence,
+    Disruption, Warning, SHATTER, Dyad, EXPLICIT, Dreams, Virtual Stigmata), preuves AREDL comprises
+    (nom remplacé, identifiant AREDL retiré).
+  - Profil joueur DraxitIII supprimé (+ sa ligne d'historique de classement).
+  - Sauvegarde : schéma privé dlfr_backup, table anonymisation_draxit_20261103
+    (+ fichier sauvegarde_draxit_avant_anonymisation.json pour les valeurs d'origine des vérifications).
+
+FICHIERS À METTRE SUR GITHUB PAGES :
+  - index.html, js/app.js, js/level-cinema.js (remplacer)
+  - css/v119-anonymes.css (ajouter)
+  - js/history-archive.js, data/aredl-fr-bulk.json, rapports/niveaux_historiques.csv (remplacer :
+    « [FLEUR] DraxitIII » et « Drax » y deviennent « Anonyme »)
+  - Si V118 n'est pas encore en ligne : js/v118-cards-lab.js, css/v118-cards-lab.css,
+    js/v117-cards-lab.js, css/v117-cards-lab.css
+  Puis Ctrl + F5.
+
+AFFICHAGE :
+  - Liste : « vérifié par Anonyme* » + ligne « * Ce joueur ne souhaite pas apparaître sur la liste
+    ou a été supprimé par un modérateur. »
+  - Fiche niveau : astérisque sur « Vérification » (et sur « Premier record français daté »
+    si c'est Anonyme) + la même phrase sous les informations.
+  - Concerne automatiquement tout niveau crédité au profil Anonyme, y compris les futurs.
+
+POUR ANONYMISER UN AUTRE JOUEUR PLUS TARD : dans Modération > niveaux, mettre « Anonyme » comme
+vérificateur (joueur DLFR « Anonyme »). L'astérisque apparaît tout seul.

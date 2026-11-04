@@ -1,0 +1,17 @@
+DLFR V130 — Tout DLFR Cards sur la page « 🃏 Cartes »
+=====================================================
+
+Plus de page séparée : la page Cartes regroupe tout, avec une seule barre d'onglets :
+ ★ Booster du jour · ✦ Boosters · Expéditions · Talents · Forge · Objectifs · Album · Ma collection
+ (+ Catalogue / Échanges fictifs / Outils de test pour propriétaires et supermodos)
+
+ - « ★ Booster du jour » = la collection officielle : booster gratuit chaque jour,
+   doublons recyclés et collections complètes → Wayllings dorés.
+ - Les autres onglets = le mode Aventure (éclats ◆, expéditions, talents, Forge,
+   quêtes), sauvegardé sur le compte, sans Wayllings.
+ - L'ancien lien ?page=cards-lab affiche la même page.
+
+Aucune modification de la base de données.
+Fichiers : index.html, js/app.js, js/v118-cards-lab.js, js/v127-cards.js, css/v127-economy.css
+Le ZIP est cumulatif (V117 → V130) : copie tout à la racine du dépôt.
+RAPPEL : supabase/123_BADGES_VERIFICATIONS.sql n'est toujours pas appliqué.

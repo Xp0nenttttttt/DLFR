@@ -1,0 +1,33 @@
+DLFR V126 — Site plus simple : images de profil + nouvelle navigation
+=====================================================================
+
+1) Images de profil par fichier
+ - Dans « Mon profil → Modifier » : bouton « 📁 Choisir une image » pour l'avatar
+   et la bannière, avec aperçu immédiat. L'image est envoyée quand on clique
+   « Enregistrer ». Le lien reste possible (« Ou coller un lien d'image »).
+ - PNG, JPG, WebP ou GIF, 5 Mo max. Les grandes images sont réduites
+   automatiquement (avatar 512 px, bannière 1800 px) ; les GIF restent animés.
+ - L'ancienne image envoyée est supprimée quand on la remplace.
+ - Base de données : DÉJÀ APPLIQUÉE (bucket « dlfr-profile-media », chacun ne
+   peut écrire que dans son propre dossier). supabase/126_PROFILE_IMAGES.sql = archive.
+
+2) Nouvelle navigation
+ - Une seule barre : Niveaux · Joueurs · Communauté · Boutique, avec une icône
+   et une phrase d'explication pour chaque page.
+ - Bouton « ＋ Soumettre un record » toujours visible.
+ - Menu du compte à droite (avatar + pseudo) : Mon profil, Mes soumissions,
+   Se déconnecter. « Modération » n'apparaît plus que pour l'équipe.
+ - Thème et UNRATED rangés dans ⚙ (avec une explication de UNRATED).
+ - Mobile : en-tête de 57 px (au lieu d'environ 250), menu latéral « ☰ Menu ».
+ - Fil d'Ariane sous l'en-tête (ex. Accueil › Joueurs › Profils › Zoink).
+
+3) « Mon profil » en onglets
+ - Modifier · Aperçu · Badges · Compte & connexion · Fusion de fiches,
+   + raccourcis (Soumettre un record, Mes soumissions, Boutique).
+   La page faisait ~6 400 px de haut d'un seul bloc.
+
+Fichiers : index.html, js/app.js, css/v126-ux.css (nouveau),
+           supabase/126_PROFILE_IMAGES.sql (archive)
+
+RAPPEL : supabase/123_BADGES_VERIFICATIONS.sql n'est toujours pas appliqué.
+Le ZIP est cumulatif (V117 → V126) : copie tout à la racine du dépôt.

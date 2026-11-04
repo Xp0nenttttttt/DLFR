@@ -1,0 +1,24 @@
+DLFR V128 — Style de la fiche joueur
+====================================
+
+La partie blanche de la fiche (aperçu dans Statistiques + page profil) est
+maintenant personnalisable. Base de données : DÉJÀ APPLIQUÉE
+(supabase/128_STYLE_FICHE.sql = archive).
+
+Gratuit — « Mon profil → Modifier → Style de ma fiche » (utilise la couleur d'accent) :
+ - Classique : le style actuel.
+ - Teinté : légère teinte de la couleur d'accent.
+ - Dégradé : dégradé de la couleur d'accent, cases translucides.
+ - Nuit : fiche sombre avec la couleur d'accent en lueur.
+ - Verre : la bannière du joueur floutée sur toute la fiche.
+
+Boutique — nouvelle catégorie « Fonds de fiche » (animés, prioritaires sur le style gratuit) :
+ - Fond Aurore boréale (Épique · 900)   - Fond Magma (Épique · 900)
+ - Fond Holographique (Légendaire · 1 600) - Fond Galaxie (Mythique · 2 500)
+
+Tout le contenu de la fiche (cases, badges, activité, onglets) s'adapte au style choisi.
+
+Fichiers : index.html, js/app.js, js/v121-profile-deco.js,
+           css/v128-card-styles.css (nouveau), supabase/128_STYLE_FICHE.sql (archive)
+Le ZIP est cumulatif (V117 → V128) : copie tout à la racine du dépôt.
+RAPPEL : supabase/123_BADGES_VERIFICATIONS.sql n'est toujours pas appliqué.

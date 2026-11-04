@@ -35,7 +35,7 @@ const fallbackCards=()=>SOURCE.map(([name,rarity,type],i)=>mkCard({id:i+1,name,r
 const CARDS=fallbackCards();
 const rarities=['Commun','Rare','Épique','Légendaire','Mythique'];
 const MAX_IMPORT=250;
-let gate=false, view='album', filter='all', query='', selected=2, forgeSel=0, goalsTab='quests';
+let gate=false, view='official', filter='all', query='', selected=2, forgeSel=0, goalsTab='quests';
 let DB=null;
 // V129 — mode Aventure : ouvert à tous, sauvegardé par compte. Catalogue + outils de test : propriétaires et supermodos.
 let editor=false,userId=null;
@@ -922,7 +922,7 @@ function catalogView(data){
 }
 
 // ============================================================ PAGE
-function tabs(){const t=[['album','Album'],['collection','Ma collection'],['packs','✦ Boosters'],['expeditions','Expéditions'],['talents','Talents'],['forge','Forge'],['goals','Objectifs']];return editor?t.concat([['catalog','✎ Catalogue'],['exchanges','Échanges fictifs'],['control','Outils de test']]):t;}
+function tabs(){const t=[...(window.DLFR_CARDS?[['official','★ Booster du jour']]:[]),['packs','✦ Boosters'],['expeditions','Expéditions'],['talents','Talents'],['forge','Forge'],['goals','Objectifs'],['album','Album'],['collection','Ma collection']];return editor?t.concat([['catalog','✎ Catalogue'],['exchanges','Échanges fictifs'],['control','Outils de test']]):t;}
 function filtered(){return CARDS.filter(c=>(view!=='collection'||has(c.id))&&(filter==='all'||filter==='owned'&&has(c.id)||filter==='missing'&&!has(c.id)||filter===c.type||filter==='col:'+c.collectionId)&&normalize(c.name+' '+c.series+' '+rarity(c)).includes(normalize(query)));}
 function albumView(data){
  const current=get(selected)||CARDS[0];
@@ -931,15 +931,18 @@ function albumView(data){
  return `<div class="dlfr112-album-layout"><div class="dlfr112-gallery-pane"><div class="dlfr112-filters"><label>Affichage<select data-v112-field="filter">${[['all','Toutes les cartes'],['owned','Possédées'],['missing','Manquantes'],['level','Niveaux'],['player','Joueurs'],['dlfr','DLFR'],...COLLECTIONS.map(c=>['col:'+c.id,'Collection · '+c.name])].map(([v,t])=>`<option value="${esc(v)}" ${filter===v?'selected':''}>${esc(t)}</option>`).join('')}</select></label><label>Rechercher<input type="search" data-v112-field="search" placeholder="Nom ou rareté…" value="${esc(query)}"></label></div><div class="dlfr112-grid">${filtered().map(c=>cardItem(c,data)).join('')||'<p class="muted">Aucune carte pour ce filtre.</p>'}</div></div><aside class="dlfr112-detail"><div class="dlfr112-detail-inner">${figure(current,data)}<h3>${esc(current.name)}</h3><p>#${idString(current.id)} · ${esc(current.series)}${cur?` · ${FIN_NAME[cur.finish||0]} · ★${cur.stars||0}`:''}${current.inPacks?'':' · hors boosters'}</p>${current.description?`<p class="dlfr113-description">${esc(current.description)}</p>`:''}<div class="dlfr112-detail-actions">${editor?`<button type="button" class="btn" data-v112-act="give" data-id="${current.id}">+ Recevoir 1 carte</button><button type="button" class="btn subtle" data-v112-act="take" data-id="${current.id}" ${currentCount?'':'disabled'}>− Retirer 1</button><button type="button" class="btn subtle" data-v112-act="holo" data-id="${current.id}" ${currentCount?'':'disabled'}>✧ Finition suivante (${FIN_NAME[((cur?.finish||0)+1)%4]})</button>`:''}${currentCount?`<button type="button" class="btn subtle" data-v112-act="forge-open" data-id="${current.id}">⚒ Ouvrir dans la Forge</button>`:''}${editor&&DB&&catalog.status==='ready'?`<button type="button" class="btn subtle" data-v112-act="cat-card-open" data-id="${current.id}">✎ Modifier dans le catalogue</button>`:''}</div>${editor?"<small>Outils de test : utiliser + / − / finition passe la session en mode test (non sauvegardée).</small>":''}</div></aside></div>`;
 }
 function viewPage(data){
- if(!gate)return '<section class="paper"><h2>DLFR Cards · Aventure</h2><p>Connecte-toi pour jouer : ta partie sera sauvegardée sur ton compte.</p><a class="btn" href="?page=my-profile" data-nav>Se connecter</a></section>';
+ const OFFICIAL='<div id="dlfr127Cards" class="dlfr127-cards is-embedded" aria-live="polite"><div class="dlfr127-loading">Chargement de ta collection…</div></div>';
+ if(!gate)return `<section class="dlfr112 dlfr117" id="dlfr112Lab"><div class="dlfr112-header"><div><div class="dlfr112-eyebrow">DLFR CARDS</div><h1>DLFR Cards</h1><p>Booster gratuit chaque jour, collections, expéditions, talents, Forge et quêtes.</p></div></div>${OFFICIAL}</section>`;
+ if(view==='official'&&!window.DLFR_CARDS)view='packs';
  if(!editor&&['catalog','exchanges','control'].includes(view))view='album';
  const current=get(selected)||CARDS[0];
  const prog=['packs','expeditions','talents','forge','goals'].includes(view),total=Math.max(1,CARDS.length);
  const src=catalog.status==='ready'||catalog.status==='empty'?'catalogue Supabase':catalog.status==='loading'?'chargement du catalogue…':'catalogue intégré (hors ligne)';
  return `<section class="dlfr112 dlfr117" id="dlfr112Lab">
-  <div class="dlfr112-header"><div><div class="dlfr112-eyebrow">DLFR CARDS · MODE AVENTURE</div><h1>DLFR Cards · Aventure</h1><p>${CARDS.length} cartes · ${COLLECTIONS.length} collections · ${src}${progress.title?` · <b>${esc(progress.title)}</b>`:''}</p></div><span class="dlfr112-demo-label ${SAVE.tainted||SAVE.conflict?'is-warn':''}" id="dlfr129Save" aria-live="polite">${esc(saveLabel())}</span></div>
-  <p class="dlfr129-intro">Ouvre des boosters avec tes éclats ◆, pars en expédition, monte de niveau, améliore tes cartes à la Forge et débloque des talents. Ta partie est sauvegardée sur ton compte. Les ressources du mode Aventure restent dans le jeu (pas de Wayllings dorés) : ta <a href="?page=cards" data-nav>collection officielle</a> se remplit avec le booster du jour.</p>
-  <div class="dlfr112-toolbar"><div class="dlfr112-summary"><b>${status()}</b><span>Progression de collection : ${Math.round(inventoryUnique()/total*100)} %</span><div class="dlfr112-meter"><span style="width:${inventoryUnique()/total*100}%"></span></div></div><div class="dlfr112-modes" role="tablist" aria-label="Sections du mode Aventure">${tabs().map(([id,title])=>`<button type="button" role="tab" aria-selected="${view===id}" class="${view===id?'active':''}" data-v112-act="mode" data-mode="${id}">${title}${id==='expeditions'&&progress.camps.some(c=>Date.now()>=c.end)?' <i class="dlfr117-dot"></i>':''}${id==='goals'&&progress.quests.some(q=>q.have>=q.target)?' <i class="dlfr117-dot"></i>':''}</button>`).join('')}</div></div>
+  <div class="dlfr112-header"><div><div class="dlfr112-eyebrow">DLFR CARDS${view==='official'?' · COLLECTION OFFICIELLE':' · MODE AVENTURE'}</div><h1>DLFR Cards</h1><p>${CARDS.length} cartes · ${COLLECTIONS.length} collections · ${src}${progress.title?` · <b>${esc(progress.title)}</b>`:''}</p></div><span class="dlfr112-demo-label ${SAVE.tainted||SAVE.conflict?'is-warn':''}" id="dlfr129Save" aria-live="polite" title="Sauvegarde du mode Aventure">Aventure · ${esc(saveLabel())}</span></div>
+  <p class="dlfr129-intro">${view==='official'?'<b>★ Booster du jour</b> : ta collection officielle. Un booster gratuit chaque jour ; les doublons et les collections complètes rapportent des <b>Wayllings dorés</b>. Les autres onglets forment le <b>mode Aventure</b> : boosters à éclats ◆, expéditions, talents, Forge et quêtes, avec sa propre collection.':'<b>Mode Aventure</b> : ouvre des boosters avec tes éclats ◆, pars en expédition, monte de niveau, améliore tes cartes à la Forge et débloque des talents. Partie sauvegardée sur ton compte ; ses ressources restent dans le jeu (pas de Wayllings dorés, qui se gagnent dans l’onglet ★ Booster du jour).'}</p>
+  <div class="dlfr112-toolbar">${view==='official'?'':`<div class="dlfr112-summary"><b>Aventure · ${status()}</b><span>Progression : ${Math.round(inventoryUnique()/total*100)} %</span><div class="dlfr112-meter"><span style="width:${inventoryUnique()/total*100}%"></span></div></div>`}<div class="dlfr112-modes" role="tablist" aria-label="Sections du mode Aventure">${tabs().map(([id,title])=>`<button type="button" role="tab" aria-selected="${view===id}" class="${view===id?'active':''}" data-v112-act="mode" data-mode="${id}">${title}${id==='expeditions'&&progress.camps.some(c=>Date.now()>=c.end)?' <i class="dlfr117-dot"></i>':''}${id==='goals'&&progress.quests.some(q=>q.have>=q.target)?' <i class="dlfr117-dot"></i>':''}</button>`).join('')}</div></div>
+  ${view==='official'?OFFICIAL:''}
   ${prog?progressionPage(data):''}
   ${view==='album'||view==='collection'?albumView(data):''}
   ${view==='catalog'?catalogView(data):''}
@@ -983,7 +986,7 @@ async function flushSave(){
 function setSaveLabel(t){const el=document.getElementById('dlfr129Save');if(el){el.textContent=t;el.classList.toggle('is-warn',SAVE.tainted||SAVE.conflict);}}
 function saveLabel(){return SAVE.tainted?'SESSION DE TEST · NON SAUVEGARDÉE':!SAVE.loaded?(userId?'Chargement de ta partie…':'Connecte-toi pour sauvegarder'):SAVE.status||'✓ Sauvegardé';}
 window.addEventListener('beforeunload',e=>{if(SAVE.timer&&SAVE.loaded&&!SAVE.tainted&&!SAVE.conflict&&!SAVE.saving&&document.getElementById('dlfr112Lab')){clearTimeout(SAVE.timer);flushSave();}});
-function repaint(){scheduleSave();const p=document.getElementById('dlfr112Lab');if(p){const y=window.scrollY;p.outerHTML=viewPage(srcData());window.scrollTo(0,y);}}
+function repaint(){scheduleSave();const p=document.getElementById('dlfr112Lab');if(p){const y=window.scrollY;p.outerHTML=viewPage(srcData());window.scrollTo(0,y);if(document.getElementById('dlfr127Cards'))window.DLFR_CARDS?.refresh?.();}}
 function reset(){owned.clear();overrides.clear();journal.length=0;selected=CARDS[0]?.id||0;query='';filter='all';Object.assign(progress,freshProgress());forgeSel=0;if(OPEN.st){OPEN.st=null;unmountOpening(true);}}
 function handleClick(event){
  const b=event.target.closest?.('[data-v112-act]');if(!b||!gate)return;

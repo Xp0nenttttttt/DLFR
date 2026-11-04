@@ -1,0 +1,39 @@
+DLFR V121 — DÉCORATIONS DE PROFIL REDESSINÉES
+=============================================
+BASE : V120 (ce ZIP contient aussi tous les fichiers V117 à V120).
+
+À METTRE SUR GITHUB PAGES :
+  - index.html, js/app.js (remplacer)
+  - js/v121-profile-deco.js, css/v121-profile-deco.css (ajouter)
+  - + les fichiers V117 à V120 du ZIP s'ils ne sont pas déjà en ligne
+  Puis Ctrl + F5. Aucun SQL : mêmes objets, mêmes achats, mêmes paliers.
+
+LES 11 DÉCORATIONS, REFAITES DE ZÉRO :
+  Bannières
+   🌙 Nuit étoilée      — aurore boréale animée, croissant de lune, étoiles filantes, montagnes
+   🌘 Éclipse Sanglante — lune de sang qui s'éclipse, brume rouge, cendres, silhouette gothique
+                          (II : la lune pulse · III : éclairs rouges)
+   👾 GLITCH.EXE        — scanlines, tranches d'image décalées, pixels, pseudo en RVB
+                          (II : 2e tranche · III : l'écran tremble, « CORRUPTION 99% »)
+   🌌 Voidwalker        — trou noir avec disque d'accrétion qui tourne, étoiles aspirées
+                          (II : anneau gravitationnel · III : horizon qui pulse)
+  Cadres (autour de l'avatar)
+   💜 Améthyste         — gemme taillée avec reflet qui passe
+   ❄️ Aurore            — dégradé aurore qui tourne autour de l'avatar
+   💎 Couronne d'Améthyste — couronne d'or sertie (II : brille · III : flotte + éclats en orbite)
+   🪽 Ascension Céleste — auréole flottante et cadre doré (II : rayons divins · III : rayons intenses)
+   📺 Désynchronisé     — contour cyan/magenta qui saute (II/III : tranches glitch)
+  Badges
+   ✨ Éclat hebdomadaire / 🔥 Flamme éternelle — médailles animées à côté du pseudo
+
+OÙ ÇA S'AFFICHE :
+  - Page profil (bannière, cadre, médailles) + nouvel encart « Décorations exposées »
+    avec une miniature de chaque objet et la progression des paliers.
+  - Annuaire des joueurs, aperçu dans Statistiques, lignes du classement (liseré + médailles).
+  - Boutique : chaque cadre/bannière/badge a une miniature animée + sa vraie description.
+
+CORRIGÉ AU PASSAGE : l'orbe de la bannière Voidwalker qui sortait du profil (en bas à droite).
+
+Les anciens styles (css/v90-rewards-fx.css) restent chargés pour le reste du site, mais ne
+s'appliquent plus aux décorations (nouvelles classes « pd-* »). Les animations se coupent si
+l'appareil demande moins d'animations.

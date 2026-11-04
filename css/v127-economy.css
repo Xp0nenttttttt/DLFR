@@ -131,3 +131,11 @@ html.dark .dlfr127-coins{color:#ffc95c!important}
 .dlfr129-intro{margin:-4px 0 14px;font-size:13px;color:var(--muted);line-height:1.5}
 .dlfr129-intro a{color:var(--blue);font-weight:700}
 .dlfr112-demo-label.is-warn{background:#c2410c!important;color:#fff!important}
+/* V130 — collection officielle intégrée dans DLFR Cards (onglet ★ Booster du jour) */
+.dlfr127-cards.is-embedded{color:var(--ink);margin-top:14px}
+.dlfr127-hero-stats.is-compact{margin-bottom:12px}
+.dlfr127-hero-stats.is-compact>div{background:var(--card);border:1px solid var(--line);backdrop-filter:none;color:var(--ink)}
+.dlfr127-hero-stats.is-compact span{color:var(--muted);opacity:1}
+.dlfr127-hero-stats.is-compact b{color:var(--ink2,var(--ink))}
+.dlfr127-cards.is-embedded .dlfr127-action h3,.dlfr127-cards.is-embedded .dlfr127-col h3,.dlfr127-cards.is-embedded .dlfr127-col-meta b,.dlfr127-cards.is-embedded .dlfr127-odds summary,.dlfr127-cards.is-embedded .dlfr127-guest b{color:var(--ink2,var(--ink))!important;opacity:1}
+.dlfr127-cards.is-embedded .dlfr127-odds,.dlfr127-cards.is-embedded .dlfr127-odds li{color:var(--muted)}

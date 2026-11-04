@@ -687,7 +687,7 @@ function setNavDrawer(open){
 const PAGE_INFO={list:['Niveaux','Demonlist'],demon:['Niveaux','Demonlist'],archive:['Niveaux','Archives'],unbeaten:['Niveaux','Niveaux non vérifiés'],history:['Niveaux','Historique des records'],calculator:['Niveaux','Calculateur de points'],
  stats:['Joueurs','Statistiques & classement'],players:['Joueurs','Profils des joueurs'],player:['Joueurs','Profils des joueurs','players'],honors:['Joueurs','Palmarès & exploits'],hall:['Joueurs','Palmarès & exploits','honors'],achievements:['Joueurs','Palmarès & exploits','honors'],regions:['Joueurs','Carte de France'],clans:['Joueurs','Clans'],
  cards:['','DLFR Cards'],news:['Communauté','Actualités'],activity:['Communauté','Vie communautaire'],packs:['Communauté','Level Packs'],shop:['','Boutique'],
- 'my-profile':['Mon espace','Mon profil'],'my-submissions':['Mon espace','Mes soumissions'],'submit-record':['Mon espace','Soumettre un record'],admin:['Mon espace','Modération'],'cards-lab':['DLFR Cards','Mode Aventure']};
+ 'my-profile':['Mon espace','Mon profil'],'my-submissions':['Mon espace','Mes soumissions'],'submit-record':['Mon espace','Soumettre un record'],admin:['Mon espace','Modération'],'cards-lab':['','DLFR Cards']};
 function navSync(page){
  const h=document.querySelector('.dlfr126-header');if(!h)return;
  const logged=!!(LIVE?state.session:true),own=LIVE?state.ownKey:state.demoActor;
@@ -721,7 +721,7 @@ function navSync(page){
 }
 function nav(){
  const page=new URLSearchParams(location.search).get('page')||'list';
- const canonical=['hall','achievements'].includes(page)?'honors':page;
+ const canonical=['hall','achievements'].includes(page)?'honors':page==='cards-lab'?'cards':page;
  document.querySelectorAll('[data-link]').forEach(a=>a.classList.toggle('active',a.dataset.link===canonical));
  document.querySelectorAll('.nav-menu').forEach(menu=>{
    const active=!!menu.querySelector('a[data-link="'+canonical+'"]');
@@ -2768,14 +2768,14 @@ function render(){
  if(page==='admin'&&state.adminTab==='requests'&&state.staff&&state.session?.user?.id&&!ownerPreviewActive()&&!state.reversalReady&&!state.reversalLoading)void loadReversalList();
  // Activer le rendu du labo seulement après validation Supabase.
  if(window.DLFR_CARDS_LAB){window.DLFR_CARDS_LAB.setEditor?.(!!(state.cardsLabAccess&&state.session));window.DLFR_CARDS_LAB.setGate(!!(LIVE&&state.session),state.session?.user?.id||null);}
- const content=page==='cards-lab'?(window.DLFR_CARDS_LAB?window.DLFR_CARDS_LAB.view(state.data):'<section class="center-panel"><h2>DLFR Cards · Aventure</h2><p>Le jeu n’a pas pu être chargé. Recharge la page.</p></section>'):page==='archive'?archivePage():page==='stats'?statsPage():page==='player'?playerPage():page==='players'?playersPage():page==='my-profile'?selfProfilePage():page==='shop'?shopPage():page==='cards'?(window.DLFR_CARDS?.page()||'<p class="notice warning">DLFR Cards indisponible.</p>'):page==='my-submissions'?mySubmissionsPage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():page==='packs'?packPage():page==='regions'?regionsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;
+ const content=page==='cards-lab'?(window.DLFR_CARDS_LAB?window.DLFR_CARDS_LAB.view(state.data):'<section class="center-panel"><h2>DLFR Cards · Aventure</h2><p>Le jeu n’a pas pu être chargé. Recharge la page.</p></section>'):page==='archive'?archivePage():page==='stats'?statsPage():page==='player'?playerPage():page==='players'?playersPage():page==='my-profile'?selfProfilePage():page==='shop'?shopPage():page==='cards'?(window.DLFR_CARDS_LAB?window.DLFR_CARDS_LAB.view(state.data):window.DLFR_CARDS?.page()||''):page==='my-submissions'?mySubmissionsPage():page==='demon'?demonPage():page==='news'?newsPage():page==='activity'?activityPage():page==='packs'?packPage():page==='regions'?regionsPage():['honors','hall','achievements'].includes(page)?honorsPage(page):page==='calculator'?calculatorPage():page==='unbeaten'?unbeatenPage():page==='clans'?clansPage():page==='history'?historyPage():page==='submit-record'?submitRecordPage():page==='admin'?adminPage():listPage();el.innerHTML=migrationNotice()+content;
  // V112 — le lien privé ne doit être visible que lorsque le serveur a autorisé ce compte.
  const cardsLabNav=document.getElementById('dlfr112PrivateNav');
  if(cardsLabNav) cardsLabNav.hidden=!(state.cardsLabAccess&&state.session); // lien « Catalogue » réservé aux propriétaires / supermodos
  // Donner un accès clair à l'inscription et à la connexion, sans modifier la navigation existante.
  try{navSync(page);}catch{}
  if(page==='shop'){v80WeeklyRender();v81RewardsRender();}
- if(page==='cards'&&LIVE&&db)window.DLFR_CARDS?.mount({db,session:state.session?.user?.id||null,data:state.data,toast});if(page==='admin'&&state.adminTab==='weekly'&&state.staffRole==='owner'&&!ownerPreviewActive())v86AdminLoad();
+ if((page==='cards'||page==='cards-lab')&&LIVE&&db&&document.getElementById('dlfr127Cards'))window.DLFR_CARDS?.mount({db,session:state.session?.user?.id||null,data:state.data,toast});if(page==='admin'&&state.adminTab==='weekly'&&state.staffRole==='owner'&&!ownerPreviewActive())v86AdminLoad();
  if(page==='player'||(page==='my-profile'&&document.getElementById('v81-profile-rewards')))v81ProfileRewards();if(page==='stats'||page==='players')v90LoadFx();
  if(page==='admin'&&state.staffRole==='owner'){
    const switcher=document.createElement('section');switcher.className='paper owner-role-switcher';
