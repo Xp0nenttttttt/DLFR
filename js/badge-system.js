@@ -1,36 +1,52 @@
-/* DLFR V2.8: catalogue officiel de 18 badges; simulation locale (pas de sécurité serveur). */
+/* DLFR V2.8 → V123 : catalogue officiel de 33 badges, avec icône, description et indice.
+ * Attribution réelle côté Supabase (dlfr_award_progress, déclenchée par les records ET les vérifications).
+ * Ici : affichage + simulation locale (démo). */
 (function(){'use strict';
 const rarities=['Beginner','Impressive','Epic','Légendaire','Mythique','Ultra'];
-const categories=[{id:1,name:'Progression Demonlist'},{id:2,name:'Progression NLW'},{id:3,name:'Exploits UNRATED'},{id:4,name:'Distinctions & classements'}];
-// kind: list | nlw | unrated | top75 | all150 | manual. Les seuils sont des niveaux distincts à 100 %.
+const categories=[{id:1,name:'Progression Demonlist'},{id:5,name:'Vérifications'},{id:2,name:'Progression NLW'},{id:3,name:'Exploits UNRATED'},{id:4,name:'Distinctions & classements'}];
+// [id, nom, rareté, catégorie, icône, règle, seuil, description, indice (badge non obtenu)]
+// Règles : list | main | nlw | unrated | top75 | all150 | beat_pos | verif | verif_pos | manual
 const specs=[
- ['goat-pays','Le Goat tout simplement','Ultra',4,'✧','manual'],
- ['nlwgod','NLWGOD','Ultra',2,'✧','nlw',1000],
- ['god','GOD','Ultra',1,'✧','all150'],
- ['goat-region','Le Goat de ta région','Mythique',4,'✦','manual'],
- ['demi-dieu','Demi Dieu','Mythique',1,'✦','top75'],
- ['clash-clans','Clash of Clans','Légendaire',4,'♛','manual'],
- ['unrated-master','Unrated Master','Légendaire',3,'♛','unrated',10],
- ['grand-faucheur-liste','Grand Faucheur de liste','Légendaire',1,'♛','list',75],
- ['grand-faucheur-nlw','Grand Faucheur NLW','Légendaire',2,'♛','nlw',500],
- ['faucheur-nlw','Faucheur NLW','Epic',2,'◆','nlw',250],
- ['faucheur-liste','Faucheur de liste','Epic',1,'◆','list',35],
- ['cour-grands','Bienvenue dans la cour des grand','Epic',1,'◆','main',1],
- ['cent','100!','Impressive',2,'★','nlw',100],
- ['unrated-premier','Unrated ?','Impressive',3,'★','unrated',1],
- ['bienvenue-club','Bienvenue au club','Impressive',1,'★','list',1],
- ['dix','Dix','Impressive',1,'★','list',10],
- ['bienvenue-nlw','Bienvenue au club NLW','Beginner',2,'✦','nlw',1],
- ['dix-nlw','DixNLW','Beginner',2,'✦','nlw',10]
+ ['bienvenue-club','Bienvenue au club','Impressive',1,'🎟️','list',1,'Premier niveau du Top 150 battu à 100 %. Te voilà parmi les joueurs classés.','Ton tout premier pas dans le Top 150.'],
+ ['dix','Dix','Impressive',1,'🔟','list',10,'10 niveaux différents du Top 150 battus.','Une petite dizaine de niveaux classés…'],
+ ['vingt-cinq','Quart de siècle','Epic',1,'🧗','list',25,'25 niveaux différents du Top 150 battus.','Continue l’ascension du Top 150.'],
+ ['faucheur-liste','Faucheur de liste','Epic',1,'⚔️','list',35,'35 niveaux du Top 150 battus : la liste commence à te craindre.','La liste tremble devant toi.'],
+ ['cinquante','Demi-centurion','Légendaire',1,'🛡️','list',50,'50 niveaux différents du Top 150 battus.','Un tiers de la liste, et plus encore.'],
+ ['grand-faucheur-liste','Grand Faucheur de liste','Légendaire',1,'💀','list',75,'75 niveaux du Top 150 battus : la moitié de la liste.','La moitié de la liste…'],
+ ['cour-grands','Bienvenue dans la cour des grands','Epic',1,'👑','main',1,'Premier niveau de la Main List (Top 75) battu.','Entre dans la Main List.'],
+ ['elite-top10','Élite','Légendaire',1,'🔱','beat_pos',10,'Un niveau du Top 10 battu. Très peu y arrivent.','Les dix plus durs t’attendent.'],
+ ['sommet','Numéro un','Mythique',1,'🥇','beat_pos',1,'Le niveau n°1 de la liste battu.','Tout en haut de la liste.'],
+ ['demi-dieu','Demi Dieu','Mythique',1,'⚡','top75',null,'Toute la Main List battue : les 75 niveaux.','Une liste entière, ou presque.'],
+ ['god','GOD','Ultra',1,'🌌','all150',null,'Les 150 niveaux du Top 150 battus. Légende absolue.','Tout. Absolument tout.'],
+ ['verif-1','Première vérification','Impressive',5,'✅','verif',1,'Tu as vérifié un niveau publié (Top 150 ou NLW) : c’est toi qui l’as battu en premier.','Sois le premier à battre un niveau.'],
+ ['verif-5','Bâtisseur','Epic',5,'🧱','verif',5,'5 niveaux vérifiés (Top 150 et NLW comptent).','Construis la liste, niveau après niveau.'],
+ ['verif-10','Architecte','Légendaire',5,'🏛️','verif',10,'10 niveaux vérifiés (Top 150 et NLW comptent).','Une dizaine de premières victoires.'],
+ ['verif-20','Pilier de la DLFR','Mythique',5,'🗿','verif',20,'20 niveaux vérifiés (Top 150 et NLW comptent). La liste ne serait pas la même sans toi.','La liste repose sur tes épaules.'],
+ ['verif-top150','Vérificateur classé','Epic',5,'🎯','verif_pos',150,'Avoir vérifié un niveau du Top 150.','Vérifie un niveau classé.'],
+ ['verif-top75','Vérificateur Main List','Légendaire',5,'🏆','verif_pos',75,'Avoir vérifié un niveau de la Main List (Top 75).','Vérifie un niveau de la Main List.'],
+ ['verif-top10','Pierre angulaire','Mythique',5,'💎','verif_pos',10,'Avoir vérifié un niveau du Top 10.','Les plus durs ont besoin de toi.'],
+ ['verif-top1','Le Sommet','Ultra',5,'🗻','verif_pos',1,'Avoir vérifié le niveau n°1 de la liste.','Au-dessus de tout le monde.'],
+ ['bienvenue-nlw','Bienvenue au club NLW','Beginner',2,'🌱','nlw',1,'Premier niveau NLW (rang 151 et plus) battu.','Découvre la NLW.'],
+ ['dix-nlw','DixNLW','Beginner',2,'🍀','nlw',10,'10 niveaux NLW battus.','Quelques niveaux NLW de plus…'],
+ ['nlw-50','Cinquante NLW','Impressive',2,'🌿','nlw',50,'50 niveaux NLW battus.','La NLW devient ton terrain de jeu.'],
+ ['cent','100!','Impressive',2,'💯','nlw',100,'100 niveaux NLW battus.','Un nombre tout rond.'],
+ ['faucheur-nlw','Faucheur NLW','Epic',2,'🌾','nlw',250,'250 niveaux NLW battus.','La moisson continue.'],
+ ['grand-faucheur-nlw','Grand Faucheur NLW','Légendaire',2,'🌳','nlw',500,'500 niveaux NLW battus.','Une forêt entière de niveaux.'],
+ ['nlwgod','NLWGOD','Ultra',2,'🌋','nlw',1000,'1 000 niveaux NLW battus. Inarrêtable.','Un nombre presque impossible.'],
+ ['unrated-premier','Unrated ?','Impressive',3,'❔','unrated',1,'Premier niveau UNRATED battu.','Aventure-toi hors des sentiers classés.'],
+ ['unrated-master','Unrated Master','Légendaire',3,'🧪','unrated',10,'10 niveaux UNRATED battus.','Maîtrise l’inconnu.'],
+ ['goat-pays','Le Goat tout simplement','Ultra',4,'🐐','manual',null,'Désigné meilleur joueur du pays par la modération.','Une distinction décernée par la modération.'],
+ ['goat-region','Le Goat de ta région','Mythique',4,'🦁','manual',null,'Désigné meilleur joueur de sa région par la modération.','Une distinction décernée par la modération.'],
+ ['clash-clans','Clash of Clans','Légendaire',4,'🏰','manual',null,'Distinction de clan décernée par la modération.','Une distinction décernée par la modération.']
 ];
-const defs=specs.map(([id,label,rarity,category_id,symbol,rule,threshold])=>({id,label,rarity,category_id,symbol,rule,threshold:threshold||null,automatic:rule!=='manual',manual:rule==='manual',description:''}));
+const defs=specs.map(([id,label,rarity,category_id,symbol,rule,threshold,description,hint])=>({id,label,rarity,category_id,symbol,rule,threshold:threshold||null,automatic:rule!=='manual',manual:rule==='manual',description:description||'',hint:hint||''}));
 const norm=s=>String(s||'').trim().toLocaleLowerCase('fr');
 const slug=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-');
 const validDay=s=>/^\d{4}-\d\d-\d\d$/.test(s)&&!Number.isNaN(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s;
 function init(d){
  if(!Array.isArray(d.badge_awards))d.badge_awards=[];
  // Une seule migration en démo : l'ancien catalogue ET ses anciennes attributions sont remplacés.
- if(d.badge_catalog_version!==28){d.badge_categories=categories.map(c=>({...c}));d.badge_definitions=defs.map(b=>({...b}));d.badge_awards=[];d.badge_deleted_ids=[];d.badge_catalog_version=28;d.badge_baseline_scanned=false;}
+ if(d.badge_catalog_version!==28&&d.badge_catalog_version!==123){d.badge_categories=categories.map(c=>({...c}));d.badge_definitions=defs.map(b=>({...b}));d.badge_awards=[];d.badge_deleted_ids=[];d.badge_catalog_version=28;d.badge_baseline_scanned=false;}
  else{d.badge_categories=categories.map(c=>({...c}));d.badge_definitions=defs.map(b=>({...b}));}
  return d;
 }
@@ -47,14 +63,18 @@ function counts(d,playerKey){
   else if(Number.isSafeInteger(pos)&&pos>150&&pos<100000000&&demon.legacy!==true)groups.nlw.add(id);
  }
  const ranked=(d.demons||[]).filter(x=>!(x.unrated===true||x.unrated===1||x.unrated==='true')&&Number(x.position)>=1&&Number(x.position)<=150);
- return {list:groups.list.size,nlw:groups.nlw.size,unrated:groups.unrated.size,main:groups.main.size,all150:ranked.length===150&&ranked.every(x=>groups.list.has(String(x.id))),top75:ranked.filter(x=>Number(x.position)<=75).length===75&&ranked.filter(x=>Number(x.position)<=75).every(x=>groups.main.has(String(x.id)))};
+ let best=Infinity;for(const id of groups.list){const p=Number(byId.get(id)?.position);if(p<best)best=p;}
+ const player=(d.players||[]).find(x=>norm(x.player_key)===norm(playerKey));
+ const verified=(d.demons||[]).filter(x=>x.is_public!==false&&!(x.unrated===true||x.unrated===1||x.unrated==='true')&&Number(x.position)>=1&&Number(x.position)<100000000&&norm(playerKey)!=='anonyme'&&(x.verifier_user_id?player&&Number(x.verifier_user_id)===Number(player.legacy_id):String(x.verifier||'').trim()&&[player?.player_key,player?.username,player?.display_name].filter(Boolean).map(norm).includes(norm(x.verifier))));
+ const verifBest=Math.min(Infinity,...verified.filter(x=>Number(x.position)<=150).map(x=>Number(x.position)));
+ return {best,verif:verified.length,verifBest,list:groups.list.size,nlw:groups.nlw.size,unrated:groups.unrated.size,main:groups.main.size,all150:ranked.length===150&&ranked.every(x=>groups.list.has(String(x.id))),top75:ranked.filter(x=>Number(x.position)<=75).length===75&&ranked.filter(x=>Number(x.position)<=75).every(x=>groups.main.has(String(x.id)))};
 }
 function captureAutomatic(d,players,day,first=false){
  init(d);if(!validDay(day))throw Error('Date système invalide.');let changed=false;
  // Utilise les vrais enregistrements de complétion, jamais un record partiel ni les badges historiques.
  for(const p of players||[]){const k=norm(p.player_key);if(!k)continue;const c=counts(d,k);
   for(const b of defs.filter(x=>x.automatic)){
-   const earned=b.rule==='all150'?c.all150:b.rule==='top75'?c.top75:b.rule==='main'?c.main>=b.threshold:c[b.rule]>=b.threshold;
+   const earned=b.rule==='all150'?c.all150:b.rule==='top75'?c.top75:b.rule==='main'?c.main>=b.threshold:b.rule==='beat_pos'?c.best<=b.threshold:b.rule==='verif_pos'?c.verifBest<=b.threshold:c[b.rule]>=b.threshold;
    if(earned&&!d.badge_awards.some(a=>norm(a.player_key)===k&&String(a.badge_id)===b.id)){
     d.badge_awards.push({player_key:k,badge_id:b.id,obtained_at:first?null:day,origin:first?'first-import':'automatic'});changed=true;
    }
@@ -80,7 +100,11 @@ function visibleAwards(d,playerKey){
   return badge?.rule!=='nlw'||earned.nlw>=Number(badge.threshold||1);
  });
 }
-function catalog(d,playerKey,esc,date){init(d);const owned=new Map(visibleAwards(d,playerKey).map(a=>[String(a.badge_id),a]));return categories.map(cat=>`<section class="badge-catalog-category"><h4>${esc(cat.name)}</h4><div class="badge-collection">${defs.filter(b=>b.category_id===cat.id).sort((a,b)=>rarities.indexOf(b.rarity)-rarities.indexOf(a.rarity)).reverse().map(b=>{const a=owned.get(b.id);return `<div class="dlfr-badge ${a?'':'badge-locked'}" data-rarity="${slug(b.rarity)}" title="${a?'Obtenu':'Non obtenu'}"><span class="dlfr-badge-icon" aria-hidden="true">${a?esc(b.symbol):'?'}</span><span class="dlfr-badge-copy"><span class="dlfr-badge-name">${esc(b.label)}</span><span class="dlfr-badge-meta">${esc(b.rarity)} · ${a?'Obtenu'+(a.obtained_at?' le '+esc(date(a.obtained_at)):' · date inconnue'):'À découvrir'}</span></span></div>`;}).join('')}</div></section>`).join('');}
-function gallery(d,playerKey,esc,date){init(d);const owned=visibleAwards(d,playerKey).map(a=>({a,b:defs.find(b=>b.id===String(a.badge_id))})).filter(x=>x.b).sort((x,y)=>rarities.indexOf(y.b.rarity)-rarities.indexOf(x.b.rarity));return owned.length?`<div class="badge-collection">${owned.map(({a,b})=>`<div class="dlfr-badge" data-rarity="${slug(b.rarity)}" title="${esc(b.label)} · ${a.obtained_at?esc(date(a.obtained_at)):'Date antérieure inconnue'}"><span class="dlfr-badge-icon">${esc(b.symbol)}</span><span class="dlfr-badge-copy"><span class="dlfr-badge-name">${esc(b.label)}</span><span class="dlfr-badge-meta">${esc(b.rarity)} · ${a.obtained_at?esc(date(a.obtained_at)):'Date antérieure inconnue'}</span></span></div>`).join('')}</div>`:'';}
+function badgeHTML(b,a,esc,date,locked){
+ const when=a?(a.obtained_at?'Obtenu le '+esc(date(a.obtained_at)):'Obtenu · date inconnue'):'À découvrir';
+ return `<div class="dlfr-badge ${locked?'badge-locked':''}" data-rarity="${slug(b.rarity)}" data-badge="${esc(b.id)}" tabindex="0" title="${esc(b.label)} — ${esc(locked?b.hint:b.description)}"><span class="dlfr-badge-medal" aria-hidden="true"><span class="dlfr-badge-icon">${locked?'?':esc(b.symbol)}</span></span><span class="dlfr-badge-copy"><span class="dlfr-badge-name">${esc(b.label)}</span><span class="dlfr-badge-desc">${esc(locked?b.hint:b.description)}</span><span class="dlfr-badge-meta"><b>${esc(b.rarity)}</b> · ${when}</span></span></div>`;
+}
+function catalog(d,playerKey,esc,date){init(d);const owned=new Map(visibleAwards(d,playerKey).map(a=>[String(a.badge_id),a]));return categories.map(cat=>{const list=defs.filter(b=>b.category_id===cat.id).sort((a,b)=>rarities.indexOf(a.rarity)-rarities.indexOf(b.rarity));const got=list.filter(b=>owned.has(b.id)).length;return `<section class="badge-catalog-category"><h4>${esc(cat.name)} <span class="badge-catalog-count">${got} / ${list.length}</span></h4><div class="badge-collection">${list.map(b=>badgeHTML(b,owned.get(b.id),esc,date,!owned.has(b.id))).join('')}</div></section>`;}).join('');}
+function gallery(d,playerKey,esc,date){init(d);const owned=visibleAwards(d,playerKey).map(a=>({a,b:defs.find(b=>b.id===String(a.badge_id))})).filter(x=>x.b).sort((x,y)=>rarities.indexOf(y.b.rarity)-rarities.indexOf(x.b.rarity));return owned.length?`<div class="badge-collection">${owned.map(({a,b})=>badgeHTML(b,a,esc,date,false)).join('')}</div>`:'';}
 window.DLFR_BADGES={definitions:defs,rarities,init,counts,visibleAwards,captureAutomatic,grant,catalog,gallery,addCategory:uneditable,create:uneditable,deleteBadge:uneditable,deleteCategory:uneditable};
 })();

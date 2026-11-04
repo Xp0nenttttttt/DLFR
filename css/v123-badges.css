@@ -1,0 +1,58 @@
+/* DLFR V123 — badges permanents redessinés : médaille hexagonale par rareté + description. */
+@property --bd-angle{syntax:'<angle>';inherits:false;initial-value:0deg}
+.badge-collection{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;align-items:stretch}
+.dlfr-badge{
+ --m1:#9fb3c8;--m2:#5d7290;--m3:#e6eef7;--glow:rgba(140,170,200,.35);--tint:rgba(120,150,180,.10);
+ position:relative;isolation:isolate;display:flex!important;align-items:center;gap:13px;max-width:none!important;min-height:84px!important;padding:12px 14px!important;
+ border:1px solid color-mix(in srgb,var(--m1),transparent 55%)!important;border-radius:16px!important;overflow:hidden;
+ background:linear-gradient(120deg,var(--tint),transparent 70%),var(--card,#fff)!important;color:var(--ink);
+ box-shadow:0 4px 14px rgba(0,0,0,.06)!important;transition:transform .18s ease,box-shadow .18s ease;text-align:left}
+.dlfr-badge:hover,.dlfr-badge:focus-visible{transform:translateY(-2px);box-shadow:0 10px 26px var(--glow)!important;outline:none}
+.dlfr-badge::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(circle at 0% 50%,var(--glow),transparent 45%);opacity:.7;animation:none!important}
+.dlfr-badge::after{display:none!important}
+/* Médaille */
+.dlfr-badge-medal{position:relative;flex:0 0 56px;width:56px;height:62px;display:grid;place-items:center;
+ clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);background:linear-gradient(150deg,var(--m3),var(--m1) 35%,var(--m2) 70%,var(--m3));filter:drop-shadow(0 3px 6px rgba(0,0,0,.25))}
+.dlfr-badge-medal::before{content:"";position:absolute;inset:4px;clip-path:inherit;background:radial-gradient(circle at 35% 25%,color-mix(in srgb,var(--m1),#fff 15%),color-mix(in srgb,var(--m2),#000 45%) 80%)}
+.dlfr-badge-medal::after{content:"";position:absolute;inset:0;clip-path:inherit;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.55) 48%,transparent 60%) 0 0/260% 100%;animation:bd-sheen 5s ease-in-out infinite;mix-blend-mode:overlay}
+.dlfr-badge .dlfr-badge-icon{position:relative;z-index:1;font-size:25px!important;line-height:1;min-width:0!important;color:#fff!important;text-shadow:0 2px 6px rgba(0,0,0,.45)!important;filter:drop-shadow(0 0 6px var(--glow))}
+.dlfr-badge-copy{display:grid!important;gap:3px!important;min-width:0}
+.dlfr-badge .dlfr-badge-name{font-size:14px!important;font-weight:800;letter-spacing:.01em!important;color:var(--ink2,var(--ink));text-shadow:none!important;line-height:1.2}
+.dlfr-badge-desc{font-size:12px;line-height:1.4;color:var(--muted);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.dlfr-badge .dlfr-badge-meta{font-size:10.5px!important;opacity:1!important;color:var(--muted)!important;letter-spacing:.02em}
+.dlfr-badge-meta b{color:var(--m1);font-weight:800;text-transform:uppercase;letter-spacing:.08em;font-size:10px}
+/* Raretés */
+.dlfr-badge[data-rarity=beginner]{--m1:#8fb7c9;--m2:#4d6f82;--m3:#e4f2f8;--glow:rgba(120,180,205,.35);--tint:rgba(120,180,205,.10)}
+.dlfr-badge[data-rarity=impressive]{--m1:#3fcf9a;--m2:#167a5a;--m3:#c9ffe9;--glow:rgba(63,207,154,.35);--tint:rgba(63,207,154,.10)}
+.dlfr-badge[data-rarity=epic]{--m1:#a97bff;--m2:#5530b8;--m3:#eadcff;--glow:rgba(169,123,255,.4);--tint:rgba(169,123,255,.12)}
+.dlfr-badge[data-rarity=legendaire]{--m1:#f2b84a;--m2:#a3620f;--m3:#fff1c2;--glow:rgba(242,184,74,.45);--tint:rgba(242,184,74,.13)}
+.dlfr-badge[data-rarity=mythique]{--m1:#f06bc4;--m2:#7a3bd8;--m3:#ffe0f6;--glow:rgba(240,107,196,.45);--tint:rgba(240,107,196,.13)}
+.dlfr-badge[data-rarity=mythique] .dlfr-badge-medal{background:conic-gradient(from var(--bd-angle),#ffb3e6,#f06bc4,#7a3bd8,#5cc8ff,#ffb3e6);animation:bd-angle 6s linear infinite}
+.dlfr-badge[data-rarity=ultra]{--m1:#7fdcff;--m2:#7a5cff;--m3:#fff;--glow:rgba(127,220,255,.55);--tint:rgba(127,220,255,.14);border-color:transparent!important;
+ background:linear-gradient(120deg,var(--tint),transparent 70%) padding-box,var(--card,#fff) padding-box,conic-gradient(from var(--bd-angle),#ffd36b,#ff6ad5,#7a5cff,#2ee6ff,#7bffb0,#ffd36b) border-box!important;border:2px solid transparent!important;animation:bd-angle 5s linear infinite}
+.dlfr-badge[data-rarity=ultra] .dlfr-badge-medal{background:conic-gradient(from var(--bd-angle),#ffd36b,#ff6ad5,#7a5cff,#2ee6ff,#7bffb0,#ffd36b);animation:bd-angle 4s linear infinite}
+.dlfr-badge[data-rarity=ultra] .dlfr-badge-meta b{background:linear-gradient(90deg,#ffd36b,#ff6ad5,#2ee6ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+/* Non obtenu : silhouette */
+.dlfr-badge.badge-locked{filter:none!important;opacity:1!important;border-style:dashed!important;background:var(--card,#fff)!important;box-shadow:none!important;animation:none!important}
+.dlfr-badge.badge-locked .dlfr-badge-medal{background:linear-gradient(150deg,#8a93a3,#4d5563)!important;filter:grayscale(1) drop-shadow(0 2px 4px rgba(0,0,0,.2));opacity:.7;animation:none!important}
+.dlfr-badge.badge-locked .dlfr-badge-medal::after{display:none}
+.dlfr-badge.badge-locked .dlfr-badge-icon{font-size:22px!important;font-weight:900;filter:none;opacity:.85}
+.dlfr-badge.badge-locked .dlfr-badge-name{opacity:.8}
+.dlfr-badge.badge-locked .dlfr-badge-desc{font-style:italic}
+.dlfr-badge.badge-locked::before{opacity:0}
+.badge-catalog-category h4{display:flex;align-items:center;gap:8px}
+.badge-catalog-count{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;background:color-mix(in srgb,var(--blue,#147fbd),transparent 82%);color:var(--blue,#147fbd)}
+/* Versions compactes déjà utilisées ailleurs (badges favoris, cartes) */
+.dlfr20-featured-badges .dlfr-badge,.dlfr251-preview .dlfr-badge{min-height:0!important;padding:8px 10px!important;gap:9px}
+.dlfr20-featured-badges .dlfr-badge-medal,.dlfr251-preview .dlfr-badge-medal{flex-basis:38px;width:38px;height:42px}
+.dlfr20-featured-badges .dlfr-badge-icon,.dlfr251-preview .dlfr-badge-icon{font-size:17px!important}
+@keyframes bd-angle{to{--bd-angle:360deg}}
+@keyframes bd-sheen{0%,65%{background-position:120% 0}100%{background-position:-120% 0}}
+@media(max-width:600px){.badge-collection{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.dlfr-badge,.dlfr-badge *,.dlfr-badge-medal::after{animation:none!important;transition:none!important}}
+/* Badges favoris (pastilles sous le pseudo) */
+.dlfr-badge.dlfr20-favorite{display:inline-flex!important;min-height:0!important;padding:5px 14px 5px 6px!important;gap:8px;border-radius:999px!important;width:auto}
+.dlfr-badge.dlfr20-favorite .dlfr-badge-medal{flex-basis:30px;width:30px;height:33px}
+.dlfr-badge.dlfr20-favorite .dlfr-badge-medal::before{inset:3px}
+.dlfr-badge.dlfr20-favorite .dlfr-badge-icon{font-size:15px!important}
+.dlfr-badge.dlfr20-favorite b{font-size:12.5px;font-weight:800;color:var(--ink2,var(--ink))}
