@@ -1,0 +1,24 @@
+DLFR V138 — Une seule collection DLFR Cards
+===========================================
+
+Base de données : DÉJÀ APPLIQUÉE (supabase/138_COLLECTION_UNIQUE.sql = archive).
+
+ - Plus de différence entre la collection « officielle » et celle du mode Aventure :
+   toutes les cartes (booster du jour, boosters achetés, boosters à éclats,
+   expéditions, Forge, quêtes…) vont dans la même collection, enregistrée sur le serveur.
+   Album, Ma collection, vitrine, classement des collectionneurs, fiche publique et
+   bonus de collection complète utilisent tous cette collection unique.
+ - Les cartes de l'ancienne partie Aventure de chaque joueur sont importées
+   automatiquement une fois (jusqu'à 500 exemplaires) à sa prochaine visite.
+ - La Forge (étoiles, recyclage en poussière) consomme bien les exemplaires.
+
+Garde-fous (la progression du mode Aventure est calculée dans le navigateur) :
+ - 120 exemplaires ajoutés par jour au maximum depuis le mode Aventure.
+ - Seuls les exemplaires venus du booster du jour / des boosters achetés se recyclent
+   en Wayllings dorés (on garde toujours au moins un exemplaire). Ceux de l'Aventure
+   servent à la Forge.
+ - Les outils de test (propriétaires / supermodos) ne touchent jamais la vraie collection.
+
+Fichiers : index.html, js/v118-cards-lab.js, js/v127-cards.js,
+           supabase/138_COLLECTION_UNIQUE.sql (archive)
+Le ZIP est cumulatif (V117 → V138) : copie tout à la racine du dépôt.

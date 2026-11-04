@@ -39,6 +39,7 @@ let gate=false, view='official', filter='all', query='', selected=2, forgeSel=0,
 let DB=null;
 // V129 — mode Aventure : ouvert à tous, sauvegardé par compte. Catalogue + outils de test : propriétaires et supermodos.
 let editor=false,userId=null;
+let serverCounts=null; // V138 : collection unique (serveur) — exemplaires connus côté serveur
 const SAVE={loaded:false,version:0,timer:0,saving:false,pending:false,status:'',tainted:false,conflict:false};
 const catalog={status:'local',error:'',selCol:1,editCard:null,editCol:null,draft:null,colDraft:null,busy:false,msg:'',msgKind:'',pendingFile:null};
 
@@ -952,7 +953,7 @@ function viewPage(data){
  const src=catalog.status==='ready'||catalog.status==='empty'?'catalogue Supabase':catalog.status==='loading'?'chargement du catalogue…':'catalogue intégré (hors ligne)';
  return `<section class="dlfr112 dlfr117" id="dlfr112Lab">
   <div class="dlfr112-header"><div><div class="dlfr112-eyebrow">DLFR CARDS${view==='official'?' · COLLECTION OFFICIELLE':' · MODE AVENTURE'}</div><h1>DLFR Cards</h1><p>${CARDS.length} cartes · ${COLLECTIONS.length} collections · ${src}${progress.title?` · <b>${esc(progress.title)}</b>`:''}</p></div><span class="dlfr112-demo-label ${SAVE.tainted||SAVE.conflict?'is-warn':''}" id="dlfr129Save" aria-live="polite" title="Sauvegarde du mode Aventure">Aventure · ${esc(saveLabel())}</span></div>
-  <p class="dlfr129-intro">${view==='official'?'<b>★ Booster du jour</b> : ta collection officielle. Un booster gratuit chaque jour ; les doublons et les collections complètes rapportent des <b>Wayllings dorés</b>. Les autres onglets forment le <b>mode Aventure</b> : boosters à éclats ◆, expéditions, talents, Forge et quêtes, avec sa propre collection.':'<b>Mode Aventure</b> : ouvre des boosters avec tes éclats ◆, pars en expédition, monte de niveau, améliore tes cartes à la Forge et débloque des talents. Partie sauvegardée sur ton compte ; ses ressources restent dans le jeu (pas de Wayllings dorés, qui se gagnent dans l’onglet ★ Booster du jour).'}</p>
+  <p class="dlfr129-intro">${view==='official'?'<b>★ Booster du jour</b> : ta collection officielle. Un booster gratuit chaque jour ; les doublons et les collections complètes rapportent des <b>Wayllings dorés</b>. Les autres onglets forment le <b>mode Aventure</b> : boosters à éclats ◆, expéditions, talents, Forge et quêtes. <b>Une seule collection</b> : toutes les cartes gagnées, ici ou en Aventure, vont au même endroit.':'<b>Mode Aventure</b> : ouvre des boosters avec tes éclats ◆, pars en expédition, monte de niveau, améliore tes cartes à la Forge et débloque des talents. Les cartes gagnées rejoignent ta collection unique (120 par jour au maximum depuis l’Aventure). Les éclats, la poussière et les clés restent dans le jeu ; seuls les exemplaires du booster du jour et des boosters achetés se recyclent en Wayllings.'}</p>
   <div class="dlfr112-toolbar">${view==='official'?'':`<div class="dlfr112-summary"><b>Aventure · ${status()}</b><span>Progression : ${Math.round(inventoryUnique()/total*100)} %</span><div class="dlfr112-meter"><span style="width:${inventoryUnique()/total*100}%"></span></div></div>`}<div class="dlfr112-modes" role="tablist" aria-label="Sections du mode Aventure">${tabs().map(([id,title])=>`<button type="button" role="tab" aria-selected="${view===id}" class="${view===id?'active':''}" data-v112-act="mode" data-mode="${id}">${title}${id==='expeditions'&&progress.camps.some(c=>Date.now()>=c.end)?' <i class="dlfr117-dot"></i>':''}${id==='goals'&&progress.quests.some(q=>q.have>=q.target)?' <i class="dlfr117-dot"></i>':''}</button>`).join('')}</div></div>
   ${view==='official'?OFFICIAL:''}
   ${prog?progressionPage(data):''}
@@ -977,9 +978,47 @@ async function loadSave(){
   reset();
   if(data?.save){try{restoreSession(data.save,false);}catch(e){console.warn('[DLFR Cards] Sauvegarde ignorée :',e);SAVE.status='Sauvegarde illisible : nouvelle partie.';}}
   else{ensureQuests();}
-  SAVE.version=Number(data?.version)||0;SAVE.loaded=true;SAVE.conflict=false;SAVE.status=SAVE.status||'✓ Sauvegardé';
+  SAVE.version=Number(data?.version)||0;
+  // V138 — collection unique : import unique de l'ancienne collection Aventure, puis le serveur fait foi.
+  const st=await DB.rpc('dlfr_cards_status');if(st.error)throw st.error;if(uid!==userId)return;
+  let inv=st.data?.inventory||{};
+  if(!st.data?.adv_imported){const delta={};for(const [id,v] of owned)if(v.count>0)delta[id]=v.count;
+   const im=await DB.rpc('dlfr_adventure_sync',{p_delta:delta,p_import:true});if(im.error)throw im.error;inv=im.data?.inventory||inv;
+   if(Object.keys(delta).length)toast('DLFR Cards','Ta collection Aventure a rejoint ta collection unique.','info');}
+  setServerInventory(inv,true);
+  SAVE.loaded=true;SAVE.conflict=false;SAVE.status=SAVE.status||'✓ Sauvegardé';
  }catch(e){SAVE.status='Sauvegarde indisponible : ta progression ne sera pas enregistrée.';console.warn('[DLFR Cards] Chargement :',e);}
  repaint();
+}
+function setServerInventory(inv,replace){
+ const next=new Map(Object.entries(inv||{}).map(([k,v])=>[Number(k),Number(v)||0]));
+ const ids=new Set([...next.keys(),...(serverCounts?serverCounts.keys():[]),...(replace?owned.keys():[])]);
+ for(const id of ids){
+  const nv=next.get(id)||0,ov=serverCounts?.get(id)||0;
+  const cur=owned.get(id);
+  const count=replace?nv:Math.max(0,(cur?.count||0)+(nv-ov)); // garde les changements locaux en attente
+  if(count>0){if(get(id)){const x=cur||{count:0,finish:0,stars:0};x.count=count;owned.set(id,x);}}else owned.delete(id);
+ }
+ serverCounts=next;
+}
+async function syncCards(){
+ if(!serverCounts||!DB)return;
+ const delta={};const ids=new Set([...owned.keys(),...serverCounts.keys()]);
+ for(const id of ids){const d=(owned.get(id)?.count||0)-(serverCounts.get(id)||0);if(d)delta[id]=d;}
+ if(!Object.keys(delta).length)return;
+ const {data,error}=await DB.rpc('dlfr_adventure_sync',{p_delta:delta,p_import:false});if(error)throw error;
+ const sent=new Map(Object.entries(delta).map(([k,v])=>[Number(k),v]));
+ // Le serveur fait foi pour ce qui a été envoyé ; on conserve ce qui a changé pendant l'envoi.
+ const next=new Map(Object.entries(data?.inventory||{}).map(([k,v])=>[Number(k),Number(v)||0]));
+ for(const id of new Set([...next.keys(),...sent.keys(),...serverCounts.keys()])){
+  const expected=(serverCounts.get(id)||0)+(sent.get(id)||0),pendingLocal=(owned.get(id)?.count||0)-expected,count=Math.max(0,(next.get(id)||0)+pendingLocal);
+  const cur=owned.get(id);if(count>0){if(get(id)){const x=cur||{count:0,finish:0,stars:0};x.count=count;owned.set(id,x);}}else owned.delete(id);
+ }
+ serverCounts=next;
+ if(Number(data?.dropped)>0)toast('DLFR Cards',`Limite du jour atteinte : ${data.dropped} carte(s) du mode Aventure n’ont pas pu être ajoutées (120 par jour).`,'info');
+ for(const b of data?.bonuses||[])toast('Collection complète !',`${b.collection} : +${b.coins} Wayllings dorés`,'achievement');
+ if(Number(data?.dropped)>0||(data?.bonuses||[]).length)setTimeout(repaint,0);
+ window.DLFR_CARDS?.invalidate?.();
 }
 function scheduleSave(){
  if(!SAVE.loaded||SAVE.tainted||SAVE.conflict||!DB||!userId)return;
@@ -989,7 +1028,7 @@ async function flushSave(){
  SAVE.timer=0;if(SAVE.tainted||SAVE.conflict||!SAVE.loaded){setSaveLabel(saveLabel());return;}
  if(SAVE.saving){SAVE.pending=true;return;}
  SAVE.saving=true;
- try{const {data,error}=await DB.rpc('dlfr_adventure_save',{p_save:sessionObject(),p_version:SAVE.version});
+ try{await syncCards();const {data,error}=await DB.rpc('dlfr_adventure_save',{p_save:sessionObject(),p_version:SAVE.version});
   if(error){if(/conflict/.test(error.message||'')){SAVE.conflict=true;SAVE.status='⚠ Progression modifiée dans un autre onglet : recharge la page.';}else throw error;}
   else{SAVE.version=Number(data)||SAVE.version+1;SAVE.status='✓ Sauvegardé';}
  }catch(e){SAVE.status='⚠ Échec de la sauvegarde, nouvel essai bientôt.';setTimeout(scheduleSave,8000);}
@@ -1134,9 +1173,9 @@ window.DLFR_CARDS_LAB={
  // Appelé par app.js juste après la création du client Supabase (même session que le site).
  setClient(client){DB=client||null;},
  setGate(value,uid=null){
-  if(!value){if(gate||catalog.status!=='local'){gate=false;userId=null;Object.assign(SAVE,{loaded:false,version:0,status:'',tainted:false,conflict:false});clearTimeout(SAVE.timer);reset();view='album';useFallback();setMsg('');}return;}
+  if(!value){if(gate||catalog.status!=='local'){gate=false;userId=null;serverCounts=null;Object.assign(SAVE,{loaded:false,version:0,status:'',tainted:false,conflict:false});clearTimeout(SAVE.timer);reset();view='album';useFallback();setMsg('');}return;}
   gate=true;
-  if(uid&&uid!==userId){userId=uid;Object.assign(SAVE,{loaded:false,version:0,status:'',tainted:false,conflict:false});loadSave();}
+  if(uid&&uid!==userId){userId=uid;serverCounts=null;Object.assign(SAVE,{loaded:false,version:0,status:'',tainted:false,conflict:false});loadSave();}
   else if(DB&&catalog.status==='local')loadCatalog();
  },
  setEditor(value){const v=!!value;if(v!==editor){editor=v;if(!editor&&['catalog','exchanges','control'].includes(view))view='album';}},
@@ -1145,6 +1184,7 @@ window.DLFR_CARDS_LAB={
  mkCard,
  ladder:(rates)=>ladder(rates),
  advCount:id=>owned.get(Number(id))?.count||0,
+ applyServerInventory(inv){if(serverCounts&&!SAVE.tainted){setServerInventory(inv,false);}},
  figure:(card,data,compact=false,opts={})=>figure(card,data,compact,opts),
  playReal(pack,draws,meta={}){
   const T={'Commun':0,'Rare':1,'Épique':2,'Légendaire':3,'Mythique':4};

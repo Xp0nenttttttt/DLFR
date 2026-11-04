@@ -32,6 +32,7 @@ async function refreshStatus(){const {data,error}=await S.ctx.db.rpc('dlfr_cards
 function countdown(to){const ms=new Date(to)-Date.now();if(!(ms>0))return 'maintenant';const h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000);return h?`${h} h ${String(m).padStart(2,'0')}`:`${m} min`;}
 function boosterArt(name,emblem,theme){return `<div class="dlfr127-booster-wrap" aria-hidden="true"><div class="dlfr117-booster b-${theme} dlfr127-booster" aria-hidden="true"><div class="b-crimp"></div><div class="b-body"><div class="b-pattern"></div><div class="b-glow"></div><div class="b-logo">DLFR <b>CARDS</b></div><div class="b-emblem">${emblem}</div><div class="b-name">${esc(name)}</div><div class="b-meta">5 CARTES</div><div class="b-foil"></div></div><div class="b-crimp b-bottom"></div></div></div>`;}
 
+const rcOf=id=>Number((S.status?.recyclable||{})[id])||0;
 function streakHTML(st){
  const n=Number(st.streak)||0,pos=n%7,next=7-pos;
  return `<div class="dlfr137-streak" title="Ouvre le booster du jour plusieurs jours d’affilée : le 7e jour, booster bonus de 6 cartes dont une Épique ou mieux."><div class="dlfr137-streak-dots">${Array.from({length:7},(_,i)=>`<i class="${i<pos||(pos===0&&n>0)?'on':''} ${i===6?'gift':''}">${i===6?'🎁':''}</i>`).join('')}</div><small>🔥 Série : <b>${n}</b> jour${n>1?'s':''} · ${pos===0&&n>0?'bonus obtenu !':`bonus dans ${next} jour${next>1?'s':''}`}</small></div>`;
@@ -57,7 +58,7 @@ function zoom(id){
  d.innerHTML=`<div class="dlfr137-zoom-card">${big}</div><div class="dlfr137-zoom-info"><small>${esc(col?.name||'Collection')}</small><h2>${esc(x.card.name)}</h2>
   <p class="dlfr137-zoom-rar r${t}">${esc(x.card.rarity)} · rareté ${t+1}/5</p>${x.row.description?`<p>${esc(x.row.description)}</p>`:''}
   <ul><li><span>Dans ta collection</span><b>${q?`×${q}`:a?'Mode Aventure seulement':'Pas encore'}</b></li><li><span>Joueurs qui la possèdent</span><b>${owners}</b></li><li><span>Valeur d’un doublon</span><b>${VALUE[x.card.rarity]||2} ✦</b></li><li><span>Dans les boosters</span><b>${x.row.in_packs===false?'Non':'Oui'}</b></li></ul>
-  <div class="dlfr137-zoom-actions">${q?`<button type="button" class="btn ${inShow?'subtle':''}" data-showcase-toggle="${id}">${inShow?'Retirer de la vitrine':'★ Mettre en vitrine'}</button>`:''}${q>1?`<button type="button" class="btn subtle" data-cards-recycle="${id}">♻ Recycler ${q-1} doublon${q>2?'s':''} · +${(q-1)*(VALUE[x.card.rarity]||2)} ✦</button>`:''}<button type="button" class="btn subtle" data-zoom-close>Fermer</button></div></div>`;
+  <div class="dlfr137-zoom-actions">${q?`<button type="button" class="btn ${inShow?'subtle':''}" data-showcase-toggle="${id}">${inShow?'Retirer de la vitrine':'★ Mettre en vitrine'}</button>`:''}${rcOf(id)>0?`<button type="button" class="btn subtle" data-cards-recycle="${id}">♻ Recycler ${rcOf(id)} doublon${rcOf(id)>1?'s':''} · +${rcOf(id)*(VALUE[x.card.rarity]||2)} ✦</button>`:''}<button type="button" class="btn subtle" data-zoom-close>Fermer</button></div></div>`;
  document.body.append(d);d.showModal();d.addEventListener('close',()=>d.remove());
  d.addEventListener('click',e=>{if(e.target===d||e.target.closest('[data-zoom-close]'))d.close();
   const tg=e.target.closest('[data-showcase-toggle]');if(tg){d.close();toggleShowcase(Number(tg.dataset.showcaseToggle));}
@@ -73,7 +74,7 @@ async function toggleShowcase(id){
 function view(){
  const st=S.status||{},signed=!!st.signed_in,inv=st.inventory||{},done=new Set((st.collections_done||[]).map(Number));
  const owned=S.cards.filter(x=>Number(inv[x.card.id])>0).length,total=S.cards.length;
- const dups=S.cards.reduce((n,x)=>n+Math.max(0,(Number(inv[x.card.id])||0)-1),0),dupValue=Number(st.duplicates_value)||0;
+ const dups=Object.values(st.recyclable||{}).reduce((n,v)=>n+(Number(v)||0),0),dupValue=Number(st.duplicates_value)||0;
  const price=Number(st.booster_price)||150,bal=Number(st.balance)||0;
  if(S.error)return `<div class="notice warning">DLFR Cards indisponible : ${esc(S.error)}</div>`;
  if(!S.loaded)return '<div class="dlfr127-loading">Chargement de ta collection…</div>';
@@ -83,7 +84,7 @@ function view(){
      ${st.daily_available?`<button type="button" class="btn" data-cards-open="daily" ${S.busy?'disabled':''}>Ouvrir gratuitement</button>`:`<span class="dlfr127-wait" data-next="${esc(st.next_daily)}">Prochain booster dans <b>${countdown(st.next_daily)}</b></span>`}</div></article>
    <article class="dlfr127-action">${boosterArt('Booster DLFR','◆','blue')}<div><small>BOUTIQUE</small><h3>Booster DLFR</h3><p>5 cartes pour ${price} Wayllings dorés.</p>
      <button type="button" class="btn" data-cards-open="shop" ${S.busy||bal<price?'disabled':''} ${bal<price?'title="Solde insuffisant"':''}>Acheter et ouvrir · ${price} ✦</button></div></article>
-   <article class="dlfr127-action is-recycle"><div class="dlfr127-recycle-ico" aria-hidden="true">♻</div><div><small>DOUBLONS</small><h3>${dups} doublon${dups>1?'s':''}</h3><p>Recycle-les en Wayllings dorés (tu gardes toujours un exemplaire).</p>
+   <article class="dlfr127-action is-recycle"><div class="dlfr127-recycle-ico" aria-hidden="true">♻</div><div><small>DOUBLONS</small><h3>${dups} doublon${dups>1?'s':''} recyclable${dups>1?'s':''}</h3><p>Les exemplaires en trop venant du booster du jour ou des boosters achetés se recyclent en Wayllings (ceux de l’Aventure servent à la Forge).</p>
      <button type="button" class="btn subtle" data-cards-recycle ${S.busy||!dups?'disabled':''}>Tout recycler · +${dupValue} ✦</button></div></article>
   </div>`:`<div class="dlfr127-guest"><b>Connecte-toi pour commencer ta collection</b><p>Un booster gratuit t’attend chaque jour.</p><a class="btn" data-nav href="?page=my-profile">Se connecter</a></div>`;
  const collections=S.collections.map(col=>{
@@ -93,14 +94,14 @@ function view(){
    const shown=list.filter(x=>S.filter==='all'||(S.filter==='owned')===(Number(inv[x.card.id])>0||adv(x.card.id)>0));
    return `<section class="dlfr127-col" style="--col:${esc(col.color||'#8b5cf6')}"><header><div><h3>${esc(col.name)}</h3>${col.description?`<p>${esc(col.description)}</p>`:''}</div>
     <div class="dlfr127-col-meta"><b>${have} / ${list.length}</b><div class="dlfr127-bar"><i style="width:${list.length?have/list.length*100:0}%"></i></div><small>${complete?'✓ Bonus de collection obtenu':`Collection complète : +${bonus} ✦`}</small>${advOnly?`<small class="dlfr136-adv-note">+ ${advOnly} carte${advOnly>1?'s':''} obtenue${advOnly>1?'s':''} en Aventure</small>`:''}</div></header>
-    <div class="dlfr127-grid">${shown.map(x=>{const q=Number(inv[x.card.id])||0,a=!q&&adv(x.card.id)>0;return `<div class="dlfr127-slot ${q?'is-owned':a?'is-adventure':'is-missing'}" data-card-zoom="${x.card.id}" role="button" tabindex="0" title="${esc(x.card.name)} · ${esc(x.card.rarity)}${a?' · obtenue en mode Aventure (ne compte pas pour les Wayllings)':''}">${fig(x.card,q>0||a)}${a?'<span class="dlfr136-adv-tag">🗺️ Aventure</span>':''}${q>1?`<span class="dlfr127-qty">×${q}</span><button type="button" class="dlfr127-recycle-one" data-cards-recycle="${x.card.id}" title="Recycler ${q-1} doublon(s)">♻ +${(q-1)*(VALUE[x.card.rarity]||2)}</button>`:''}</div>`;}).join('')||'<p class="muted small">Aucune carte dans ce filtre.</p>'}</div></section>`;
+    <div class="dlfr127-grid">${shown.map(x=>{const q=Number(inv[x.card.id])||0,a=!q&&adv(x.card.id)>0;return `<div class="dlfr127-slot ${q?'is-owned':a?'is-adventure':'is-missing'}" data-card-zoom="${x.card.id}" role="button" tabindex="0" title="${esc(x.card.name)} · ${esc(x.card.rarity)}${a?' · obtenue en mode Aventure (ne compte pas pour les Wayllings)':''}">${fig(x.card,q>0||a)}${a?'<span class="dlfr136-adv-tag">🗺️ Aventure</span>':''}${q>1?`<span class="dlfr127-qty">×${q}</span>`:''}${rcOf(x.card.id)>0?`<button type="button" class="dlfr127-recycle-one" data-cards-recycle="${x.card.id}" title="Recycler ${rcOf(x.card.id)} doublon(s) officiel(s)">♻ +${rcOf(x.card.id)*(VALUE[x.card.rarity]||2)}</button>`:''}</div>`;}).join('')||'<p class="muted small">Aucune carte dans ce filtre.</p>'}</div></section>`;
  }).join('');
  const embedded=!!document.querySelector('#dlfr127Cards.is-embedded');
  return (embedded?`<div class="dlfr127-hero-stats is-compact"><div><span>Cartes</span><b>${signed?owned:'—'} <small>/ ${total}</small></b></div><div><span>Wayllings dorés</span><b>✦ ${signed?bal:'—'}</b></div>${signed?`<div><span>Légendaire garantie</span><b>${pityLeft} <small>carte${pityLeft>1?'s':''}</small></b></div>`:''}</div>`:`<header class="dlfr127-hero"><div><span class="kicker">Collection</span><h1>DLFR Cards</h1><p>Collectionne les niveaux, les joueurs et les moments de la DLFR. Les doublons et les collections complètes rapportent des <b>Wayllings dorés</b>.</p></div>
   <a class="dlfr129-adventure-cta" href="?page=cards-lab" data-nav><span aria-hidden="true">🗺️</span><span><b>Mode Aventure</b><small>Expéditions, talents, Forge, quêtes…</small></span><em>Jouer →</em></a>
   <div class="dlfr127-hero-stats"><div><span>Cartes</span><b>${signed?owned:'—'} <small>/ ${total}</small></b></div><div><span>Wayllings dorés</span><b>✦ ${signed?bal:'—'}</b></div>${signed?`<div><span>Légendaire garantie</span><b>${pityLeft} <small>carte${pityLeft>1?'s':''}</small></b></div>`:''}</div></header>`)+`
   ${actions}
-  <details class="dlfr127-odds"><summary>Probabilités et règles</summary><ul><li>Chaque carte : Commun 58 % · Rare 27 % · Épique 10 % · Légendaire 4 % · Mythique 1 %.</li><li>La 5e carte de chaque booster est Rare ou mieux.</li><li>Une carte Légendaire ou mieux est garantie au plus tard toutes les 40 cartes.</li><li>Recyclage d’un doublon : Commun 2 ✦ · Rare 5 ✦ · Épique 15 ✦ · Légendaire 40 ✦ · Mythique 120 ✦.</li><li>Collection complète : 40 ✦ par carte de la collection, une seule fois.</li></ul></details>
+  <details class="dlfr127-odds"><summary>Probabilités et règles</summary><ul><li>Chaque carte : Commun 58 % · Rare 27 % · Épique 10 % · Légendaire 4 % · Mythique 1 %.</li><li>La 5e carte de chaque booster est Rare ou mieux.</li><li>Une carte Légendaire ou mieux est garantie au plus tard toutes les 40 cartes.</li><li>Une seule collection : les cartes de l’Aventure s’y ajoutent (120 par jour au maximum).</li><li>Recyclage d’un doublon officiel : Commun 2 ✦ · Rare 5 ✦ · Épique 15 ✦ · Légendaire 40 ✦ · Mythique 120 ✦.</li><li>Collection complète : 40 ✦ par carte de la collection, une seule fois.</li></ul></details>
   ${signed?showcaseHTML(st):''}
   ${LAB()?.ladder?LAB().ladder([58,27,10,4,1]):''}
   <div class="dlfr127-filters" role="group" aria-label="Filtrer les cartes">${[['all','Toutes'],['owned','Possédées'],['missing','Manquantes']].map(([k,l])=>`<button type="button" data-cards-filter="${k}" class="${S.filter===k?'active':''}" aria-pressed="${S.filter===k}">${l}</button>`).join('')}</div>
@@ -120,7 +121,7 @@ async function open(source){
   const {data,error}=await S.ctx.db.rpc('dlfr_cards_open',{p_source:source});if(error)throw error;
   const byId=new Map(S.cards.map(x=>[Number(x.card.id),x.card]));
   const draws=(data.cards||[]).map(d=>({card:byId.get(Number(d.id))||toCard({id:d.id,name:'Carte #'+d.id,rarity:d.rarity}),isNew:d.is_new,value:d.value}));
-  await refreshStatus();S.busy=false;
+  await refreshStatus();S.busy=false;LAB()?.applyServerInventory?.(S.status?.inventory||{});
   const price=Number(S.status?.booster_price)||150,canAgain=Number(S.status?.balance)>=price;
   const after=()=>{paint();S.ctx.onWallet?.();};
   if(LAB()?.playReal)LAB().playReal({name:source==='daily'?'Booster du jour':'Booster DLFR',theme:source==='daily'?'violet':'blue',emblem:source==='daily'?'✦':'◆'},draws,
@@ -148,6 +149,7 @@ document.addEventListener('click',ev=>{
 document.addEventListener('keydown',ev=>{if((ev.key==='Enter'||ev.key===' ')&&ev.target.matches?.('#dlfr127Cards [data-card-zoom]')){ev.preventDefault();zoom(Number(ev.target.dataset.cardZoom));}});
 window.DLFR_CARDS={
  page(){return '<section class="dlfr127-cards" id="dlfr127Cards" aria-live="polite"><div class="dlfr127-loading">Chargement de ta collection…</div></section>';},
+ invalidate(){if(!S.ctx||!S.loaded)return;refreshStatus().then(()=>{if(document.getElementById('dlfr127Cards'))paint();});},
  refresh(){if(!S.ctx)return;if(S.loaded)paint();else load();},
  mount(ctx){const sessionChanged=S.ctx&&S.ctx.session!==ctx.session;S.ctx=ctx;if(sessionChanged)S.loaded=false;if(S.loaded)paint();else load();},
  reset(){S.loaded=false;S.status=null;}
