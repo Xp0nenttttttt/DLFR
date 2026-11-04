@@ -1,0 +1,15 @@
+DLFR V134 — Bannières de Level Packs
+====================================
+
+Problème signalé par Soffax_ : la bannière du pack « ASS » ne s'affichait pas.
+Cause : le lien collé (https://ibb.co/hJCq7kYW) est la PAGE ImgBB, pas l'image.
+ - Corrigé directement en base : le pack ASS pointe maintenant vers l'image
+   https://i.ibb.co/rRvW7gd6/Capture-d-cran-2026-11-04-172741.png
+ - Éditeur de pack : bouton « 📁 Envoyer une image » (5 Mo max), ou lien DIRECT.
+ - Les liens de page (ibb.co, prnt.sc, gyazo.com, albums imgur…) sont refusés avec
+   une explication ; un lien imgur.com/XXXX simple est converti automatiquement.
+ - Si une bannière ne charge pas, l'icône d'image cassée n'apparaît plus.
+
+Base de données : DÉJÀ APPLIQUÉE (supabase/134_PACK_MEDIA.sql = archive).
+Fichiers : index.html, js/app.js, css/v126-ux.css, supabase/134_PACK_MEDIA.sql
+Le ZIP est cumulatif (V117 → V134) : copie tout à la racine du dépôt.

@@ -133,3 +133,7 @@
 @media(max-width:900px){.dlfr126-links>.nav-menu>summary{justify-content:flex-start!important;text-align:left}}
 /* Onglets des statistiques : défilement horizontal sur mobile au lieu de déborder. */
 @media(max-width:700px){.switch-tabs{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;scrollbar-width:thin;-webkit-overflow-scrolling:touch}.switch-tabs>button{flex:0 0 auto;white-space:nowrap}}
+/* V134 — bannière de Level Pack : envoi de fichier */
+.dlfr134-pack-banner{display:grid;gap:6px}
+.dlfr134-pack-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.dlfr134-pack-banner input[type=url]{width:100%;margin-top:3px}
