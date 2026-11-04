@@ -201,3 +201,10 @@ html.dark .c131-step.t0,.dlfr117-panel .c131-step.t0,.dlfr117-game .c131-step.t0
 .dlfr143-ready{font-style:normal;font-size:.68rem;font-weight:900;color:#1a1200;background:#ffd25e;border-radius:6px;padding:1px 6px;align-self:flex-start;margin-top:4px}
 @media (max-width:700px){.dlfr143-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.dlfr143-steps li.is-now{grid-column:1/-1}}
 .dlfr117-forge-item{flex-wrap:wrap}.dlfr117-forge-item .dlfr143-mini{flex-basis:100%;width:100%}
+/* V147 — boosters de collection */
+.b-collection{--b2:var(--pc,#8b5cf6);--b1:color-mix(in srgb,var(--pc,#8b5cf6) 35%,#05030b);--b3:color-mix(in srgb,var(--pc,#8b5cf6) 30%,#fff)}
+.dlfr147-booster{border:1px solid rgba(127,127,127,.3);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;margin:0}
+.dlfr147-booster legend{font-weight:800;font-size:.85rem;padding:0 4px}
+.dlfr147-check{flex-direction:row!important;align-items:center;gap:8px;font-weight:600}
+.dlfr147-booster small{opacity:.7}
+.dlfr147-check input{width:auto!important;flex:0 0 auto}

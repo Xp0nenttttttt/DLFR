@@ -1,0 +1,19 @@
+DLFR V147 — Un booster par collection (mode Aventure)
+=====================================================
+(Inclut V146 et avant. Base de données : DÉJÀ APPLIQUÉE — supabase/147_BOOSTERS_PAR_COLLECTION.sql = archive.)
+
+ - Onglet ✦ Boosters : en plus des boosters habituels, chaque collection a son propre booster
+   qui ne contient QUE les cartes de cette collection (ex. « Série 1 »). Couleur du booster =
+   couleur de la collection.
+ - Chances : Commun 50 % · Rare 35 % · Épique 12 % · Légendaire 2,6 % · Mythique 0,4 %,
+   dernière carte Rare ou mieux (à partir de 5 cartes).
+ - Un booster de collection n'apparaît que si la collection a au moins 3 cartes
+   « dans les boosters » (aujourd'hui : Série 1 ; Série 2 apparaîtra avec 2 cartes de plus ;
+   le calendrier de l'Avent n'en a pas).
+
+Réglages (propriétaires / supermodos) : onglet ✎ Catalogue → choisir la collection →
+« Modifier la collection » → bloc « Booster de la collection » :
+ - case à cocher pour proposer ou non le booster ;
+ - prix en éclats ◆ (80 par défaut), niveau requis (1), nombre de cartes (5, max 10).
+
+Fichiers : index.html, js/v118-cards-lab.js, css/v131-cards.css

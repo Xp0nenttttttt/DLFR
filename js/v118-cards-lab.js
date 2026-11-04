@@ -239,6 +239,13 @@ function legPity(){return 80-8*rank('fo4');}
 const MYTH_PITY=400;
 function slots(){return Math.min(4,1+rank('ex3')+rank('ex5')+(progress.level>=30?1:0));}
 function destDuration(d){return Math.round(d.min*60000*(1-.08*rank('ex2')));}
+// V147 — un booster par collection (réglé dans le Catalogue).
+function allPacks(){
+ const cols=COLLECTIONS.filter(c=>c.booster!==false&&packable().filter(x=>x.collectionId===c.id).length>=3);
+ return [...PACKS,...cols.map(c=>({id:'col-'+c.id,name:c.name,count:c.boosterCount||5,cost:{shards:c.boosterCost||80},level:c.boosterLevel||1,
+  weights:[50,35,12,2.6,.4],guarantee:(c.boosterCount||5)>=5?1:0,theme:'collection',emblem:'❖',color:c.color,
+  subtitle:`Uniquement les cartes de la collection « ${c.name} »`,filter:x=>x.collectionId===c.id,collection:c.id}))];
+}
 function packCount(p){return p.count+(rank('ma3')&&p.count>=5?1:0)+(rank('ap')?1:0);}
 function packGuarantee(p){return p.id==='start'&&rank('fo3')?1:p.guarantee;}
 function costText(c){return [c.keys?`🔑 ${c.keys}`:'',c.shards?`◆ ${fmt(c.shards)}`:''].filter(Boolean).join(' + ');}
@@ -348,7 +355,7 @@ function rollFinish(pack){
 }
 function registerPull(card,finish,isNew){const t=tierOf(card),s=S();s.pulled++;s.tiers[t]++;s.finishes[finish]++;if(isNew){s.newCards++;emit('new');}if(t>=2)emit('epic');if(finish>0)emit('finish');}
 function openPack(id){
- const pack=PACKS.find(p=>p.id===id);
+ const pack=allPacks().find(p=>p.id===id);
  if(!pack||OPEN.st||progress.level<pack.level||!canAfford(pack.cost))return false;
  if(!poolFor(pack).length){toast('Boosters','Aucune carte disponible dans les boosters : ajoute des cartes au catalogue.','info');return false;}
  const before={level:progress.level,xp:progress.xp,target:levelTarget(progress.level),shards:progress.shards,dust:progress.dust};
@@ -378,7 +385,7 @@ function openPack(id){
  return true;
 }
 function simulate(packId,times=100){
- const pack=PACKS.find(p=>p.id===packId)||PACKS[0],counts=[0,0,0,0,0];
+ const pack=allPacks().find(p=>p.id===packId)||PACKS[0],counts=[0,0,0,0,0];
  for(let k=0;k<times;k++)for(let i=0;i<packCount(pack);i++)counts[chooseTier(pack,i===packCount(pack)-1?packGuarantee(pack):0)]++;
  return counts;
 }
@@ -447,14 +454,14 @@ function starTrack(cur,v){
  </section>`;
 }
 function packArt(pack,size=''){
- return `<div class="dlfr117-booster b-${pack.theme} ${size}" aria-hidden="true"><div class="b-crimp"></div><div class="b-body"><div class="b-pattern"></div><div class="b-glow"></div><div class="b-logo">DLFR <b>CARDS</b></div><div class="b-emblem">${pack.emblem}</div><div class="b-name">${esc(pack.name)}</div><div class="b-meta">${pack.real?pack.count:packCount(pack)} CARTE${(pack.real?pack.count:packCount(pack))>1?'S':''} · ORIGINS</div><div class="b-foil"></div></div><div class="b-crimp b-bottom"></div></div>`;
+ return `<div class="dlfr117-booster b-${pack.theme} ${size}" aria-hidden="true"${pack.color?` style="--pc:${esc(pack.color)}"`:''}><div class="b-crimp"></div><div class="b-body"><div class="b-pattern"></div><div class="b-glow"></div><div class="b-logo">DLFR <b>CARDS</b></div><div class="b-emblem">${pack.emblem}</div><div class="b-name">${esc(pack.name)}</div><div class="b-meta">${pack.real?pack.count:packCount(pack)} CARTE${(pack.real?pack.count:packCount(pack))>1?'S':''} · ORIGINS</div><div class="b-foil"></div></div><div class="b-crimp b-bottom"></div></div>`;
 }
 function fmtPercent(n){return (n*100).toLocaleString('fr-FR',{maximumFractionDigits:n<.01?2:1})+' %';}
 function boostersView(){
  const p=progress;
  return `<section class="dlfr117-panel"><div class="dlfr117-head"><div><small>BOOSTERS DE L’AVENTURE</small><h2>Boosters</h2><p>Chaque booster a ses probabilités visibles. Les doublons deviennent de la poussière ✧ pour la Forge.</p>${ladder()}</div>
   <div class="dlfr117-pity"><div><span>Garantie Légendaire</span><b>${Math.max(1,legPity()-p.pity.leg)} carte${legPity()-p.pity.leg>1?'s':''}</b><div class="dlfr117-bar small"><i style="width:${p.pity.leg/legPity()*100}%"></i></div></div><div><span>Garantie Mythique</span><b>${Math.max(1,MYTH_PITY-p.pity.myth)} cartes</b><div class="dlfr117-bar small myth"><i style="width:${p.pity.myth/MYTH_PITY*100}%"></i></div></div></div></div>
-  <div class="dlfr117-packs">${PACKS.map(pack=>{
+  <div class="dlfr117-packs">${allPacks().map(pack=>{
    const locked=p.level<pack.level,afford=canAfford(pack.cost),w=weights(pack),g=packGuarantee(pack);
    return `<article class="dlfr117-pack ${locked?'is-locked':''}"><div class="dlfr117-pack-stage">${packArt(pack)}${locked?`<span class="dlfr117-lock">🔒 Niveau ${pack.level}</span>`:''}</div>
     <h3>${esc(pack.name)}</h3><p>${esc(pack.subtitle)}</p>
@@ -722,7 +729,7 @@ function renderSummary(){
  const shards=draws.reduce((n,d)=>n+d.shards,0),dust=draws.reduce((n,d)=>n+d.dust,0),news=draws.filter(d=>d.isNew).length;
  const best=draws.reduce((a,d)=>d.tier>a.tier||(d.tier===a.tier&&d.finish>a.finish)?d:a,draws[0]);
  const startPct=m.before.level>=MAX_LEVEL?100:m.before.xp/m.before.target*100,endPct=progress.level>=MAX_LEVEL?100:progress.xp/levelTarget(progress.level)*100;
- const again=PACKS.find(p=>p.id===st.pack.id),canAgain=again&&canAfford(again.cost)&&progress.level>=again.level;
+ const again=allPacks().find(p=>p.id===st.pack.id),canAgain=again&&canAfford(again.cost)&&progress.level>=again.level;
  setOpening('.o-stage',`<div class="o-summary"><h3>${news} nouvelle${news>1?'s':''} carte${news>1?'s':''} · ${draws.length-news} doublon${draws.length-news>1?'s':''}</h3>
   <div class="o-sum-grid">${draws.map((d,k)=>{const c=get(d.id);return c?`<div class="o-sum-card t${d.tier} ${d===best&&d.tier>=2?'is-best':''}" style="--k:${k}">${figure(c,data,true,{finish:d.finish})}<span class="${d.isNew?'is-new':''}">${d.isNew?'NOUVELLE':'DOUBLON'}</span></div>`:'';}).join('')}</div>
   <div class="o-gains"><div><b data-count="${shards}">0</b><span>◆ éclats</span></div><div><b data-count="${dust}">0</b><span>✧ poussière</span></div><div><b data-count="${m.xp}">0</b><span>XP</span></div></div>
@@ -796,7 +803,7 @@ const BUCKET='dlfr-cards', IMG_TYPES=['image/png','image/jpeg','image/webp','ima
 function setMsg(text,kind=''){catalog.msg=text;catalog.msgKind=kind;const el=document.getElementById('dlfr118Msg');if(el){el.textContent=text;el.className='dlfr118-msg '+(kind?'is-'+kind:'');}}
 function errText(e){const m=e?.message||String(e||'Erreur inconnue');return /duplicate key.*slug/i.test(m)?'Ce nom court (slug) est déjà utilisé par une autre collection.':/Accès refusé|42501|permission denied/i.test(m)?'Accès refusé : seuls les propriétaires et supermodérateurs peuvent modifier le catalogue.':m;}
 function applyCatalog(cols,cards){
- COLLECTIONS=(cols||[]).map(c=>({id:Number(c.id),slug:c.slug,name:c.name,description:c.description||'',color:c.color||'#8b5cf6',sort:Number(c.sort_order)||0}));
+ COLLECTIONS=(cols||[]).map(c=>({id:Number(c.id),slug:c.slug,name:c.name,description:c.description||'',color:c.color||'#8b5cf6',sort:Number(c.sort_order)||0,booster:c.booster_enabled!==false,boosterCost:Number(c.booster_cost)||80,boosterLevel:Number(c.booster_level)||1,boosterCount:Number(c.booster_count)||5}));
  CARDS.length=0;for(const r of cards||[])CARDS.push(mkCard(r));
  for(const id of [...owned.keys()])if(!get(id))owned.delete(id);
  for(const id of [...overrides.keys()])if(!get(id))overrides.delete(id);
@@ -810,7 +817,7 @@ async function loadCatalog(){
  if(!DB)return;catalog.status='loading';
  try{
   const [c,k]=await Promise.all([
-   DB.from('dlfr_card_collections').select('id,slug,name,description,color,sort_order').order('sort_order',{ascending:true}).order('id',{ascending:true}),
+   DB.from('dlfr_card_collections').select('*').order('sort_order',{ascending:true}).order('id',{ascending:true}),
    DB.from('dlfr_cards').select('id,collection_id,name,card_type,rarity,description,image_url,in_packs,sort_order').order('sort_order',{ascending:true}).order('id',{ascending:true})]);
   if(c.error)throw c.error;if(k.error)throw k.error;
   if(!c.data.length&&!k.data.length&&catalog.status!=='ready'){catalog.status='empty';}else catalog.status='ready';
@@ -829,7 +836,7 @@ function openCardEditor(id){
   :{name:'',type:'level',rarity:'Rare',collection:catalog.selCol,description:'',imageUrl:'',preview:'',inPacks:true,sort:(cardsOf(catalog.selCol).reduce((m,x)=>Math.max(m,x.sort),0)+1)};
  setMsg('');
 }
-function openColEditor(id){const c=id==='new'?null:colOf(id);catalog.editCol=c?c.id:'new';catalog.colDraft=c?{name:c.name,slug:c.slug,description:c.description,color:c.color,sort:c.sort,slugTouched:true}:{name:'',slug:'',description:'',color:'#8b5cf6',sort:COLLECTIONS.reduce((m,x)=>Math.max(m,x.sort),0)+1,slugTouched:false};setMsg('');}
+function openColEditor(id){const c=id==='new'?null:colOf(id);catalog.editCol=c?c.id:'new';catalog.colDraft=c?{name:c.name,slug:c.slug,description:c.description,color:c.color,sort:c.sort,slugTouched:true,booster:c.booster!==false,boosterCost:c.boosterCost||80,boosterLevel:c.boosterLevel||1,boosterCount:c.boosterCount||5}:{name:'',slug:'',description:'',color:'#8b5cf6',sort:COLLECTIONS.reduce((m,x)=>Math.max(m,x.sort),0)+1,slugTouched:false,booster:true,boosterCost:80,boosterLevel:1,boosterCount:5};setMsg('');}
 function draftCard(){const d=catalog.draft||{};return {id:catalog.editCard==='new'?0:catalog.editCard,name:d.name||'Nouvelle carte',rarity:d.rarity||'Rare',type:d.type||'level',series:colOf(d.collection)?.name||'',image:d.preview||(validUrl(d.imageUrl)||''),description:d.description||''};}
 function previewHtml(){return figure(draftCard(),srcData(),false,{finish:0,stars:0});}
 function refreshCatPreview(){const el=document.getElementById('dlfr118Preview');if(el)el.innerHTML=previewHtml();}
@@ -883,7 +890,10 @@ function saveCollection(){
  const old=catalog.editCol==='new'?null:colOf(catalog.editCol);
  withBusy('Enregistrement de la collection…',async()=>{
   const {data,error}=await DB.rpc('dlfr_cards_admin_save_collection',{p_id:old?old.id:null,p_slug:slug,p_name:name,p_description:safeText(d.description,400),p_color:d.color,p_sort:Number(d.sort)||0});
-  if(error)throw error;log(`${old?'Collection modifiée':'Collection créée'} : ${name}`);
+  if(error)throw error;
+  const bz=await DB.rpc('dlfr_cards_admin_set_collection_booster',{p_id:Number(data),p_enabled:d.booster!==false,p_cost:Math.round(Number(d.boosterCost)||80),p_level:Math.round(Number(d.boosterLevel)||1),p_count:Math.round(Number(d.boosterCount)||5)});
+  if(bz.error)throw bz.error;
+  log(`${old?'Collection modifiée':'Collection créée'} : ${name}`);
   catalog.selCol=Number(data);catalog.editCol=null;catalog.colDraft=null;await loadCatalog();setMsg(old?'Collection enregistrée ✓':'Collection créée ✓','ok');
  });
 }
@@ -932,6 +942,10 @@ function catalogView(data){
   <label>Nom court (identifiant)<input data-v118-col="slug" maxlength="40" value="${esc(cd.slug)}" placeholder="french-legends"><small>Minuscules, chiffres et tirets.</small></label>
   <label>Description<textarea data-v118-col="description" maxlength="400" rows="2">${esc(cd.description)}</textarea></label>
   <div class="dlfr118-row"><label>Couleur<input type="color" data-v118-col="color" value="${esc(cd.color)}"></label><label>Ordre<input type="number" data-v118-col="sort" value="${esc(cd.sort)}" min="-9999" max="9999"></label></div>
+  <fieldset class="dlfr147-booster"><legend>Booster de la collection (mode Aventure)</legend>
+   <label class="dlfr147-check"><input type="checkbox" data-v118-col="booster" ${cd.booster!==false?'checked':''}> Proposer un booster avec uniquement les cartes de cette collection</label>
+   <div class="dlfr118-row"><label>Prix (éclats ◆)<input type="number" data-v118-col="boosterCost" min="1" max="100000" value="${esc(cd.boosterCost??80)}"></label><label>Niveau requis<input type="number" data-v118-col="boosterLevel" min="1" max="200" value="${esc(cd.boosterLevel??1)}"></label><label>Cartes<input type="number" data-v118-col="boosterCount" min="1" max="10" value="${esc(cd.boosterCount??5)}"></label></div>
+   <small>Chances : Commun 50 % · Rare 35 % · Épique 12 % · Légendaire 2,6 % · Mythique 0,4 % Il apparaît dès que la collection a au moins 3 cartes « dans les boosters ».</small></fieldset>
   <div class="dlfr118-actions"><button class="btn" type="submit" ${dis}>${catalog.editCol==='new'?'Créer la collection':'Enregistrer'}</button><button class="btn subtle" type="button" data-v112-act="cat-col-cancel">Annuler</button></div></form>`:'';
  const cardForm=d?`<div class="dlfr118-editor"><form class="dlfr118-form" id="dlfr118CardForm" autocomplete="off"><h3>${catalog.editCard==='new'?'Nouvelle carte':'Modifier #'+idString(catalog.editCard)}</h3>
   <label>Nom<input data-v118-card="name" maxlength="80" required value="${esc(d.name)}" placeholder="Ex. : Oblivion"></label>
@@ -989,7 +1003,7 @@ function viewPage(data){
   ${view==='control'?`<section class="dlfr112-panel"><div class="dlfr112-section-head"><h2>Console de test · Pouvoirs admin</h2><p>Pour tester la progression. Le catalogue n’est pas modifié.</p></div>
    <div class="dlfr112-admin-actions"><button class="btn" type="button" data-v112-act="all">✦ Recevoir toutes les cartes</button><button class="btn subtle" type="button" data-v112-act="holo-all">✧ Tout passer en Holo</button><button class="btn subtle" type="button" data-v112-act="cheat" data-what="shards">+1 000 ◆</button><button class="btn subtle" type="button" data-v112-act="cheat" data-what="dust">+500 ✧</button><button class="btn subtle" type="button" data-v112-act="cheat" data-what="keys">+5 🔑</button><button class="btn subtle" type="button" data-v112-act="cheat" data-what="levels">+5 niveaux</button><button class="btn subtle" type="button" data-v112-act="cooldown-skip">Terminer les expéditions</button><button class="btn subtle" type="button" data-v112-act="skills-reset">Réinitialiser les talents (remboursement)</button><button class="btn danger" type="button" data-v112-act="reset">Réinitialiser la progression de test</button></div>
    ${current?`<div class="dlfr112-admin-edit"><label>Carte à modifier<select id="dlfr112CardPick">${CARDS.map(c=>`<option value="${c.id}" ${c.id===selected?'selected':''}>${idString(c.id)} · ${esc(c.name)}</option>`).join('')}</select></label><label>Rareté fictive (test, non enregistrée)<select id="dlfr112Rarity">${rarities.map(r=>`<option value="${esc(r)}" ${r===rarity(current)?'selected':''}>${esc(r)}</option>`).join('')}</select></label><button class="btn subtle" type="button" data-v112-act="rarity">Tester la rareté</button></div>`:''}
-   <div class="dlfr112-admin-edit"><label>Simulateur d'équilibrage (rien n'est donné)<select id="dlfr117SimPack">${PACKS.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></label><button class="btn subtle" type="button" data-v112-act="simulate">Simuler 1 000 paquets</button></div>
+   <div class="dlfr112-admin-edit"><label>Simulateur d'équilibrage (rien n'est donné)<select id="dlfr117SimPack">${allPacks().map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></label><button class="btn subtle" type="button" data-v112-act="simulate">Simuler 1 000 paquets</button></div>
    <p class="dlfr117-sim" id="dlfr117SimOut"></p></section>`:''}
   ${journal.length?`<section class="dlfr112-panel dlfr112-log"><div class="dlfr112-section-head"><h2>Historique de cette session</h2><span class="muted small">Effacé au rechargement</span></div>${journal.slice(-6).reverse().map(x=>`<p>• ${esc(x)}</p>`).join('')}</section>`:''}
  </section>`;
@@ -1144,7 +1158,7 @@ function handleInput(event){
  if(!gate||!document.getElementById('dlfr112Lab'))return;
  const e=event.target;
  if(e.dataset?.v118Card&&catalog.draft){const k=e.dataset.v118Card;catalog.draft[k]=e.type==='checkbox'?e.checked:e.value;if(k==='imageUrl'&&e.value){catalog.pendingFile=null;catalog.draft.preview='';}refreshCatPreview();return;}
- if(e.dataset?.v118Col&&catalog.colDraft){const k=e.dataset.v118Col,cd=catalog.colDraft;cd[k]=e.value;if(k==='slug')cd.slugTouched=true;if(k==='name'&&!cd.slugTouched){cd.slug=slugify(e.value);const s=document.querySelector('[data-v118-col="slug"]');if(s)s.value=cd.slug;}return;}
+ if(e.dataset?.v118Col&&catalog.colDraft){const k=e.dataset.v118Col,cd=catalog.colDraft;cd[k]=e.type==='checkbox'?e.checked:e.value;if(k==='slug')cd.slugTouched=true;if(k==='name'&&!cd.slugTouched){cd.slug=slugify(e.value);const s=document.querySelector('[data-v118-col="slug"]');if(s)s.value=cd.slug;}return;}
  if(!e.matches('[data-v112-field="search"]'))return;
  query=e.value;
  const grid=document.querySelector('#dlfr112Lab .dlfr112-grid');if(!grid)return;
