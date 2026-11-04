@@ -1,0 +1,19 @@
+DLFR V132 — Badges de vérification : corrections
+================================================
+
+Base de données : DÉJÀ APPLIQUÉE (supabase/132_VERIFS_COMPTENT.sql = archive).
+
+ - Les badges de vérification étaient bien attribués (ex. flavyola64 : 5 badges),
+   MAIS un niveau vérifié ne comptait pas comme « battu ». Désormais il compte pour
+   tous les badges de progression (Bienvenue au club, Cour des grands, Élite,
+   Numéro un, NLW…), comme pour le Hardest affiché.
+   → 98 badges rattrapés (dont 5 « Élite », 24 « Cour des grands », 21 « Bienvenue NLW »).
+ - Le déclencheur reconnaît maintenant le vérificateur par sa fiche, son pseudo OU
+   son nom affiché : le badge tombe tout de suite quand un vérificateur est crédité.
+ - Le site affiche les badges NLW obtenus grâce à une vérification (avant, ils
+   pouvaient être masqués faute de record NLW).
+ - Rappel : « Anonyme » et les vérificateurs sans fiche joueur (Michy, Versuis,
+   Azin…) ne reçoivent pas de badge.
+
+Fichiers : index.html, js/badge-system.js, supabase/132_VERIFS_COMPTENT.sql (archive)
+Le ZIP est cumulatif (V117 → V132) : copie tout à la racine du dépôt.

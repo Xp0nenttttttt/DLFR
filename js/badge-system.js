@@ -53,8 +53,11 @@ function init(d){
 function counts(d,playerKey){
  const byId=new Map((d.demons||[]).map(x=>[String(x.id),x]));
  const groups={list:new Set(),nlw:new Set(),unrated:new Set(),main:new Set()};
- for(const rec of d.completions||[]){
-  if(norm(rec.player)!==norm(playerKey)||Number(rec.progress)<100)continue;
+ // V132 : un niveau vérifié par le joueur compte comme battu (même règle que Supabase).
+ const pl=(d.players||[]).find(x=>norm(x.player_key)===norm(playerKey));
+ const isVerifier=x=>norm(playerKey)!=='anonyme'&&pl&&(x.verifier_user_id?Number(x.verifier_user_id)===Number(pl.legacy_id):String(x.verifier||'').trim()&&[pl.player_key,pl.username,pl.display_name].filter(Boolean).map(norm).includes(norm(x.verifier)));
+ const beatenRecs=(d.completions||[]).filter(rec=>norm(rec.player)===norm(playerKey)&&Number(rec.progress)>=100).concat((d.demons||[]).filter(isVerifier).map(x=>({demon_id:x.id,progress:100,player:playerKey})));
+ for(const rec of beatenRecs){
   const demon=byId.get(String(rec.demon_id));if(!demon||demon.is_public===false)continue;
   const id=String(demon.id),pos=Number(demon.position);if(demon.unrated===true||demon.unrated===1||demon.unrated==='true'){groups.unrated.add(id);continue;}
   if(pos>=1&&pos<=150){groups.list.add(id);if(pos<=75)groups.main.add(id);}
