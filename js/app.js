@@ -1167,6 +1167,20 @@ function discordPanel(actor, profile={}) {
   }
 
 }
+// V124 — emblème : un badge possédé choisi par le joueur, affiché à côté de son pseudo.
+let EMBLEM_CACHE={aw:null,pr:null,map:new Map()};
+function emblemOf(key){
+ if(!key||!state.communityReady)return null;
+ const aw=state.data.badge_awards,pr=state.data.dlfr_profile_preferences;
+ if(EMBLEM_CACHE.aw!==aw||EMBLEM_CACHE.pr!==pr)EMBLEM_CACHE={aw,pr,map:new Map()};
+ if(EMBLEM_CACHE.map.has(key))return EMBLEM_CACHE.map.get(key);
+ const id=String((pr||[]).find(x=>x.player_key===key)?.emblem_badge||'');
+ const hit=id?COMMUNITY.ownedBadges(state.data,key,BADGES).find(x=>x.id===id)||null:null;
+ EMBLEM_CACHE.map.set(key,hit);return hit;
+}
+function emblemRarity(def){return String(def?.rarity||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
+function emblemMedal(def,extra=''){return `<span class="dlfr-emblem ${extra}" data-rarity="${esc(emblemRarity(def))}"><span class="dlfr-badge-medal" aria-hidden="true"><span class="dlfr-badge-icon">${esc(def.symbol||'★')}</span></span></span>`;}
+function emblemHTML(key,size=''){const e=emblemOf(key);if(!e)return '';const t=`Emblème : ${e.def.label}${e.def.description?' — '+e.def.description:''}`;return `<span class="dlfr-emblem-wrap ${size?'is-'+size:''}" title="${esc(t)}" role="img" aria-label="${esc(t)}">${emblemMedal(e.def)}</span>`;}
 function communitySelfFields(actor){
  if(!state.communityReady)return '<div class="notice warning">La personnalisation avancée n’est pas disponible pour le moment.</div>';
  const pref=(state.data.dlfr_profile_preferences||[]).find(x=>x.player_key===actor)||{};
@@ -1179,6 +1193,7 @@ function communitySelfFields(actor){
   <label class="field">Couleur d'accent de mon profil<input type="color" name="accent_color" value="${esc(COMMUNITY.hex(pref.accent_color))}"></label>
   <label class="field">Titre officiel mis en avant<select name="featured_title_id"><option value="">Aucun titre mis en avant</option>${titles.map(t=>`<option value="${esc(t.id)}" ${String(pref.featured_title_id)===String(t.id)?'selected':''}>${esc(t.label)}</option>`).join('')}</select></label>
   <div class="field"><b>Mes badges favoris (3 maximum)</b>${badges.length?`<div class="dlfr20-badge-picker">${badges.map(x=>`<label><input type="checkbox" name="featured_badges" value="${esc(x.id)}" ${chosen.has(x.id)?'checked':''}> ${esc(x.def.symbol)} ${esc(x.def.label)}</label>`).join('')}</div>`:'<p class="muted small">Tu pourras sélectionner des badges dès que tu en possèderas.</p>'}</div>
+  <div class="field"><b>Mon emblème</b><p class="muted small" style="margin:0 0 6px">Le logo de ce badge s'affiche à côté de ton pseudo (profil, classements, liste des joueurs).</p>${badges.length?`<div class="dlfr124-emblem-picker"><label class="dlfr124-emblem-opt"><input type="radio" name="emblem_badge" value="" ${pref.emblem_badge?'':'checked'}><span class="dlfr124-emblem-none" aria-hidden="true">∅</span><small>Aucun</small></label>${badges.map(x=>`<label class="dlfr124-emblem-opt" title="${esc(x.def.label)}${x.def.description?' — '+esc(x.def.description):''}"><input type="radio" name="emblem_badge" value="${esc(x.id)}" ${String(pref.emblem_badge||'')===x.id?'checked':''}>${emblemMedal(x.def)}<small>${esc(x.def.label)}</small></label>`).join('')}</div>`:'<p class="muted small">Obtiens un badge pour pouvoir le choisir comme emblème.</p>'}</div>
   <h3>Ma vitrine de niveaux</h3><p class="muted small">Choisis jusqu'à trois niveaux, ajoute une description et, si tu le souhaites, un lien vers ta vidéo.</p>
   <div class="dlfr20-showcase-edit">${[1,2,3].map(slot=>{const x=items.find(z=>Number(z.slot)===slot)||{};return `<div class="dlfr20-showcase-slot"><b>Emplacement ${slot}</b><label class="field">Niveau<select name="showcase_demon_${slot}"><option value="">Aucun niveau</option>${opts.replaceAll(`value="${esc(x.demon_id)}"`,`value="${esc(x.demon_id)}" selected`)}</select></label><label class="field">Description (180 caractères)<input name="showcase_caption_${slot}" maxlength="180" value="${esc(x.caption||'')}" placeholder="Pourquoi ce niveau est spécial pour moi…"></label><label class="field">Ma vidéo (URL HTTPS)<input type="url" name="showcase_video_${slot}" maxlength="500" placeholder="https://youtu.be/…" value="${esc(x.video_url||'')}"></label></div>`;}).join('')}</div>
  </fieldset>`;
@@ -1318,6 +1333,11 @@ async function saveSelfProfile(form){
        p_featured_badges:badgeIds,p_showcase:showcase
      });
      if(error)throw Error('Personnalisation DLFR 2.0 : '+error.message);
+     if(form.querySelector('[name="emblem_badge"]')){
+       const em=String(new FormData(form).get('emblem_badge')||'');
+       const cur=String((state.data.dlfr_profile_preferences||[]).find(x=>x.player_key===actor)?.emblem_badge||'');
+       if(em!==cur){const r=await db.rpc('dlfr_set_profile_emblem',{p_badge_id:em||null});if(r.error)throw Error('Emblème : '+r.error.message);}
+     }
      for(const t of ['dlfr_profile_preferences','dlfr_profile_showcase'])state.data[t]=await readAll(t);
    }
    if(country!==player.country_code){
@@ -1451,7 +1471,7 @@ function statProfile(p){if(!p)return '<div class="stats-profile empty">Sélectio
   .map(([n,v])=>`<a class="social-link" target="_blank" rel="noopener noreferrer" href="${esc(http(v))}">${n} ↗</a>`).join('');
  return `<div class="stats-profile dlfr20-profile" style="--dlfr20-accent:${esc(COMMUNITY.hex((state.data.dlfr_profile_preferences||[]).find(x=>x.player_key===p.player_key)?.accent_color))}"><div class="profile-hero">${banner?`<img class="profile-cover-img" src="${esc(banner)}" alt="" aria-hidden="true">`:''}
     <div class="profile-hero-inner">${framedAvatar(p.player_key,avatar?`<img class="profile-avatar" src="${esc(avatar)}" alt="Avatar de ${esc(p.display_name||p.username)}">`:`<div class="profile-avatar profile-avatar-fallback" aria-hidden="true">${esc((p.display_name||p.username||'?').slice(0,1).toUpperCase())}</div>`)}
-      <div class="profile-hero-copy"><span class="profile-pretitle">Profil joueur · ${p.has_account?'Compte':'Sans compte'}</span><strong>${flag(p.country_code)} ${esc(p.display_name||p.username)}</strong>${regionIdentity(p)}<span>${p.hardest?'Hardest : '+esc(hardestLabel(p)):'Aucun hardest connu'}</span></div>
+      <div class="profile-hero-copy"><span class="profile-pretitle">Profil joueur · ${p.has_account?'Compte':'Sans compte'}</span><strong>${flag(p.country_code)} ${esc(p.display_name||p.username)}${emblemHTML(p.player_key,'lg')}</strong>${regionIdentity(p)}<span>${p.hardest?'Hardest : '+esc(hardestLabel(p)):'Aucun hardest connu'}</span></div>
     </div></div>
  ${isSuspended?'<p class="notice warning"><b>Profil suspendu en démonstration</b> — cette sanction n’affecte pas l’authentification réelle.</p>':''}<h2 class="player-title">${flag(p.country_code)} ${esc(p.display_name||p.username)} ${!p.has_account?'<span class="tag">Sans compte</span>':''}</h2><div class="profile-region-line">${regionIdentity(p)}</div><div style="text-align:center;margin-bottom:8px">${p.clan?` <a class="tag clan-profile-link" href="${url('clans')}" data-nav>Clan : ${esc(state.data.clans.find(c=>Number(c.id)===Number(p.clan.clan_id))?.tag||'—')}</a>`:''}</div>
  <div class="statboxes">${box('Classement Demonlist',rankedStr)}${box('Points totaux',fmt(p.score))}${box('Hardest (complété ou vérifié)',hardestLabel(p))}</div>
@@ -1611,7 +1631,7 @@ function playerPage(){
  if(!player)return `<section class="paper dlfr24-public"><h1>Profil introuvable</h1><p class="muted">Ce joueur n’existe pas ou sa fiche n’est pas publique.</p><a data-nav class="btn subtle" href="${url('players')}">Voir les profils</a></section>`;
  state.selectedPlayer=player.player_key;
  return `${templateNotice()}<section class="paper dlfr24-public"><div class="dlfr24-breadcrumb"><a class="link" data-nav href="${url('players')}">Profils des joueurs</a><span aria-hidden="true">›</span><span>${esc(fullName(player))}</span></div>
- <div class="dlfr24-profile-head"><div><span class="kicker">Fiche publique DLFR</span><h1>${flag(player.country_code)} ${esc(fullName(player))}</h1><p class="muted">Présentation, performances, distinctions et vitrine communautaire.</p></div><div class="dlfr24-profile-actions"><a data-nav class="btn subtle small" href="${url('stats')}">Classements ↗</a>${state.ownKey===player.player_key?`<a data-nav class="btn small" href="${url('my-profile')}">Modifier mon profil</a>`:''}</div></div>
+ <div class="dlfr24-profile-head"><div><span class="kicker">Fiche publique DLFR</span><h1>${flag(player.country_code)} ${esc(fullName(player))}${emblemHTML(player.player_key,'xl')}</h1><p class="muted">Présentation, performances, distinctions et vitrine communautaire.</p></div><div class="dlfr24-profile-actions"><a data-nav class="btn subtle small" href="${url('stats')}">Classements ↗</a>${state.ownKey===player.player_key?`<a data-nav class="btn small" href="${url('my-profile')}">Modifier mon profil</a>`:''}</div></div>
  <div id="profileContent">${statProfile(player)}</div></section>`;
 }
 function playersPage(){
@@ -1621,7 +1641,7 @@ function playersPage(){
    const avatar=avatarOf(p.player_key,profile);
    return `<a class="dlfr24-player-card ${p.has_account?'':'unclaimed'} ${v90Cls(V90_FX.items[p.player_key])}" data-nav href="${url('player',{player:p.player_key})}" data-profile-search="${esc(key(fullName(p)))}">
      ${framedAvatar(p.player_key,`<span class="dlfr24-player-avatar">${avatar?`<img loading="lazy" src="${esc(avatar)}" alt="">`:esc(fullName(p).slice(0,1).toUpperCase()||'?')}</span>`)}
-     <span class="dlfr24-player-info"><strong>${flag(p.country_code)} ${esc(fullName(p))}</strong><small>${p.rank?'#'+p.rank+' · ':''}${fmt(p.score)} pts · ${p.has_account?'Compte lié':'Sans compte'}</small></span><span aria-hidden="true">↗</span></a>`;
+     <span class="dlfr24-player-info"><strong>${flag(p.country_code)} ${esc(fullName(p))}${emblemHTML(p.player_key)}</strong><small>${p.rank?'#'+p.rank+' · ':''}${fmt(p.score)} pts · ${p.has_account?'Compte lié':'Sans compte'}</small></span><span aria-hidden="true">↗</span></a>`;
  }).join('');
  return `${templateNotice()}<section class="paper dlfr24-directory"><div class="dlfr24-directory-head"><div><span class="kicker">Communauté</span><h1>Profils des joueurs</h1><p class="muted">Retrouve la fiche publique d’un joueur sans passer par les statistiques.</p></div><a class="btn subtle small" data-nav href="${url('stats')}">Voir les classements</a></div><label class="filterbox"><span aria-hidden="true">⌕</span><input id="dlfr24ProfileSearch" type="search" placeholder="Chercher un joueur…" aria-label="Rechercher un profil"></label><div id="dlfr24PlayerList" class="dlfr24-player-grid">${items}</div><p class="muted small" id="dlfr24NoProfiles" hidden>Aucun joueur ne correspond à cette recherche.</p></section>`;
 }
@@ -1640,7 +1660,7 @@ function statsProfilePreview(p){
  return `<article class="dlfr251-preview ${v90Cls(fxItems)}" style="--dlfr251-accent:${esc(accent)}" aria-label="Aperçu de ${esc(name)}">
    <div class="dlfr251-preview-banner ${(fxItems||[]).some(x=>String(x.item_key).startsWith('banner_'))?'pd-hero':''}">${banner?`<img loading="lazy" src="${esc(banner)}" alt="">`:''}${v90LayerHTML(fxItems)}</div>
    <div class="dlfr251-preview-content">
-    <div class="dlfr251-preview-identity">${framedAvatar(p.player_key,`<span class="dlfr251-preview-avatar">${avatar?`<img loading="lazy" src="${esc(avatar)}" alt="Avatar de ${esc(name)}">`:`<span aria-hidden="true">${esc(initial)}</span>`}</span>`)}<div class="dlfr251-preview-name"><h3 class="${fxItems?.length?'pd-name':''}">${flag(p.country_code)} ${esc(name)}${DECO.medals(fxItems)}</h3><p class="muted small">${p.has_account?'Compte DLFR':'Profil non revendiqué'} ${p.country_code==='FR'?`· ${esc(GEO.regionInfo(regionFor(p))?.name||'France')}`:''}</p></div></div>
+    <div class="dlfr251-preview-identity">${framedAvatar(p.player_key,`<span class="dlfr251-preview-avatar">${avatar?`<img loading="lazy" src="${esc(avatar)}" alt="Avatar de ${esc(name)}">`:`<span aria-hidden="true">${esc(initial)}</span>`}</span>`)}<div class="dlfr251-preview-name"><h3 class="${fxItems?.length?'pd-name':''}">${flag(p.country_code)} ${esc(name)}${emblemHTML(p.player_key,'lg')}${DECO.medals(fxItems)}</h3><p class="muted small">${p.has_account?'Compte DLFR':'Profil non revendiqué'} ${p.country_code==='FR'?`· ${esc(GEO.regionInfo(regionFor(p))?.name||'France')}`:''}</p></div></div>
     ${featured?`<p class="dlfr251-preview-title">✦ ${esc(featured.label)}</p>`:''}
     <div class="dlfr251-preview-stats">${box('Rang DLFR',p.rank?'#'+p.rank:'—')}${box('Points Top 150',fmt(p.score))}${box('Points NLW',fmt(p.nlwScore||0))}${box('Rang NLW',p.nlwRank?'#'+p.nlwRank:'—')}${box('Hardest',hardestLabel(p))}${box('Main List',mainCount)}${box('Extended',extendedCount)}${box('NLW',p.beyond.length)}</div>
     ${profile.bio?`<p class="dlfr251-preview-bio">${esc(profile.bio)}</p>`:''}
@@ -1681,7 +1701,7 @@ function statsPage(){const users=ranked().filter(statsPlayerVisible);const count
  if(state.statsTab==='compare'){const a=chosen||users[0],b=users.find(p=>p.player_key===state.comparePlayer)||users.find(p=>p.player_key!==a?.player_key);return top+`<div class="compare-panel"><div class="compare-selects"><label>Joueur A <select id="compareA">${users.map(p=>`<option value="${esc(p.player_key)}" ${p.player_key===a?.player_key?'selected':''}>${esc(fullName(p))}</option>`).join('')}</select></label><label>Joueur B <select id="compareB">${users.filter(p=>p.player_key!==a?.player_key).map(p=>`<option value="${esc(p.player_key)}" ${p.player_key===b?.player_key?'selected':''}>${esc(fullName(p))}</option>`).join('')}</select></label></div>${a?comparison(a,b):'<p class="empty">Pas de joueurs.</p>'}</div></section>`;}
  return top+`<div class="dlfr24-stats-ranking dlfr251-stats-layout"><div class="ranking-panel"><div class="kicker">International</div><div class="country-select-row"><span id="countryFilterPreview">${flag(state.country)}</span><select id="countryFilter" aria-label="Filtrer par pays">${countries.map(c=>`<option value="${esc(c)}" ${c===state.country?'selected':''}>${c==='MONDE'?'MONDE - International':GEO.countryName(c)+' ('+esc(c)+')'}</option>`).join('')}</select></div>${state.country==='FR'?`<div class="country-select-row"><span>${GEO.regionImage(state.region)}</span><select id="regionFilter" aria-label="Filtrer par région française"><option value="ALL">Toutes les régions</option>${GEO.regions.map(r=>`<option value="${r.code}" ${state.region===r.code?'selected':''}>${esc(r.name)}</option>`).join('')}</select></div>`:''}<label class="filterbox" style="margin-top:9px"><span>⌕</span><input type="search" id="playerSearch" placeholder="Rechercher un joueur…" value="${esc(state.keyword)}"></label><div class="rank-list" id="rankList">${rankRows(filtered,chosen)}</div><p class="muted small">Clique sur un joueur pour afficher son aperçu. Ouvre ensuite sa fiche complète depuis la carte à droite. Les profils sans compte apparaissent en gris.</p></div><aside id="dlfr251StatsPreview" class="dlfr251-preview-column" aria-live="polite">${statsProfilePreview(chosen)}</aside></div></section>`;
 }
-function rankRows(users,chosen,mode='main'){return users.length?users.map(p=>`<button type="button" data-stats-preview="${esc(p.player_key)}" aria-pressed="${p.player_key===chosen?.player_key}" class="rank-item ${p.has_account?'':'unclaimed'} ${p.player_key===chosen?.player_key?'selected':''} ${v90Cls(V90_FX.items[p.player_key])}"><span class="rank-num">#${mode==='nlw'?(p.nlwRank||'-'):(p.rank||'-')}</span><span class="rank-name">${flag(p.country_code)} ${regionFlag(p)} ${esc(p.display_name||p.username)}${(DECO.icons||DECO.medals)(V90_FX.items[p.player_key])}</span><span class="rank-score">${fmt(mode==='nlw'?p.nlwScore:p.score)}</span></button>`).join(''):'<div class="empty">Aucun joueur trouvé.</div>';}
+function rankRows(users,chosen,mode='main'){return users.length?users.map(p=>`<button type="button" data-stats-preview="${esc(p.player_key)}" aria-pressed="${p.player_key===chosen?.player_key}" class="rank-item ${p.has_account?'':'unclaimed'} ${p.player_key===chosen?.player_key?'selected':''} ${v90Cls(V90_FX.items[p.player_key])}"><span class="rank-num">#${mode==='nlw'?(p.nlwRank||'-'):(p.rank||'-')}</span><span class="rank-name">${flag(p.country_code)} ${regionFlag(p)} ${esc(p.display_name||p.username)}${emblemHTML(p.player_key,'sm')}${(DECO.icons||DECO.medals)(V90_FX.items[p.player_key])}</span><span class="rank-score">${fmt(mode==='nlw'?p.nlwScore:p.score)}</span></button>`).join(''):'<div class="empty">Aucun joueur trouvé.</div>';}
 function demonPage(){
  const id=Number(new URLSearchParams(location.search).get('id'));
  const d=catalog().find(x=>Number(x.id)===id);

@@ -1,0 +1,30 @@
+/* DLFR V124 — emblème : petite médaille du badge choisi, à côté du pseudo. */
+.dlfr-emblem{--m1:#9fb3c8;--m2:#5d7290;--m3:#e6eef7;--glow:rgba(140,170,200,.35);display:inline-grid;vertical-align:middle;line-height:0}
+.dlfr-emblem[data-rarity=beginner]{--m1:#8fb7c9;--m2:#4d6f82;--m3:#e4f2f8;--glow:rgba(120,180,205,.45)}
+.dlfr-emblem[data-rarity=impressive]{--m1:#3fcf9a;--m2:#167a5a;--m3:#c9ffe9;--glow:rgba(63,207,154,.45)}
+.dlfr-emblem[data-rarity=epic]{--m1:#a97bff;--m2:#5530b8;--m3:#eadcff;--glow:rgba(169,123,255,.5)}
+.dlfr-emblem[data-rarity=legendaire]{--m1:#f2b84a;--m2:#a3620f;--m3:#fff1c2;--glow:rgba(242,184,74,.55)}
+.dlfr-emblem[data-rarity=mythique]{--m1:#f06bc4;--m2:#7a3bd8;--m3:#ffe0f6;--glow:rgba(240,107,196,.55)}
+.dlfr-emblem[data-rarity=mythique] .dlfr-badge-medal{background:conic-gradient(from var(--bd-angle),#ffb3e6,#f06bc4,#7a3bd8,#5cc8ff,#ffb3e6);animation:bd-angle 6s linear infinite}
+.dlfr-emblem[data-rarity=ultra]{--m1:#7fdcff;--m2:#7a5cff;--m3:#fff;--glow:rgba(127,220,255,.6)}
+.dlfr-emblem[data-rarity=ultra] .dlfr-badge-medal{background:conic-gradient(from var(--bd-angle),#ffd36b,#ff6ad5,#7a5cff,#2ee6ff,#7bffb0,#ffd36b);animation:bd-angle 4s linear infinite}
+.dlfr-emblem .dlfr-badge-medal{flex:none;width:var(--ew,22px);height:calc(var(--ew,22px)*1.1);filter:drop-shadow(0 1px 3px rgba(0,0,0,.3)) drop-shadow(0 0 5px var(--glow))}
+.dlfr-emblem .dlfr-badge-medal::before{inset:max(2px,calc(var(--ew,22px)*.07))}
+.dlfr-emblem .dlfr-badge-icon{position:relative;z-index:1;font-size:calc(var(--ew,22px)*.48)!important;line-height:1;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.5);font-style:normal;font-weight:400;letter-spacing:0}
+.dlfr-emblem-wrap{display:inline-flex;align-items:center;margin-left:.35em;vertical-align:middle;cursor:help;transition:transform .18s ease}
+.dlfr-emblem-wrap:hover{transform:translateY(-1px) scale(1.08)}
+.dlfr-emblem-wrap.is-sm .dlfr-emblem{--ew:17px}
+.dlfr-emblem-wrap.is-lg .dlfr-emblem{--ew:28px}
+.dlfr-emblem-wrap.is-xl .dlfr-emblem{--ew:36px}
+.rank-name .dlfr-emblem-wrap{margin-left:.3em}
+/* Sélecteur dans l'éditeur de profil */
+.dlfr124-emblem-picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+.dlfr124-emblem-opt{position:relative;display:grid;justify-items:center;gap:6px;padding:10px 6px 8px;border:1px solid var(--line,rgba(127,127,127,.25));border-radius:12px;background:var(--card,#fff);cursor:pointer;text-align:center;transition:border-color .15s,box-shadow .15s,transform .15s}
+.dlfr124-emblem-opt:hover{transform:translateY(-1px)}
+.dlfr124-emblem-opt input{position:absolute;opacity:0;pointer-events:none}
+.dlfr124-emblem-opt .dlfr-emblem{--ew:34px}
+.dlfr124-emblem-opt small{font-size:11px;line-height:1.25;font-weight:700;color:var(--ink2,var(--ink));display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dlfr124-emblem-opt:has(input:checked){border-color:var(--blue,#147fbd);box-shadow:0 0 0 2px color-mix(in srgb,var(--blue,#147fbd),transparent 60%)}
+.dlfr124-emblem-opt:has(input:focus-visible){outline:2px solid var(--blue,#147fbd);outline-offset:2px}
+.dlfr124-emblem-none{display:grid;place-items:center;width:34px;height:37px;font-size:18px;color:var(--muted);border:1.5px dashed currentColor;border-radius:8px}
+@media(prefers-reduced-motion:reduce){.dlfr-emblem .dlfr-badge-medal,.dlfr-emblem .dlfr-badge-medal::after{animation:none!important}}
