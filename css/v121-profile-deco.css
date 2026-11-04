@@ -1,0 +1,158 @@
+/* DLFR V121 — décorations de profil redessinées. Classes « pd-* » posées par js/v121-profile-deco.js.
+   Paliers de prestige : .pd-t1 / .pd-t2 / .pd-t3 (3 et 8 défis hebdo réclamés). */
+@property --pd-angle{syntax:'<angle>';inherits:false;initial-value:0deg}/* =================== SOCLE BANNIÈRE =================== */
+.pd-hero{position:relative;isolation:isolate;overflow:hidden}
+.pd-hero>:not(.pd-layer){position:relative;z-index:1}
+.pd-layer{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.pd-layer>b{position:absolute;display:block}
+.pd-layer .pd-p{position:absolute;left:var(--x);top:var(--y);width:var(--s);height:var(--s);border-radius:50%;display:block}
+.pd-banner .pd-hero:not(.pd-mini-hero)::after,.pd-mini.pd-banner>.pd-hero::after{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(circle at var(--mx,70%) var(--my,30%),rgba(255,255,255,.12),transparent 40%)}
+.pd-name{display:inline-flex;align-items:center;flex-wrap:wrap;gap:4px}/* ---------- Nuit étoilée ---------- */
+.pd-banner_night .pd-hero:not(.pd-mini-hero),.pd-mini.pd-banner_night>.pd-hero{background:linear-gradient(180deg,#040820 0%,#0c1442 52%,#2b1b5e 100%)!important;color:#fff}
+.pd-banner_night .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-a,.pd-mini.pd-banner_night>.pd-hero>.pd-layer>.pd-a{left:-20%;right:-20%;top:4%;height:58%;background:linear-gradient(90deg,transparent 5%,rgba(46,230,170,.6) 25%,rgba(80,150,255,.55) 50%,rgba(190,90,255,.5) 72%,transparent 95%);filter:blur(24px);transform:skewY(-7deg);mix-blend-mode:screen;opacity:.75;animation:pd-aurora 10s ease-in-out infinite alternate}
+.pd-banner_night .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-b,.pd-mini.pd-banner_night>.pd-hero>.pd-layer>.pd-b{right:7%;top:12%;width:52px;height:52px;border-radius:50%;box-shadow:inset -15px 7px 0 0 #fff2c8;filter:drop-shadow(0 0 14px rgba(255,236,180,.75));transform:rotate(-20deg)}
+.pd-banner_night .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-c,.pd-mini.pd-banner_night>.pd-hero>.pd-layer>.pd-c{top:16%;left:-30%;width:140px;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.95));transform:rotate(-16deg);animation:pd-shoot 7s ease-in 1.5s infinite}
+.pd-banner_night .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-d,.pd-mini.pd-banner_night>.pd-hero>.pd-layer>.pd-d{left:0;right:0;bottom:0;height:30%;background:linear-gradient(#0a0f2e,#04071a);clip-path:polygon(0 100%,0 62%,9% 40%,18% 58%,30% 22%,41% 55%,52% 34%,63% 60%,74% 30%,86% 56%,100% 36%,100% 100%);opacity:.9}
+.pd-banner_night .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-p,.pd-mini.pd-banner_night>.pd-hero>.pd-layer>.pd-p{background:#fff;box-shadow:0 0 6px rgba(255,255,255,.9);animation:pd-twinkle var(--d) ease-in-out var(--l) infinite}
+.pd-banner_night .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-p:nth-child(n+14),.pd-mini.pd-banner_night>.pd-hero>.pd-layer>.pd-p:nth-child(n+14){top:calc(var(--y) * .55)}/* ---------- Éclipse Sanglante ---------- */
+.pd-banner_bloodmoon .pd-hero:not(.pd-mini-hero),.pd-mini.pd-banner_bloodmoon>.pd-hero{background:radial-gradient(circle at 80% 32%,#5e0b15 0,#2b0509 32%,#0c0204 72%),#0c0204!important;color:#ffe9e6}
+.pd-banner_bloodmoon .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-b,.pd-mini.pd-banner_bloodmoon>.pd-hero>.pd-layer>.pd-b{right:8%;top:10%;width:96px;height:96px;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 34% 32%,#ff9a78,#d72a20 45%,#6d0910 100%);box-shadow:0 0 40px rgba(255,40,40,.6),0 0 90px rgba(200,0,0,.35)}
+.pd-banner_bloodmoon .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-b::after,.pd-mini.pd-banner_bloodmoon>.pd-hero>.pd-layer>.pd-b::after{content:"";position:absolute;inset:-2px;border-radius:50%;background:radial-gradient(circle at 50% 50%,rgba(14,2,5,.96) 58%,rgba(14,2,5,0) 64%);animation:pd-eclipse 12s ease-in-out infinite alternate}
+.pd-banner_bloodmoon .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-a,.pd-mini.pd-banner_bloodmoon>.pd-hero>.pd-layer>.pd-a{left:-10%;right:-10%;bottom:-10%;height:70%;background:radial-gradient(ellipse 40% 50% at 30% 70%,rgba(200,20,30,.45),transparent 70%),radial-gradient(ellipse 35% 45% at 75% 80%,rgba(140,10,20,.5),transparent 70%);filter:blur(16px);animation:pd-mist 9s ease-in-out infinite alternate}
+.pd-banner_bloodmoon .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-d,.pd-mini.pd-banner_bloodmoon>.pd-hero>.pd-layer>.pd-d{left:0;right:0;bottom:0;height:42%;background:#060103;clip-path:polygon(0 100%,0 70%,6% 70%,6% 46%,8% 30%,10% 46%,10% 70%,20% 70%,20% 58%,26% 58%,29% 36%,32% 58%,38% 58%,38% 76%,52% 76%,52% 40%,54% 16%,56% 40%,56% 76%,66% 76%,66% 62%,72% 62%,75% 44%,78% 62%,84% 62%,84% 72%,94% 72%,94% 52%,96% 38%,98% 52%,98% 72%,100% 72%,100% 100%)}
+.pd-banner_bloodmoon .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-c,.pd-mini.pd-banner_bloodmoon>.pd-hero>.pd-layer>.pd-c{inset:0;background:rgba(255,70,70,.0)}
+.pd-banner_bloodmoon .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-p,.pd-mini.pd-banner_bloodmoon>.pd-hero>.pd-layer>.pd-p{background:#ff5a4a;box-shadow:0 0 6px rgba(255,80,60,.9);border-radius:1px;animation:pd-ash var(--d) linear var(--l) infinite}
+.pd-banner_bloodmoon.pd-t2 .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-b,.pd-mini.pd-banner_bloodmoon.pd-t2>.pd-hero>.pd-layer>.pd-b,.pd-banner_bloodmoon.pd-t3 .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-b,.pd-mini.pd-banner_bloodmoon.pd-t3>.pd-hero>.pd-layer>.pd-b{animation:pd-pulse-red 3.5s ease-in-out infinite}
+.pd-banner_bloodmoon.pd-t3 .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-c,.pd-mini.pd-banner_bloodmoon.pd-t3>.pd-hero>.pd-layer>.pd-c{animation:pd-flash 9s linear infinite}
+.pd-banner_bloodmoon .pd-hero:not(.pd-mini-hero) .pd-name{text-shadow:0 0 14px rgba(255,60,60,.7)}/* ---------- GLITCH.EXE ---------- */
+.pd-banner_glitch .pd-hero:not(.pd-mini-hero),.pd-mini.pd-banner_glitch>.pd-hero{background:linear-gradient(rgba(0,255,240,.07) 1px,transparent 1px) 0 0/100% 14px,linear-gradient(90deg,rgba(255,43,214,.07) 1px,transparent 1px) 0 0/22px 100%,linear-gradient(120deg,#04050d,#140a26 60%,#031619)!important;color:#eafffd}
+.pd-banner_glitch .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-a,.pd-mini.pd-banner_glitch>.pd-hero>.pd-layer>.pd-a{inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.35) 0 1px,transparent 1px 3px);animation:pd-scan 6s linear infinite}
+.pd-banner_glitch .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-b,.pd-mini.pd-banner_glitch>.pd-hero>.pd-layer>.pd-b{left:0;right:0;top:30%;height:16%;background:linear-gradient(90deg,rgba(0,255,240,.24),rgba(255,43,214,.2) 60%,rgba(0,255,240,.12));mix-blend-mode:screen;animation:pd-slice 2.6s steps(1) infinite}
+.pd-banner_glitch .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-c,.pd-mini.pd-banner_glitch>.pd-hero>.pd-layer>.pd-c{left:0;right:0;top:64%;height:8%;background:rgba(255,43,214,.25);mix-blend-mode:screen;display:none;animation:pd-slice 1.9s steps(1) .4s infinite reverse}
+.pd-banner_glitch.pd-t2 .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-c,.pd-mini.pd-banner_glitch.pd-t2>.pd-hero>.pd-layer>.pd-c,.pd-banner_glitch.pd-t3 .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-c,.pd-mini.pd-banner_glitch.pd-t3>.pd-hero>.pd-layer>.pd-c{display:block}
+.pd-banner_glitch .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-d,.pd-mini.pd-banner_glitch>.pd-hero>.pd-layer>.pd-d{right:12px;bottom:10px}
+.pd-banner_glitch .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-d::before,.pd-mini.pd-banner_glitch>.pd-hero>.pd-layer>.pd-d::before{content:"SYS://GLITCH.EXE";font:700 10px/1 ui-monospace,Consolas,monospace;letter-spacing:.12em;color:#00fff0;text-shadow:-1px 0 #ff2bd6;animation:pd-flicker 3s steps(1) infinite}
+.pd-banner_glitch.pd-t3 .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-d::before,.pd-mini.pd-banner_glitch.pd-t3>.pd-hero>.pd-layer>.pd-d::before{content:"SYS://GLITCH.EXE ▮ CORRUPTION 99%"}
+.pd-banner_glitch .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-p,.pd-mini.pd-banner_glitch>.pd-hero>.pd-layer>.pd-p{border-radius:0;width:calc(var(--s) * 2);height:var(--s);background:#00fff0;box-shadow:0 0 6px #00fff0;animation:pd-pixel var(--d) steps(1) var(--l) infinite}
+.pd-banner_glitch .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-p:nth-child(odd),.pd-mini.pd-banner_glitch>.pd-hero>.pd-layer>.pd-p:nth-child(odd){background:#ff2bd6;box-shadow:0 0 6px #ff2bd6}
+.pd-banner_glitch .pd-hero:not(.pd-mini-hero) .pd-name{text-shadow:-2px 0 #00fff0,2px 0 #ff2bd6;animation:pd-rgb 2.8s steps(1) infinite}
+.pd-banner_glitch.pd-t3 .pd-hero:not(.pd-mini-hero),.pd-mini.pd-banner_glitch.pd-t3>.pd-hero{animation:pd-shake 5s steps(1) infinite}/* ---------- Voidwalker ---------- */
+.pd-banner_voidwalker .pd-hero:not(.pd-mini-hero),.pd-mini.pd-banner_voidwalker>.pd-hero{background:radial-gradient(ellipse 45% 70% at 80% 50%,rgba(120,60,255,.38),transparent 70%),radial-gradient(ellipse 40% 60% at 15% 85%,rgba(0,200,210,.18),transparent 70%),#04020c!important;color:#f1ebff}
+.pd-banner_voidwalker .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-a,.pd-mini.pd-banner_voidwalker>.pd-hero>.pd-layer>.pd-a{inset:-20%;background:radial-gradient(ellipse 30% 25% at 30% 30%,rgba(255,110,210,.16),transparent 70%),radial-gradient(ellipse 35% 30% at 60% 75%,rgba(46,230,255,.12),transparent 70%);animation:pd-nebula 16s ease-in-out infinite alternate}
+.pd-banner_voidwalker .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-b,.pd-mini.pd-banner_voidwalker>.pd-hero>.pd-layer>.pd-b{right:calc(9% - 50px);top:50%;width:190px;height:190px;margin-top:-95px;border-radius:50%;background:conic-gradient(from var(--pd-angle),#ffcf7a,#ff6ad5,#7a5cff,#2ee6ff,#ffcf7a);-webkit-mask:radial-gradient(circle,transparent 27%,#000 30%,#000 52%,transparent 70%);mask:radial-gradient(circle,transparent 27%,#000 30%,#000 52%,transparent 70%);transform:rotateX(70deg);filter:blur(1.5px) drop-shadow(0 0 12px rgba(200,140,255,.8));animation:pd-angle 5s linear infinite}
+.pd-banner_voidwalker .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-c,.pd-mini.pd-banner_voidwalker>.pd-hero>.pd-layer>.pd-c{right:9%;top:50%;width:60px;height:60px;margin-top:-30px;border-radius:50%;background:#000;box-shadow:0 0 0 2px rgba(255,214,150,.85),0 0 22px 6px rgba(160,90,255,.85),0 0 60px 14px rgba(90,40,200,.45)}
+.pd-banner_voidwalker .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-d,.pd-mini.pd-banner_voidwalker>.pd-hero>.pd-layer>.pd-d{right:calc(9% - 70px);top:50%;width:200px;height:200px;margin-top:-100px;border-radius:50%;border:1px dashed rgba(190,160,255,.35);display:none;animation:pd-angle-rot 30s linear infinite}
+.pd-banner_voidwalker.pd-t2 .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-d,.pd-mini.pd-banner_voidwalker.pd-t2>.pd-hero>.pd-layer>.pd-d,.pd-banner_voidwalker.pd-t3 .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-d,.pd-mini.pd-banner_voidwalker.pd-t3>.pd-hero>.pd-layer>.pd-d{display:block}
+.pd-banner_voidwalker.pd-t3 .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-c,.pd-mini.pd-banner_voidwalker.pd-t3>.pd-hero>.pd-layer>.pd-c{animation:pd-pulse-void 3s ease-in-out infinite}
+.pd-banner_voidwalker .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-p,.pd-mini.pd-banner_voidwalker>.pd-hero>.pd-layer>.pd-p{background:#fff;box-shadow:0 0 5px #c9b6ff;animation:pd-pull var(--d) ease-in var(--l) infinite}
+.pd-banner_voidwalker .pd-hero:not(.pd-mini-hero) .pd-name{text-shadow:0 0 16px rgba(170,120,255,.8)}/* =================== CADRES (autour de l'avatar) =================== */
+.pd-frame .dlfr27-frame:not(.pd-mini-frame),.pd-mini.pd-frame .pd-mini-frame{padding:4px;border:0;border-radius:16px;position:relative;isolation:auto}
+.pd-frame .dlfr27-frame:not(.pd-mini-frame)::after,.pd-mini.pd-frame .pd-mini-frame::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2}/* Améthyste */
+.pd-frame_amethyst .dlfr27-frame:not(.pd-mini-frame),.pd-mini.pd-frame_amethyst .pd-mini-frame,.pd-frame_amethyst_crown .dlfr27-frame:not(.pd-mini-frame),.pd-mini.pd-frame_amethyst_crown .pd-mini-frame{background:linear-gradient(135deg,#e7d2ff,#7b3fe4 28%,#c69bff 48%,#5422b5 70%,#e9d6ff);box-shadow:0 0 0 1px rgba(255,255,255,.25),0 0 18px rgba(150,90,255,.55)}
+.pd-frame_amethyst .dlfr27-frame:not(.pd-mini-frame)::after,.pd-mini.pd-frame_amethyst .pd-mini-frame::after,.pd-frame_amethyst_crown .dlfr27-frame:not(.pd-mini-frame)::after,.pd-mini.pd-frame_amethyst_crown .pd-mini-frame::after{background:linear-gradient(115deg,transparent 38%,rgba(255,255,255,.65) 50%,transparent 62%) 0 0/250% 100%;mix-blend-mode:overlay;animation:pd-sheen 4.5s ease-in-out infinite}/* Aurore */
+.pd-frame_aurora .dlfr27-frame:not(.pd-mini-frame),.pd-mini.pd-frame_aurora .pd-mini-frame{background:conic-gradient(from var(--pd-angle),#5cf2c8,#5cc8ff,#9d7bff,#ff8ad8,#5cf2c8);box-shadow:0 0 22px rgba(92,200,255,.55);animation:pd-angle 6s linear infinite}/* Couronne d'Améthyste */
+.pd-frame_amethyst_crown .dlfr27-frame:not(.pd-mini-frame)::before,.pd-mini.pd-frame_amethyst_crown .pd-mini-frame::before{content:"";position:absolute;left:50%;top:-25px;width:48px;height:26px;margin-left:-24px;z-index:3;
+ background:radial-gradient(circle at 50% 70%,#c58bff 0 3px,transparent 4px),radial-gradient(circle at 22% 78%,#9a5cff 0 2.5px,transparent 3.5px),radial-gradient(circle at 78% 78%,#9a5cff 0 2.5px,transparent 3.5px),linear-gradient(#fff1b8,#f0b84a 55%,#a96b17);
+ clip-path:polygon(0 100%,2% 34%,22% 62%,34% 8%,50% 52%,66% 8%,78% 62%,98% 34%,100% 100%);filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.pd-frame_amethyst_crown.pd-t2 .dlfr27-frame:not(.pd-mini-frame)::before,.pd-mini.pd-frame_amethyst_crown.pd-t2 .pd-mini-frame::before{filter:drop-shadow(0 0 6px rgba(255,210,110,.9))}
+.pd-frame_amethyst_crown.pd-t3 .dlfr27-frame:not(.pd-mini-frame)::before,.pd-mini.pd-frame_amethyst_crown.pd-t3 .pd-mini-frame::before{animation:pd-float 3s ease-in-out infinite;filter:drop-shadow(0 0 10px rgba(255,210,110,1))}
+.pd-frame_amethyst_crown.pd-t3 .dlfr27-frame:not(.pd-mini-frame)::after,.pd-mini.pd-frame_amethyst_crown.pd-t3 .pd-mini-frame::after{inset:-8px;border-radius:21px;background:repeating-conic-gradient(from var(--pd-angle),rgba(255,226,140,.95) 0 4deg,transparent 4deg 40deg);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2px));mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2px));mix-blend-mode:normal;animation:pd-angle 4s linear infinite}/* Ascension Céleste */
+.pd-frame_celestial .dlfr27-frame:not(.pd-mini-frame),.pd-mini.pd-frame_celestial .pd-mini-frame{background:linear-gradient(135deg,#fffaf0,#ffd76a 38%,#fff 52%,#e2a93b 80%,#fff3c4);box-shadow:0 0 24px rgba(255,215,120,.7),0 0 0 1px rgba(255,255,255,.5);animation:pd-holy 4s ease-in-out infinite}
+.pd-frame_celestial .dlfr27-frame:not(.pd-mini-frame)::before,.pd-mini.pd-frame_celestial .pd-mini-frame::before{content:"";position:absolute;left:18%;right:18%;top:-15px;height:11px;border-radius:50%;border:3px solid #ffe9a8;box-shadow:0 0 12px #ffd76a,inset 0 0 6px #fff;z-index:3;animation:pd-float 3.2s ease-in-out infinite}
+.pd-frame_celestial .dlfr27-frame:not(.pd-mini-frame)::after,.pd-mini.pd-frame_celestial .pd-mini-frame::after{inset:-20px;z-index:-1;border-radius:50%;background:repeating-conic-gradient(from var(--pd-angle),rgba(255,236,170,.85) 0 6deg,transparent 6deg 22deg);-webkit-mask:radial-gradient(circle,#000 28%,transparent 70%);mask:radial-gradient(circle,#000 28%,transparent 70%);opacity:.0;animation:pd-angle 14s linear infinite}
+.pd-frame_celestial.pd-t2 .dlfr27-frame:not(.pd-mini-frame)::after,.pd-mini.pd-frame_celestial.pd-t2 .pd-mini-frame::after{opacity:.7}
+.pd-frame_celestial.pd-t3 .dlfr27-frame:not(.pd-mini-frame)::after,.pd-mini.pd-frame_celestial.pd-t3 .pd-mini-frame::after{opacity:1;inset:-26px;animation-duration:9s;filter:drop-shadow(0 0 6px rgba(255,220,140,.9))}/* Désynchronisé */
+.pd-frame_glitch .dlfr27-frame:not(.pd-mini-frame),.pd-mini.pd-frame_glitch .pd-mini-frame{background:linear-gradient(90deg,#00fff0,#7a5cff 50%,#ff2bd6);border-radius:6px;box-shadow:-3px 0 0 rgba(0,255,240,.7),3px 0 0 rgba(255,43,214,.7);animation:pd-jitter 2.4s steps(1) infinite}
+.pd-frame_glitch .dlfr27-frame:not(.pd-mini-frame)::after,.pd-mini.pd-frame_glitch .pd-mini-frame::after{background:linear-gradient(90deg,rgba(0,255,240,.55),rgba(255,43,214,.55));clip-path:inset(40% 0 52% 0);mix-blend-mode:screen;animation:pd-frame-slice 1.8s steps(1) infinite}
+.pd-frame_glitch.pd-t1 .dlfr27-frame:not(.pd-mini-frame)::after,.pd-mini.pd-frame_glitch.pd-t1 .pd-mini-frame::after{display:none}
+.pd-frame_glitch.pd-t3 .dlfr27-frame:not(.pd-mini-frame),.pd-mini.pd-frame_glitch.pd-t3 .pd-mini-frame{animation-duration:1.2s}/* =================== MÉDAILLES (badges) =================== */
+.pd-medals{display:inline-flex;gap:5px;margin-left:6px;vertical-align:middle}
+.pd-medal{position:relative;width:26px;height:26px;border-radius:50%;display:inline-grid;place-items:center;font-size:14px;line-height:1;flex:none}
+.pd-medal::before{content:"";position:absolute;inset:-2px;border-radius:50%;z-index:-1}
+.pd-medal-badge_spark{background:radial-gradient(circle at 35% 30%,#fff7d1,#ffd34d 55%,#c98a12);box-shadow:0 0 0 2px rgba(255,236,170,.6),0 0 12px rgba(255,215,90,.8)}
+.pd-medal-badge_spark span{animation:pd-spark 2.4s ease-in-out infinite}
+.pd-medal-badge_spark::before{background:conic-gradient(from var(--pd-angle),transparent 0 80%,rgba(255,255,255,.9) 88%,transparent 95%);animation:pd-angle 2.4s linear infinite}
+.pd-medal-badge_flame{background:radial-gradient(circle at 50% 70%,#ffd27a,#ff6a1f 50%,#a3170a);box-shadow:0 0 0 2px rgba(255,170,90,.55),0 0 14px rgba(255,90,30,.85);animation:pd-burn 1.4s ease-in-out infinite alternate}
+.pd-medal-badge_flame span{animation:pd-flame .9s ease-in-out infinite alternate}/* =================== AUTRES EMPLACEMENTS =================== *//* Annuaire des joueurs */
+.dlfr24-player-card.pd{position:relative;overflow:visible}
+.dlfr24-player-card.pd-banner_night{background:linear-gradient(110deg,#0b1340,#2b1b5e);color:#fff;border-color:#4b4fa3}
+.dlfr24-player-card.pd-banner_bloodmoon{background:linear-gradient(110deg,#1c0307,#5e0b15);color:#ffe9e6;border-color:#8c1d24}
+.dlfr24-player-card.pd-banner_glitch{background:linear-gradient(110deg,#04050d,#140a26 60%,#031619);color:#eafffd;border-color:#00b8b0;box-shadow:inset 3px 0 0 #ff2bd6}
+.dlfr24-player-card.pd-banner_voidwalker{background:radial-gradient(ellipse at 90% 50%,rgba(120,60,255,.45),transparent 60%),#06030f;color:#f1ebff;border-color:#5b3fb0}
+.dlfr24-player-card.pd-banner small{color:inherit;opacity:.75}/* Lignes du classement */
+.rank-item.pd-banner_night{box-shadow:inset 3px 0 0 #7d8cff}
+.rank-item.pd-banner_bloodmoon{box-shadow:inset 3px 0 0 #e0343f}
+.rank-item.pd-banner_glitch{box-shadow:inset 3px 0 0 #00fff0}
+.rank-item.pd-banner_voidwalker{box-shadow:inset 3px 0 0 #a77bff}
+.rank-item .pd-medals{margin-left:4px}
+.rank-item .pd-medal{width:17px;height:17px;font-size:9px}/* Aperçu dans Statistiques */
+.dlfr251-preview-banner.pd-hero{background:#111}/* =================== ENCART « DÉCORATIONS EXPOSÉES » =================== */
+.pd-panel{display:grid;gap:12px}
+.pd-panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.pd-panel-head span{font-size:12px;color:var(--muted)}
+.pd-panel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.pd-card{display:grid;grid-template-rows:auto 1fr;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card)}
+.pd-card.is-prestige{border-color:rgba(232,192,106,.6);box-shadow:0 0 0 1px rgba(232,192,106,.18),0 8px 22px rgba(0,0,0,.15)}
+.pd-card-art{position:relative;height:96px;overflow:hidden}
+.pd-card-copy{padding:11px 13px 13px;display:grid;gap:4px;align-content:start}
+.pd-card-copy>small{font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;color:var(--muted)}
+.pd-card-copy strong{font-size:14px;color:var(--ink2,var(--ink))}
+.pd-card-copy p{margin:0;font-size:12px;color:var(--muted);line-height:1.45}
+.pd-tier{display:flex;align-items:center;gap:8px;margin-top:4px}
+.pd-tier em{font-style:normal;font-size:11px;font-weight:800;color:#d8a944}
+.pd-pips{display:inline-flex;gap:3px}
+.pd-pips i{width:16px;height:5px;border-radius:3px;background:rgba(127,127,127,.3)}
+.pd-pips[data-t="1"] i:nth-child(-n+1),.pd-pips[data-t="2"] i:nth-child(-n+2),.pd-pips[data-t="3"] i{background:linear-gradient(90deg,#f0b84a,#ffe08a);box-shadow:0 0 6px rgba(255,200,90,.7)}
+.pd-next{font-size:11px;color:var(--muted)}/* =================== MINIATURES (boutique + encart) =================== */
+.pd-mini{position:absolute;inset:0;display:block}
+.pd-mini-hero{position:absolute;inset:0;display:flex;align-items:center;padding:0 16px}
+.pd-mini-hero.pd-neutral{background:radial-gradient(ellipse at 30% 50%,rgba(130,110,220,.35),transparent 70%),linear-gradient(115deg,#1f2a44,#141a2c)}
+.pd-mini-id{display:flex;align-items:center;gap:12px;color:#fff}
+.pd-mini-frame{padding:3px}
+.pd-mini-av{width:46px;height:46px;display:grid;place-items:center;background:#3e6387;border:2px solid rgba(255,255,255,.85);font:800 18px Montserrat,Arial,sans-serif;color:#fff}
+.pd-mini-name{font:800 14px Montserrat,Arial,sans-serif;display:inline-flex;align-items:center;text-shadow:0 2px 6px rgba(0,0,0,.4)}
+.pd-mini .pd-banner_night .pd-b,.pd-mini.pd-banner_night>.pd-hero>.pd-layer>.pd-b{width:30px;height:30px;box-shadow:inset -9px 4px 0 0 #fff2c8}
+.pd-mini.pd-banner_bloodmoon>.pd-hero>.pd-layer>.pd-b{width:56px;height:56px}
+.pd-mini.pd-banner_voidwalker>.pd-hero>.pd-layer>.pd-b{width:120px;height:120px;margin-top:-60px;right:calc(9% - 30px)}
+.pd-mini.pd-banner_voidwalker>.pd-hero>.pd-layer>.pd-c{width:38px;height:38px;margin-top:-19px}
+.pd-mini.pd-banner_voidwalker>.pd-hero>.pd-layer>.pd-d{width:130px;height:130px;margin-top:-65px;right:calc(9% - 45px)}
+.pd-mini.pd-badge_spark .pd-mini-frame,.pd-mini.pd-badge_flame .pd-mini-frame{display:none}
+.pd-mini.pd-badge_spark .pd-medal,.pd-mini.pd-badge_flame .pd-medal{width:52px;height:52px;font-size:26px}
+.pd-mini.pd-badge_spark .pd-mini-id,.pd-mini.pd-badge_flame .pd-mini-id{width:100%;justify-content:center}
+.dlfr109-item-art:has(.pd-mini)::after{display:none}
+.dlfr109-item-art:has(.pd-mini) .dlfr109-art-emoji{position:absolute;right:10px;bottom:8px;z-index:3;font-size:24px;line-height:1;filter:drop-shadow(0 3px 6px rgba(0,0,0,.45))}
+.dlfr109-item-art:has(.pd-mini.pd-banner) .pd-mini-id{padding-left:0}
+
+/* =================== ANIMATIONS =================== */
+@keyframes pd-angle{to{--pd-angle:360deg}}
+@keyframes pd-angle-rot{to{transform:rotate(360deg)}}
+@keyframes pd-aurora{0%{transform:skewY(-7deg) translateX(-6%);filter:blur(24px) hue-rotate(0deg)}100%{transform:skewY(-3deg) translateX(6%);filter:blur(28px) hue-rotate(40deg)}}
+@keyframes pd-shoot{0%{transform:translate(0,0) rotate(-16deg);opacity:0}2%{opacity:1}12%{transform:translate(170%,90px) rotate(-16deg);opacity:0}100%{transform:translate(170%,90px) rotate(-16deg);opacity:0}}
+@keyframes pd-twinkle{0%,100%{opacity:.25;transform:scale(.7)}50%{opacity:1;transform:scale(1.15)}}
+@keyframes pd-eclipse{0%{transform:translateX(85%)}100%{transform:translateX(-12%)}}
+@keyframes pd-mist{to{transform:translateX(5%) scale(1.08)}}
+@keyframes pd-ash{0%{transform:translate(0,-30px) rotate(0);opacity:0}15%{opacity:1}100%{transform:translate(24px,140px) rotate(180deg);opacity:0}}
+@keyframes pd-pulse-red{0%,100%{box-shadow:0 0 40px rgba(255,40,40,.6),0 0 90px rgba(200,0,0,.35)}50%{box-shadow:0 0 60px rgba(255,60,60,.85),0 0 140px rgba(220,0,0,.5)}}
+@keyframes pd-flash{0%,93%,100%{background:rgba(255,70,70,0)}94%{background:rgba(255,120,120,.35)}95%{background:rgba(255,70,70,0)}96%{background:rgba(255,120,120,.22)}}
+@keyframes pd-scan{to{background-position:0 60px}}
+@keyframes pd-slice{0%{transform:translateX(0);top:30%;height:16%}20%{transform:translateX(-14px);top:12%;height:6%}40%{transform:translateX(10px);top:58%;height:10%}60%{transform:translateX(-4px);top:36%;height:3%}80%{transform:translateX(18px);top:74%;height:12%}}
+@keyframes pd-flicker{0%,100%{opacity:1}30%{opacity:.4}32%{opacity:1}70%{opacity:.7}}
+@keyframes pd-pixel{0%{transform:translate(0,0);opacity:1}25%{transform:translate(8px,-4px);opacity:.3}50%{transform:translate(-6px,6px);opacity:1}75%{transform:translate(4px,2px);opacity:0}}
+@keyframes pd-rgb{0%,100%{text-shadow:-2px 0 #00fff0,2px 0 #ff2bd6}33%{text-shadow:2px 0 #00fff0,-3px 0 #ff2bd6}66%{text-shadow:-3px 1px #00fff0,1px -1px #ff2bd6}}
+@keyframes pd-shake{0%,96%,100%{transform:none}97%{transform:translateX(-3px) skewX(-2deg)}98%{transform:translateX(3px)}99%{transform:translateX(-1px) skewX(1deg)}}
+@keyframes pd-nebula{to{transform:translate(4%,-3%) rotate(6deg)}}
+@keyframes pd-pull{0%{transform:translate(0,0) scale(1);opacity:0}20%{opacity:1}100%{transform:translate(90px,10px) scale(.15);opacity:0}}
+@keyframes pd-pulse-void{0%,100%{box-shadow:0 0 0 2px rgba(255,214,150,.85),0 0 22px 6px rgba(160,90,255,.85),0 0 60px 14px rgba(90,40,200,.45)}50%{box-shadow:0 0 0 3px rgba(255,214,150,1),0 0 32px 10px rgba(180,110,255,1),0 0 90px 24px rgba(110,50,230,.6)}}
+@keyframes pd-sheen{0%,60%{background-position:120% 0}100%{background-position:-120% 0}}
+@keyframes pd-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes pd-holy{0%,100%{box-shadow:0 0 22px rgba(255,215,120,.6),0 0 0 1px rgba(255,255,255,.5)}50%{box-shadow:0 0 34px rgba(255,225,140,.95),0 0 0 1px rgba(255,255,255,.8)}}
+@keyframes pd-jitter{0%,100%{transform:none}10%{transform:translate(2px,-1px)}12%{transform:none}55%{transform:translate(-2px,1px)}57%{transform:none}80%{transform:translate(1px,2px)}82%{transform:none}}
+@keyframes pd-frame-slice{0%{clip-path:inset(40% 0 52% 0)}25%{clip-path:inset(10% 0 80% 0)}50%{clip-path:inset(70% 0 18% 0)}75%{clip-path:inset(100% 0 0 0)}}
+@keyframes pd-spark{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.25) rotate(20deg)}}
+@keyframes pd-burn{to{box-shadow:0 0 0 2px rgba(255,190,110,.7),0 0 22px rgba(255,110,40,1)}}
+@keyframes pd-flame{from{transform:translateY(0) scale(1)}to{transform:translateY(-1px) scale(1.12) rotate(-4deg)}}
+@media(prefers-reduced-motion:reduce){.pd *,.pd-hero *,.pd .dlfr27-frame,.pd .dlfr27-frame::before,.pd .dlfr27-frame::after,.pd-name,.pd-hero{animation:none!important}}
+
+@media(max-width:600px){.pd-panel-grid{grid-template-columns:1fr}.pd-banner_voidwalker .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-b{right:-70px}.pd-banner_voidwalker .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-c{right:12px}.pd-banner_voidwalker .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-d{right:-58px}.pd-banner_bloodmoon .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-b{width:64px;height:64px;right:4%}.pd-banner_night .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-b{width:36px;height:36px;box-shadow:inset -10px 5px 0 0 #fff2c8}}
+.pd-frame_amethyst_crown .profile-hero,.pd-frame_celestial .profile-hero{padding-top:max(30px,23px)}
+@media(max-width:600px){.pd-frame_amethyst_crown .profile-hero,.pd-frame_celestial .profile-hero{padding-top:30px}.pd-banner_glitch .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-d::before{font-size:8px}}

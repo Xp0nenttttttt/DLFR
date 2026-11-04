@@ -1040,16 +1040,16 @@ function dlfr109ShopContent(status,items,owns,equip){
    const equipped=equip[item.category]===item.item_key;
    const price=Number(item.price)||0;
    const category=dlfr109Cats[item.category]||'Cosmétique';
-   const desc=item.category==='badge'?esc(item.description||'Un badge décoratif à exposer sur ton profil.'):
+   const desc=item.category==='badge'?esc(DECO.INFO?.[item.item_key]?.text||item.description||'Un badge décoratif à exposer sur ton profil.'):
      item.category==='theme'?esc(THEMES.byItem.get(item.item_key)?.desc||item.description||'Change les couleurs et l’ambiance de ton site.'):
-     item.category==='frame'?'Un cadre à mettre en valeur sur ta fiche.':'Une bannière pour personnaliser ton profil.';
+     item.category==='frame'?esc(DECO.INFO?.[item.item_key]?.text||'Un cadre à mettre en valeur sur ta fiche.'):esc(DECO.INFO?.[item.item_key]?.text||'Une bannière pour personnaliser ton profil.');
    let action='';
    if(!signed)action=`${item.category==='theme'&&THEMES.byItem.has(item.item_key)?`<button type="button" class="btn small subtle dlfr120-try" data-theme-try="${esc(THEMES.byItem.get(item.item_key).id)}">Essayer</button>`:''}<a data-nav class="btn small" href="${url('my-profile')}">Se connecter</a>`;
    else if(owned)action=`<button type="button" class="btn small ${equipped?'subtle':''}" data-v81-equip="${esc(item.item_key)}" data-v81-category="${esc(item.category)}" data-v81-unequip="${equipped}">${equipped?'Retirer':'Équiper'}</button>`;
    else action=`${item.category==='theme'&&THEMES.byItem.has(item.item_key)?`<button type="button" class="btn small subtle dlfr120-try" data-theme-try="${esc(THEMES.byItem.get(item.item_key).id)}">Essayer</button>`:''}<button type="button" class="btn small" data-v81-buy="${esc(item.item_key)}" ${Number(status.balance)<price?'disabled title="Solde insuffisant"':''}>Acheter</button>`;
    const catClass=/^(frame|banner|badge|theme)$/.test(item.category)?item.category:'other';
    return `<article class="dlfr109-item v81-item v90-shop-item v90-item-${esc(item.item_key)}" data-shop-item data-shop-category="${esc(item.category)}" data-shop-owned="${owned}" data-shop-search="${esc(String(item.label||'').toLocaleLowerCase('fr'))}">
-    <div class="dlfr109-item-art dlfr109-category-${catClass}">${item.category==='theme'&&THEMES.byItem.has(item.item_key)?THEMES.swatch(item.item_key):'<span class="v90-swatch" aria-hidden="true"></span>'}<span class="dlfr109-art-emoji" aria-hidden="true">${esc(item.emoji||'✦')}</span></div>
+    <div class="dlfr109-item-art dlfr109-category-${catClass}">${item.category==='theme'&&THEMES.byItem.has(item.item_key)?THEMES.swatch(item.item_key):/^(frame|banner|badge)$/.test(item.category)&&DECO.preview(item.item_key,3,item.emoji)?DECO.preview(item.item_key,3,item.emoji):'<span class="v90-swatch" aria-hidden="true"></span>'}<span class="dlfr109-art-emoji" aria-hidden="true">${esc(item.emoji||'✦')}</span></div>
     <div class="dlfr109-item-content"><div class="dlfr109-item-label"><span class="dlfr109-category">${esc(category)}</span>${equipped?'<span class="dlfr109-pill dlfr109-equipped">✓ Équipé</span>':owned?'<span class="dlfr109-pill">Possédé</span>':''}</div>
     <h3>${esc(item.label)}</h3><p>${desc}</p>
     ${test?'<span class="dlfr109-test-note">Essai propriétaire actif</span>':''}</div>
@@ -1072,33 +1072,12 @@ function dlfr109ShopContent(status,items,owns,equip){
 const V90_PRESTIGE=new Set(['frame_amethyst_crown','frame_celestial','banner_bloodmoon','banner_voidwalker','frame_glitch','banner_glitch']);
 const V90_FX={items:{},t:0,loading:false};
 function v90Safe(items){return (Array.isArray(items)?items:[]).filter(x=>/^[a-z0-9_]+$/.test(String(x?.item_key||'')));}
-function v90Cls(items){
- const list=v90Safe(items);if(!list.length)return '';
- const tiers=list.filter(x=>V90_PRESTIGE.has(x.item_key)).map(x=>[1,2,3].includes(Number(x.tier))?Number(x.tier):1);
- const c=['v90-fx','v90-t'+(tiers.length?Math.max(...tiers):1),...list.map(x=>'v90-has-'+x.item_key)];
- if(list.some(x=>x.item_key.startsWith('frame_')))c.push('v90-hasframe');
- return c.join(' ');
-}
-function v90LayerHTML(items){
- const list=v90Safe(items);if(!list.length)return '';
- const keys=new Set(list.map(x=>x.item_key));
- const n=keys.has('banner_voidwalker')||keys.has('banner_night')||keys.has('banner_glitch')?18:14;
- let parts='';
- for(let i=0;i<n;i++)parts+=`<i style="--x:${(i*53+7)%96}%;--y:${(i*29+13)%88}%;--s:${2+(i*7)%4}px;--d:${(3.2+((i*13)%40)/10).toFixed(1)}s;--l:${(((-(i*7))%50)/10).toFixed(1)}s;--dx:${(i%2?1:-1)*(6+(i*5)%22)}px"></i>`;
- return `<div class="v90-fx-layer" aria-hidden="true"><span class="v90-glow"></span><b class="v90-core"></b>${parts}</div>`;
-}
-function v90Emojis(items){return v90Safe(items).map(x=>esc(x.emoji||'')).join('');}
-function v90Fx(card,badges){
- if(!card)return;
- [...card.classList].filter(c=>c.startsWith('v90-')).forEach(c=>card.classList.remove(c));
- card.querySelectorAll('.v90-fx-layer').forEach(n=>n.remove());
- if(!v90Safe(badges).length)return;
- const cls=v90Cls(badges);card.classList.add(...cls.split(' '));
- const hero=card.querySelector('.profile-hero');if(!hero)return;
- hero.classList.add('v90-hero');
- const nm=hero.querySelector('.profile-hero-copy strong');if(nm)nm.classList.add('v90-name');
- hero.insertAdjacentHTML('beforeend',v90LayerHTML(badges));
-}
+// V121 — décorations de profil redessinées : voir js/v121-profile-deco.js (classes « pd-* »).
+const DECO=window.DLFR_DECO||{cls:()=>'',layer:()=>'',medals:()=>'',apply:()=>{},preview:()=>'',panel:()=>''};
+function v90Cls(items){return DECO.cls(items);}
+function v90LayerHTML(items){return DECO.layer(items);}
+function v90Emojis(items){return DECO.medals(items);}
+function v90Fx(card,badges){DECO.apply(card,badges);}
 // Charge, une seule fois par minute, les objets équipés de tous les joueurs (1 appel RPC).
 async function v90LoadFx(){
  if(!db||V90_FX.loading||Date.now()-V90_FX.t<60000)return;
@@ -1129,22 +1108,12 @@ async function v81ProfileRewards(){
   const {data,error}=await db.rpc('dlfr_rewards_public',{p_player_key:k});if(error)throw error;
   if(!area.isConnected||area.dataset.playerKey!==k)return;
   const badges=Array.isArray(data)?data:[];
-  const prestige=V90_PRESTIGE;
   const card=area.closest('.stats-profile'),community=area.closest('.dlfr20-community');
-  const classes=['v85-profile-moon','v85-profile-void','v89-effect-amethyst','v89-effect-celestial','v89-effect-bloodmoon','v89-effect-voidwalker','v89-effect-glitch','v89-effect-glitch-frame','v89-effect-glitch-banner'];
-  area.classList.remove(...classes);
-  card&&card.classList.remove(...classes);
-  community&&community.classList.remove(...classes);
-  const primary=(['banner_glitch','banner_voidwalker','banner_bloodmoon','frame_glitch','frame_celestial','frame_amethyst_crown'].map(key=>badges.find(x=>x.item_key===key)).find(Boolean))||null;
-  const effectClass=primary?({banner_glitch:'v89-effect-glitch-banner',frame_glitch:'v89-effect-glitch-frame',banner_voidwalker:'v89-effect-voidwalker',banner_bloodmoon:'v89-effect-bloodmoon',frame_celestial:'v89-effect-celestial',frame_amethyst_crown:'v89-effect-amethyst'}[primary.item_key]||''):'';
-  if(effectClass){area.classList.add(effectClass);card&&card.classList.add(effectClass);community&&community.classList.add(effectClass);}
-  if(badges.some(x=>x.item_key==='banner_bloodmoon'))area.classList.add('v85-profile-moon');
-  if(badges.some(x=>x.item_key==='banner_voidwalker'))area.classList.add('v85-profile-void');
+  // Anciennes classes d'effets (V85/V89) : retirées pour ne garder que le rendu V121.
+  const legacy=['v85-profile-moon','v85-profile-void','v89-effect-amethyst','v89-effect-celestial','v89-effect-bloodmoon','v89-effect-voidwalker','v89-effect-glitch','v89-effect-glitch-frame','v89-effect-glitch-banner'];
+  for(const el of [area,card,community])el&&el.classList.remove(...legacy);
   v90Fx(card||community,badges);
-  const tierLabel=x=>prestige.has(x.item_key)?esc(x.tier_label||'I'):'Collection';
-  const tierNum=x=>[1,2,3].includes(Number(x.tier))?Number(x.tier):1;
-  const highlight=primary?`<div class="v89-reward-stage v89-stage-${esc(primary.item_key)} v89-tier-${tierNum(primary)}"><div class="v89-reward-stage-visual" aria-hidden="true"><span class="v89-orb v89-orb-a"></span><span class="v89-orb v89-orb-b"></span><span class="v89-orb v89-orb-c"></span></div><div class="v89-reward-stage-copy"><span class="kicker">Effet principal actif</span><strong>${esc(primary.emoji)} ${esc(primary.label)}</strong><p>${esc(primary.description||'Récompense cosmétique premium équipée sur la carte du joueur.')}</p><small>${prestige.has(primary.item_key)?`Palier ${esc(primary.tier_label||'I')}`:'Actif'} · Effets visuels appliqués à la fiche du joueur</small>${prestige.has(primary.item_key)?`<div class="v90-tier-pips" data-t="${tierNum(primary)}"><i></i><i></i><i></i></div><div class="v90-tier-hint">${tierNum(primary)>=3?'Palier maximal atteint':tierNum(primary)===2?'Palier III à 8 défis réclamés':'Palier II à 3 défis réclamés'}</div>`:''}</div></div>`:'';
-  area.innerHTML=badges.length?`<div class="v81-profile-picks v85-profile-picks v89-profile-picks"><div class="row-between"><b>✦ Récompenses exposées</b><span class="small muted">${badges.length} équipée(s)</span></div>${highlight}<div class="v89-reward-grid">${badges.map(x=>`<span class="v81-profile-pick v89-reward-chip ${prestige.has(x.item_key)?'v85-prestige':''} v89-${esc(x.item_key)} v85-tier-${tierNum(x)}" data-type="${esc(x.category)}"><span class="v89-chip-emoji">${esc(x.emoji)}</span><span><b>${esc(x.label)}</b><small>${tierLabel(x)}</small></span></span>`).join('')}</div></div>`:'';
+  area.innerHTML=DECO.panel(badges);
  }catch(err){console.warn('[DLFR] Récompenses du profil indisponibles',err);if(area.isConnected)area.innerHTML='<p class="small muted">Impossible de charger les effets de profil pour le moment.</p>';}
 }
 function listPage(){
@@ -1669,9 +1638,9 @@ function statsProfilePreview(p){
  const mainCount=new Set(p.main.map(d=>d.id)).size,extendedCount=new Set(p.extended.map(d=>d.id)).size;
  const fxItems=V90_FX.items[p.player_key];
  return `<article class="dlfr251-preview ${v90Cls(fxItems)}" style="--dlfr251-accent:${esc(accent)}" aria-label="Aperçu de ${esc(name)}">
-   <div class="dlfr251-preview-banner ${fxItems?.length?'v90-hero':''}">${banner?`<img loading="lazy" src="${esc(banner)}" alt="">`:''}${v90LayerHTML(fxItems)}</div>
+   <div class="dlfr251-preview-banner ${(fxItems||[]).some(x=>String(x.item_key).startsWith('banner_'))?'pd-hero':''}">${banner?`<img loading="lazy" src="${esc(banner)}" alt="">`:''}${v90LayerHTML(fxItems)}</div>
    <div class="dlfr251-preview-content">
-    <div class="dlfr251-preview-identity">${framedAvatar(p.player_key,`<span class="dlfr251-preview-avatar">${avatar?`<img loading="lazy" src="${esc(avatar)}" alt="Avatar de ${esc(name)}">`:`<span aria-hidden="true">${esc(initial)}</span>`}</span>`)}<div class="dlfr251-preview-name"><h3 class="${fxItems?.length?'v90-name':''}">${flag(p.country_code)} ${esc(name)}</h3><p class="muted small">${p.has_account?'Compte DLFR':'Profil non revendiqué'} ${p.country_code==='FR'?`· ${esc(GEO.regionInfo(regionFor(p))?.name||'France')}`:''}</p></div></div>
+    <div class="dlfr251-preview-identity">${framedAvatar(p.player_key,`<span class="dlfr251-preview-avatar">${avatar?`<img loading="lazy" src="${esc(avatar)}" alt="Avatar de ${esc(name)}">`:`<span aria-hidden="true">${esc(initial)}</span>`}</span>`)}<div class="dlfr251-preview-name"><h3 class="${fxItems?.length?'pd-name':''}">${flag(p.country_code)} ${esc(name)}${DECO.medals(fxItems)}</h3><p class="muted small">${p.has_account?'Compte DLFR':'Profil non revendiqué'} ${p.country_code==='FR'?`· ${esc(GEO.regionInfo(regionFor(p))?.name||'France')}`:''}</p></div></div>
     ${featured?`<p class="dlfr251-preview-title">✦ ${esc(featured.label)}</p>`:''}
     <div class="dlfr251-preview-stats">${box('Rang DLFR',p.rank?'#'+p.rank:'—')}${box('Points Top 150',fmt(p.score))}${box('Points NLW',fmt(p.nlwScore||0))}${box('Rang NLW',p.nlwRank?'#'+p.nlwRank:'—')}${box('Hardest',hardestLabel(p))}${box('Main List',mainCount)}${box('Extended',extendedCount)}${box('NLW',p.beyond.length)}</div>
     ${profile.bio?`<p class="dlfr251-preview-bio">${esc(profile.bio)}</p>`:''}
@@ -1712,7 +1681,7 @@ function statsPage(){const users=ranked().filter(statsPlayerVisible);const count
  if(state.statsTab==='compare'){const a=chosen||users[0],b=users.find(p=>p.player_key===state.comparePlayer)||users.find(p=>p.player_key!==a?.player_key);return top+`<div class="compare-panel"><div class="compare-selects"><label>Joueur A <select id="compareA">${users.map(p=>`<option value="${esc(p.player_key)}" ${p.player_key===a?.player_key?'selected':''}>${esc(fullName(p))}</option>`).join('')}</select></label><label>Joueur B <select id="compareB">${users.filter(p=>p.player_key!==a?.player_key).map(p=>`<option value="${esc(p.player_key)}" ${p.player_key===b?.player_key?'selected':''}>${esc(fullName(p))}</option>`).join('')}</select></label></div>${a?comparison(a,b):'<p class="empty">Pas de joueurs.</p>'}</div></section>`;}
  return top+`<div class="dlfr24-stats-ranking dlfr251-stats-layout"><div class="ranking-panel"><div class="kicker">International</div><div class="country-select-row"><span id="countryFilterPreview">${flag(state.country)}</span><select id="countryFilter" aria-label="Filtrer par pays">${countries.map(c=>`<option value="${esc(c)}" ${c===state.country?'selected':''}>${c==='MONDE'?'MONDE - International':GEO.countryName(c)+' ('+esc(c)+')'}</option>`).join('')}</select></div>${state.country==='FR'?`<div class="country-select-row"><span>${GEO.regionImage(state.region)}</span><select id="regionFilter" aria-label="Filtrer par région française"><option value="ALL">Toutes les régions</option>${GEO.regions.map(r=>`<option value="${r.code}" ${state.region===r.code?'selected':''}>${esc(r.name)}</option>`).join('')}</select></div>`:''}<label class="filterbox" style="margin-top:9px"><span>⌕</span><input type="search" id="playerSearch" placeholder="Rechercher un joueur…" value="${esc(state.keyword)}"></label><div class="rank-list" id="rankList">${rankRows(filtered,chosen)}</div><p class="muted small">Clique sur un joueur pour afficher son aperçu. Ouvre ensuite sa fiche complète depuis la carte à droite. Les profils sans compte apparaissent en gris.</p></div><aside id="dlfr251StatsPreview" class="dlfr251-preview-column" aria-live="polite">${statsProfilePreview(chosen)}</aside></div></section>`;
 }
-function rankRows(users,chosen,mode='main'){return users.length?users.map(p=>`<button type="button" data-stats-preview="${esc(p.player_key)}" aria-pressed="${p.player_key===chosen?.player_key}" class="rank-item ${p.has_account?'':'unclaimed'} ${p.player_key===chosen?.player_key?'selected':''} ${v90Cls(V90_FX.items[p.player_key])}"><span class="rank-num">#${mode==='nlw'?(p.nlwRank||'-'):(p.rank||'-')}</span><span class="rank-name">${flag(p.country_code)} ${regionFlag(p)} ${esc(p.display_name||p.username)}${V90_FX.items[p.player_key]?.length?`<span class="v90-row-fx" aria-hidden="true">${v90Emojis(V90_FX.items[p.player_key])}</span>`:''}</span><span class="rank-score">${fmt(mode==='nlw'?p.nlwScore:p.score)}</span></button>`).join(''):'<div class="empty">Aucun joueur trouvé.</div>';}
+function rankRows(users,chosen,mode='main'){return users.length?users.map(p=>`<button type="button" data-stats-preview="${esc(p.player_key)}" aria-pressed="${p.player_key===chosen?.player_key}" class="rank-item ${p.has_account?'':'unclaimed'} ${p.player_key===chosen?.player_key?'selected':''} ${v90Cls(V90_FX.items[p.player_key])}"><span class="rank-num">#${mode==='nlw'?(p.nlwRank||'-'):(p.rank||'-')}</span><span class="rank-name">${flag(p.country_code)} ${regionFlag(p)} ${esc(p.display_name||p.username)}${DECO.medals(V90_FX.items[p.player_key])}</span><span class="rank-score">${fmt(mode==='nlw'?p.nlwScore:p.score)}</span></button>`).join(''):'<div class="empty">Aucun joueur trouvé.</div>';}
 function demonPage(){
  const id=Number(new URLSearchParams(location.search).get('id'));
  const d=catalog().find(x=>Number(x.id)===id);
