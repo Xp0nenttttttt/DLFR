@@ -639,7 +639,7 @@ async function revealCurrent(){
  setOpening('.o-banner',bannerFor(d));
  const last=st.i===st.draws.length-1;
  setOpening('.o-buttons',`<button type="button" class="o-btn o-primary" data-o="next">${last?'Voir le bilan':'Carte suivante'}</button>`);
- setOpening('.o-hint',d.isNew?'Elle rejoint ta collection.':st.meta?.real?'Doublon : tu pourras le recycler en Wayllings dorés.':'Doublon : converti en poussière ✧ pour la Forge.');
+ setOpening('.o-hint',d.isNew?'Elle rejoint ta collection.':st.meta?.real?'Doublon.':'Doublon : converti en poussière ✧ pour la Forge.');
  OPEN.el.querySelector('.o-primary')?.focus({preventScroll:true});
  await wait(380);st.busy=false;
 }
@@ -708,9 +708,9 @@ function renderRealSummary(){
  const best=draws.reduce((a,d)=>d.tier>a.tier?d:a,draws[0]);
  setOpening('.o-stage',`<div class="o-summary"><h3>${news} nouvelle${news>1?'s':''} carte${news>1?'s':''} · ${draws.length-news} doublon${draws.length-news>1?'s':''}</h3>
   <div class="o-sum-grid">${draws.map((d,k)=>{const c=cardOf(d);return c?`<div class="o-sum-card t${d.tier} ${d===best&&d.tier>=2?'is-best':''}" style="--k:${k}">${figure(c,data,true,{finish:0})}<span class="${d.isNew?'is-new':''}">${d.isNew?'NOUVELLE':'DOUBLON'}</span></div>`:'';}).join('')}</div>
-  <div class="o-gains"><div><b data-count="${news}">0</b><span>nouvelle${news>1?'s':''}</span></div><div><b data-count="${dup}">0</b><span>✦ recyclables</span></div><div><b data-count="${Number(m.balance)||0}">0</b><span>✦ solde</span></div></div>
+  <div class="o-gains"><div><b data-count="${news}">0</b><span>nouvelle${news>1?'s':''}</span></div><div><b data-count="${Number(m.balance)||0}">0</b><span>✦ solde</span></div></div>
   ${(m.bonuses||[]).map(b=>`<div class="o-levelup"><b>COLLECTION COMPLÈTE !</b><span>${esc(b.collection)}</span><small>+${esc(b.coins)} Wayllings dorés</small></div>`).join('')}
-  <p class="o-pity">Les doublons se recyclent en Wayllings dorés depuis ta collection.</p></div>`);
+  </div>`);
  setOpening('.o-banner','');
  setOpening('.o-buttons',`${m.againLabel?`<button type="button" class="o-btn" data-o="again">${esc(m.againLabel)}</button>`:''}<button type="button" class="o-btn o-primary" data-o="close">Terminer</button>`);
  setOpening('.o-hint','Échap ou Espace pour fermer');
@@ -978,7 +978,7 @@ function viewPage(data){
  const src=catalog.status==='loading'?'chargement…':catalog.status==='ready'||catalog.status==='empty'?'':'hors ligne';
  return `<section class="dlfr112 dlfr117" id="dlfr112Lab">
   <div class="dlfr112-header"><div><div class="dlfr112-eyebrow">DLFR CARDS${view==='official'?' · COLLECTION':view==='advent'?' · CALENDRIER DE L’AVENT':' · MODE AVENTURE'}</div><h1>DLFR Cards</h1><p>${CARDS.length} cartes · ${COLLECTIONS.length} collections${src?` · ${src}`:''}${progress.title?` · <b>${esc(progress.title)}</b>`:''}</p></div><span class="dlfr141-savebox"><span class="dlfr112-demo-label ${SAVE.tainted||SAVE.conflict?'is-warn':''}" id="dlfr129Save" aria-live="polite" title="Sauvegarde du mode Aventure">Aventure · ${esc(saveLabel())}</span>${SAVE.tainted&&userId?'<button type="button" class="btn small dlfr141-leave" data-v112-act="leave-test">↺ Revenir à ma partie</button>':''}</span></div>
-  <p class="dlfr129-intro">${view==='advent'?'Une case par jour du 1er au 25 décembre : cartes <b>Festive</b> et Wayllings dorés. Les jours ratés se rattrapent jusqu’au 31.':view==='official'?'Ta collection, tes boosters achetés en Wayllings dorés et le recyclage des doublons. Les autres onglets, c’est le mode Aventure.':'Boosters avec tes éclats ◆, expéditions, Forge et talents. Les cartes gagnées vont dans ta collection, mais leurs doublons ne se recyclent pas en Wayllings.'}</p>
+  <p class="dlfr129-intro">${view==='advent'?'Une case par jour du 1er au 25 décembre : cartes <b>Festive</b> et Wayllings dorés. Les jours ratés se rattrapent jusqu’au 31.':view==='official'?'Ta collection, ta vitrine et le classement. Les autres onglets, c’est le mode Aventure.':'Boosters avec tes éclats ◆, expéditions, Forge et talents. Les cartes gagnées vont dans ta collection.'}</p>
   <div class="dlfr112-toolbar">${view==='official'||view==='advent'?'':`<div class="dlfr112-summary"><b>Aventure · ${status()}</b><span>Progression : ${Math.round(inventoryUnique()/total*100)} %</span><div class="dlfr112-meter"><span style="width:${inventoryUnique()/total*100}%"></span></div></div>`}<div class="dlfr112-modes" role="tablist" aria-label="Sections du mode Aventure">${tabs().map(([id,title])=>`<button type="button" role="tab" aria-selected="${view===id}" class="${view===id?'active':''}" data-v112-act="mode" data-mode="${id}">${title}${id==='expeditions'&&progress.camps.some(c=>Date.now()>=c.end)?' <i class="dlfr117-dot"></i>':''}${id==='goals'&&progress.quests.some(q=>q.have>=q.target)?' <i class="dlfr117-dot"></i>':''}</button>`).join('')}</div></div>
   ${view==='official'?OFFICIAL:''}
   ${view==='advent'?'<div id="dlfr139Advent" class="dlfr139-advent" aria-live="polite"><div class="dlfr127-loading">Chargement du calendrier…</div></div>':''}

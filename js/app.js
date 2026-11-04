@@ -1130,9 +1130,8 @@ function dlfr109ShopContent(status,items,owns,equip,info=null,gifts=[]){
   <div class="dlfr127-earn-copy"><h2>Gagner des Wayllings dorés</h2><ul>
    <li><span>🏁</span><div><b>Défi de la semaine</b><small>Bats le niveau de la semaine (encadré en haut).</small></div></li>
    <li><span>📦</span><div><b>Level Packs</b><small>Chaque pack terminé rapporte selon sa difficulté. <a data-nav href="${url('packs')}">Voir les packs</a></small></div></li>
-   <li><span>🃏</span><div><b>DLFR Cards</b><small>Doublons recyclés et bonus de collection complète.</small></div></li>
+   <li><span>🃏</span><div><b>DLFR Cards</b><small>Bonus de collection complète.</small></div></li>
    <li><span>🎁</span><div><b>Cadeaux</b><small>Un ami peut t’offrir un objet avec le bouton 🎁.</small></div></li></ul></div>
-  <a class="dlfr127-booster-promo" data-nav href="${url('cards')}"><span class="dlfr127-booster-art" aria-hidden="true"><b>DLFR</b><i>CARDS</i><em>◆</em></span><span><small>Boosters DLFR Cards</small><b>${esc(info?.booster_price??150)} ✦ le booster</b><span>5 cartes, dont une Rare ou mieux</span><em>Acheter un booster →</em></span></a>
  </div>
  ${featured.length?`<section class="dlfr127-rotation" aria-labelledby="dlfr127RotTitle"><div class="dlfr127-rot-head"><div><span class="kicker">Sélection de la semaine</span><h2 id="dlfr127RotTitle">−${esc(info?.discount||25)} % sur ces objets</h2></div><span class="dlfr127-rot-timer">⏱ ${days<=1?'Dernier jour':`Encore ${days} jours`}</span></div><div class="dlfr109-grid dlfr127-rot-grid">${featured.map(item=>cardOf(item,true)).join('')}</div></section>`:''}
  ${signed&&history.length?`<details class="dlfr127-history"><summary>📜 Historique de mes Wayllings dorés</summary><ul>${history.map(h=>`<li><span>${esc(h.note||'')}</span><time>${esc(h.at?new Date(h.at).toLocaleDateString('fr-FR'):'')}</time><b class="${Number(h.amount)>=0?'is-plus':'is-minus'}">${Number(h.amount)>=0?'+':''}${esc(h.amount)} ✦</b></li>`).join('')}</ul></details>`:''}
