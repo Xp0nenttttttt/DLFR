@@ -185,18 +185,30 @@ function imageFor(card,data){
 }
 const srcData=()=>window.DLFR_CARDS_LAB?.__sourceData||{};
 // opts.finish / opts.stars : affichage forcé (révélation d'un tirage précis).
+const TIER_GEM=['●','◆','✦','★','✺'];
+const TYPE_LABEL={level:'NIVEAU',player:'JOUEUR',dlfr:'DLFR'};
+function pipsHTML(t){return `<i class="c131-pips" aria-hidden="true">${'◆'.repeat(t+1)}<em>${'◆'.repeat(Math.max(0,4-t))}</em></i>`;}
 function figure(card,data,compact=false,opts={}){
  const o=owned.get(card.id),n=o?.count||0;
  const finish=opts.finish??o?.finish??0, stars=opts.stars??o?.stars??0;
  const picture=imageFor(card,data);
+ const r=rarity(card),t=Math.max(0,rarities.indexOf(r)),slug=normalize(r).replace(/[^a-z]/g,'');
  const sym=card.type==='level'?'◆':card.type==='player'?'★':'✦';
- return `<div class="dlfr112-card dlfr112-${normalize(rarity(card)).replace(/[^a-z]/g,'')} ${finish?'dlfr112-holo dlfr117-f-'+FIN[finish]:''} ${n||opts.finish!==undefined?'dlfr112-has':'dlfr112-missing'} ${compact?'dlfr112-small':''}">
-   <div class="dlfr112-card-top"><span>${card.type==='level'?'LEVEL':card.type==='player'?'PLAYER':'DLFR'} CARD</span><b>#${idString(card.id)}</b></div>
-   <div class="dlfr112-art">${picture?`<img loading="lazy" src="${esc(picture)}" alt="Visuel ${esc(card.name)}" onerror="this.remove()">`:`<span aria-hidden="true">${sym}</span>`}</div>
-   <div class="dlfr112-card-bottom"><strong title="${esc(card.name)}">${esc(card.name)}</strong><span>${esc(rarity(card))}${finish?' · ✧ '+FIN_NAME[finish].toUpperCase():''}</span></div>
+ const has=!!(n||opts.finish!==undefined||opts.owned);
+ return `<div class="dlfr112-card dlfr131-card dlfr112-${slug} t${t} ${finish?'dlfr112-holo dlfr117-f-'+FIN[finish]:''} ${has?'dlfr112-has':'dlfr112-missing'} ${compact?'dlfr112-small':''}" data-tilt>
+   <div class="c131-frame">
+    <div class="c131-head"><span class="c131-type">${sym} ${TYPE_LABEL[card.type]||'CARTE'}</span><b class="c131-id">#${idString(card.id)}</b></div>
+    <div class="dlfr112-art c131-art">${picture?`<img loading="lazy" src="${esc(picture)}" alt="Visuel ${esc(card.name)}" onerror="this.remove()">`:`<span class="c131-sym" aria-hidden="true">${sym}</span>`}<span class="c131-gem" aria-hidden="true">${TIER_GEM[t]}</span>${has?'':'<span class="c131-lock" aria-hidden="true">?</span>'}</div>
+    <div class="c131-plate"><strong title="${esc(card.name)}">${esc(card.name)}</strong><span class="c131-rar">${pipsHTML(t)}<span>${esc(r)}${finish?' · ✧ '+FIN_NAME[finish]:''}</span></span></div>
+   </div>
+   <i class="c131-foil" aria-hidden="true"></i><i class="c131-glare" aria-hidden="true"></i>
    ${stars?`<span class="dlfr117-stars" aria-label="${stars} étoiles">${'★'.repeat(stars)}</span>`:''}
-   ${n&&opts.finish===undefined?`<span class="dlfr112-count">×${n}</span>`:''}
+   ${n&&opts.finish===undefined&&!opts.hideCount?`<span class="dlfr112-count">×${n}</span>`:''}
   </div>`;
+}
+// Échelle des raretés (de la plus courante à la plus rare).
+function ladder(rates){
+ return `<div class="c131-ladder" role="list" aria-label="Raretés, de la plus courante à la plus rare">${rarities.map((r,t)=>`<span class="c131-step t${t}" role="listitem"><b>${TIER_GEM[t]}</b><span><strong>${esc(r)}</strong>${pipsHTML(t)}${rates?`<small>${esc(rates[t])} %</small>`:''}</span></span>${t<4?'<i class="c131-arrow" aria-hidden="true">›</i>':''}`).join('')}<span class="c131-ladder-note">de la plus courante à la plus rare</span></div>`;
 }
 function inventoryUnique(){return [...owned.values()].filter(v=>v.count>0).length;}
 function status(){return `${inventoryUnique()} / ${CARDS.length} cartes différentes · ${[...owned.values()].reduce((a,b)=>a+b.count,0)} exemplaires`;}
@@ -415,7 +427,7 @@ function packArt(pack,size=''){
 function fmtPercent(n){return (n*100).toLocaleString('fr-FR',{maximumFractionDigits:n<.01?2:1})+' %';}
 function boostersView(){
  const p=progress;
- return `<section class="dlfr117-panel"><div class="dlfr117-head"><div><small>BOOSTERS DE L’AVENTURE</small><h2>Boosters</h2><p>Chaque booster a ses probabilités visibles. Les doublons deviennent de la poussière ✧ pour la Forge.</p></div>
+ return `<section class="dlfr117-panel"><div class="dlfr117-head"><div><small>BOOSTERS DE L’AVENTURE</small><h2>Boosters</h2><p>Chaque booster a ses probabilités visibles. Les doublons deviennent de la poussière ✧ pour la Forge.</p>${ladder()}</div>
   <div class="dlfr117-pity"><div><span>Garantie Légendaire</span><b>${Math.max(1,legPity()-p.pity.leg)} carte${legPity()-p.pity.leg>1?'s':''}</b><div class="dlfr117-bar small"><i style="width:${p.pity.leg/legPity()*100}%"></i></div></div><div><span>Garantie Mythique</span><b>${Math.max(1,MYTH_PITY-p.pity.myth)} cartes</b><div class="dlfr117-bar small myth"><i style="width:${p.pity.myth/MYTH_PITY*100}%"></i></div></div></div></div>
   <div class="dlfr117-packs">${PACKS.map(pack=>{
    const locked=p.level<pack.level,afford=canAfford(pack.cost),w=weights(pack),g=packGuarantee(pack);
@@ -585,7 +597,7 @@ function renderOpening(){
 }
 function bannerFor(d){
  const r=rarities[d.tier];
- return `<div class="o-ann t${d.tier}"><span class="o-ann-rarity">${esc(r.toUpperCase())}${d.finish?` · ${FIN_NAME[d.finish].toUpperCase()}`:''}</span><strong>${esc(cardOf(d)?.name||'')}</strong><em class="${d.isNew?'is-new':''}">${OPEN.st?.meta?.real?(d.isNew?'✦ NOUVELLE CARTE':`DOUBLON · recyclable +${d.value} ✦`):`${d.isNew?'✦ NOUVELLE CARTE':'DOUBLON'} · +${d.shards} ◆${d.dust?` · +${d.dust} ✧`:''}${d.pity?' · GARANTIE ACTIVÉE':''}`}</em></div>`;
+ return `<div class="o-ann t${d.tier}"><span class="o-ann-rarity">${TIER_GEM[d.tier]} ${esc(r.toUpperCase())} ${pipsHTML(d.tier)}${d.finish?` · ${FIN_NAME[d.finish].toUpperCase()}`:''}</span><span class="o-ann-rank">${['La plus courante','Peu courante','Rare','Très rare','La plus rare'][d.tier]} · rareté ${d.tier+1}/5</span><strong>${esc(cardOf(d)?.name||'')}</strong><em class="${d.isNew?'is-new':''}">${OPEN.st?.meta?.real?(d.isNew?'✦ NOUVELLE CARTE':`DOUBLON · recyclable +${d.value} ✦`):`${d.isNew?'✦ NOUVELLE CARTE':'DOUBLON'} · +${d.shards} ◆${d.dust?` · +${d.dust} ✧`:''}${d.pity?' · GARANTIE ACTIVÉE':''}`}</em></div>`;
 }
 async function revealCurrent(){
  const st=OPEN.st;if(!st||st.busy||st.flipped)return;st.busy=true;
@@ -928,7 +940,7 @@ function albumView(data){
  const current=get(selected)||CARDS[0];
  if(!current)return '<section class="dlfr112-panel"><p>Le catalogue est vide. Ajoute des cartes dans l’onglet ✎ Catalogue.</p></section>';
  const cur=owned.get(current.id),currentCount=cur?.count||0;
- return `<div class="dlfr112-album-layout"><div class="dlfr112-gallery-pane"><div class="dlfr112-filters"><label>Affichage<select data-v112-field="filter">${[['all','Toutes les cartes'],['owned','Possédées'],['missing','Manquantes'],['level','Niveaux'],['player','Joueurs'],['dlfr','DLFR'],...COLLECTIONS.map(c=>['col:'+c.id,'Collection · '+c.name])].map(([v,t])=>`<option value="${esc(v)}" ${filter===v?'selected':''}>${esc(t)}</option>`).join('')}</select></label><label>Rechercher<input type="search" data-v112-field="search" placeholder="Nom ou rareté…" value="${esc(query)}"></label></div><div class="dlfr112-grid">${filtered().map(c=>cardItem(c,data)).join('')||'<p class="muted">Aucune carte pour ce filtre.</p>'}</div></div><aside class="dlfr112-detail"><div class="dlfr112-detail-inner">${figure(current,data)}<h3>${esc(current.name)}</h3><p>#${idString(current.id)} · ${esc(current.series)}${cur?` · ${FIN_NAME[cur.finish||0]} · ★${cur.stars||0}`:''}${current.inPacks?'':' · hors boosters'}</p>${current.description?`<p class="dlfr113-description">${esc(current.description)}</p>`:''}<div class="dlfr112-detail-actions">${editor?`<button type="button" class="btn" data-v112-act="give" data-id="${current.id}">+ Recevoir 1 carte</button><button type="button" class="btn subtle" data-v112-act="take" data-id="${current.id}" ${currentCount?'':'disabled'}>− Retirer 1</button><button type="button" class="btn subtle" data-v112-act="holo" data-id="${current.id}" ${currentCount?'':'disabled'}>✧ Finition suivante (${FIN_NAME[((cur?.finish||0)+1)%4]})</button>`:''}${currentCount?`<button type="button" class="btn subtle" data-v112-act="forge-open" data-id="${current.id}">⚒ Ouvrir dans la Forge</button>`:''}${editor&&DB&&catalog.status==='ready'?`<button type="button" class="btn subtle" data-v112-act="cat-card-open" data-id="${current.id}">✎ Modifier dans le catalogue</button>`:''}</div>${editor?"<small>Outils de test : utiliser + / − / finition passe la session en mode test (non sauvegardée).</small>":''}</div></aside></div>`;
+ return `${ladder()}<div class="dlfr112-album-layout"><div class="dlfr112-gallery-pane"><div class="dlfr112-filters"><label>Affichage<select data-v112-field="filter">${[['all','Toutes les cartes'],['owned','Possédées'],['missing','Manquantes'],['level','Niveaux'],['player','Joueurs'],['dlfr','DLFR'],...COLLECTIONS.map(c=>['col:'+c.id,'Collection · '+c.name])].map(([v,t])=>`<option value="${esc(v)}" ${filter===v?'selected':''}>${esc(t)}</option>`).join('')}</select></label><label>Rechercher<input type="search" data-v112-field="search" placeholder="Nom ou rareté…" value="${esc(query)}"></label></div><div class="dlfr112-grid">${filtered().map(c=>cardItem(c,data)).join('')||'<p class="muted">Aucune carte pour ce filtre.</p>'}</div></div><aside class="dlfr112-detail"><div class="dlfr112-detail-inner">${figure(current,data)}<h3>${esc(current.name)}</h3><p>#${idString(current.id)} · ${esc(current.series)}${cur?` · ${FIN_NAME[cur.finish||0]} · ★${cur.stars||0}`:''}${current.inPacks?'':' · hors boosters'}</p>${current.description?`<p class="dlfr113-description">${esc(current.description)}</p>`:''}<div class="dlfr112-detail-actions">${editor?`<button type="button" class="btn" data-v112-act="give" data-id="${current.id}">+ Recevoir 1 carte</button><button type="button" class="btn subtle" data-v112-act="take" data-id="${current.id}" ${currentCount?'':'disabled'}>− Retirer 1</button><button type="button" class="btn subtle" data-v112-act="holo" data-id="${current.id}" ${currentCount?'':'disabled'}>✧ Finition suivante (${FIN_NAME[((cur?.finish||0)+1)%4]})</button>`:''}${currentCount?`<button type="button" class="btn subtle" data-v112-act="forge-open" data-id="${current.id}">⚒ Ouvrir dans la Forge</button>`:''}${editor&&DB&&catalog.status==='ready'?`<button type="button" class="btn subtle" data-v112-act="cat-card-open" data-id="${current.id}">✎ Modifier dans le catalogue</button>`:''}</div>${editor?"<small>Outils de test : utiliser + / − / finition passe la session en mode test (non sauvegardée).</small>":''}</div></aside></div>`;
 }
 function viewPage(data){
  const OFFICIAL='<div id="dlfr127Cards" class="dlfr127-cards is-embedded" aria-live="polite"><div class="dlfr127-loading">Chargement de ta collection…</div></div>';
@@ -1094,6 +1106,18 @@ document.addEventListener('keydown',event=>{
   else if(!event.shiftKey&&document.activeElement===items[items.length-1]){event.preventDefault();items[0].focus();}
   else if(!OPEN.el.contains(document.activeElement)){event.preventDefault();items[0].focus();}}
 });
+// V131 — inclinaison 3D + reflet au survol des cartes (souris uniquement).
+let tiltEl=null;
+const untilt=c=>{c.classList.remove('is-tilt');c.style.removeProperty('--rx');c.style.removeProperty('--ry');};
+document.addEventListener('pointermove',e=>{
+ if(e.pointerType==='touch'||reducedMotion())return;
+ const c=e.target.closest?.('.dlfr131-card[data-tilt]');
+ if(c!==tiltEl){if(tiltEl)untilt(tiltEl);tiltEl=c;}
+ if(!c||c.closest('.o-card,.o-tray'))return;
+ const r=c.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;
+ c.classList.add('is-tilt');c.style.setProperty('--rx',`${((.5-y)*14).toFixed(1)}deg`);c.style.setProperty('--ry',`${((x-.5)*16).toFixed(1)}deg`);
+ c.style.setProperty('--mx',`${(x*100).toFixed(0)}%`);c.style.setProperty('--my',`${(y*100).toFixed(0)}%`);
+},{passive:true});
 // Minuterie : met à jour les camps sans redessiner la page ; ferme l'ouverture si on quitte le labo.
 setInterval(()=>{
  if(OPEN.el&&!OPEN.st?.meta?.real&&!document.getElementById('dlfr112Lab')){OPEN.st=null;unmountOpening(true);}
@@ -1119,6 +1143,7 @@ window.DLFR_CARDS_LAB={
  view(data){this.__sourceData=data;return viewPage(data);},
  // V127 — ouverture réelle (tirage fait par Supabase) : on ne rejoue que la mise en scène.
  mkCard,
+ ladder:(rates)=>ladder(rates),
  figure:(card,data,compact=false,opts={})=>figure(card,data,compact,opts),
  playReal(pack,draws,meta={}){
   const T={'Commun':0,'Rare':1,'Épique':2,'Légendaire':3,'Mythique':4};

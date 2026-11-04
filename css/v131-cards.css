@@ -1,0 +1,97 @@
+/* DLFR V131 — nouvelles cartes DLFR Cards : cadre et effets par rareté, échelle de rareté, inclinaison 3D. */
+@property --bd-angle{syntax:'<angle>';inherits:false;initial-value:0deg}
+.dlfr112-card.dlfr131-card{
+ --tone:#a9b0bf;--frame:linear-gradient(150deg,#e3e7ee,#8b94a5 50%,#cfd4dd);--glow:transparent;--inner:#151726;
+ position:relative;display:block;padding:3px!important;gap:0;border:0!important;border-radius:14px!important;overflow:hidden;
+ aspect-ratio:3/4.25;background:var(--frame)!important;color:#fff;
+ box-shadow:0 8px 20px rgba(0,0,0,.32),0 0 var(--glow-size,0) var(--glow);
+ transform:perspective(800px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .3s;
+ transform-style:preserve-3d;will-change:transform}
+.dlfr112-card.dlfr131-card.is-tilt{transition:transform .06s linear,box-shadow .3s;box-shadow:0 16px 34px rgba(0,0,0,.4),0 0 calc(var(--glow-size,0px) + 8px) var(--glow)}
+.dlfr131-card::before,.dlfr131-card::after{pointer-events:none}
+.c131-frame{position:relative;height:100%;display:flex;flex-direction:column;gap:6px;padding:7px;border-radius:11px;overflow:hidden;
+ background:radial-gradient(circle at 50% -10%,color-mix(in srgb,var(--tone) 34%,var(--inner)),var(--inner) 62%),var(--inner)}
+.c131-head{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:9px;font-weight:900;letter-spacing:.1em;color:var(--tone);line-height:1}
+.c131-id{opacity:.75;font-weight:800}
+.c131-art{position:relative;flex:1;min-height:0;display:grid;place-items:center;border-radius:8px;overflow:hidden;
+ background:radial-gradient(circle at 50% 45%,color-mix(in srgb,var(--tone) 38%,transparent),transparent 68%),#0a0b14;
+ box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tone) 45%,transparent),inset 0 -24px 30px rgba(0,0,0,.55)}
+.c131-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.c131-art::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(0,0,0,.5));pointer-events:none}
+.c131-sym{font-size:clamp(28px,5vw,46px);color:var(--tone);text-shadow:0 0 18px var(--tone),0 0 4px #fff;filter:saturate(1.2)}
+.c131-gem{position:absolute;top:6px;right:6px;z-index:2;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;font-size:12px;font-weight:900;color:#151726;
+ background:radial-gradient(circle at 35% 30%,#fff,var(--tone) 60%);box-shadow:0 0 0 2px rgba(0,0,0,.35),0 0 12px var(--tone)}
+.c131-lock{position:absolute;inset:0;z-index:2;display:grid;place-items:center;font-size:34px;font-weight:900;color:rgba(255,255,255,.55)}
+.c131-plate{display:grid;gap:3px;min-width:0;padding:1px 2px 2px}
+.c131-plate strong{font-size:12.5px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.c131-rar{display:flex;align-items:center;gap:6px;min-width:0;font-size:9.5px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--tone)}
+.c131-rar>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c131-pips{font-style:normal;letter-spacing:-.5px;font-size:9px;color:var(--tone);text-shadow:0 0 6px var(--tone);white-space:nowrap}
+.c131-pips em{font-style:normal;opacity:.22;text-shadow:none}
+.c131-foil,.c131-glare{position:absolute;inset:3px;border-radius:11px;pointer-events:none;z-index:3}
+.c131-glare{background:radial-gradient(circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,.35),transparent 45%);opacity:0;transition:opacity .25s;mix-blend-mode:soft-light}
+.dlfr131-card.is-tilt .c131-glare{opacity:1}
+.dlfr131-card .dlfr112-count{z-index:4}
+.dlfr131-card .dlfr117-stars{z-index:4}
+
+/* --- Raretés --- */
+.dlfr131-card.dlfr112-rare{--tone:#6cb8ff;--frame:linear-gradient(150deg,#b9dcff,#2f7fe0 50%,#9fd0ff);--glow:rgba(80,160,255,.45);--glow-size:10px;--inner:#0f1730}
+.dlfr131-card.dlfr112-rare .c131-foil{background:linear-gradient(115deg,transparent 40%,rgba(160,210,255,.35) 50%,transparent 60%) 0 0/250% 100%;animation:c131-sheen 6s ease-in-out infinite}
+.dlfr131-card.dlfr112-epique{--tone:#c49bff;--frame:linear-gradient(150deg,#ead6ff,#8a4bea,#d4b0ff,#6a2fd0,#ead6ff) 0 0/300% 300%;--glow:rgba(170,110,255,.5);--glow-size:14px;--inner:#170f2c;animation:c131-pan 6s ease-in-out infinite alternate}
+.dlfr131-card.dlfr112-epique .c131-foil{background:linear-gradient(115deg,transparent 35%,rgba(210,170,255,.4) 48%,rgba(255,255,255,.25) 50%,transparent 62%) 0 0/250% 100%;animation:c131-sheen 4s ease-in-out infinite}
+.dlfr131-card.dlfr112-legendaire{--tone:#ffcc5c;--frame:conic-gradient(from var(--bd-angle),#fff3c4,#f2b84a,#a3620f,#ffe08a,#f2b84a,#fff3c4);--glow:rgba(255,190,70,.6);--glow-size:18px;--inner:#1f1608;animation:bd-angle 5s linear infinite,c131-glow 2.6s ease-in-out infinite}
+.dlfr131-card.dlfr112-legendaire .c131-foil{background:repeating-linear-gradient(115deg,transparent 0 18px,rgba(255,220,120,.12) 18px 22px),linear-gradient(115deg,transparent 35%,rgba(255,236,170,.5) 48%,transparent 60%) 0 0/250% 100%;animation:c131-sheen 3.4s ease-in-out infinite;mix-blend-mode:screen}
+.dlfr131-card.dlfr112-legendaire .c131-plate strong{color:#fff4cf}
+.dlfr131-card.dlfr112-mythique{--tone:#ff86d0;--frame:conic-gradient(from var(--bd-angle),#ff6ad5,#7a5cff,#2ee6ff,#7bffb0,#ffd36b,#ff6ad5);--glow:rgba(255,106,213,.6);--glow-size:22px;--inner:#1a0b24;animation:bd-angle 3s linear infinite,c131-glow 2s ease-in-out infinite}
+.dlfr131-card.dlfr112-mythique .c131-foil{background:linear-gradient(125deg,rgba(255,106,213,.28),rgba(46,230,255,.25),rgba(123,255,176,.22),rgba(255,211,107,.25),rgba(122,92,255,.28)) 0 0/300% 300%,radial-gradient(1.5px 1.5px at 20% 30%,#fff,transparent),radial-gradient(1.5px 1.5px at 70% 20%,#fff,transparent),radial-gradient(1px 1px at 40% 70%,#fff,transparent),radial-gradient(1.5px 1.5px at 85% 60%,#fff,transparent),radial-gradient(1px 1px at 15% 85%,#fff,transparent);mix-blend-mode:color-dodge;animation:c131-pan 5s ease-in-out infinite alternate,c131-twinkle 1.8s ease-in-out infinite}
+.dlfr131-card.dlfr112-mythique .c131-plate strong{background:linear-gradient(90deg,#ffd6f3,#fff,#c9f6ff);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none}
+@keyframes c131-sheen{0%,55%{background-position:130% 0}100%{background-position:-130% 0}}
+@keyframes c131-pan{0%{background-position:0% 50%}100%{background-position:100% 50%}}
+@keyframes c131-glow{0%,100%{box-shadow:0 8px 20px rgba(0,0,0,.32),0 0 var(--glow-size) var(--glow)}50%{box-shadow:0 8px 20px rgba(0,0,0,.32),0 0 calc(var(--glow-size) * 1.8) var(--glow)}}
+@keyframes c131-twinkle{0%,100%{opacity:.85}50%{opacity:1}}
+
+/* Non obtenue : silhouette */
+.dlfr131-card.dlfr112-missing{filter:grayscale(1) brightness(.62);opacity:.7;animation:none!important}
+.dlfr131-card.dlfr112-missing .c131-foil{display:none}
+.dlfr131-card.dlfr112-missing .c131-art img{opacity:.25;filter:blur(2px)}
+/* Taille compacte */
+.dlfr131-card.dlfr112-small .c131-frame{padding:5px;gap:4px}
+.dlfr131-card.dlfr112-small .c131-head{font-size:7.5px}
+.dlfr131-card.dlfr112-small .c131-plate strong{font-size:10.5px}
+.dlfr131-card.dlfr112-small .c131-rar{font-size:8px;gap:4px}
+.dlfr131-card.dlfr112-small .c131-pips{font-size:7.5px}
+.dlfr131-card.dlfr112-small .c131-gem{width:17px;height:17px;font-size:9.5px;top:4px;right:4px}
+.dlfr131-card.dlfr112-small .c131-sym{font-size:26px}
+/* Dans l'ouverture : la carte remplit sa face */
+.o-front>.dlfr112-card.dlfr131-card{height:100%;width:100%;aspect-ratio:auto;transform:none}
+.o-front .c131-art{min-height:55%}
+.o-ann-rank{display:block;margin-top:4px;font-size:11px;font-weight:700;letter-spacing:.08em;opacity:.8}
+.o-ann .c131-pips{font-size:11px}
+@media(prefers-reduced-motion:reduce){.dlfr131-card,.dlfr131-card .c131-foil{animation:none!important;transform:none!important}}
+
+/* --- Échelle des raretés --- */
+.c131-ladder{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:10px 0 14px;padding:10px 12px;border-radius:14px;background:var(--card,#fff);border:1px solid var(--line,rgba(127,127,127,.2))}
+.dlfr117-panel .c131-ladder,.dlfr117-game .c131-ladder{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:#e6e9f2}
+.c131-step{--tone:#a9b0bf;display:flex;align-items:center;gap:7px;padding:5px 10px 5px 6px;border-radius:999px;background:color-mix(in srgb,var(--tone) 14%,transparent);border:1px solid color-mix(in srgb,var(--tone) 40%,transparent)}
+.c131-step.t1{--tone:#6cb8ff}.c131-step.t2{--tone:#c49bff}.c131-step.t3{--tone:#ffcc5c}.c131-step.t4{--tone:#ff86d0}
+.c131-step>b{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;font-size:12px;color:#151726;background:radial-gradient(circle at 35% 30%,#fff,var(--tone) 60%);box-shadow:0 0 10px color-mix(in srgb,var(--tone) 70%,transparent)}
+.c131-step>span{display:grid;line-height:1.15}
+.c131-step strong{font-size:11.5px;color:var(--tone)}
+.c131-step small{font-size:10px;opacity:.8;font-weight:700}
+.c131-step.t4{background:linear-gradient(90deg,rgba(255,106,213,.18),rgba(46,230,255,.16));border-color:rgba(255,134,208,.55)}
+.c131-arrow{font-style:normal;font-weight:900;opacity:.45}
+.c131-ladder-note{margin-left:auto;font-size:11px;opacity:.65;font-weight:600}
+@media(max-width:700px){.c131-ladder-note{margin-left:0;width:100%}.c131-arrow{display:none}}
+/* Mini-cartes de la bande du bas pendant l'ouverture */
+.o-tray .dlfr131-card .c131-head,.o-tray .dlfr131-card .c131-rar>span,.o-tray .dlfr131-card .c131-gem{display:none}
+.o-tray .dlfr131-card .c131-frame{padding:3px;gap:2px}
+.o-tray .dlfr131-card .c131-plate strong{font-size:8px}
+.o-tray .dlfr131-card .c131-pips{font-size:6px}
+.o-tray .dlfr131-card .c131-sym{font-size:16px}
+/* Carte manquante : seul le « ? » reste */
+.dlfr131-card.dlfr112-missing .c131-sym{display:none}
+.c131-step.t0{--tone:#7d8597}
+html.dark .c131-step.t0,.dlfr117-panel .c131-step.t0,.dlfr117-game .c131-step.t0{--tone:#b8bfcc}
+
+.dlfr131-card .dlfr112-count{top:30px!important;left:12px!important;right:auto!important;bottom:auto!important;padding:2px 7px;border-radius:999px;background:rgba(0,0,0,.72);font-size:10.5px;font-weight:800}
+.c131-ladder{color:var(--ink,#333)}
