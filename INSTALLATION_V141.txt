@@ -1,0 +1,26 @@
+DLFR V141 — Sauvegarde du mode Aventure : plus de « rollback »
+==============================================================
+
+Base de données : DÉJÀ APPLIQUÉE (supabase/140_NEWS_CATEGORIE.sql et
+supabase/141_AVENTURE_FILE_ATTENTE.sql = archives).
+
+Pourquoi des joueurs perdaient leur progression
+ 1. Outils de test (staff uniquement) : un clic sur « + Recevoir 1 carte », « − Retirer 1 »,
+    « Finition suivante », la console de test ou les échanges fictifs passait la partie en
+    « SESSION DE TEST · NON SAUVEGARDÉE », sans prévenir. Tout ce qui suivait était perdu
+    au rechargement.
+ 2. Limite de 120 cartes / jour venant de l'Aventure : au-delà, les cartes étaient refusées
+    par le serveur et disparaissaient.
+
+Corrections
+ - Le premier outil de test demande maintenant confirmation, en expliquant que la partie
+   ne sera plus sauvegardée. Les boutons de test sont marqués 🧪.
+ - En session de test, un bouton « ↺ Revenir à ma partie » recharge la vraie sauvegarde
+   (sans recharger la page).
+ - Les cartes au-delà de 120 / jour sont mises de côté sur le serveur et rejoignent la
+   collection automatiquement les jours suivants (toujours 120 / jour, l'anti-triche reste
+   le même ; 2 000 cartes de côté au maximum). Messages : « mises de côté » / « ont rejoint
+   ta collection ».
+ - (V140) Les annonces s'enregistrent de nouveau (colonnes catégorie / épinglée ajoutées).
+
+Fichiers : index.html, js/v118-cards-lab.js, css/v131-cards.css
