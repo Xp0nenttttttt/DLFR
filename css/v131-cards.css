@@ -183,3 +183,21 @@ html.dark .c131-step.t0,.dlfr117-panel .c131-step.t0,.dlfr117-game .c131-step.t0
 @keyframes dlfr143pulse{50%{box-shadow:0 0 0 8px rgba(255,210,94,.08)}}
 @media (max-width:600px){.dlfr143-node small{display:none}.dlfr143-node em{width:22px;height:22px;font-size:.72rem}.dlfr143-node u{font-size:.62rem}.dlfr143-track-head strong{font-size:1.3rem}}
 @media (prefers-reduced-motion:reduce){.dlfr143-node.is-next em{animation:none}}
+/* V143 — paliers d'étoiles de la Forge */
+.dlfr143-stars{margin:14px 0;padding:18px 20px;border-radius:20px;background:linear-gradient(135deg,rgba(255,215,90,.16),rgba(255,120,60,.1));border:1px solid rgba(255,210,100,.4);color:#fff}
+.dlfr143-stars-head{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between;margin-bottom:14px}
+.dlfr143-stars-head small{display:block;font-size:.7rem;letter-spacing:.14em;font-weight:800;color:#ffd25e}
+.dlfr143-stars-head strong{font-size:1.9rem;color:#ffd25e;letter-spacing:.08em;text-shadow:0 0 12px rgba(255,200,80,.6)}.dlfr143-stars-head strong span{color:rgba(255,255,255,.25);text-shadow:none}
+.dlfr143-stars-sum{display:flex;flex-direction:column;padding:8px 14px;border-radius:12px;background:rgba(0,0,0,.25)}.dlfr143-stars-sum b{font-size:1.05rem}.dlfr143-stars-sum span{font-size:.78rem;opacity:.8}
+.dlfr143-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.dlfr143-steps li{display:flex;flex-direction:column;gap:3px;padding:12px;border-radius:14px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.1);opacity:.6;min-width:0}
+.dlfr143-steps em{font-style:normal;font-weight:900;font-size:1.2rem;color:rgba(255,255,255,.7)}
+.dlfr143-steps span{font-size:.82rem}.dlfr143-steps small{font-size:.72rem;opacity:.85;margin-top:4px}
+.dlfr143-steps li.is-done{opacity:1;border-color:rgba(255,210,94,.5)}.dlfr143-steps li.is-done em{color:#ffd25e}
+.dlfr143-steps li.is-now{opacity:1;border:2px solid #ffd25e;box-shadow:0 0 18px rgba(255,200,80,.3);background:rgba(255,200,80,.12)}.dlfr143-steps li.is-now em{color:#fff}
+.dlfr143-steps i{display:block;height:8px;border-radius:99px;background:rgba(255,255,255,.15);overflow:hidden;margin-top:6px}.dlfr143-steps i b{display:block;height:100%;background:linear-gradient(90deg,#ff9a3d,#ffd25e)}
+.dlfr143-steps small.ok{color:#7dffb0;font-weight:800}
+.dlfr143-mini{display:block;height:4px;border-radius:99px;background:rgba(127,127,127,.25);overflow:hidden;margin-top:4px}.dlfr143-mini b{display:block;height:100%;background:linear-gradient(90deg,#ff9a3d,#ffd25e)}
+.dlfr143-ready{font-style:normal;font-size:.68rem;font-weight:900;color:#1a1200;background:#ffd25e;border-radius:6px;padding:1px 6px;align-self:flex-start;margin-top:4px}
+@media (max-width:700px){.dlfr143-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.dlfr143-steps li.is-now{grid-column:1/-1}}
+.dlfr117-forge-item{flex-wrap:wrap}.dlfr117-forge-item .dlfr143-mini{flex-basis:100%;width:100%}

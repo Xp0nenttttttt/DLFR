@@ -1,5 +1,5 @@
-DLFR V143 — Forge sans fabrication + paliers de puissance bien visibles
-======================================================================
+DLFR V143 — Forge sans fabrication + paliers d'étoiles bien visibles
+===================================================================
 (Inclut tout V142 : plus de limite de 120 cartes / jour, confirmation des outils de test,
  bouton « ↺ Revenir à ma partie ». Aucune nouvelle requête SQL.)
 
@@ -8,10 +8,14 @@ Forge
    Il ne reste que les étoiles ★ et le recyclage des doublons des cartes ★5.
  - Succès « Artisan » / « Maître artisan » retirés ; quête « Améliorer N cartes ».
 
-Paliers de puissance
- - Nouvelle piste en haut de tous les onglets du mode Aventure : 9 paliers numérotés
-   avec leur seuil, le palier suivant qui pulse, les récompenses (🔑) aux paliers 3, 6, 9,
-   le bonus actuel (+X % éclats & XP) et ce qu'il manque avant le prochain palier.
- - Explique comment gagner de la puissance (nouvelles cartes, étoiles, finitions).
+PalierPaliers d'étoiles (Forge)
+ - Nouveau bloc « Paliers d'étoiles » pour la carte sélectionnée : les 5 paliers ★1 → ★5
+   avec, pour chacun, le nombre de doublons et la poussière ✧ nécessaires. Le palier en
+   cours est mis en avant avec une barre de progression (doublons et poussière) ; les
+   paliers atteints sont dorés. Résumé : doublons en stock et total restant jusqu'à ★5.
+ - Dans la liste des cartes de la Forge : « 1/2 doublons », une petite barre de progression
+   vers la prochaine étoile et une étiquette « Prêt ! » quand l'étoile peut être forgée.
+ - Les paliers de puissance de collection (1 à 9) sont affichés sous forme de piste dans
+   la Forge.
 
-Fichiers : index.html, js/v118-cards-lab.js, css/v131-cards.css
+rs : index.html, js/v118-cards-lab.js, css/v131-cards.css

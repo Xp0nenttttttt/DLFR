@@ -434,6 +434,18 @@ function powerTrack(){
   <p>La puissance monte avec chaque <b>nouvelle carte</b> (plus la rareté est haute, plus elle compte), chaque <b>étoile ★</b> gagnée à la Forge et chaque <b>finition</b> (Holo, etc.).</p>
  </section>`;
 }
+// V143 — Paliers d'étoiles de la Forge : ce que coûte chaque ★ et où en est la carte.
+function starTrack(cur,v){
+ if(!cur||!v)return '';const st=v.stars||0,dups=Math.max(0,v.count-1),t=tierOf(cur);
+ const steps=STAR_COPIES.map((copies,i)=>({n:i+1,copies,dust:Math.round(STAR_DUST[i]*STAR_FACTOR[t]*forgeDiscount())}));
+ const totalLeft=steps.slice(st).reduce((a,x)=>a+x.copies,0);
+ return `<section class="dlfr143-stars" aria-label="Paliers d’étoiles de ${esc(cur.name)}">
+  <div class="dlfr143-stars-head"><div><small>PALIERS D’ÉTOILES · ${esc(cur.name)}</small><strong>${'★'.repeat(st)}<span>${'☆'.repeat(5-st)}</span></strong></div>
+   <div class="dlfr143-stars-sum">${st>=5?'<b>Étoiles maximales</b><span>Les doublons se recyclent en poussière ✧</span>':`<b>${dups} doublon${dups>1?'s':''} en stock</b><span>${totalLeft} au total pour atteindre ★5</span>`}</div></div>
+  <ol class="dlfr143-steps">${steps.map(x=>{const done=x.n<=st,now=x.n===st+1,pc=now?Math.min(100,dups/x.copies*100):done?100:0,okD=now&&dups>=x.copies,okP=now&&progress.dust>=x.dust;
+   return `<li class="${done?'is-done':now?'is-now':''}"><em>★${x.n}</em><span>${x.copies} doublon${x.copies>1?'s':''}</span><span>${fmt(x.dust)} ✧</span>${now?`<i><b style="width:${pc}%"></b></i><small class="${okD&&okP?'ok':''}">${okD?'✓':Math.min(dups,x.copies)+'/'+x.copies} doublons · ${okP?'✓':fmt(progress.dust)+'/'+fmt(x.dust)} ✧</small>`:done?'<small>✓ Atteint</small>':''}</li>`;}).join('')}</ol>
+ </section>`;
+}
 function packArt(pack,size=''){
  return `<div class="dlfr117-booster b-${pack.theme} ${size}" aria-hidden="true"><div class="b-crimp"></div><div class="b-body"><div class="b-pattern"></div><div class="b-glow"></div><div class="b-logo">DLFR <b>CARDS</b></div><div class="b-emblem">${pack.emblem}</div><div class="b-name">${esc(pack.name)}</div><div class="b-meta">${pack.real?pack.count:packCount(pack)} CARTE${(pack.real?pack.count:packCount(pack))>1?'S':''} · ORIGINS</div><div class="b-foil"></div></div><div class="b-crimp b-bottom"></div></div>`;
 }
@@ -480,8 +492,9 @@ function forgeView(data){
  const list=CARDS.filter(c=>has(c.id)).sort((a,b)=>tierOf(b)-tierOf(a)||a.id-b.id);
  if(!list.find(c=>c.id===forgeSel))forgeSel=list[0]?.id||0;
  const cur=get(forgeSel),v=cur&&owned.get(cur.id),k=cur&&v?starCost(cur,v):null;
- return `<section class="dlfr117-panel"><div class="dlfr117-head"><div><small>FORGE</small><h2>Étoiles</h2><p>Consomme des doublons et de la poussière ✧ pour faire monter une carte jusqu’à ★5. Chaque étoile augmente ta puissance de collection, qui donne des bonus permanents.</p></div><div class="dlfr117-slots"><b>⚡ ${fmt(collectionPower())}</b><span>Palier ${powerTier()} / ${POWER_TIERS.length}</span><small>${powerTier()<POWER_TIERS.length?`Prochain palier à ${POWER_TIERS[powerTier()]}`:'Palier maximal'} · +${powerTier()*3} % éclats & XP</small></div></div>
-  ${list.length?`<div class="dlfr117-forge"><div class="dlfr117-forge-list">${list.map(c=>{const o=owned.get(c.id),sc=starCost(c,o),ready=sc&&o.count-1>=sc.copies&&progress.dust>=sc.dust;return `<button type="button" class="dlfr117-forge-item ${c.id===forgeSel?'is-current':''} ${ready?'is-ready':''}" data-v112-act="forge-select" data-id="${c.id}"><span class="t${tierOf(c)}">${esc(c.name)}</span><small>${'★'.repeat(o.stars||0)}${'☆'.repeat(5-(o.stars||0))} · ×${o.count}</small></button>`;}).join('')}</div>
+ return `<section class="dlfr117-panel"><div class="dlfr117-head"><div><small>FORGE</small><h2>Étoiles</h2><p>Consomme des doublons et de la poussière ✧ pour faire monter une carte jusqu’à ★5. Chaque étoile augmente ta puissance de collection, qui donne des bonus permanents.</p></div></div>
+  ${starTrack(cur,v)}${powerTrack()}
+  ${list.length?`<div class="dlfr117-forge"><div class="dlfr117-forge-list">${list.map(c=>{const o=owned.get(c.id),sc=starCost(c,o),ready=sc&&o.count-1>=sc.copies&&progress.dust>=sc.dust;return `<button type="button" class="dlfr117-forge-item ${c.id===forgeSel?'is-current':''} ${ready?'is-ready':''}" data-v112-act="forge-select" data-id="${c.id}"><span class="t${tierOf(c)}">${esc(c.name)}</span><small>${'★'.repeat(o.stars||0)}${'☆'.repeat(5-(o.stars||0))} · ${sc?`${Math.min(o.count-1,sc.copies)}/${sc.copies} doublon${sc.copies>1?'s':''}`:'MAX'}</small>${sc?`<i class="dlfr143-mini"><b style="width:${Math.min(100,(o.count-1)/sc.copies*100)}%"></b></i>`:''}${ready?'<em class="dlfr143-ready">Prêt !</em>':''}</button>`;}).join('')}</div>
    <div class="dlfr117-forge-main">${cur?`<div class="dlfr117-forge-card">${figure(cur,data)}</div><div class="dlfr117-forge-info"><h3>${esc(cur.name)}</h3><p>${esc(rarity(cur))} · ${FIN_NAME[v.finish||0]} · ★${v.stars||0}/5</p>
     ${k?`<ul class="dlfr117-reqs"><li class="${v.count-1>=k.copies?'ok':''}">Doublons : ${v.count-1} / ${k.copies}</li><li class="${progress.dust>=k.dust?'ok':''}">Poussière : ${fmt(progress.dust)} / ${fmt(k.dust)} ✧</li></ul><button class="btn" type="button" data-v112-act="upgrade" data-id="${cur.id}" ${v.count-1>=k.copies&&progress.dust>=k.dust?'':'disabled'}>Forger ★${(v.stars||0)+1}</button>`:'<p class="dlfr117-done">★★★★★ Étoiles maximales</p>'}</div>`:''}</div></div>`:'<p class="dlfr117-empty">Ouvre des boosters pour remplir la Forge.</p>'}
   <div class="dlfr117-sub"><h3>Doublons des cartes ★5</h3><p class="dlfr117-muted">Une carte ★5 ne peut plus monter : ses doublons peuvent être recyclés en poussière ✧.</p>
@@ -500,7 +513,7 @@ function goalsView(){
 function progressionPage(data){
  ensureQuests();
  const inner=view==='packs'?boostersView():view==='expeditions'?expeditionsView():view==='talents'?talentsView():view==='forge'?forgeView(data):goalsView();
- return `<div class="dlfr117-game">${hud()}${powerTrack()}${inner}
+ return `<div class="dlfr117-game">${hud()}${inner}
   <div class="dlfr117-footer"><p>Ta partie est sauvegardée automatiquement sur ton compte.${editor?' Importer une sauvegarde passe la session en <strong>mode test</strong> (plus de sauvegarde automatique jusqu’au rechargement).':''}</p><div class="dlfr113-create-buttons"><button class="btn subtle" data-v112-act="export-session" type="button">↓ Exporter ma partie</button>${editor?'<button class="btn subtle" data-v112-act="open-session-import" type="button">↑ Importer (test)</button>':''}<input type="file" id="dlfr114SessionFile" accept="application/json,.json" hidden></div></div></div>`;
 }
 
