@@ -87,7 +87,7 @@ const SKILLS=[
  {id:'fo2',branch:'fortune',name:'Éclat holographique',icon:'◈',max:3,level:6,cost:60,pts:1,requires:['fo1'],text:r=>`Finitions Holo/Prisme/Obsidienne +${25*r} %`},
  {id:'fo3',branch:'fortune',name:'Découverte garantie',icon:'♢',max:1,level:12,cost:180,pts:1,requires:['fo2'],text:()=>'Le paquet Découverte garantit une Rare ou mieux'},
  {id:'fo4',branch:'fortune',name:'Garantie plus rapide',icon:'⌛',max:3,level:20,cost:260,pts:1,requires:['fo3'],text:r=>`Garantie Légendaire ${15*r} cartes plus tôt`},
- {id:'fo5',branch:'fortune',name:'Chasseur de Mythiques',icon:'✧',max:3,level:35,cost:500,pts:1,requires:['fo4'],text:r=>`Poids des Mythiques +${60*r} %`},
+ {id:'fo5',branch:'fortune',name:'Chasseur de Mythiques',icon:'✧',max:3,level:35,cost:500,pts:1,requires:['fo4'],text:r=>`Poids des Mythiques +${20*r} %`},
  {id:'fo6',branch:'fortune',name:'Finitions rares',icon:'❖',max:1,level:55,cost:1400,pts:2,requires:['fo5'],text:()=>'Prismatique ×1,5 et Obsidienne ×2'},
  {id:'ex1',branch:'explore',name:'Sac de voyage',icon:'◇',max:5,level:1,cost:20,pts:1,requires:[],text:r=>`Éclats d’expédition +${8*r} %`},
  {id:'ex2',branch:'explore',name:'Cartographe',icon:'⌁',max:3,level:5,cost:60,pts:1,requires:['ex1'],text:r=>`Durée des expéditions −${8*r} %`},
@@ -112,7 +112,7 @@ const SKILLS=[
  {id:'le8',branch:'legend',name:'Chasseur d’Ultra',icon:'♛',max:5,level:500,cost:20000,pts:3,requires:['le7'],text:r=>`Chances d’Ultra +${30*r} %`},
  {id:'le10',branch:'legend',name:'Légende vivante',icon:'☀',max:1,level:1000,cost:100000,pts:10,requires:['le8'],text:()=>'+1 carte dans tous les paquets, +25 % d’éclats, d’XP et de poussière'},
  {id:'cv',branch:'core',name:'Maître des cartes',icon:'✺',max:1,level:50,cost:2000,pts:3,requires:['fo4','ex4','ma4'],text:()=>'+1 niveau de chance et +15 % d’éclats et d’XP'},
- {id:'ap',branch:'core',name:'Talent ultime',icon:'☀',max:1,level:85,cost:6000,pts:5,requires:['cv','fo6','ex6','ma6'],text:()=>'+1 carte dans tous les paquets et Mythiques ×2'}
+ {id:'ap',branch:'core',name:'Talent ultime',icon:'☀',max:1,level:85,cost:6000,pts:5,requires:['cv','fo6','ex6','ma6'],text:()=>'+1 carte dans tous les paquets et Mythiques ×1,3'}
 ];
 let SETS=[];
 function rebuildSets(){
@@ -367,7 +367,7 @@ function secretRoll(pack){const p=secretPool().filter(c=>!pack?.filter||pack.fil
 function poolFor(pack){const base=packable(),p=base.filter(c=>!pack.filter||pack.filter(c));return p.length?p:base;}
 function weights(pack){
  const pool=poolFor(pack),n=luck();
- const mult=[1,1+.16*n,1+.28*n,1+.44*n,(1+.64*n)*(1+.6*rank('fo5'))*(rank('ap')?2:1),1+.3*rank('le8')];  // V154 : Ultra = 1 carte sur 15 000, la chance ne compte pas
+ const mult=[1,1+.05*n,1+.08*n,1+.12*n,Math.min(3,(1+.15*n)*(1+.2*rank('fo5'))*(rank('ap')?1.3:1)),1+.3*rank('le8')]; // V157 : chance bien plus modérée, Mythiques ×3 au maximum  // V154 : Ultra = 1 carte sur 15 000, la chance ne compte pas
  const w=pack.weights.map((x,i)=>pool.some(c=>tierOf(c)===i)?x*mult[i]:0);
  const total=w.reduce((a,b)=>a+b,0);return total>0?w.map(x=>x/total):w;
 }

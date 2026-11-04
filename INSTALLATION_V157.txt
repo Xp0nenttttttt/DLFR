@@ -1,0 +1,18 @@
+DLFR V157 — Chance des talents fortement réduite
+================================================
+(Inclut V156 et avant — lis aussi V156, V154, V152. Aucune requête SQL.)
+
+Pourquoi des boosters remplis de Mythiques : les talents de chance (Chance, Maître des
+cartes, Coup de chance), « Chasseur de Mythiques » et « Talent ultime » multipliaient les
+Mythiques jusqu'à ×27 pour les joueurs les plus avancés. Le nombre de cartes Communes du
+catalogue n'y est pour rien (la rareté est tirée d'abord, puis une carte de cette rareté).
+
+Maintenant :
+ - Chaque niveau de chance : Rare +5 %, Épique +8 %, Légendaire +12 %, Mythique +15 %
+   (avant +16 / +28 / +44 / +64 %).
+ - Chasseur de Mythiques : +20 % par rang (avant +60 %) ; Talent ultime : Mythiques ×1,3
+   (avant ×2).
+ - Les Mythiques ne peuvent jamais être plus de 3× plus fréquentes que la chance de base,
+   quels que soient les talents. L'Ultra reste à 1 sur 15 000.
+
+Fichiers : index.html, js/v118-cards-lab.js
