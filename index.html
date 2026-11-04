@@ -33,6 +33,7 @@
   <link rel="stylesheet" href="css/v121-profile-deco.css?v=dlfr122-deco-fix">
   <link rel="stylesheet" href="css/v123-badges.css?v=dlfr123-badges">
   <link rel="stylesheet" href="css/v124-emblem.css?v=dlfr124-emblem">
+  <link rel="stylesheet" href="css/v126-ux.css?v=dlfr126-ux">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
   <script src="js/config.js?v=dlfr22-1" defer></script>
   <script src="js/geo.js?v=dlfr22-1" defer></script>
@@ -57,65 +58,66 @@
   <script src="js/v118-cards-lab.js?v=dlfr118-catalog" defer></script>
   <script src="js/v120-themes.js?v=dlfr120-themes" defer></script>
   <script src="js/v121-profile-deco.js?v=dlfr122-deco-fix" defer></script>
-  <script src="js/app.js?v=dlfr124-emblem" defer></script>
+  <script src="js/app.js?v=dlfr126-ux" defer></script>
 </head>
 <body>
-  <header class="site-header">
-    <nav class="navigation" aria-label="Navigation principale">
-      <div class="dlfr110-top">
-        <a href="?page=list" class="brand" data-link="list"><span class="v62-brand-long">DemonlistFrancophone</span><span class="v62-brand-short">DLFR</span></a>
-        <div class="v58-social-links" aria-label="Liens communautaires">
-          <a class="v58-social-link v58-discord" href="https://discord.gg/FUTTZTwJFr" target="_blank" rel="noopener noreferrer" title="Discord DLFR" aria-label="Rejoindre le serveur Discord DLFR (nouvel onglet)"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="currentColor"><path d="M19.73 5.06a18.05 18.05 0 0 0-4.45-1.38l-.54 1.1a16.6 16.6 0 0 0-5.48 0l-.54-1.1a18.2 18.2 0 0 0-4.46 1.39C1.44 9.22.66 13.25 1.04 17.23a18.3 18.3 0 0 0 5.47 2.76l1.17-1.88c-.64-.24-1.24-.54-1.82-.9l.44-.34c3.5 1.64 7.9 1.64 11.37 0l.45.35c-.58.35-1.2.65-1.83.9l1.17 1.88a18.38 18.38 0 0 0 5.48-2.77c.45-4.6-.77-8.6-3.21-12.37ZM8.56 14.8c-1.05 0-1.9-.97-1.9-2.14s.83-2.14 1.9-2.14c1.07 0 1.92.97 1.9 2.14 0 1.17-.83 2.14-1.9 2.14Zm6.88 0c-1.06 0-1.9-.97-1.9-2.14s.83-2.14 1.9-2.14c1.07 0 1.91.97 1.9 2.14 0 1.17-.83 2.14-1.9 2.14Z"/></svg><span>Discord</span></a>
-          <a class="v58-social-link v58-youtube" href="https://www.youtube.com/@DemonlistFrancophone" target="_blank" rel="noopener noreferrer" title="YouTube DLFR" aria-label="Voir la chaîne YouTube Demonlist Francophone (nouvel onglet)"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="currentColor"><path d="M21.58 7.19a2.75 2.75 0 0 0-1.94-1.94C17.92 4.8 12 4.8 12 4.8s-5.92 0-7.64.45a2.75 2.75 0 0 0-1.94 1.94C1.97 8.91 1.97 12 1.97 12s0 3.09.45 4.81a2.75 2.75 0 0 0 1.94 1.94c1.72.45 7.64.45 7.64.45s5.92 0 7.64-.45a2.75 2.75 0 0 0 1.94-1.94c.45-1.72.45-4.81.45-4.81s0-3.09-.45-4.81ZM9.96 15.08V8.92L15.3 12l-5.34 3.08Z"/></svg><span>YouTube</span></a>
-        </div>
-      </div>
-      <div class="dlfr110-bottom">
-        <div class="nav-links" id="primaryNavigation">
-        <a class="nav-primary" href="?page=list" data-link="list">Demonlist</a>
-        <details class="nav-menu" data-nav-group="classements">
-          <summary>Classements <span class="nav-chevron" aria-hidden="true">⌄</span></summary>
+  <header class="site-header dlfr126-header">
+    <nav class="navigation dlfr126-nav" aria-label="Navigation principale">
+      <a href="?page=list" class="brand" data-link="list"><span class="v62-brand-long">DemonlistFrancophone</span><span class="v62-brand-short">DLFR</span></a>
+      <button type="button" class="dlfr126-burger" id="dlfr126Burger" aria-expanded="false" aria-controls="primaryNavigation"><span aria-hidden="true"></span><b>Menu</b></button>
+      <div class="nav-links dlfr126-links" id="primaryNavigation">
+        <div class="dlfr126-drawer-head"><b>Menu</b><button type="button" class="dlfr126-close" data-drawer-close aria-label="Fermer le menu">✕</button></div>
+        <details class="nav-menu" data-nav-group="niveaux">
+          <summary>Niveaux <span class="nav-chevron" aria-hidden="true">⌄</span></summary>
           <div class="nav-menu-panel">
-            <span class="nav-menu-title">Niveaux &amp; statistiques</span>
-            <a href="?page=stats" data-link="stats">Statistiques des joueurs</a>
-            <a href="?page=players" data-link="players">Profils des joueurs</a>
-            <a href="?page=calculator" data-link="calculator">Calculateur de points</a>
-            <a href="?page=unbeaten" data-link="unbeaten">Niveaux non vérifiés</a>
-            <a href="?page=history" data-link="history">Historique des records</a>
+            <span class="nav-menu-title">Les niveaux classés</span>
+            <a href="?page=list" data-link="list"><span class="dlfr126-ico" aria-hidden="true">📜</span><span class="dlfr126-txt"><b>Demonlist</b><small>Le Top 150 et la NLW (rang 151+)</small></span></a><a href="?page=unbeaten" data-link="unbeaten"><span class="dlfr126-ico" aria-hidden="true">🔒</span><span class="dlfr126-txt"><b>Niveaux non vérifiés</b><small>Les niveaux que personne n’a encore battus</small></span></a><a href="?page=history" data-link="history"><span class="dlfr126-ico" aria-hidden="true">🕓</span><span class="dlfr126-txt"><b>Historique des records</b><small>Qui a battu quoi, et quand</small></span></a><a href="?page=calculator" data-link="calculator"><span class="dlfr126-ico" aria-hidden="true">🧮</span><span class="dlfr126-txt"><b>Calculateur de points</b><small>Combien rapporte un niveau</small></span></a>
+          </div>
+        </details>
+        <details class="nav-menu" data-nav-group="joueurs">
+          <summary>Joueurs <span class="nav-chevron" aria-hidden="true">⌄</span></summary>
+          <div class="nav-menu-panel">
+            <span class="nav-menu-title">Classements & profils</span>
+            <a href="?page=stats" data-link="stats"><span class="dlfr126-ico" aria-hidden="true">🏆</span><span class="dlfr126-txt"><b>Statistiques &amp; classement</b><small>Classement des joueurs, pays, NLW, comparaison</small></span></a><a href="?page=players" data-link="players"><span class="dlfr126-ico" aria-hidden="true">👤</span><span class="dlfr126-txt"><b>Profils des joueurs</b><small>Rechercher un joueur et voir sa fiche</small></span></a><a href="?page=honors" data-link="honors"><span class="dlfr126-ico" aria-hidden="true">🏅</span><span class="dlfr126-txt"><b>Palmarès & exploits</b><small>Distinctions, Hall of Fame et achievements</small></span></a><a href="?page=regions" data-link="regions"><span class="dlfr126-ico" aria-hidden="true">🗺️</span><span class="dlfr126-txt"><b>Carte de France</b><small>Les meilleurs joueurs par région</small></span></a><a href="?page=clans" data-link="clans"><span class="dlfr126-ico" aria-hidden="true">🛡️</span><span class="dlfr126-txt"><b>Clans</b><small>Classement et pages des clans</small></span></a>
           </div>
         </details>
         <details class="nav-menu" data-nav-group="communaute">
           <summary>Communauté <span class="nav-chevron" aria-hidden="true">⌄</span></summary>
           <div class="nav-menu-panel">
-            <span class="nav-menu-title">La communauté francophone</span>
-            <a href="?page=clans" data-link="clans">Clans</a>
-            <a href="?page=news" data-link="news">Actualités</a>
-            <a href="?page=activity" data-link="activity">Vie communautaire</a>
-            <a href="?page=packs" data-link="packs">Level Packs</a>
-            <a href="?page=regions" data-link="regions">Carte de France</a>
-            <a href="?page=honors" data-link="honors">Palmarès &amp; exploits</a>
+            <span class="nav-menu-title">La DLFR au quotidien</span>
+            <a href="?page=news" data-link="news"><span class="dlfr126-ico" aria-hidden="true">📰</span><span class="dlfr126-txt"><b>Actualités</b><small>Les annonces de l’équipe</small></span></a><a href="?page=activity" data-link="activity"><span class="dlfr126-ico" aria-hidden="true">💬</span><span class="dlfr126-txt"><b>Vie communautaire</b><small>Abonnements, réactions et profils à découvrir</small></span></a><a href="?page=packs" data-link="packs"><span class="dlfr126-ico" aria-hidden="true">📦</span><span class="dlfr126-txt"><b>Level Packs</b><small>Séries de niveaux à compléter pour des récompenses</small></span></a><a class="dlfr126-ext dlfr126-discord" href="https://discord.gg/FUTTZTwJFr" target="_blank" rel="noopener noreferrer"><span class="dlfr126-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="currentColor"><path d="M19.73 5.06a18.05 18.05 0 0 0-4.45-1.38l-.54 1.1a16.6 16.6 0 0 0-5.48 0l-.54-1.1a18.2 18.2 0 0 0-4.46 1.39C1.44 9.22.66 13.25 1.04 17.23a18.3 18.3 0 0 0 5.47 2.76l1.17-1.88c-.64-.24-1.24-.54-1.82-.9l.44-.34c3.5 1.64 7.9 1.64 11.37 0l.45.35c-.58.35-1.2.65-1.83.9l1.17 1.88a18.38 18.38 0 0 0 5.48-2.77c.45-4.6-.77-8.6-3.21-12.37ZM8.56 14.8c-1.05 0-1.9-.97-1.9-2.14s.83-2.14 1.9-2.14c1.07 0 1.92.97 1.9 2.14 0 1.17-.83 2.14-1.9 2.14Zm6.88 0c-1.06 0-1.9-.97-1.9-2.14s.83-2.14 1.9-2.14c1.07 0 1.91.97 1.9 2.14 0 1.17-.83 2.14-1.9 2.14Z"/></svg></span><span class="dlfr126-txt"><b>Discord ↗</b><small>Le serveur de la communauté</small></span></a><a class="dlfr126-ext dlfr126-youtube" href="https://www.youtube.com/@DemonlistFrancophone" target="_blank" rel="noopener noreferrer"><span class="dlfr126-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="currentColor"><path d="M21.58 7.19a2.75 2.75 0 0 0-1.94-1.94C17.92 4.8 12 4.8 12 4.8s-5.92 0-7.64.45a2.75 2.75 0 0 0-1.94 1.94C1.97 8.91 1.97 12 1.97 12s0 3.09.45 4.81a2.75 2.75 0 0 0 1.94 1.94c1.72.45 7.64.45 7.64.45s5.92 0 7.64-.45a2.75 2.75 0 0 0 1.94-1.94c.45-1.72.45-4.81.45-4.81s0-3.09-.45-4.81ZM9.96 15.08V8.92L15.3 12l-5.34 3.08Z"/></svg></span><span class="dlfr126-txt"><b>YouTube ↗</b><small>La chaîne Demonlist Francophone</small></span></a>
           </div>
         </details>
-        <a class="nav-primary dlfr109-shop-nav" href="?page=shop" data-link="shop">✦ Boutique</a>
-        <details class="nav-menu" data-nav-group="compte">
-          <summary>Mon espace <span class="nav-chevron" aria-hidden="true">⌄</span></summary>
-          <div class="nav-menu-panel">
-            <span class="nav-menu-title">Compte &amp; participation</span>
-            <a href="?page=my-profile" data-link="my-profile">Mon profil · Demandes de fusion</a>
-            <a class="dlfr109-mobile-shop" href="?page=shop" data-link="shop">✦ Boutique</a>
-            <a href="?page=submit-record" data-link="submit-record">Soumettre un record</a>
-            <a href="?page=my-submissions" data-link="my-submissions">Mes soumissions</a>
-            <a href="?page=admin" data-link="admin">Modération</a>
-            <a href="?page=cards-lab" id="dlfr112PrivateNav" data-link="cards-lab" hidden>✦ DLFR Cards · Laboratoire privé</a>
-          </div>
-        </details>
+        <a class="nav-primary dlfr126-shop" href="?page=shop" data-link="shop">✦ Boutique</a>
+        <div class="dlfr126-drawer-account" data-drawer-account></div>
       </div>
-      <div class="nav-tools">
-        <label class="nav-theme">Thème <select id="themeSelect" aria-label="Thème"><option value="light">Clair</option><option value="dark">Sombre</option><option value="midnight">Midnight</option><option value="autumn">Automne</option></select></label>
-        <button class="unrated-switch" id="unratedToggle" type="button" aria-pressed="false">◈ UNRATED OFF</button>
-        </div>
+      <div class="dlfr126-right">
+        <a class="dlfr126-submit" href="?page=submit-record" data-link="submit-record" data-nav-go><span aria-hidden="true">＋</span><b>Soumettre un record</b></a>
+        <details class="nav-menu dlfr126-settings">
+          <summary aria-label="Réglages d’affichage" title="Réglages d’affichage"><span aria-hidden="true">⚙</span><b class="dlfr126-sr">Réglages</b></summary>
+          <div class="nav-menu-panel">
+            <span class="nav-menu-title">Affichage</span>
+            <div class="nav-tools">
+              <label class="nav-theme">Thème <select id="themeSelect" aria-label="Thème"><option value="light">Clair</option><option value="dark">Sombre</option><option value="midnight">Midnight</option><option value="autumn">Automne</option></select></label>
+              <div class="dlfr126-unrated"><button class="unrated-switch" id="unratedToggle" type="button" aria-pressed="false">◈ UNRATED OFF</button><small>Affiche aussi les niveaux UNRATED (hors classement officiel) et leurs points simulés.</small></div>
+            </div>
+          </div>
+        </details>
+        <details class="nav-menu dlfr126-account" id="dlfr126Account">
+          <summary data-account-summary><span class="dlfr126-av" aria-hidden="true">?</span><b>Mon espace</b> <span class="nav-chevron" aria-hidden="true">⌄</span></summary>
+          <div class="nav-menu-panel" data-account-panel>
+            <span class="nav-menu-title">Mon espace</span>
+            <a href="?page=my-profile" data-link="my-profile" data-nav-go><span class="dlfr126-ico" aria-hidden="true">👤</span><span class="dlfr126-txt"><b>Mon profil</b><small>Avatar, bannière, badges, compte</small></span></a>
+            <a href="?page=my-submissions" data-link="my-submissions" data-nav-go><span class="dlfr126-ico" aria-hidden="true">📨</span><span class="dlfr126-txt"><b>Mes soumissions</b><small>Suivre mes demandes envoyées</small></span></a>
+            <a href="?page=admin" data-link="admin" data-nav-go data-staff-only hidden><span class="dlfr126-ico" aria-hidden="true">🛡️</span><span class="dlfr126-txt"><b>Modération</b><small>Espace de l’équipe</small></span></a>
+            <a href="?page=cards-lab" id="dlfr112PrivateNav" data-link="cards-lab" data-nav-go hidden><span class="dlfr126-ico" aria-hidden="true">🧪</span><span class="dlfr126-txt"><b>DLFR Cards · Laboratoire</b><small>Accès privé</small></span></a>
+            <button type="button" class="dlfr126-logout" data-action="selfLogout" data-logged-only hidden>Se déconnecter</button>
+          </div>
+        </details>
       </div>
     </nav>
   </header>
+  <div class="dlfr126-crumbs" id="dlfr126Crumbs" hidden></div>
   <main class="layout" id="app" aria-live="polite"><div class="center-panel loading">Chargement de la Demonlist…<p class="small muted">Les classements arrivent dans un instant.</p></div></main>
   <footer class="site-footer">DemonlistFrancophone · Données officielles et communautaires · <span id="sourceLabel">Chargement des classements…</span> · <span class="site-footer-credit">Graphiste : Léon X</span></footer>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>

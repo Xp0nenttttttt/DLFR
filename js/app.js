@@ -674,7 +674,51 @@ function clanInvitationsHtml(actor,data){
  ${state.clanExtraError?`<p class="notice warning">${esc(state.clanExtraError)}</p>`:''}
  ${list.map(i=>`<div class="clan-v22-queue"><span>Invitation de <b>${esc(i.clan_name||CLAN_PLUS.clan(data,i.clan_id)?.name||'?')}</b></span><div class="clan-actions"><button class="btn small" data-clan-action="accept" data-invite-id="${esc(i.invitation_id)}">Accepter</button><button class="btn subtle small" data-clan-action="decline" data-invite-id="${esc(i.invitation_id)}">Refuser</button></div></div>`).join('')||'<p class="muted small">Aucune invitation en attente.</p>'}</section>`;
 }
-function closeNavMenus(){document.querySelectorAll('.nav-menu[open]').forEach(menu=>menu.open=false);}
+function closeNavMenus(){document.querySelectorAll('.nav-menu[open]').forEach(menu=>menu.open=false);setNavDrawer(false);}
+// V126 — menu mobile (tiroir), état du compte et fil d'Ariane.
+const NAV_MOBILE=()=>window.matchMedia('(max-width:900px)').matches;
+function setNavDrawer(open){
+ const h=document.querySelector('.dlfr126-header');if(!h)return;
+ const was=h.classList.contains('is-open');h.classList.toggle('is-open',!!open);document.documentElement.classList.toggle('dlfr126-noscroll',!!open);
+ document.getElementById('dlfr126Burger')?.setAttribute('aria-expanded',String(!!open));
+ if(open)h.querySelectorAll('.dlfr126-links>.nav-menu').forEach(m=>{m.open=true;});
+ else if(was)h.querySelectorAll('.dlfr126-links>.nav-menu').forEach(m=>{m.open=false;});
+}
+const PAGE_INFO={list:['Niveaux','Demonlist'],demon:['Niveaux','Demonlist'],archive:['Niveaux','Archives'],unbeaten:['Niveaux','Niveaux non vérifiés'],history:['Niveaux','Historique des records'],calculator:['Niveaux','Calculateur de points'],
+ stats:['Joueurs','Statistiques & classement'],players:['Joueurs','Profils des joueurs'],player:['Joueurs','Profils des joueurs','players'],honors:['Joueurs','Palmarès & exploits'],hall:['Joueurs','Palmarès & exploits','honors'],achievements:['Joueurs','Palmarès & exploits','honors'],regions:['Joueurs','Carte de France'],clans:['Joueurs','Clans'],
+ news:['Communauté','Actualités'],activity:['Communauté','Vie communautaire'],packs:['Communauté','Level Packs'],shop:['','Boutique'],
+ 'my-profile':['Mon espace','Mon profil'],'my-submissions':['Mon espace','Mes soumissions'],'submit-record':['Mon espace','Soumettre un record'],admin:['Mon espace','Modération'],'cards-lab':['Mon espace','DLFR Cards · Laboratoire']};
+function navSync(page){
+ const h=document.querySelector('.dlfr126-header');if(!h)return;
+ const logged=!!(LIVE?state.session:true),own=LIVE?state.ownKey:state.demoActor;
+ const player=own?(state.data.players||[]).find(p=>p.player_key===own):null;
+ const name=player?(player.display_name||player.username||own):'';
+ const av=own?avatarOf(own,(state.data.player_profiles||[]).find(p=>p.player_key===own)):'';
+ const sum=h.querySelector('[data-account-summary]');
+ if(sum)sum.innerHTML=logged&&own?`<span class="dlfr126-av" aria-hidden="true">${av?`<img src="${esc(av)}" alt="">`:esc(String(name||'?').slice(0,1).toUpperCase())}</span><b>${esc(name)}</b> <span class="nav-chevron" aria-hidden="true">⌄</span>`
+   :`<span class="dlfr126-av" aria-hidden="true">👤</span><b>${logged?'Mon espace':'Se connecter'}</b> <span class="nav-chevron" aria-hidden="true">⌄</span>`;
+ const prof=h.querySelector('[data-account-panel] a[data-link="my-profile"] b');if(prof)prof.textContent=logged?'Mon profil':'Se connecter / Créer un compte';
+ h.querySelectorAll('[data-staff-only]').forEach(x=>{x.hidden=!(LIVE?state.staff:true);});
+ h.querySelectorAll('[data-logged-only]').forEach(x=>{x.hidden=!(LIVE&&state.session);});
+ // Dans le tiroir mobile, on recopie le menu du compte.
+ const dr=h.querySelector('[data-drawer-account]'),panel=h.querySelector('[data-account-panel]');
+ if(dr&&panel)dr.innerHTML=`<span class="nav-menu-title">${logged&&own?esc(name):'Mon espace'}</span>`+[...panel.querySelectorAll('a:not([hidden]),button:not([hidden])')].map(x=>x.outerHTML.replace(/ id="[^"]*"/,'')).join('');
+ // Fil d'Ariane + titre de l'onglet
+ const info=PAGE_INFO[page],cr=document.getElementById('dlfr126Crumbs');
+ let extra='';const qs=new URLSearchParams(location.search);
+ if(page==='player'){const p=(state.data.players||[]).find(x=>x.player_key===key(qs.get('player')));if(p)extra=p.display_name||p.username;}
+ if(page==='demon'){const d=(state.data.demons||[]).find(x=>String(x.id)===String(qs.get('id')||qs.get('demon')));if(d)extra=d.name;}
+ if(cr){
+  if(!info||page==='list'){cr.hidden=true;cr.innerHTML='';}
+  else{const [sec,label,target]=info;const parts=[`<a href="?page=list" data-nav-go data-link="list">Accueil</a>`];
+   if(sec)parts.push(`<span>${esc(sec)}</span>`);
+   parts.push(extra?`<a href="${url(target||page)}" data-nav-go data-link="${esc(target||page)}">${esc(label)}</a>`:`<b aria-current="page">${esc(label)}</b>`);
+   if(extra)parts.push(`<b aria-current="page">${esc(extra)}</b>`);
+   cr.innerHTML=`<nav aria-label="Fil d’Ariane"><ol>${parts.map(x=>`<li>${x}</li>`).join('')}</ol></nav>`;cr.hidden=false;}
+ }
+ document.title=(extra||info?.[1])&&page!=='list'?`${extra||info[1]} · DemonlistFrancophone`:'DemonlistFrancophone';
+ h.querySelector('.dlfr126-submit')?.classList.toggle('active',page==='submit-record');
+}
 function nav(){
  const page=new URLSearchParams(location.search).get('page')||'list';
  const canonical=['hall','achievements'].includes(page)?'honors':page;
@@ -1260,6 +1304,43 @@ function mergeRequestsModeratorPanel(){
  <button type="submit" class="btn" name="merge_review_action" value="accept" disabled>Accepter la fusion</button>
  </form></div>`).join(''):'<p class="small muted">Aucune demande de fusion en attente.</p>'}</section>`;
 }
+const SELF_TABS=[['edit','✏️ Modifier'],['preview','👁 Aperçu'],['badges','🏅 Badges'],['account','🔗 Compte & connexion'],['merge','⇄ Fusion de fiches']];
+function mySubmissionsSummary(){const rows=mySubmissionRows(),pending=rows.filter(x=>normalizedSubmissionStatus(x.status)==='pending').length;return `${rows.length} envoyée(s) · ${pending} en attente`;}
+// V126 — choix d'image par fichier (avec lien en option).
+const PROFILE_IMG={avatar_url:{kind:'avatar',maxW:512,maxH:512},banner_url:{kind:'banner',maxW:1800,maxH:700}};
+const pendingProfileImages=new Map();
+function profileImagePicker(name,label,current){
+ const src=imageLink(current),isBanner=name==='banner_url';
+ return `<div class="field dlfr126-img ${isBanner?'is-banner self-field-wide':''}" data-img-picker="${name}"><b>${label}</b>
+  <div class="dlfr126-img-row"><div class="dlfr126-img-preview" data-img-preview>${src?`<img src="${esc(src)}" alt="">`:`<span>${isBanner?'Aucune bannière':'Aucun avatar'}</span>`}</div>
+  <div class="dlfr126-img-actions"><label class="btn small dlfr126-img-pick">📁 Choisir une image<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-img-file="${name}"></label><button type="button" class="btn subtle small" data-img-clear="${name}" ${src?'':'hidden'}>Retirer</button>
+  <small class="muted" data-img-status>PNG, JPG, WebP ou GIF · 5 Mo max${isBanner?' · format large conseillé':''}</small></div></div>
+  <details class="dlfr126-img-link"><summary>Ou coller un lien d’image</summary><input type="text" name="${name}" maxlength="500" placeholder="https://…" value="${esc(current||'')}"></details></div>`;
+}
+async function shrinkProfileImage(file,maxW,maxH){
+ if(file.type==='image/gif')return file; // garder l'animation
+ try{const bmp=await createImageBitmap(file);const r=Math.min(1,maxW/bmp.width,maxH/bmp.height);
+  if(r===1&&file.size<1024*1024){bmp.close?.();return file;}
+  const c=document.createElement('canvas');c.width=Math.round(bmp.width*r);c.height=Math.round(bmp.height*r);c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);bmp.close?.();
+  const blob=await new Promise(ok=>c.toBlob(ok,'image/webp',.88));
+  return blob&&blob.size<file.size?new File([blob],'image.webp',{type:'image/webp'}):file;}catch{return file;}
+}
+async function uploadProfileImage(file,kind){
+ const ext={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'}[file.type];
+ if(!ext)throw Error('Utilise une image PNG, JPG, WebP ou GIF.');
+ if(file.size>5*1024*1024)throw Error('Image trop lourde : 5 Mo maximum.');
+ if(!LIVE)return await new Promise((ok,ko)=>{const r=new FileReader();r.onload=()=>ok(String(r.result));r.onerror=()=>ko(Error('Lecture du fichier impossible.'));r.readAsDataURL(file);});
+ const uid=state.session?.user?.id;if(!uid)throw Error('Connecte-toi pour envoyer une image.');
+ const path=`${uid}/${kind}/${crypto.randomUUID()}.${ext}`,bucket=db.storage.from('dlfr-profile-media');
+ const {error}=await bucket.upload(path,file,{contentType:file.type,upsert:false,cacheControl:'31536000'});
+ if(error)throw Error('Envoi de l’image impossible : '+(error.message||'réessaie plus tard.'));
+ return bucket.getPublicUrl(path).data.publicUrl;
+}
+function removeOldProfileImage(url){
+ const uid=state.session?.user?.id;if(!LIVE||!uid||!url)return;
+ const m=String(url).match(/\/storage\/v1\/object\/public\/dlfr-profile-media\/(.+)$/);
+ if(m&&decodeURIComponent(m[1]).startsWith(uid+'/'))db.storage.from('dlfr-profile-media').remove([decodeURIComponent(m[1])]).catch(()=>{});
+}
 function selfProfilePage(){
  if(LIVE&&!state.session){
   const usernameForms=C.enableUsernameLogin===true?`<div class="dlfr29-auth-grid">${usernameLoginForm()}<form data-form="usernameRegister" class="dlfr29-auth-card"><h3>Créer un compte DLFR</h3><label class="field">Pseudo<input name="username" autocomplete="username" minlength="3" maxlength="24" pattern="(?:[A-Za-z0-9_]|-){3,24}" required></label><label class="field">Mot de passe<input name="password" type="password" minlength="12" maxlength="128" autocomplete="new-password" required></label><label class="field">Confirmer le mot de passe<input name="password_confirm" type="password" minlength="12" maxlength="128" autocomplete="new-password" required></label><p class="small muted">Nouveaux comptes uniquement. Si tu avais un compte sur l’ancien site, utilise le formulaire « Connexion DLFR » ci-contre. Aucun e-mail demandé ; conserve ton mot de passe.</p><button class="btn" type="submit">Créer mon compte</button></form></div>`:usernameLoginForm();
@@ -1275,23 +1356,27 @@ function selfProfilePage(){
  const value=(field)=>esc(profile[field]??'');
  const field=(label,name,max=255,placeholder='')=>`<label class="field">${label}<input type="text" name="${name}" maxlength="${max}" placeholder="${esc(placeholder)}" value="${value(name)}"></label>`;
  const currentProfile=getPlayer(actor);
- return `${templateNotice()}<section class="paper self-page"><div class="self-heading"><div><h1>Mon profil</h1><p class="muted">Modifie ta présentation publique. Les points, records, titres officiels et sanctions restent gérés par les modérateurs.</p></div>${!LIVE?'<span class="tag">SIMULATION LOCALE</span>':'<button type="button" class="btn subtle small" data-action="selfLogout">Se déconnecter</button>'}</div>${select}
- ${linkedAccountsPanel()}
- ${discordPanel(actor,profile)}
- <section class="dlfr72-self-preview" aria-labelledby="dlfr72PreviewTitle"><div class="dlfr72-self-preview-head"><div><span class="kicker">Ma fiche publique</span><h2 id="dlfr72PreviewTitle">Aperçu de mon profil</h2><p class="muted small">Voici le profil tel qu’il apparaît aux autres joueurs, avec tes informations actuellement enregistrées.</p></div><a class="btn subtle small" data-nav href="${url('player',{player:actor})}">Ouvrir ma fiche ↗</a></div><div id="selfProfilePublicPreview">${statProfile(currentProfile)}</div></section>
- ${playerMergeRequestPanel()}
- ${mySubmissionsTeaser()}
- <details class="badge-catalog-section"><summary>🏅 Badges à découvrir — collection & raretés</summary><p class="small muted">Les badges non obtenus restent mystérieux : seules leur catégorie et leur rareté sont visibles. Les conditions ne sont jamais révélées.</p>${BADGES.catalog(state.data,actor,esc,date)}</details>
+ pendingProfileImages.clear();
+ const tab=SELF_TABS.some(t=>t[0]===state.selfTab)?state.selfTab:'edit';
+ const panel=(id,html)=>`<div class="dlfr126-self-panel" data-self-panel="${id}" ${tab===id?'':'hidden'}>${html}</div>`;
+ return `${templateNotice()}<section class="paper self-page dlfr126-self"><div class="self-heading"><div><h1>Mon profil</h1><p class="muted">Ta présentation publique : avatar, bannière, bio, badges mis en avant… Les points et records sont gérés par la modération.</p></div><div class="dlfr126-self-head-actions">${!LIVE?'<span class="tag">SIMULATION LOCALE</span>':''}<a class="btn subtle small" data-nav href="${url('player',{player:actor})}">Voir ma fiche publique ↗</a>${LIVE?'<button type="button" class="btn subtle small" data-action="selfLogout">Se déconnecter</button>':''}</div></div>${select}
+ <div class="dlfr126-self-shortcuts"><a class="dlfr126-shortcut" data-nav href="${url('submit-record')}"><span aria-hidden="true">＋</span><b>Soumettre un record</b><small>Envoie une nouvelle complétion</small></a>${mySubmissionsTeaser()?`<a class="dlfr126-shortcut" data-nav href="${url('my-submissions')}"><span aria-hidden="true">📨</span><b>Mes soumissions</b><small>${esc(mySubmissionsSummary())}</small></a>`:''}<a class="dlfr126-shortcut" data-nav href="${url('shop')}"><span aria-hidden="true">✦</span><b>Boutique</b><small>Thèmes, cadres et bannières</small></a></div>
+ <div class="dlfr126-tabs" role="tablist" aria-label="Sections de mon profil">${SELF_TABS.filter(t=>t[0]!=='merge'||(LIVE&&state.session)).map(([id,label])=>`<button type="button" role="tab" data-self-tab="${id}" aria-selected="${tab===id}" class="${tab===id?'active':''}">${label}</button>`).join('')}</div>
+ ${panel('preview',`<section class="dlfr72-self-preview" aria-labelledby="dlfr72PreviewTitle"><div class="dlfr72-self-preview-head"><div><h2 id="dlfr72PreviewTitle">Aperçu de mon profil</h2><p class="muted small">Ton profil tel que les autres joueurs le voient.</p></div></div><div id="selfProfilePublicPreview">${statProfile(currentProfile)}</div></section>`)}
+ ${panel('badges',`<section class="badge-catalog-section dlfr126-badges"><h2>🏅 Badges à découvrir</h2><p class="small muted">Les badges non obtenus restent mystérieux : seules leur catégorie et leur rareté sont visibles.</p>${BADGES.catalog(state.data,actor,esc,date)}</section>`)}
+ ${panel('account',`${linkedAccountsPanel()}${discordPanel(actor,profile)}`)}
+ ${panel('merge',playerMergeRequestPanel())}
+ <div class="dlfr126-self-panel" data-self-panel="edit" ${tab==='edit'?'':'hidden'}>
 
- <div class="dlfr72-settings-heading"><span class="kicker">Personnalisation</span><h2>Paramètres de mon profil</h2><p class="muted small">Modifie tes informations puis enregistre pour les voir apparaître dans l’aperçu.</p></div>
+ <div class="dlfr72-settings-heading"><h2>Modifier mon profil</h2><p class="muted small">Change ce que tu veux puis clique sur « Enregistrer » en bas. L’onglet « Aperçu » montre le résultat.</p></div>
  ${suspended?'<div class="notice warning">Ce profil est suspendu dans la simulation. Les modifications sont temporairement désactivées.</div>':''}
  ${frameOptions(actor)}
- <form class="self-profile-form" data-form="selfProfile"><div class="self-form-grid"><label class="field self-field-wide">Biographie<textarea name="bio" maxlength="1200" rows="4">${value('bio')}</textarea></label>${!LIVE?`<label class="field">Source de l’avatar<select name="avatar_source"><option value="custom" ${(profile.avatar_source||'custom')==='custom'?'selected':''}>Avatar personnalisé</option><option value="discord" ${profile.avatar_source==='discord'?'selected':''} ${!(discordState().connected&&discordState().linked_player_key===actor)?'disabled':''}>Avatar Discord (liaison approuvée en démo)</option></select></label>`:''}${field('Avatar (URL ou chemin assets/)','avatar_url',500,'https://…')}${field('Bannière (URL ou chemin assets/)','banner_url',500,'https://…')}<label class="field">Année de début<input name="join_year" type="number" min="2013" max="2100" value="${value('join_year')}"></label>${field('Niveau favori','favorite_level',120)}${field('Objectif actuel','current_goal',180)}${field('Chaîne YouTube','youtube_url',500)}${field('Chaîne Twitch','twitch_url',500)}${field('Autre lien','social_url',500)}${field('Accomplissement à la une 1','highlight_1',150)}${field('Accomplissement à la une 2','highlight_2',150)}${field('Accomplissement à la une 3','highlight_3',150)}
+ <form class="self-profile-form" data-form="selfProfile"><div class="self-form-grid"><label class="field self-field-wide">Biographie<textarea name="bio" maxlength="1200" rows="4">${value('bio')}</textarea></label>${!LIVE?`<label class="field">Source de l’avatar<select name="avatar_source"><option value="custom" ${(profile.avatar_source||'custom')==='custom'?'selected':''}>Avatar personnalisé</option><option value="discord" ${profile.avatar_source==='discord'?'selected':''} ${!(discordState().connected&&discordState().linked_player_key===actor)?'disabled':''}>Avatar Discord (liaison approuvée en démo)</option></select></label>`:''}${profileImagePicker('avatar_url','Avatar',profile.avatar_url)}${profileImagePicker('banner_url','Bannière',profile.banner_url)}<label class="field">Année de début<input name="join_year" type="number" min="2013" max="2100" value="${value('join_year')}"></label>${field('Niveau favori','favorite_level',120)}${field('Objectif actuel','current_goal',180)}${field('Chaîne YouTube','youtube_url',500)}${field('Chaîne Twitch','twitch_url',500)}${field('Autre lien','social_url',500)}${field('Accomplissement à la une 1','highlight_1',150)}${field('Accomplissement à la une 2','highlight_2',150)}${field('Accomplissement à la une 3','highlight_3',150)}
  <label class="field">Pays <span class="country-select-row"><span id="selfCountryFlag">${flag(player.country_code)}</span><select name="country_code" id="selfCountry" required><option value="" ${!player.country_code?'selected':''} disabled>Choisir un pays</option>${GEO.countries.map(([code])=>`<option value="${code}" ${code===player.country_code?'selected':''}>${esc(GEO.countryName(code))} (${code})</option>`).join('')}</select></span></label><label class="field" id="selfRegionRow" ${!isFR?'hidden':''}>Région française <span class="country-select-row"><span id="selfRegionFlag">${isFR?GEO.regionImage(profile.region_code):''}</span><select name="region_code" id="selfRegion"><option value="">Non renseignée</option>${GEO.regions.map(r=>`<option value="${esc(r.code)}" ${r.code===profile.region_code?'selected':''}>${esc(r.name)}</option>`).join('')}</select></span></label></div><p class="small muted">Ton pays peut être modifié après la création du compte. Si tu quittes la France, ta région française sera effacée ; les classements géographiques seront actualisés.</p>
  ${communitySelfFields(actor)}
  <p><a class="link" data-nav href="${url('activity')}">Consulter les activités de mes abonnements ↗</a></p>
  <div class="self-actions"><button class="btn" type="submit" ${suspended?'disabled':''}>Enregistrer mon profil</button><span class="muted small">${LIVE?'Tes modifications seront enregistrées sur ton profil.':'Aperçu local : tes modifications ne seront pas publiées.'}</span></div></form>
- </section>`;
+ </div></section>`;
 }
 async function saveSelfProfile(form){
  const actor=LIVE?state.ownKey:state.demoActor;
@@ -1302,6 +1387,14 @@ async function saveSelfProfile(form){
    throw Error('Aucune fiche joueur associee a ce compte. Recharge puis verifie la liaison dans Mon profil.');
  if(player.demo_suspended_until&&new Date(player.demo_suspended_until)>new Date())throw Error('Profil suspendu en démonstration.');
  const f=Object.fromEntries(new FormData(form).entries());
+ const oldProfile=(state.data.player_profiles||[]).find(x=>x.player_key===actor)||{},replaced=[];
+ for(const [name,file] of pendingProfileImages){if(!form.querySelector(`[data-img-file="${name}"]`))continue;
+   toast(name==='avatar_url'?'Envoi de l’avatar…':'Envoi de la bannière…');
+   f[name]=await uploadProfileImage(file,PROFILE_IMG[name].kind);
+   const input=form.querySelector(`input[name="${name}"]`);if(input)input.value=f[name];
+   if(oldProfile[name]&&oldProfile[name]!==f[name])replaced.push(oldProfile[name]);}
+ pendingProfileImages.clear();
+ for(const name of Object.keys(PROFILE_IMG))if(!plain(f[name])&&oldProfile[name])replaced.push(oldProfile[name]);
  const safeURL=(value,label)=>{const s=plain(value);if(!s)return '';if(!imageLink(s))throw Error(`${label} : URL ou chemin assets/ invalide.`);return s;};
  const webURL=(value,label)=>{const s=plain(value);if(!s)return '';if(!http(s))throw Error(`${label} : lien http(s) requis.`);return s;};
  const data={player_key:actor,bio:plain(f.bio).slice(0,1200),avatar_url:safeURL(f.avatar_url,'Avatar'),banner_url:safeURL(f.banner_url,'Bannière'),join_year:f.join_year?Number(f.join_year):null,favorite_level:plain(f.favorite_level).slice(0,120),current_goal:plain(f.current_goal).slice(0,180),youtube_url:webURL(f.youtube_url,'YouTube'),twitch_url:webURL(f.twitch_url,'Twitch'),social_url:webURL(f.social_url,'Lien personnel'),highlight_1:plain(f.highlight_1).slice(0,150),highlight_2:plain(f.highlight_2).slice(0,150),highlight_3:plain(f.highlight_3).slice(0,150)};
@@ -1347,6 +1440,7 @@ async function saveSelfProfile(form){
      state.data.player_profiles=await readAll('player_profiles');
    }
  }
+ replaced.forEach(removeOldProfileImage);
  toast('Profil enregistré !');render();
 }
 function comparison(p,other){if(!other)return '<p class="muted small">Choisis un joueur pour comparer leurs statistiques.</p>';
@@ -2604,7 +2698,7 @@ function render(){
  resetRenderCalculations();if(!state.data)return;v96EnsureHalloweenTheme();try{
  if(!BADGES?.init || !UNRATED_STATS?.calculate || !V2?.decorate || !V2?.project || !UNVERIFIED?.classify || !CLANS?.apply || !CLAN_PLUS?.stats || !SUBMISSIONS?.approve)throw Error('Fichier JavaScript V2 manquant ou version incohérente : réinstalle les scripts du pack V2.0.3.');
  if(!LIVE){const first=state.data.badge_baseline_scanned!==true;const changed=BADGES.captureAutomatic(state.data,ranked(),new Date().toISOString().slice(0,10),first);if(first){state.data.badge_baseline_scanned=true;}if(changed||first)saveDemo();}
- const page=nav(),params=new URLSearchParams(location.search);if(page==='unbeaten'&&state.communityExcel.status==='idle')loadCommunityExcel().catch(showPageError);if(page==='stats'&&params.has('player')){history.replaceState({},'',url('player',{player:params.get('player')}));return render();}if(page==='player')state.selectedPlayer=key(params.get('player'));if(page==='list'){const tab=new URLSearchParams(location.search).get('tab');state.list=(tab==='nlw'||tab==='archive')?'nlw':'main';}
+ const page=nav(),params=new URLSearchParams(location.search);try{navSync(page);}catch(e){console.warn('[DLFR nav]',e);}if(page==='unbeaten'&&state.communityExcel.status==='idle')loadCommunityExcel().catch(showPageError);if(page==='stats'&&params.has('player')){history.replaceState({},'',url('player',{player:params.get('player')}));return render();}if(page==='player')state.selectedPlayer=key(params.get('player'));if(page==='list'){const tab=new URLSearchParams(location.search).get('tab');state.list=(tab==='nlw'||tab==='archive')?'nlw':'main';}
  const needed=requiredGroups(page);
  // Éviter des sections vides pendant le chargement à la demande, tout en
  // permettant un affichage dégradé lorsque le serveur renvoie une erreur.
@@ -2622,8 +2716,7 @@ function render(){
  const cardsLabNav=document.getElementById('dlfr112PrivateNav');
  if(cardsLabNav) cardsLabNav.hidden=!(state.cardsLabAccess&&state.session);
  // Donner un accès clair à l'inscription et à la connexion, sans modifier la navigation existante.
- const accountNavLink=document.querySelector('a[data-link="my-profile"]');
- if(accountNavLink) accountNavLink.textContent=state.session?'Mon profil':'Se connecter / Créer un compte';
+ try{navSync(page);}catch{}
  if(page==='shop'){v80WeeklyRender();v81RewardsRender();}if(page==='admin'&&state.adminTab==='weekly'&&state.staffRole==='owner'&&!ownerPreviewActive())v86AdminLoad();
  if(page==='player'||(page==='my-profile'&&document.getElementById('v81-profile-rewards')))v81ProfileRewards();if(page==='stats'||page==='players')v90LoadFx();
  if(page==='admin'&&state.staffRole==='owner'){
@@ -3137,6 +3230,30 @@ function v96EnsureHalloweenTheme(){
 function refreshUnrated(){document.documentElement.classList.toggle('unrated-mode',state.unrated);const button=$('unratedToggle');button.textContent=state.unrated?'◈ UNRATED ON':'◈ UNRATED OFF';button.setAttribute('aria-pressed',String(state.unrated));}
 function bootEvents(){
  setupDiscordServerLink();
+ // V126 — onglets de « Mon profil » et choix d'images.
+ document.addEventListener('click',ev=>{
+   const t=ev.target.closest('[data-self-tab]');
+   if(t){state.selfTab=t.dataset.selfTab;document.querySelectorAll('[data-self-tab]').forEach(b=>{const on=b===t;b.classList.toggle('active',on);b.setAttribute('aria-selected',on);});
+     document.querySelectorAll('[data-self-panel]').forEach(x=>{x.hidden=x.dataset.selfPanel!==state.selfTab;});return;}
+   const c=ev.target.closest('[data-img-clear]');
+   if(c){const name=c.dataset.imgClear,box=c.closest('[data-img-picker]');pendingProfileImages.delete(name);
+     const input=box.querySelector(`input[name="${name}"]`);if(input)input.value='';box.querySelector('[data-img-file]').value='';
+     box.querySelector('[data-img-preview]').innerHTML=`<span>${name==='banner_url'?'Aucune bannière':'Aucun avatar'}</span>`;c.hidden=true;
+     box.querySelector('[data-img-status]').textContent='Image retirée : enregistre pour confirmer.';}
+ });
+ document.addEventListener('change',async ev=>{
+   const inp=ev.target.closest?.('[data-img-file]');if(!inp)return;
+   const name=inp.dataset.imgFile,box=inp.closest('[data-img-picker]'),status=box.querySelector('[data-img-status]'),file=inp.files?.[0];
+   if(!file)return;
+   if(!/^image\/(png|jpeg|webp|gif)$/.test(file.type)){status.textContent='Format non accepté : PNG, JPG, WebP ou GIF.';inp.value='';return;}
+   status.textContent='Préparation…';
+   const ready=await shrinkProfileImage(file,PROFILE_IMG[name].maxW,PROFILE_IMG[name].maxH);
+   if(ready.size>5*1024*1024){status.textContent='Image trop lourde (5 Mo max), même après réduction.';inp.value='';return;}
+   pendingProfileImages.set(name,ready);
+   box.querySelector('[data-img-preview]').innerHTML=`<img src="${URL.createObjectURL(ready)}" alt="">`;
+   box.querySelector('[data-img-clear]').hidden=false;
+   status.textContent=`✓ ${file.name.slice(0,40)} — sera envoyée quand tu enregistreras.`;
+ });
  // Un seul menu déroulant ouvert ; Echap ferme le menu et rend le focus au bouton.
  document.addEventListener('click',ev=>{
    const current=ev.target.closest('.nav-menu');
@@ -3507,7 +3624,16 @@ function bootEvents(){
   if(fallback)img.replaceWith(document.createTextNode(fallback));else img.remove();
  },true);
  document.addEventListener('submit',ev=>{if(ev.target.matches('[data-form="clanCreate"], [data-form="clanInvite"], [data-form="clanRequest"], [data-form="clanEdit"]')){ev.preventDefault();handleClanForm(ev.target);return;}if(ev.target.matches('[data-form]')){ev.preventDefault();handleForm(ev.target,ev.submitter||null);}});
- document.querySelectorAll('.nav-links a,.brand').forEach(a=>a.addEventListener('click',ev=>{ev.preventDefault();go(a.dataset.link||'list');}));
+ document.querySelectorAll('.nav-links a[data-link],.brand').forEach(a=>a.addEventListener('click',ev=>{ev.preventDefault();go(a.dataset.link||'list');}));
+ document.addEventListener('click',ev=>{
+   const g=ev.target.closest('a[data-nav-go]');if(g&&!ev.ctrlKey&&!ev.metaKey&&!ev.shiftKey){ev.preventDefault();go(g.dataset.link||'list');return;}
+   if(ev.target.closest('#dlfr126Burger')){const h=document.querySelector('.dlfr126-header');setNavDrawer(!h.classList.contains('is-open'));return;}
+   if(ev.target.closest('[data-drawer-close]')||ev.target.classList?.contains('dlfr126-header')&&document.querySelector('.dlfr126-header.is-open')){setNavDrawer(false);return;}
+   // Dans le tiroir, les groupes restent tous ouverts.
+   if(document.querySelector('.dlfr126-header.is-open'))setTimeout(()=>document.querySelectorAll('.dlfr126-links>.nav-menu').forEach(m=>{m.open=true;}),0);
+ });
+ document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&document.querySelector('.dlfr126-header.is-open'))setNavDrawer(false);});
+ window.matchMedia('(max-width:900px)').addEventListener?.('change',e=>{if(!e.matches)setNavDrawer(false);});
  $('themeSelect').addEventListener('change',e=>setTheme(e.target.value));
  $('unratedToggle').addEventListener('click',()=>{state.unrated=!state.unrated;state.calcDemons=[];refreshUnrated();render();});
  window.addEventListener('popstate',()=>{closeNavMenus();state.keyword='';render();});
