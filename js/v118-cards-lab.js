@@ -189,21 +189,22 @@ const TIER_GEM=['●','◆','✦','★','✺'];
 const TYPE_LABEL={level:'NIVEAU',player:'JOUEUR',dlfr:'DLFR'};
 function pipsHTML(t){return `<i class="c131-pips" aria-hidden="true">${'◆'.repeat(t+1)}<em>${'◆'.repeat(Math.max(0,4-t))}</em></i>`;}
 function figure(card,data,compact=false,opts={}){
- const o=owned.get(card.id),n=o?.count||0;
+ // opts.official : carte de la collection officielle → on ignore l'inventaire du mode Aventure.
+ const o=opts.official?null:owned.get(card.id),n=o?.count||0;
  const finish=opts.finish??o?.finish??0, stars=opts.stars??o?.stars??0;
  const picture=imageFor(card,data);
- const r=rarity(card),t=Math.max(0,rarities.indexOf(r)),slug=normalize(r).replace(/[^a-z]/g,'');
+ const r=opts.official?card.rarity:rarity(card),t=Math.max(0,rarities.indexOf(r)),slug=normalize(r).replace(/[^a-z]/g,'');
  const sym=card.type==='level'?'◆':card.type==='player'?'★':'✦';
- const has=!!(n||opts.finish!==undefined||opts.owned);
+ const has=opts.official?!!opts.owned:!!(n||opts.finish!==undefined||opts.owned);
  return `<div class="dlfr112-card dlfr131-card dlfr112-${slug} t${t} ${finish?'dlfr112-holo dlfr117-f-'+FIN[finish]:''} ${has?'dlfr112-has':'dlfr112-missing'} ${compact?'dlfr112-small':''}" data-tilt>
    <div class="c131-frame">
     <div class="c131-head"><span class="c131-type">${sym} ${TYPE_LABEL[card.type]||'CARTE'}</span><b class="c131-id">#${idString(card.id)}</b></div>
-    <div class="dlfr112-art c131-art">${picture?`<img loading="lazy" src="${esc(picture)}" alt="Visuel ${esc(card.name)}" onerror="this.remove()">`:`<span class="c131-sym" aria-hidden="true">${sym}</span>`}<span class="c131-gem" aria-hidden="true">${TIER_GEM[t]}</span>${has?'':'<span class="c131-lock" aria-hidden="true">?</span>'}</div>
+    <div class="dlfr112-art c131-art">${picture?`<img loading="lazy" src="${esc(picture)}" alt="Visuel ${esc(card.name)}" onerror="this.remove()">`:`<span class="c131-sym" aria-hidden="true">${sym}</span>`}<span class="c131-gem" title="Rareté ${t+1}/5">${t+1}</span>${has?'':'<span class="c131-lock" aria-hidden="true">?</span>'}</div>
     <div class="c131-plate"><strong title="${esc(card.name)}">${esc(card.name)}</strong><span class="c131-rar">${pipsHTML(t)}<span>${esc(r)}${finish?' · ✧ '+FIN_NAME[finish]:''}</span></span></div>
    </div>
    <i class="c131-foil" aria-hidden="true"></i><i class="c131-glare" aria-hidden="true"></i>
    ${stars?`<span class="dlfr117-stars" aria-label="${stars} étoiles">${'★'.repeat(stars)}</span>`:''}
-   ${n&&opts.finish===undefined&&!opts.hideCount?`<span class="dlfr112-count">×${n}</span>`:''}
+   ${n&&opts.finish===undefined&&!opts.hideCount&&!opts.official?`<span class="dlfr112-count">×${n}</span>`:''}
   </div>`;
 }
 // Échelle des raretés (de la plus courante à la plus rare).

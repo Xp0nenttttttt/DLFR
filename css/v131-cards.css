@@ -95,3 +95,6 @@ html.dark .c131-step.t0,.dlfr117-panel .c131-step.t0,.dlfr117-game .c131-step.t0
 
 .dlfr131-card .dlfr112-count{top:30px!important;left:12px!important;right:auto!important;bottom:auto!important;padding:2px 7px;border-radius:999px;background:rgba(0,0,0,.72);font-size:10.5px;font-weight:800}
 .c131-ladder{color:var(--ink,#333)}
+.c131-gem{font-size:12px;font-family:inherit;font-weight:900;line-height:1}
+.dlfr131-card.dlfr112-small .c131-gem{font-size:10px}
+.dlfr131-card .c131-gem{color:#11131f!important;text-shadow:0 1px 0 rgba(255,255,255,.6)!important}
