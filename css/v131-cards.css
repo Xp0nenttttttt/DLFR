@@ -212,3 +212,15 @@ html.dark .c131-step.t0,.dlfr117-panel .c131-step.t0,.dlfr117-game .c131-step.t0
 .dlfr148-dup{display:block;font-weight:600;font-size:.78rem;line-height:1.35}.dlfr148-dup:empty{display:none}
 .dlfr148-dup.is-same{color:#fff;background:#dc2626;padding:6px 8px;border-radius:8px}
 .dlfr148-dup.is-near{color:#f59e0b}
+/* V149 — rareté Ultra (au-dessus de Mythique) : noir absolu, cadre or/blanc, étoiles */
+.t5{--c:var(--t5,#fff1b8)}
+.dlfr131-card.dlfr112-ultra{--tone:#fff1b8;--frame:conic-gradient(from var(--bd-angle),#fff,#ffd36b,#1a1200,#fff6d6,#ffb000,#000,#fff);--glow:rgba(255,230,150,.75);--glow-size:30px;--inner:#000;animation:bd-angle 2.2s linear infinite,c131-glow 1.6s ease-in-out infinite}
+.dlfr131-card.dlfr112-ultra .c131-foil{background:radial-gradient(1.6px 1.6px at 12% 22%,#fff,transparent),radial-gradient(1.2px 1.2px at 68% 14%,#fff6d6,transparent),radial-gradient(1.8px 1.8px at 84% 62%,#fff,transparent),radial-gradient(1.2px 1.2px at 30% 78%,#ffe7a3,transparent),radial-gradient(1.4px 1.4px at 50% 46%,#fff,transparent),linear-gradient(125deg,rgba(255,255,255,.0) 30%,rgba(255,230,150,.35) 50%,rgba(255,255,255,0) 70%) 0 0/250% 250%;mix-blend-mode:screen;opacity:1;animation:c149-sweep 3.5s linear infinite}
+.dlfr131-card.dlfr112-ultra .c131-plate strong{background:linear-gradient(90deg,#fff,#ffd36b,#fff);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;animation:c149-sweep 2.5s linear infinite}
+.dlfr131-card.dlfr112-ultra .c131-gem{background:#000;color:#ffd36b;border-color:#ffd36b;box-shadow:0 0 14px rgba(255,211,107,.8)}
+.c131-step.t5{--tone:#fff1b8;background:linear-gradient(90deg,rgba(0,0,0,.6),rgba(255,211,107,.18));border-color:rgba(255,230,150,.7)}
+.o-card.t5.is-flipped .dlfr112-card{box-shadow:0 0 90px rgba(255,230,150,.85),0 0 160px rgba(255,255,255,.35)}
+.o-ann.t5 .o-ann-rarity{background:linear-gradient(90deg,#fff,#ffd36b,#fff);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:c149-sweep 2s linear infinite}
+.dlfr117-odds .t5 i,.dlfr117-odds span.t5 i{background:#ffd36b;box-shadow:0 0 6px #ffd36b}
+@keyframes c149-sweep{to{background-position:200% 0}}
+@media (prefers-reduced-motion:reduce){.dlfr131-card.dlfr112-ultra,.dlfr131-card.dlfr112-ultra .c131-foil,.dlfr131-card.dlfr112-ultra .c131-plate strong,.o-ann.t5 .o-ann-rarity{animation:none}}
