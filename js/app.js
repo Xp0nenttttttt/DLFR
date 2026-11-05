@@ -467,10 +467,17 @@ const READ_SORT_KEYS=Object.freeze({
  dlfr_level_pack_claims:['pack_id','player_key'],
  dlfr_reactions:['auth_user_id','target_key','emoji']
 });
+// V164 : la preuve AREDL (bulk_fr_evidence, ~1,2 Mo) n'est plus téléchargée à chaque visite :
+// elle est lue à la demande sur la page du niveau.
+const DEMON_COLS='id,position,name,difficulty,requirement,creator,creator_more,publisher,verifier,publisher_user_id,verifier_user_id,video_url,thumbnail_url,description,level_id,level_length,song,object_count,legacy,created_at,unrated,unrated_position,legacy_since,aredl_id,aredl_rank,first_frbe_player,first_frbe_video_url,first_frbe_achieved_at,verifier_video_url,data_source,completion_mode,is_public,first_fr_player,first_fr_video_url,first_fr_thumbnail_url,first_fr_achieved_at';
+function ensureDemonEvidence(d){
+ if(!d||d.bulk_fr_evidence!==undefined||d.__evLoading||!db||!LIVE)return;d.__evLoading=true;
+ db.from('demons').select('bulk_fr_evidence').eq('id',d.id).maybeSingle().then(({data})=>{d.bulk_fr_evidence=data?.bulk_fr_evidence??null;if(data?.bulk_fr_evidence)render();}).catch(()=>{d.bulk_fr_evidence=null;});
+}
 async function readAll(name){return withReadSlot(async()=>{
  const start=perfNow();let out=[],from=0;
  while(true){
-  const query=db.from(name).select('*');
+  const query=db.from(name).select(name==='demons'?DEMON_COLS:'*');
   // Ordre stable entre les pages (évite de perdre ou dupliquer des niveaux).
   for(const column of READ_SORT_KEYS[name]||[])query.order(column,{ascending:true});
   // Conserver la RLS serveur et réduire les lignes inutiles pour les visiteurs.
@@ -494,11 +501,25 @@ async function refreshPendingPlayerNotes(){
  if(error){console.warn('[DLFR] Notes des soumissions non disponibles :',error.message);return;}
  for(const entry of data||[])if(entry?.id!=null)state.pendingPlayerNotes[String(entry.id)]=entry;
 }
+// V165 : copie locale des tables publiques. Le site demande d'abord une petite empreinte par table
+// (dlfr_data_stamps) et ne retélécharge que les tables qui ont changé depuis la dernière visite.
+const CACHEABLE_TABLES=new Set(['players','demons','completions','player_profiles','badge_awards','news_items','site_settings','profile_titles','player_profile_titles','hall_of_fame']);
+let dataStamps=null;
+async function loadDataStamps(){try{const {data,error}=await db.rpc('dlfr_data_stamps');dataStamps=error?null:(data||null);}catch{dataStamps=null;}}
+async function readCached(name){
+ if(!LIVE||!dataStamps||!CACHEABLE_TABLES.has(name)||dataStamps[name]==null)return readAll(name);
+ const stamp=dataStamps[name],k=(state.staff?'dlfr-cache-v1s:':'dlfr-cache-v1:')+name; // copie séparée pour l'équipe (niveaux masqués inclus)
+ try{const raw=localStorage.getItem(k);if(raw){const c=JSON.parse(raw);if(c&&c.stamp===stamp&&Array.isArray(c.rows)&&Date.now()-c.at<864e5)return c.rows;}}catch{}
+ const rows=await readAll(name);
+ try{localStorage.setItem(k,JSON.stringify({stamp,at:Date.now(),rows}));}catch{try{localStorage.removeItem(k);}catch{}}
+ return rows;
+}
 async function refreshLiveData(){
  state.modLeaderboardReady=false;
  ++dataGeneration; // Invalider les chargements optionnels antérieurs à une modification.
  resetRenderCalculations();
- const base=await withTimeout(Promise.all(tables.map(readAll)),45000,'Supabase ne répond pas après 45 secondes.');
+ await loadDataStamps();
+ const base=await withTimeout(Promise.all(tables.map(readCached)),45000,'Supabase ne répond pas après 45 secondes.');
  state.data=Object.fromEntries(tables.map((t,i)=>[t,base[i]]));
  // Les fiches AREDL catalogue brut sont conservées en base, mais exclues de la liste publique.
  state.unpublishedAredlDemons=(state.data.demons||[]).filter(x=>x.is_public===false);
@@ -520,7 +541,7 @@ async function refreshLiveData(){
   for(const table of group)state.data[table]=[];
  }
  state.communityReady=false;state.packsReady=false;
- await Promise.all(publicTables.map(async t=>{state.data[t]=await readAll(t);}));
+ await Promise.all(publicTables.map(async t=>{state.data[t]=await readCached(t);}));
  await refreshMySubmissionReviewAuthors();
  state.verificationClaims=[];state.verificationClaimsError='';
  if(state.session){const claims=await db.rpc('dlfr_verification_claim_list');
@@ -1906,7 +1927,7 @@ function demonPage(){
  return templateNotice()+window.DLFR_LEVEL_CINEMA.render(displayedDemon,{
   records:recs,players:ranked().filter(statsPlayerVisible),history:state.data.demon_position_history||[],
   escape:esc,link:url,format:fmt,formatDate:date,status,points,
-  listTab:isNlw?'nlw':d.legacy?'legacy':'main',proofHtml:window.DLFR_BULK.proof(d)+productionProofMedia(d)+window.DLFR_CLAIMS.claimPanel(d,state)
+  listTab:isNlw?'nlw':d.legacy?'legacy':'main',proofHtml:(ensureDemonEvidence(d),window.DLFR_BULK.proof(d))+productionProofMedia(d)+window.DLFR_CLAIMS.claimPanel(d,state)
  });
 }
 function newsPage(){const all=[...state.data.news_items].filter(x=>x.is_published||hasFullStaffPowers()).sort((a,b)=>(+(!!b.is_pinned)-+(!!a.is_pinned))||new Date(b.created_at)-new Date(a.created_at));

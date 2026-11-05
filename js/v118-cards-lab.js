@@ -1313,8 +1313,9 @@ function setServerInventory(inv,replace){
 }
 async function syncCards(){
  if(!serverCounts||!DB)return;
+ if(catalog.status!=='ready')return; // V164 : jamais de synchronisation sans catalogue complet
  const delta={};const ids=new Set([...owned.keys(),...serverCounts.keys()]);
- for(const id of ids){const d=(owned.get(id)?.count||0)-(serverCounts.get(id)||0);if(d)delta[id]=d;}
+ for(const id of ids){if(!get(id))continue; /* carte inconnue du navigateur (collection en préparation…) : on n'y touche pas */const d=(owned.get(id)?.count||0)-(serverCounts.get(id)||0);if(d)delta[id]=d;}
  if(!Object.keys(delta).length)return;
  const {data,error}=await DB.rpc('dlfr_adventure_sync',{p_delta:delta,p_import:false});if(error)throw error;
  const sent=new Map(Object.entries(delta).map(([k,v])=>[Number(k),v]));
