@@ -1,0 +1,23 @@
+DLFR V163 — Échanges de cartes entre joueurs
+============================================
+(Inclut V162 et avant — lis aussi INSTALLATION_V162.txt et V160. Base de données : DÉJÀ
+ APPLIQUÉE — supabase/163_ECHANGES.sql = archive.)
+
+🔄 Nouvel onglet « Échanges » de la page Cartes
+ - Offres : offres reçues (accepter / refuser), offres publiques de la communauté, tes offres
+   en cours (annuler).
+ - Proposer : à un joueur précis (pseudo) ou à tout le monde (offre publique), jusqu'à
+   5 cartes de chaque côté, avec un message.
+ - Souhaits : ta liste de cartes recherchées (30 max) + « Ils cherchent tes doublons » avec un
+   bouton « Lui proposer » qui prépare l'offre.
+ - Historique de tes 20 derniers échanges.
+
+Règles (vérifiées par Supabase au moment de l'acceptation)
+ - Seulement des doublons : chacun garde toujours au moins 1 exemplaire.
+ - Pas de cartes secrètes, festives ou de collections en préparation.
+ - 10 offres ouvertes maximum par joueur, 5 échanges conclus par jour et par joueur.
+ - Si l'auteur n'a plus les cartes au moment où on accepte, l'offre est annulée.
+ - Aucune vente contre de l'argent réel.
+
+Fichiers : index.html, js/app.js, js/v118-cards-lab.js, js/v163-trades.js (nouveau),
+           css/v160-season.css
