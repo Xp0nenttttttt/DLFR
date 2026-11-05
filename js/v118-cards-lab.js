@@ -111,6 +111,9 @@ const SKILLS=[
  {id:'le7',branch:'legend',name:'Quatrième camp',icon:'⛺',max:1,level:400,cost:15000,pts:3,requires:['le9'],text:()=>'+1 expédition simultanée'},
  {id:'le8',branch:'legend',name:'Chasseur d’Ultra',icon:'♛',max:5,level:500,cost:20000,pts:3,requires:['le7'],text:r=>`Chances d’Ultra +${30*r} %`},
  {id:'le10',branch:'legend',name:'Légende vivante',icon:'☀',max:1,level:1000,cost:100000,pts:10,requires:['le8'],text:()=>'+1 carte dans tous les paquets, +25 % d’éclats, d’XP et de poussière'},
+ {id:'sc1',branch:'spec',spec:'col',name:'Œil du collectionneur',icon:'🃏',max:5,level:30,cost:800,pts:1,requires:[],text:r=>`Finitions et Shiny +${10*r} %`},
+ {id:'se1',branch:'spec',spec:'exp',name:'Cartographe d’élite',icon:'🧭',max:5,level:30,cost:800,pts:1,requires:[],text:r=>`Butin des chapitres +${10*r} %`},
+ {id:'sa1',branch:'spec',spec:'art',name:'Maître artisan',icon:'⚒',max:5,level:30,cost:800,pts:1,requires:[],text:r=>`Poussière de l’Éveil (★6 à ★10) −${5*r} %`},
  {id:'cv',branch:'core',name:'Maître des cartes',icon:'✺',max:1,level:50,cost:2000,pts:3,requires:['fo4','ex4','ma4'],text:()=>'+1 niveau de chance et +15 % d’éclats et d’XP'},
  {id:'ap',branch:'core',name:'Talent ultime',icon:'☀',max:1,level:85,cost:6000,pts:5,requires:['cv','fo6','ex6','ma6'],text:()=>'+1 carte dans tous les paquets et Mythiques ×1,3'}
 ];
@@ -157,6 +160,12 @@ const ACHIEVEMENTS=[
  {id:'set1',name:'Série terminée',desc:'Terminer une série',value:()=>Object.keys(progress.sets).length,target:1,reward:{keys:1}},
  {id:'set8',name:'Encyclopédiste',desc:'Terminer toutes les séries',value:()=>Object.keys(progress.sets).length,get target(){return SETS.length;},reward:{keys:15},title:'Encyclopédiste'},
  {id:'rn1',name:'Renaissance',desc:'Effectuer une Renaissance',value:()=>progress.prestige,target:1,reward:{keys:3},title:'Phénix'},
+ {id:'ch4',name:'Chapitre 4',desc:'Terminer les Ruines de Bloodbath',value:()=>chState().cleared.c4?1:0,target:1,reward:{keys:5}},
+ {id:'ch8',name:'Toute l’aventure',desc:'Terminer le Trône de Tidal Wave',value:()=>chState().cleared.c8?1:0,target:1,reward:{keys:25},title:'Aventurier'},
+ {id:'ms3',name:'Maîtrise Or',desc:'Une carte en maîtrise rang III',value:()=>Math.max(0,...Object.keys(progress.mastery||{}).map(k=>masteryRank(Number(k)))),target:3,reward:{keys:5}},
+ {id:'ms5',name:'Maîtrise Prisme',desc:'Une carte en maîtrise rang V',value:()=>Math.max(0,...Object.keys(progress.mastery||{}).map(k=>masteryRank(Number(k)))),target:5,reward:{keys:15},title:'Maître de carte'},
+ {id:'ct5',name:'5 contrats',desc:'Remplir 5 contrats de collection',value:()=>Object.keys(progress.contracts||{}).length,target:5,reward:{keys:5}},
+ {id:'ct20',name:'20 contrats',desc:'Remplir 20 contrats de collection',value:()=>Object.keys(progress.contracts||{}).length,target:20,reward:{keys:15},title:'Archiviste'},
  {id:'rn5',name:'5 Renaissances',desc:'Effectuer 5 Renaissances',value:()=>progress.prestige,target:5,reward:{keys:10},title:'Vétéran'},
  {id:'rn10',name:'10 Renaissances',desc:'Effectuer 10 Renaissances',value:()=>progress.prestige,target:10,reward:{keys:15},title:'Increvable'},
  {id:'rn25',name:'25 Renaissances',desc:'Effectuer 25 Renaissances',value:()=>progress.prestige,target:25,reward:{keys:25}},
@@ -166,7 +175,7 @@ const ACHIEVEMENTS=[
  ...[[3,{keys:1}],[6,{keys:3}],[9,{keys:6},'Puissance absolue']].map(([n,reward,title])=>({id:'pw'+n,name:`Puissance ${n}`,desc:`Atteindre le palier de puissance ${n}`,value:()=>powerTier(),target:n,reward,title}))
 ];
 const newStats=()=>({packs:0,expeditions:0,pulled:0,newCards:0,tiers:[0,0,0,0,0,0],finishes:[0,0,0,0,0],crafted:0,upgraded:0,quests:0,shardsEarned:0,bestLevel:1});
-const freshProgress=()=>({xp:0,level:1,shards:35,dust:0,keys:0,prestige:0,skills:{},camps:[],quests:[],achievements:{},sets:{},pity:{leg:0,myth:0},stats:newStats(),title:'',reveals:[],questSeed:0});
+const freshProgress=()=>({xp:0,level:1,shards:35,dust:0,keys:0,prestige:0,skills:{},camps:[],quests:[],achievements:{},sets:{},pity:{leg:0,myth:0},stats:newStats(),title:'',reveals:[],questSeed:0,chapters:{cleared:{},run:null},contracts:{},mastery:{},spec:null});
 const progress=freshProgress();
 
 // Mémoire volatile : le rechargement de la page efface entièrement cette collection.
@@ -216,13 +225,14 @@ function figure(card,data,compact=false,opts={}){
  const sym=card.type==='level'?'◆':card.type==='player'?'★':'✦';
  const has=opts.official?!!opts.owned:!!(n||opts.finish!==undefined||opts.owned);
  if(sec&&!has&&!editor)return `<div class="dlfr112-card dlfr131-card dlfr112-secrete is-mystery t5 dlfr112-missing ${compact?'dlfr112-small':''}"><div class="c131-frame"><div class="c131-head"><span class="c131-type">??? SECRÈTE</span><b class="c131-id">#???</b></div><div class="dlfr112-art c131-art"><span class="c131-sym" aria-hidden="true">?</span><span class="c131-gem" title="Carte secrète · 1 chance sur 1 000 000">?</span></div><div class="c131-plate"><strong>???</strong><span class="c131-rar"><span>Secrète</span></span></div></div><i class="c131-foil" aria-hidden="true"></i></div>`;
- return `<div class="dlfr112-card dlfr131-card dlfr112-${slug} t${t} ${finish?'dlfr112-holo dlfr117-f-'+FIN[finish]:''} ${has?'dlfr112-has':'dlfr112-missing'} ${compact?'dlfr112-small':''}" data-tilt>
+ const mr=opts.official?0:masteryRank(card.id);
+ return `<div class="dlfr112-card dlfr131-card dlfr112-${slug} t${t} ${mr?'c162-m'+mr:''} ${finish?'dlfr112-holo dlfr117-f-'+FIN[finish]:''} ${has?'dlfr112-has':'dlfr112-missing'} ${compact?'dlfr112-small':''}" data-tilt>
    <div class="c131-frame">
     <div class="c131-head"><span class="c131-type">${sym} ${TYPE_LABEL[card.type]||'CARTE'}</span><b class="c131-id">#${idString(card.id)}</b></div>
     <div class="dlfr112-art c131-art">${picture?`<img loading="lazy" src="${esc(picture)}" alt="Visuel ${esc(card.name)}" onerror="this.remove()">`:`<span class="c131-sym" aria-hidden="true">${sym}</span>`}<span class="c131-gem" title="${fest?'Rareté spéciale · calendrier de l’Avent':sec?'Carte secrète · 1 chance sur 1 000 000':`Rareté ${t+1}/${rarities.length}`}">${fest?'❄':sec?'?':t+1}</span>${has?'':'<span class="c131-lock" aria-hidden="true">?</span>'}</div>
     <div class="c131-plate"><strong title="${esc(card.name)}">${esc(card.name)}</strong><span class="c131-rar">${fest?'<i class="c131-pips c139-snow" aria-hidden="true">❄❄❄❄❄</i>':sec?'<i class="c131-pips c155-sec" aria-hidden="true">??????</i>':pipsHTML(t)}<span>${esc(r)}${finish?' · ✧ '+FIN_NAME[finish]:''}</span></span></div>
    </div>
-   <i class="c131-foil" aria-hidden="true"></i><i class="c131-glare" aria-hidden="true"></i>${finish===4?'<span class="c150-shiny" aria-label="Shiny">✨ SHINY</span>':''}
+   <i class="c131-foil" aria-hidden="true"></i><i class="c131-glare" aria-hidden="true"></i>${finish===4?'<span class="c150-shiny" aria-label="Shiny">✨ SHINY</span>':''}${mr?`<span class="c162-mb" title="Maîtrise ${MASTERY_NAME[mr]}">M${['','I','II','III','IV','V'][mr]}</span>`:''}
    ${stars?`<span class="dlfr117-stars" aria-label="${stars} étoiles">${'★'.repeat(stars)}</span>`:''}
    ${n&&opts.finish===undefined&&!opts.hideCount&&!opts.official?`<span class="dlfr112-count">×${n}</span>`:''}
   </div>`;
@@ -258,7 +268,7 @@ function prestMult(){const p=progress.prestige;return 1+.1*Math.min(p,10)+.04*Ma
 function shardMult(){return prestMult()*(1+.03*rank('le1'))*(rank('le10')?1.25:1)*(1+finBonus().shards)*(1+.03*powerTier())*(1+setBonus())*(rank('cv')?1.15:1);}
 function xpMult(){return prestMult()*(1+.03*rank('le2'))*(rank('le10')?1.25:1)*(1+finBonus().xp)*(1+.03*powerTier())*(1+.06*rank('ma1'))*(rank('cv')?1.15:1);}
 function dustMult(){return (1+.2*rank('ma2')+.05*rank('le3')+finBonus().dust)*(rank('le10')?1.25:1);}
-function forgeDiscount(){return Math.max(.3,1-.1*rank('ma4')-.03*rank('le6'));}
+function forgeDiscount(){return Math.max(.3,1-.1*rank('ma4')-.03*rank('le6'))*(isSpec('art')?.8:1);}
 function luck(){return rank('fo1')+(rank('cv')?1:0)+.5*rank('le4');}
 function legPity(){return 200-15*rank('fo4');}
 const MYTH_PITY=1200;
@@ -332,13 +342,14 @@ function skillState(s){
  const r=rank(s.id);
  if(r>=s.max)return 'maxed';
  if(progress.level<s.level)return 'level';
+ if(s.spec&&progress.spec!==s.spec)return 'spec';
  if(!s.requires.every(x=>rank(x)>0))return 'requires';
  if(freePoints()<s.pts)return 'points';
  if(progress.shards<skillCost(s))return 'shards';
  return 'available';
 }
 function skillCost(s){return s.cost*(rank(s.id)+1);}
-function skillReason(s){const st=skillState(s);return st==='maxed'?'Maîtrisé':st==='level'?`Niveau ${s.level}`:st==='requires'?'Prérequis manquant':st==='points'?`${s.pts} point${s.pts>1?'s':''} requis`:st==='shards'?`◆ ${fmt(skillCost(s))} requis`:rank(s.id)?`Rang ${rank(s.id)+1} · ◆ ${fmt(skillCost(s))}`:`Débloquer · ◆ ${fmt(skillCost(s))}`;}
+function skillReason(s){const st=skillState(s);return st==='maxed'?'Maîtrisé':st==='level'?`Niveau ${s.level}`:st==='requires'?'Prérequis manquant':st==='spec'?`Réservé : ${SPECS[s.spec]?.name}`:st==='points'?`${s.pts} point${s.pts>1?'s':''} requis`:st==='shards'?`◆ ${fmt(skillCost(s))} requis`:rank(s.id)?`Rang ${rank(s.id)+1} · ◆ ${fmt(skillCost(s))}`:`Débloquer · ◆ ${fmt(skillCost(s))}`;}
 function buySkill(id){const s=SKILLS.find(x=>x.id===id);if(!s||skillState(s)!=='available')return;pay({shards:skillCost(s)});progress.skills[id]=rank(id)+1;log(`${s.name} rang ${rank(id)} : ${s.text(rank(id))}`);}
 function refundSkills(){let back=0;for(const s of SKILLS){const r=rank(s.id);back+=s.cost*r*(r+1)/2;}progress.shards+=back;progress.skills={};return back;}
 
@@ -348,7 +359,7 @@ function claimExpedition(i){
  const c=progress.camps[i];if(!c||Date.now()<c.end)return null;const d=DESTS.find(x=>x.id===c.dest);progress.camps.splice(i,1);if(!d)return null;
  const times=Math.random()<.1*rank('ex6')?2:1,parts=[];
  for(let k=0;k<times;k++){
-  parts.push(`+${addShards(d.shards*(1+.08*rank('ex1'))*shardMult())} ◆`,`+${addXP(d.xp*xpMult())} XP`);
+  parts.push(`+${addShards(d.shards*(1+.08*rank('ex1'))*(isSpec('exp')?1.2:1)*shardMult())} ◆`,`+${addXP(d.xp*xpMult())} XP`);
   if(d.dust)parts.push(`+${addDust(d.dust*dustMult())} ✧`);
   const kc=d.key+.05*rank('ex4');const keys=Math.floor(kc)+(Math.random()<kc%1?1:0);if(keys){progress.keys+=keys;parts.push(`+${keys} 🔑`);}
   if(d.card&&Math.random()<d.card&&packable().length){const rare=packable().filter(x=>tierOf(x)>=1),pool=rare.length?rare:packable();const tw=[0,86,12,1.6,.2,.00667],tiers=[...new Set(pool.map(tierOf))];let tr=Math.random()*tiers.reduce((a,t)=>a+tw[t],0),tt=tiers[0];for(const t of tiers.sort((a,b)=>a-b)){tr-=tw[t];if(tr<=0){tt=t;break;}}const card=secretRoll()||pick(pool.filter(x=>tierOf(x)===tt));const isNew=!has(card.id);const f=rollFinish({});give(card.id,1,f);registerPull(card,f,isNew);parts.push(`carte ${card.name}${isNew?' (nouvelle !)':''}`);}
@@ -383,9 +394,9 @@ function chooseTier(pack,minTier){
  return w.findLastIndex(x=>x>0);
 }
 function rollFinish(pack){
- const m=(1+.25*rank('fo2'))*(pack.finishBoost||1),r=Math.random();
+ const m=(1+.25*rank('fo2'))*(pack.finishBoost||1)*(isSpec('col')?1.3:1)*(1+.1*rank('sc1')),r=Math.random();
  const obs=(progress.level>=30||progress.prestige>0)?FIN_BASE[3]*m*(rank('fo6')?2:1):0,pri=FIN_BASE[2]*m*(rank('fo6')?1.5:1),hol=FIN_BASE[1]*m;
- const shi=FIN_BASE[4]*(pack.finishBoost||1)*(1+.2*rank('le5')); // ~1 carte sur 1 000 : une Shiny
+ const shi=FIN_BASE[4]*(pack.finishBoost||1)*(1+.2*rank('le5'))*(1+.1*rank('sc1')); // ~1 carte sur 1 000 : une Shiny
  if(r<shi)return 4;const r2=r-shi;
  return r2<obs?3:r2<obs+pri?2:r2<obs+pri+hol?1:0;
 }
@@ -407,8 +418,8 @@ function openPack(id){
   progress.pity.leg=t>=3?0:progress.pity.leg+1;progress.pity.myth=t>=4?0:progress.pity.myth+1;
   const isNew=!has(card.id),finish=rollFinish(pack);
   give(card.id,1,finish);registerPull(card,finish,isNew);
-  const shards=isNew?addShards(6*(1+.5*rank('ma6'))*shardMult()):addShards(2*shardMult());
-  const dust=isNew?0:addDust(DUST_DUP[t]*dustMult());
+  const shards=isNew?addShards(6*(1+.5*rank('ma6'))*(isSpec('col')?2:1)*shardMult()):addShards(2*shardMult());
+  const dust=isNew?0:addDust(DUST_DUP[t]*dustMult()*(isSpec('art')?1.3:1));
   draws.push({id:card.id,tier:t,finish,isNew,shards,dust,pity:pityHit&&t>=(pityHit==='myth'?4:3)?pityHit:''});
  }
  const xp=addXP(count*6*xpMult());
@@ -427,7 +438,7 @@ function simulate(packId,times=100){
 }
 
 // ============================================================ Forge
-function starCost(card,v){const s=v.stars||0;if(s>=MAX_STARS)return null;const t=tierOf(card);return {copies:STAR_COPIES[s],dust:Math.round(STAR_DUST[s]*STAR_FACTOR[t]*forgeDiscount())};}
+function starCost(card,v){const s=v.stars||0;if(s>=MAX_STARS)return null;const t=tierOf(card);return {copies:STAR_COPIES[s],dust:Math.round(STAR_DUST[s]*STAR_FACTOR[t]*forgeDiscount()*(s>=5?1-.05*rank('sa1'):1))};}
 function upgradeCard(id){const c=get(id),v=owned.get(Number(id));if(!c||!v)return;const k=starCost(c,v);if(!k||v.count-1<k.copies||progress.dust<k.dust)return;
  v.count-=k.copies;progress.dust-=k.dust;v.stars=(v.stars||0)+1;S().upgraded++;emit('forge');log(`${c.name} passe à ★${v.stars}.`);toast('Forge',`${c.name} atteint ★${v.stars}`,'forge');}
 function craftCost(c){return Math.round(CRAFT[tierOf(c)]*forgeDiscount());}
@@ -517,6 +528,136 @@ function boostersView(){
 function campRow(c,i){const d=DESTS.find(x=>x.id===c.dest);if(!d)return '';const left=Math.max(0,c.end-Date.now()),pct=Math.min(100,(Date.now()-c.start)/(c.end-c.start)*100);
  return `<div class="dlfr117-camp" data-v117-camp="${i}"><span class="dlfr117-camp-icon">${d.icon}</span><div><strong>${esc(d.name)}</strong><div class="dlfr117-bar small"><i data-v117-bar style="width:${pct}%"></i></div><small data-v117-left>${left?'Retour dans '+duration(left):'De retour !'}</small></div><button class="btn" type="button" data-v112-act="claim-exp" data-index="${i}" ${left?'disabled':''}>${left?'En route':'Récupérer'}</button></div>`;}
 function duration(ms){const s=Math.ceil(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),sec=s%60;return h?`${h} h ${String(m).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;}
+// ============================================================ V162 : Maîtrise des cartes + Spécialisations
+const MASTERY=[100,300,700,1500,3000],MASTERY_NAME=['','Bronze','Argent','Or','Constellation','Prisme'];
+function masteryXp(id){return (progress.mastery||{})[id]||0;}
+function masteryRank(id){const x=masteryXp(id);return MASTERY.filter(t=>x>=t).length;}
+function masteryGain(id,xp){progress.mastery=progress.mastery||{};const before=masteryRank(id);progress.mastery[id]=Math.min(1e6,masteryXp(id)+Math.round(xp*(isSpec('art')?1.5:1)));const after=masteryRank(id);
+ if(after>before){const c=get(id);toast('Maîtrise',`${c?.name||'Carte'} atteint le rang ${['','I','II','III','IV','V'][after]} (bordure ${MASTERY_NAME[after]})`,'level');}}
+const SPECS={col:{name:'Collectionneur',icon:'🃏',text:'Finitions +30 %, éclats des nouvelles cartes ×2, récompenses des contrats +50 %.'},
+ exp:{name:'Explorateur',icon:'🧭',text:'Chapitres : 4 vies au lieu de 3, chemins secrets bien plus fréquents ; expéditions +20 % d’éclats.'},
+ art:{name:'Artisan',icon:'⚒',text:'Forge −20 %, doublons +30 % de poussière, maîtrise des cartes +50 %.'}};
+function isSpec(k){return progress.spec===k;}
+function pickSpec(k){if(!SPECS[k]||progress.level<25)return;const change=!!progress.spec;if(progress.spec===k)return;
+ if(change){if(progress.shards<5000){toast('Spécialisation','Changer de spécialisation coûte 5 000 ◆.','info');return;}if(!confirm(`Passer en ${SPECS[k].name} pour 5 000 ◆ ? Les talents exclusifs de ton ancienne spécialisation sont remboursés.`))return;pay({shards:5000});
+  for(const sk of SKILLS.filter(x=>x.spec&&x.spec!==k)){const r=rank(sk.id);if(r){let back=0;for(let i=1;i<=r;i++)back+=sk.cost*i;addShards(back);delete progress.skills[sk.id];}}}
+ progress.spec=k;log(`Spécialisation : ${SPECS[k].name}.`);toast('Spécialisation',`Tu es maintenant ${SPECS[k].name}.`,'level');}
+function specPanel(){
+ if(progress.level<25)return `<div class="dlfr162-spec is-locked"><b>Spécialisation</b><span>Au niveau 25, choisis une spécialisation : Collectionneur, Explorateur ou Artisan. Elle donne des bonus et débloque un talent exclusif.</span></div>`;
+ return `<div class="dlfr162-spec"><div class="dlfr162-spec-head"><b>Spécialisation</b><span>${progress.spec?`Changer coûte 5 000 ◆ (talents exclusifs remboursés).`:'Choisis-en une : tu pourras changer plus tard.'}</span></div><div class="dlfr162-specs">${Object.entries(SPECS).map(([k,v])=>`<button type="button" class="dlfr162-sp ${progress.spec===k?'is-on':''}" data-v112-act="spec-pick" data-spec="${k}"><span>${v.icon}</span><b>${v.name}</b><small>${v.text}</small>${progress.spec===k?'<em>✓ Active</em>':''}</button>`).join('')}</div></div>`;
+}
+// ============================================================ V161 : Chapitres (aventure interactive) + Contrats
+// Attributs de carte (déterministes) : Précision, Endurance, Technique, Découverte.
+const ATTRS=[['pre','Précision','🎯'],['end','Endurance','🛡'],['tec','Technique','⚙'],['dec','Découverte','🔍']];
+function hashStr(s){let h=2166136261;for(const ch of String(s)){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
+function cardStats(c){
+ const v=owned.get(c.id)||{},t=tierOf(c),total=10+t*4+(v.stars||0)*2+(v.finish||0)*2;
+ const bias=c.type==='level'?[2,4,4,1]:c.type==='player'?[4,2,4,1]:[2,2,2,5];
+ const h=hashStr(c.id+':'+c.name),w=bias.map((b,i)=>b+((h>>>(i*4))&7)),sw=w.reduce((a,b)=>a+b,0);
+ const st=w.map(x=>Math.round(total*x/sw));
+ if(t<=1&&h%3===0){st[(h>>>16)%4]+=8;} // certaines Communes / Rares ont une vraie spécialité
+ return {pre:st[0],end:st[1],tec:st[2],dec:st[3],spec:t<=1&&h%3===0?ATTRS[(h>>>16)%4][0]:null};
+}
+const CHAPTERS=[
+ {id:'c1',name:'Plaines de Stereo Madness',d:1,level:1},{id:'c2',name:'Forêt de Clubstep',d:2,level:5},
+ {id:'c3',name:'Usine Deadlocked',d:3,level:12},{id:'c4',name:'Ruines de Bloodbath',d:4,level:20},
+ {id:'c5',name:'Cavernes de Sonic Wave',d:5,level:35},{id:'c6',name:'Abysse de Tartarus',d:6,level:55},
+ {id:'c7',name:'Faille d’Acheron',d:7,level:80},{id:'c8',name:'Trône de Tidal Wave',d:8,level:110}];
+const STEP_KIND={explore:['Explorer','🧭',1],event:['Événement','❗',1],challenge:['Défi','⚔',1.2],treasure:['Trésor','💰',.85],boss:['Boss','💀',1.5]};
+const STEP_TXT={explore:['Un couloir de pics s’ouvre devant toi.','Le chemin se sépare en deux.','Une série de plateformes mobiles bloque le passage.'],
+ event:['Un portail de gravité apparaît au milieu du niveau.','Un orbe jaune clignote au-dessus du vide.','Le niveau passe soudain en double vitesse.'],
+ challenge:['Une partie en wave très serrée.','Un enchaînement de clics au rythme de la musique.','Un passage en mini-vaisseau sans marge d’erreur.'],
+ treasure:['Un coffre est posé derrière une rangée de scies.','Des pièces secrètes brillent dans un recoin.','Une clé dorée flotte au-dessus d’un piège.'],
+ boss:['Le gardien du chapitre te barre la route.','La dernière partie du niveau, la plus dure.','Le boss final lance ses attaques.']};
+const CHOICE_TXT={pre:'Passer au pixel près',end:'Tenir jusqu’au bout',tec:'Enchaîner les inputs',dec:'Chercher un passage caché'};
+let chTeam=[];
+function chState(){progress.chapters=progress.chapters||{cleared:{},run:null};return progress.chapters;}
+function chUnlocked(ch,i){const s=chState();return progress.level>=ch.level&&(i===0||!!s.cleared[CHAPTERS[i-1].id]);}
+function chCost(ch){return {shards:40*ch.d,keys:ch.d>=5?1:0};}
+function chReq(d,kind){return Math.round((6+7.5*(d-1))*STEP_KIND[kind][2]*(.9+Math.random()*.2));}
+function buildSteps(ch){
+ const n=4+Math.floor(ch.d/2),kinds=['explore','event','challenge','treasure'],out=[];
+ for(let i=0;i<n;i++){const kind=i===n-1?'boss':kinds[(i+Math.floor(Math.random()*4))%4];
+  const a=[...ATTRS.map(x=>x[0]).filter(x=>x!=='dec')].sort(()=>Math.random()-.5).slice(0,2);
+  const choices=a.map(attr=>({attr,req:chReq(ch.d,kind)}));
+  if(kind!=='boss'&&Math.random()<(isSpec('exp')?.6:.35))choices.push({attr:'dec',req:Math.round(chReq(ch.d,kind)*1.3),secret:true});
+  out.push({kind,txt:pick(STEP_TXT[kind]),choices});}
+ return out;
+}
+function teamStat(attr,run){return run.team.reduce((n,id)=>{const c=get(id);if(!c)return n;const v=cardStats(c)[attr];return n+(run.armed===id?v*2:v);},0);}
+function startChapter(id){
+ const i=CHAPTERS.findIndex(c=>c.id===id),ch=CHAPTERS[i],s=chState();if(!ch||s.run||!chUnlocked(ch,i))return;
+ const team=chTeam.filter(x=>has(x)).slice(0,3);if(team.length<1){toast('Chapitres','Choisis au moins une carte pour ton équipe.','info');return;}
+ const cost=chCost(ch);if(!canAfford(cost)){toast('Chapitres',`Il faut ${costText(cost)} pour partir.`,'info');return;}
+ pay(cost);const ml=isSpec('exp')?4:3;s.run={ch:ch.id,step:0,lives:ml,max:ml,team,used:[],armed:null,steps:buildSteps(ch),loot:{shards:0,dust:0,keys:0,cards:[]},log:[]};
+ log(`Chapitre lancé : ${ch.name}.`);
+}
+function chArm(id){const r=chState().run;if(!r||r.used.includes(id)||!r.team.includes(id))return;r.armed=r.armed===id?null:id;}
+function chChoose(k){
+ const s=chState(),r=s.run;if(!r)return;const ch=CHAPTERS.find(c=>c.id===r.ch),st=r.steps[r.step],c=st?.choices[k];if(!c)return;
+ const total=teamStat(c.attr,r),p=total>=c.req?.95:total>=c.req*.8?.5:.1,ok=Math.random()<p,km=STEP_KIND[st.kind][2]*(c.secret?1.6:1);
+ if(r.armed){r.used.push(r.armed);r.armed=null;}
+ if(ok){const sh=Math.round(15*ch.d*km),du=Math.round(5*ch.d*km);r.loot.shards+=sh;r.loot.dust+=du;
+  let extra='';if(st.kind==='treasure'||c.secret){if(Math.random()<.5){r.loot.keys++;extra=' · +1 🔑';}}
+  if((st.kind==='treasure'&&Math.random()<.35)||st.kind==='boss'||c.secret){const pool=packable();if(pool.length){const tw=[0,70,24,5,1],tiers=[...new Set(pool.map(tierOf))].filter(t=>t>=1);let tt=tiers[0]??0,rr=Math.random()*tiers.reduce((a,t)=>a+(tw[t]||0),0);for(const t of tiers.sort((a,b)=>a-b)){rr-=tw[t]||0;if(rr<=0){tt=t;break;}}const cd=pick(pool.filter(x=>tierOf(x)===tt))||pick(pool);r.loot.cards.push(cd.id);extra+=` · carte ${cd.name}`;}}
+  r.log.push(`✓ ${STEP_KIND[st.kind][0]} réussi (${ATTRS.find(a=>a[0]===c.attr)[1]} ${total}/${c.req}) : +${sh} ◆ +${du} ✧${extra}`);r.step++;}
+ else{r.lives--;r.log.push(`✗ ${STEP_KIND[st.kind][0]} raté (${ATTRS.find(a=>a[0]===c.attr)[1]} ${total}/${c.req}) : −1 vie`);if(st.kind!=='boss')r.step++;}
+ if(r.step>=r.steps.length||r.lives<=0)finishChapter(r.step>=r.steps.length&&r.lives>0);
+}
+function finishChapter(win){
+ const s=chState(),r=s.run,ch=CHAPTERS.find(c=>c.id===r.ch),f=(win?1:.5)*(1+.1*rank('se1')),first=win&&!s.cleared[ch.id];
+ const parts=[`+${fmt(addShards(r.loot.shards*f*shardMult()))} ◆`,`+${fmt(addDust(r.loot.dust*f*dustMult()))} ✧`,`+${fmt(addXP(40*ch.d*(win?3:1)*xpMult()))} XP`];
+ const keys=Math.floor(r.loot.keys*f)+(first?ch.d:0);if(keys){progress.keys+=keys;parts.push(`+${keys} 🔑`);}
+ for(const id of (win?r.loot.cards:r.loot.cards.slice(0,Math.floor(r.loot.cards.length/2)))){const c=get(id);if(!c)continue;const isNew=!has(id),fin=rollFinish({});give(id,1,fin);registerPull(c,fin,isNew);parts.push(`${c.name}${isNew?' (nouvelle !)':''}`);}
+ if(win)s.cleared[ch.id]=(s.cleared[ch.id]||0)+1;
+ for(const id of r.team)masteryGain?.(id,win?30*ch.d:10*ch.d);
+ toast(win?`🧭 ${ch.name} terminé !`:'Aventure interrompue',`${win?'':'Plus de vies : la moitié du butin est gardée. '}${parts.join(' · ')}${first?' · premier passage !':''}`,win?'achievement':'info');
+ log(`${ch.name} : ${win?'réussi':'échoué'} (${parts.join(', ')}).`);s.run=null;checkAchievements();
+}
+function chAbandon(){const r=chState().run;if(!r)return;if(!confirm('Abandonner l’aventure ? Tu gardes la moitié du butin.'))return;r.lives=0;finishChapter(false);}
+function statPills(c){const s=cardStats(c);return `<span class="dlfr161-stats">${ATTRS.map(([k,l,ic])=>`<i class="${s.spec===k?'is-spec':''}" title="${l}">${ic}${s[k]}</i>`).join('')}</span>`;}
+function chaptersView(){
+ const s=chState(),r=s.run,data=srcData();
+ if(r){const ch=CHAPTERS.find(c=>c.id===r.ch),st=r.steps[r.step];
+  return `<section class="dlfr117-panel dlfr161"><div class="dlfr117-head"><div><small>CHAPITRE ${CHAPTERS.indexOf(ch)+1} · DIFFICULTÉ ${ch.d}/8</small><h2>${esc(ch.name)}</h2><p>Choisis comment franchir chaque étape. Ton équipe additionne ses attributs ; une capacité double une carte pour la prochaine étape (une fois par aventure).</p></div>
+   <div class="dlfr161-lives">${'❤'.repeat(r.lives)}${'🖤'.repeat(Math.max(0,(r.max||3)-r.lives))}</div></div>
+   <ol class="dlfr161-path">${r.steps.map((x,i)=>`<li class="${i<r.step?'is-done':i===r.step?'is-now':''}"><span>${STEP_KIND[x.kind][1]}</span><small>${STEP_KIND[x.kind][0]}</small></li>`).join('')}</ol>
+   ${st?`<div class="dlfr161-step is-${st.kind}"><h3>${STEP_KIND[st.kind][1]} ${STEP_KIND[st.kind][0]}</h3><p>${esc(st.txt)}</p>
+    <div class="dlfr161-choices">${st.choices.map((c,k)=>{const tot=teamStat(c.attr,r),a=ATTRS.find(x=>x[0]===c.attr);return `<button type="button" class="dlfr161-choice ${c.secret?'is-secret':''} ${tot>=c.req?'is-ok':tot>=c.req*.8?'is-risky':'is-hard'}" data-v112-act="ch-choose" data-k="${k}"><b>${c.secret?'🗝 Chemin secret · ':''}${CHOICE_TXT[c.attr]}</b><span>${a[2]} ${a[1]} : ${tot} / ${c.req}</span><small>${tot>=c.req?'Très probable':tot>=c.req*.8?'Risqué (1 chance sur 2)':'Très difficile'}${c.secret?' · gros butin':''}</small></button>`;}).join('')}</div></div>`:''}
+   <div class="dlfr161-team">${r.team.map(id=>{const c=get(id);if(!c)return '';const used=r.used.includes(id);return `<div class="dlfr161-member ${r.armed===id?'is-armed':''}">${figure(c,data,true)}${statPills(c)}<button type="button" class="btn small ${r.armed===id?'':'subtle'}" data-v112-act="ch-arm" data-id="${id}" ${used?'disabled':''}>${used?'Capacité utilisée':r.armed===id?'✦ Capacité prête':'Utiliser la capacité'}</button></div>`;}).join('')}</div>
+   <div class="dlfr161-loot"><b>Butin en cours :</b> ◆ ${fmt(r.loot.shards)} · ✧ ${fmt(r.loot.dust)}${r.loot.keys?` · 🔑 ${r.loot.keys}`:''}${r.loot.cards.length?` · ${r.loot.cards.length} carte${r.loot.cards.length>1?'s':''}`:''} <button type="button" class="btn small subtle" data-v112-act="ch-abandon">Abandonner</button></div>
+   ${r.log.length?`<ul class="dlfr161-log">${r.log.slice(-5).reverse().map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}
+  </section>`;}
+ const mine=shownCards().filter(c=>has(c.id)).map(c=>({c,s:cardStats(c)})).sort((a,b)=>(b.s.pre+b.s.end+b.s.tec+b.s.dec)-(a.s.pre+a.s.end+a.s.tec+a.s.dec));
+ chTeam=chTeam.filter(x=>has(x)).slice(0,3);
+ return `<section class="dlfr117-panel dlfr161"><div class="dlfr117-head"><div><small>AVENTURE</small><h2>Chapitres</h2><p>Forme une équipe de 3 cartes et explore un chapitre étape par étape. Chaque carte a 4 attributs (🎯 Précision, 🛡 Endurance, ⚙ Technique, 🔍 Découverte) selon sa rareté, ses étoiles et sa finition. Certaines cartes Communes ont une spécialité très forte (attribut doré) : elles peuvent être indispensables. La Découverte ouvre les chemins secrets.</p></div></div>
+  <div class="dlfr161-chapters">${CHAPTERS.map((ch,i)=>{const un=chUnlocked(ch,i),cost=chCost(ch),done=s.cleared[ch.id]||0;return `<article class="dlfr161-ch ${un?'':'is-locked'} ${done?'is-cleared':''}"><small>Chapitre ${i+1} · difficulté ${ch.d}/8</small><h3>${esc(ch.name)}</h3><p>${4+Math.floor(ch.d/2)} étapes · ${done?`terminé ${done}×`:'jamais terminé'}</p>
+   <button type="button" class="btn ${un?'':'subtle'}" data-v112-act="ch-start" data-id="${ch.id}" ${!un||chTeam.length<1||!canAfford(cost)?'disabled':''}>${un?`Partir · ${costText(cost)}`:progress.level<ch.level?`🔒 Niveau ${ch.level}`:'🔒 Termine le chapitre précédent'}</button></article>`;}).join('')}</div>
+  <div class="dlfr117-sub"><h3>Ton équipe (${chTeam.length}/3)</h3><div class="dlfr161-pick">${mine.slice(0,60).map(({c})=>`<button type="button" class="dlfr161-card ${chTeam.includes(c.id)?'is-on':''}" data-v112-act="ch-team" data-id="${c.id}">${figure(c,data,true)}${statPills(c)}</button>`).join('')||'<p class="dlfr117-empty">Ouvre des boosters pour avoir des cartes.</p>'}</div></div>
+ </section>`;
+}
+// ---------- Contrats de collection
+function contracts(){
+ const data=srcData(),out=[],dem=new Map((data.demons||[]).filter(d=>d.is_public!==false).map(d=>[normalize(d.name),d]));
+ const lv=shownCards().filter(c=>c.type==='level'&&countable(c)).map(c=>({c,d:dem.get(normalize(c.name))})).filter(x=>x.d);
+ const group=(keyFn,label,prefix)=>{const m=new Map();for(const x of lv){const k=String(keyFn(x.d)||'').trim();if(!k||/^anonyme|^à renseigner/i.test(k))continue;if(!m.has(k))m.set(k,[]);m.get(k).push(x.c);}
+  for(const [k,cards] of m)if(cards.length>=3)out.push({id:prefix+normalize(k),name:label(k),cards,need:Math.min(cards.length,Math.max(3,Math.ceil(cards.length*.75)))});};
+ group(d=>d.verifier,k=>`Vérifiés par ${k}`,'ver:');group(d=>d.creator,k=>`Créés par ${k}`,'cre:');
+ const band=(id,name,a,b)=>{const cards=lv.filter(x=>Number(x.d.position)>=a&&Number(x.d.position)<=b).map(x=>x.c);if(cards.length>=3)out.push({id,name,cards,need:Math.max(3,Math.ceil(cards.length*.7))});};
+ band('top10','Le Top 10',1,10);band('main','La Main List (#11 à #75)',11,75);band('ext','L’Extended List (#76 à #150)',76,150);
+ const rk=new Map((window.DLFR_RANKING?.()||[]).slice(0,10).map(p=>[normalize(p.name),p]));const tp=shownCards().filter(c=>c.type==='player'&&rk.has(normalize(c.name)));if(tp.length>=3)out.push({id:'ptop10',name:'Les joueurs du Top 10',cards:tp,need:Math.max(3,Math.ceil(tp.length*.7))});
+ return out;
+}
+function contractProgress(k){const have=k.cards.filter(c=>has(c.id)).length;return {have,ok:have>=k.need};}
+function contractReward(k){const m=isSpec('col')?1.5:1;return {shards:Math.round(120*k.need*m),dust:Math.round(60*k.need*m),keys:Math.ceil(k.need/2*m)};}
+function claimContract(id){const k=contracts().find(x=>x.id===id);progress.contracts=progress.contracts||{};if(!k||progress.contracts[id]||!contractProgress(k).ok)return;
+ progress.contracts[id]=true;const txt=grant(contractReward(k));toast('📜 Contrat rempli',`${k.name} · ${txt}`,'achievement');log(`Contrat rempli : ${k.name} (${txt})`);checkAchievements();}
+function contractsHTML(){const list=contracts(),done=progress.contracts||{};
+ if(!list.length)return '<p class="dlfr117-empty">Aucun contrat pour l’instant : ils apparaissent quand le catalogue contient au moins 3 cartes d’un même thème (même vérificateur, même créateur, Top 10…).</p>';
+ return `<p class="dlfr117-muted">Rassemble les cartes d’un thème. Pas besoin de toutes : le nombre demandé laisse de la marge si une carte est introuvable.</p><div class="dlfr161-contracts">${list.sort((a,b)=>(!!done[a.id])-(!!done[b.id])).map(k=>{const p=contractProgress(k),rw=contractReward(k),got=done[k.id];
+  return `<article class="dlfr161-contract ${got?'is-done':p.ok?'is-ready':''}"><h4>📜 ${esc(k.name)}</h4><div class="dlfr117-bar small"><i style="width:${Math.min(100,p.have/k.need*100)}%"></i></div><small>${Math.min(p.have,k.need)} / ${k.need} cartes (sur ${k.cards.length} possibles)</small>
+   <p class="dlfr161-ccards">${k.cards.map(c=>`<span class="${has(c.id)?'is-have':''}">${has(c.id)?'✓':'·'} ${esc(c.name)}</span>`).join('')}</p>
+   <p>Récompense : ◆ ${fmt(rw.shards)} · ✧ ${fmt(rw.dust)} · 🔑 ${rw.keys}</p>${got?'<b class="dlfr161-ok">✓ Rempli</b>':`<button class="btn small" type="button" data-v112-act="contract-claim" data-id="${esc(k.id)}" ${p.ok?'':'disabled'}>Remplir le contrat</button>`}</article>`;}).join('')}</div>`;}
 function expeditionsView(){
  const p=progress,free=slots()-p.camps.length;
  return `<section class="dlfr117-panel"><div class="dlfr117-head"><div><small>CARTE DU MONDE</small><h2>Expéditions</h2><p>Envoie tes camps vers des destinations de plus en plus lointaines. Plus l’expédition est longue, plus elle rapporte : clés, poussière et parfois une carte.</p></div><div class="dlfr117-slots"><b>${p.camps.length} / ${slots()}</b><span>camps occupés</span><small>+1 au niveau 30 et via les talents</small></div></div>
@@ -536,6 +677,7 @@ function talentsView(){
  return `<section class="dlfr117-panel dlfr117-talents"><div class="dlfr117-head"><div><small>ARBRE DE TALENTS</small><h2>Talents</h2><p>1 point au départ, +1 tous les 2 niveaux et +3 par Renaissance. L’arbre complet demande ${SKILLS.reduce((n,s)=>n+s.max*s.pts,0)} points. La branche Légende se débloque à partir du niveau 100.</p></div><div class="dlfr117-slots"><b>${freePoints()}</b><span>point${freePoints()>1?'s':''} libre${freePoints()>1?'s':''}</span><small>${spentPoints()} / ${totalPoints()} utilisés</small></div></div>
   <div class="dlfr117-tree">${BRANCHES.map(b=>`<div class="dlfr117-branch c-${b.color}"><header><span>${b.icon}</span><div><h3>${b.name}</h3><small>${b.subtitle}</small></div></header>${SKILLS.filter(s=>s.branch===b.key).map(node).join('<i class="dlfr117-link" aria-hidden="true"></i>')}</div>`).join('')}</div>
   <div class="dlfr117-capstones">${SKILLS.filter(s=>s.branch==='core').map(node).join('')}</div>
+  ${specPanel()}<div class="dlfr162-specskills">${SKILLS.filter(s=>s.branch==='spec').map(node).join('')}</div>
  </section>`;
 }
 function forgeView(data){
@@ -545,24 +687,25 @@ function forgeView(data){
  return `<section class="dlfr117-panel"><div class="dlfr117-head"><div><small>FORGE</small><h2>Étoiles</h2><p>Consomme des doublons et de la poussière ✧ pour faire monter une carte jusqu’à ★5, puis jusqu’à ★10 avec l’<b>Éveil</b> (★6 à ★10, très coûteux). Chaque étoile augmente ta puissance de collection, qui donne des bonus permanents.</p></div></div>
   ${starTrack(cur,v)}${finishPanel()}${powerTrack()}
   ${list.length?`<div class="dlfr117-forge"><div class="dlfr117-forge-list">${list.map(c=>{const o=owned.get(c.id),sc=starCost(c,o),ready=sc&&o.count-1>=sc.copies&&progress.dust>=sc.dust;return `<button type="button" class="dlfr117-forge-item ${c.id===forgeSel?'is-current':''} ${ready?'is-ready':''}" data-v112-act="forge-select" data-id="${c.id}"><span class="t${tierOf(c)}">${esc(c.name)}</span><small>${'★'.repeat(o.stars||0)}${'☆'.repeat(Math.max(0,5-(o.stars||0)))} · ${sc?`${Math.min(o.count-1,sc.copies)}/${sc.copies} doublon${sc.copies>1?'s':''}`:'MAX'}</small>${sc?`<i class="dlfr143-mini"><b style="width:${Math.min(100,(o.count-1)/sc.copies*100)}%"></b></i>`:''}${ready?'<em class="dlfr143-ready">Prêt !</em>':''}</button>`;}).join('')}</div>
-   <div class="dlfr117-forge-main">${cur?`<div class="dlfr117-forge-card">${figure(cur,data)}</div><div class="dlfr117-forge-info"><h3>${esc(cur.name)}</h3><p>${esc(rarity(cur))} · ${FIN_NAME[v.finish||0]} · ★${v.stars||0}/5</p>
+   <div class="dlfr117-forge-main">${cur?`<div class="dlfr117-forge-card">${figure(cur,data)}</div><div class="dlfr117-forge-info"><h3>${esc(cur.name)}</h3><p>${esc(rarity(cur))} · ${FIN_NAME[v.finish||0]} · ★${v.stars||0}/${MAX_STARS}</p><p class="dlfr162-mline">Maîtrise : ${masteryRank(cur.id)?`rang ${['','I','II','III','IV','V'][masteryRank(cur.id)]} (${MASTERY_NAME[masteryRank(cur.id)]})`:'aucune'} · ${fmt(masteryXp(cur.id))}${masteryRank(cur.id)<5?` / ${fmt(MASTERY[masteryRank(cur.id)])}`:''} XP <small>(gagnée en partant en chapitre avec cette carte)</small></p>
     ${k?`<ul class="dlfr117-reqs"><li class="${v.count-1>=k.copies?'ok':''}">Doublons : ${v.count-1} / ${k.copies}</li><li class="${progress.dust>=k.dust?'ok':''}">Poussière : ${fmt(progress.dust)} / ${fmt(k.dust)} ✧</li></ul><button class="btn" type="button" data-v112-act="upgrade" data-id="${cur.id}" ${v.count-1>=k.copies&&progress.dust>=k.dust?'':'disabled'}>Forger ★${(v.stars||0)+1}</button>`:'<p class="dlfr117-done">★★★★★ Étoiles maximales</p>'}</div>`:''}</div></div>`:'<p class="dlfr117-empty">Ouvre des boosters pour remplir la Forge.</p>'}
   <div class="dlfr117-sub"><h3>Doublons des cartes ★10</h3><p class="dlfr117-muted">Une carte ★10 ne peut plus monter : ses doublons peuvent être recyclés en poussière ✧.</p>
    <button class="btn subtle" type="button" data-v112-act="recycle">Recycler les doublons des cartes ★10</button></div>
  </section>`;
 }
 function goalsView(){
- const tabs=[['quests','Missions'],['achievements',`Succès ${Object.keys(progress.achievements).length}/${ACHIEVEMENTS.length}`],['sets',`Séries ${Object.keys(progress.sets).length}/${SETS.length}`],['renaissance','Renaissance']];
+ const tabs=[['quests','Missions'],['achievements',`Succès ${Object.keys(progress.achievements).length}/${ACHIEVEMENTS.length}`],['sets',`Séries ${Object.keys(progress.sets).length}/${SETS.length}`],['contracts','Contrats'],['renaissance','Renaissance']];
  let body='';
  if(goalsTab==='quests')body=`<div class="dlfr117-quests">${progress.quests.map(q=>{if(!questReady(q))return `<article class="dlfr117-quest is-wait"><h4>Nouvelle mission en préparation</h4><p class="dlfr159-wait" data-quest-at="${q.at}">Disponible dans <b>${duration(q.at-Date.now())}</b></p></article>`;const done=q.have>=q.target;return `<article class="dlfr117-quest ${done?'is-done':''}"><h4>${esc(questText(q))}</h4><div class="dlfr117-bar small"><i style="width:${q.have/q.target*100}%"></i></div><small>${fmt(q.have)} / ${fmt(q.target)}</small><p>Récompense : ${q.reward.xp} XP · ◆ ${q.reward.shards}${q.reward.keys?' · 🔑 1':''}${q.reward.dust?' · ✧ '+q.reward.dust:''}</p><div class="dlfr117-row">${done?`<button class="btn" type="button" data-v112-act="quest-claim" data-id="${q.id}">Réclamer</button>`:`<button class="btn subtle" type="button" data-v112-act="quest-reroll" data-id="${q.id}" ${progress.shards<rerollCost()?'disabled':''}>Changer · ◆ ${rerollCost()}</button>`}</div></article>`;}).join('')}</div><p class="dlfr117-muted">Une mission réclamée est remplacée par une nouvelle au bout de 1 h 30. Les récompenses grandissent avec ton niveau (jusqu’au niveau 100).</p>`;
  if(goalsTab==='achievements')body=`<div class="dlfr117-achievements">${ACHIEVEMENTS.map(a=>{const ok=progress.achievements[a.id],v=Math.min(a.value(),a.target);return `<article class="dlfr117-ach ${ok?'is-done':''}"><span>${ok?'🏆':'◌'}</span><div><h4>${esc(a.name)}</h4><p>${esc(a.desc)}</p><div class="dlfr117-bar small"><i style="width:${v/a.target*100}%"></i></div><small>${fmt(v)} / ${fmt(a.target)} · ${Object.entries(a.reward).map(([k,n])=>`${{keys:'🔑',dust:'✧',shards:'◆',xp:'XP'}[k]} ${n}`).join(' ')}${a.title?` · titre « ${esc(a.title)} »`:''}</small></div></article>`;}).join('')}</div>`;
  if(goalsTab==='sets')body=`<div class="dlfr117-sets">${SETS.map(s=>{const pr=setProgress(s),done=progress.sets[s.id],ready=!done&&pr.total&&pr.have>=pr.total;return `<article class="dlfr117-set ${done?'is-done':''}"><h4>${esc(s.name)}</h4><p>${s.finish?`Toutes en ${FIN_NAME[s.finish]} ou mieux`:s.stars?`Toutes à ★${s.stars} ou plus`:'Toutes les cartes de la série'}</p><div class="dlfr117-bar small"><i style="width:${pr.total?pr.have/pr.total*100:0}%"></i></div><small>${pr.have} / ${pr.total} · 🔑 ${s.reward.keys} · ✧ ${s.reward.dust} · +5 % ◆ permanents</small>${done?'<b class="dlfr117-ok">✓ Terminée</b>':`<button class="btn" type="button" data-v112-act="set-claim" data-id="${s.id}" ${ready?'':'disabled'}>Valider la série</button>`}</article>`;}).join('')}</div>`;
+ if(goalsTab==='contracts')body=contractsHTML();
  if(goalsTab==='renaissance'){const g=renaissanceGain();body=`<div class="dlfr117-reborn"><div class="dlfr117-reborn-mark">✺</div><div><h3>Renaissance ${progress.prestige}/${MAX_PRESTIGE}</h3><p>À partir du niveau ${RENAISSANCE_LEVEL}, tu peux renaître : retour au niveau 1, talents remis à zéro, mais tu gardes toute ta collection, la poussière, les clés, les succès et les séries.</p><ul><li>Chaque ✺ : +10 % d’XP et d’éclats, +3 points de talent permanents.</li><li>Gain : 1 ✺ au niveau ${RENAISSANCE_LEVEL}, +1 tous les 25 niveaux au-delà.</li><li>Bonus actuel : +${Math.round((prestMult()-1)*100)} % · ${progress.prestige*3} points de talent supplémentaires.</li></ul><button class="btn" type="button" data-v112-act="renaissance" ${g?'':'disabled'}>${g?`Renaître · +${g} ✺`:progress.prestige>=MAX_PRESTIGE?'Maximum atteint':`Disponible au niveau ${RENAISSANCE_LEVEL}`}</button></div></div>`;}
  return `<section class="dlfr117-panel"><div class="dlfr117-head"><div><small>OBJECTIFS</small><h2>Missions, succès & séries</h2><p>Missions du moment, succès et séries.</p></div></div><div class="dlfr117-tabs">${tabs.map(([k,t])=>`<button type="button" class="${goalsTab===k?'active':''}" data-v112-act="goals-tab" data-tab="${k}">${t}</button>`).join('')}</div>${body}</section>`;
 }
 function progressionPage(data){
  ensureQuests();
- const inner=view==='packs'?boostersView():view==='expeditions'?expeditionsView():view==='talents'?talentsView():view==='forge'?forgeView(data):goalsView();
+ const inner=view==='packs'?boostersView():view==='chapters'?chaptersView():view==='expeditions'?expeditionsView():view==='talents'?talentsView():view==='forge'?forgeView(data):goalsView();
  return `<div class="dlfr117-game">${hud()}${inner}
   <div class="dlfr117-footer"><p>Ta partie est sauvegardée automatiquement sur ton compte.${editor?' Importer une sauvegarde passe la session en <strong>mode test</strong> (plus de sauvegarde automatique jusqu’au rechargement).':''}</p><div class="dlfr113-create-buttons"><button class="btn subtle" data-v112-act="export-session" type="button">↓ Exporter ma partie</button>${editor?'<button class="btn subtle" data-v112-act="open-session-import" type="button">↑ Importer (test)</button>':''}<input type="file" id="dlfr114SessionFile" accept="application/json,.json" hidden></div></div></div>`;
 }
@@ -578,6 +721,13 @@ async function importSession(file){
  try{restoreSession(JSON.parse(await file.text()),true);}catch(error){alert('Import de session impossible : '+error.message);}
 }
 // Restaure une sauvegarde (fichier ou compte). Lève une erreur si le contenu est incohérent.
+const IV=(v,max,min=0)=>Number.isSafeInteger(v)&&v>=min&&v<=max;
+function cleanChapters(c){const out={cleared:{},run:null};if(!c||typeof c!=='object')return out;
+ for(const [k,v] of Object.entries(c.cleared||{}))if(CHAPTERS.some(x=>x.id===k)&&IV(v,100000,1))out.cleared[k]=v;
+ const r=c.run;if(r&&CHAPTERS.some(x=>x.id===r.ch)&&Array.isArray(r.steps)&&r.steps.length<=10&&IV(r.step,r.steps.length)&&IV(r.lives,4,1)&&Array.isArray(r.team)&&r.team.length<=3&&r.team.every(n=>IV(n,100000000,1)))
+  out.run={ch:r.ch,step:r.step,lives:r.lives,max:IV(r.max,4,3)?r.max:3,team:r.team,used:(r.used||[]).filter(n=>r.team.includes(n)),armed:null,steps:r.steps.filter(s=>STEP_KIND[s?.kind]&&Array.isArray(s.choices)).map(s=>({kind:s.kind,txt:String(s.txt||'').slice(0,120),choices:s.choices.filter(c=>CHOICE_TXT[c?.attr]&&IV(c.req,100000,1)).slice(0,3).map(c=>({attr:c.attr,req:c.req,secret:!!c.secret}))})),
+   loot:{shards:IV(r.loot?.shards,1e7)?r.loot.shards:0,dust:IV(r.loot?.dust,1e7)?r.loot.dust:0,keys:IV(r.loot?.keys,1000)?r.loot.keys:0,cards:(r.loot?.cards||[]).filter(n=>IV(n,100000000,1)).slice(0,20)},log:[]};
+ return out;}
 function restoreSession(x,interactive){
  {
   if(x?.format!=='dlfr-cards-session'||![1,2].includes(x.version)||!Array.isArray(x.owned)||!Array.isArray(x.overrides)||x.owned.length>5000||x.overrides.length>5000)throw new Error('Format invalide');
@@ -606,7 +756,7 @@ function restoreSession(x,interactive){
    const st=p.stats||{},stats=newStats();for(const k of Object.keys(stats)){if(Array.isArray(stats[k])){if(Array.isArray(st[k])&&st[k].length<=stats[k].length&&st[k].every(n=>I(n,100000000)))st[k].forEach((n,i)=>{stats[k][i]=n;});}else if(I(st[k],100000000))stats[k]=st[k];}
    const quests=Array.isArray(p.quests)?p.quests.filter(q=>q&&QUEST_POOL.some(t=>t.type===q.type)&&I(q.target,100000,1)&&I(q.have,q.target)&&q.reward&&typeof q.reward==='object'&&['xp','shards','dust','keys'].every(k=>q.reward[k]===undefined||I(q.reward[k],1000000))).slice(0,3).map(q=>({id:String(q.id).slice(0,20),type:q.type,target:q.target,have:q.have,reward:{...q.reward},...(I(q.at,4102444800000)&&q.at>0?{at:q.at}:{})})):[];
    Object.assign(np,{level:p.level,xp:p.xp,shards:p.shards,dust:p.dust,keys:p.keys,prestige:p.prestige,skills,camps:camps.map(c=>({dest:c.dest,start:c.start,end:c.end})),quests,questSeed:p.questSeed||0,
-    achievements:flags(p.achievements,ACHIEVEMENTS),sets:flags(Object.fromEntries(Object.entries(p.sets||{}).map(([k,v])=>[['legends','modern','players','dlfr'].includes(k)?'col-'+k:k,v])),SETS),pity:{leg:I(p.pity?.leg,5000)?p.pity.leg:0,myth:I(p.pity?.myth,5000)?p.pity.myth:0},stats,title:typeof p.title==='string'?p.title.slice(0,40):''});
+    achievements:flags(p.achievements,ACHIEVEMENTS),sets:flags(Object.fromEntries(Object.entries(p.sets||{}).map(([k,v])=>[['legends','modern','players','dlfr'].includes(k)?'col-'+k:k,v])),SETS),pity:{leg:I(p.pity?.leg,5000)?p.pity.leg:0,myth:I(p.pity?.myth,5000)?p.pity.myth:0},stats,title:typeof p.title==='string'?p.title.slice(0,40):'',chapters:cleanChapters(p.chapters),spec:SPECS[p.spec]?p.spec:null,mastery:Object.fromEntries(Object.entries(p.mastery&&typeof p.mastery==='object'?p.mastery:{}).filter(([k,v])=>/^[0-9]{1,12}$/.test(k)&&Number.isSafeInteger(v)&&v>=0&&v<=1e6).slice(0,5000).map(([k,v])=>[Number(k),v])),contracts:Object.fromEntries(Object.entries(p.contracts&&typeof p.contracts==='object'?p.contracts:{}).filter(([k,v])=>v===true&&k.length<=80).slice(0,500))});
   }
   if(interactive&&!confirm('Restaurer cette sauvegarde ? Les cartes et la progression actuelles seront remplacées.'))return;
   reset();for(const [id,v] of inv)owned.set(id,v);for(const [id,r] of rares)overrides.set(id,r);
@@ -1086,7 +1236,7 @@ function catalogView(data){
 }
 
 // ============================================================ PAGE
-function tabs(){const t=[...(window.DLFR_CARDS?[['official','★ Collection']]:[]),...(window.DLFR_ADVENT?[['advent','🎄 Avent']]:[]),...(window.DLFR_SEASON?[['boss','⚔ Boss'],['season','🏆 Saison']]:[]),['packs','✦ Boosters'],['expeditions','Expéditions'],['talents','Talents'],['forge','Forge'],['goals','Objectifs'],['album','Album'],['collection','Ma collection']];return editor?t.concat([['catalog','✎ Catalogue'],['exchanges','Échanges fictifs'],['control','Outils de test']]):t;}
+function tabs(){const t=[...(window.DLFR_CARDS?[['official','★ Collection']]:[]),...(window.DLFR_ADVENT?[['advent','🎄 Avent']]:[]),...(window.DLFR_SEASON?[['boss','⚔ Boss'],['season','🏆 Saison']]:[]),['packs','✦ Boosters'],['chapters','🧭 Chapitres'],['expeditions','Expéditions'],['talents','Talents'],['forge','Forge'],['goals','Objectifs'],['album','Album'],['collection','Ma collection']];return editor?t.concat([['catalog','✎ Catalogue'],['exchanges','Échanges fictifs'],['control','Outils de test']]):t;}
 function filtered(){return shownCards().filter(c=>(view!=='collection'||has(c.id))&&(filter==='all'||filter==='owned'&&has(c.id)||filter==='missing'&&!has(c.id)||filter===c.type||filter==='col:'+c.collectionId)&&normalize(c.name+' '+c.series+' '+rarity(c)).includes(normalize(query)));}
 function albumView(data){
  const current=get(selected)||CARDS[0];
@@ -1102,7 +1252,7 @@ function viewPage(data){
  if((view==='boss'||view==='season')&&!window.DLFR_SEASON)view='official';
  if(!editor&&['catalog','exchanges','control'].includes(view))view='album';
  const current=get(selected)||CARDS[0];
- const prog=['packs','expeditions','talents','forge','goals'].includes(view),total=Math.max(1,shownCards().length);
+ const prog=['packs','chapters','expeditions','talents','forge','goals'].includes(view),total=Math.max(1,shownCards().length);
  const src=catalog.status==='loading'?'chargement…':catalog.status==='ready'||catalog.status==='empty'?'':'hors ligne';
  return `<section class="dlfr112 dlfr117" id="dlfr112Lab">
   <div class="dlfr112-header"><div><div class="dlfr112-eyebrow">DLFR CARDS${view==='official'?' · COLLECTION':view==='advent'?' · CALENDRIER DE L’AVENT':view==='boss'?' · BOSS COMMUNAUTAIRE':view==='season'?' · SAISON':' · MODE AVENTURE'}</div><h1>DLFR Cards</h1><p>${shownCards().length} cartes · ${COLLECTIONS.length} collections${src?` · ${src}`:''}${progress.title?` · <b>${esc(progress.title)}</b>`:''}</p></div><span class="dlfr141-savebox"><span class="dlfr112-demo-label ${SAVE.tainted||SAVE.conflict?'is-warn':''}" id="dlfr129Save" aria-live="polite" title="Sauvegarde du mode Aventure">Aventure · ${esc(saveLabel())}</span>${SAVE.tainted&&userId?'<button type="button" class="btn small dlfr141-leave" data-v112-act="leave-test">↺ Revenir à ma partie</button>':''}</span></div>
@@ -1246,6 +1396,13 @@ function handleClick(event){
  else if(act==='upgrade'){upgradeCard(b.dataset.id);}
  else if(act==='recycle'){const n=recycleSpare();if(!n)toast('Forge','Aucun doublon à recycler (seulement les cartes ★10).','info');}
  else if(act==='goals-tab'){goalsTab=b.dataset.tab;}
+ else if(act==='ch-team'){const id=Number(b.dataset.id);if(chTeam.includes(id))chTeam=chTeam.filter(x=>x!==id);else if(chTeam.length<3)chTeam.push(id);}
+ else if(act==='ch-start'){startChapter(b.dataset.id);}
+ else if(act==='ch-choose'){chChoose(Number(b.dataset.k));}
+ else if(act==='ch-arm'){chArm(Number(b.dataset.id));}
+ else if(act==='ch-abandon'){chAbandon();}
+ else if(act==='contract-claim'){claimContract(b.dataset.id);}
+ else if(act==='spec-pick'){pickSpec(b.dataset.spec);}
  else if(act==='quest-claim'){claimQuest(b.dataset.id);}
  else if(act==='quest-reroll'){rerollQuest(b.dataset.id);}
  else if(act==='set-claim'){claimSet(b.dataset.id);}

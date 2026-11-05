@@ -1,0 +1,34 @@
+DLFR V161 + V162 — Chapitres, Contrats, Maîtrise des cartes, Spécialisations
+============================================================================
+(Inclut V160 et avant. Aucune requête SQL.)
+
+🧭 Chapitres (nouvel onglet du mode Aventure)
+ - 8 chapitres (Plaines de Stereo Madness → Trône de Tidal Wave), débloqués par le niveau et
+   le chapitre précédent. Départ : éclats (+1 clé à partir du chapitre 5).
+ - Tu formes une équipe de 3 cartes. Chaque carte a 4 attributs : 🎯 Précision, 🛡 Endurance,
+   ⚙ Technique, 🔍 Découverte (selon type, rareté, étoiles, finition). Certaines Communes / Rares
+   ont une SPÉCIALITÉ très forte (attribut doré) : elles peuvent valoir mieux qu'une Mythique.
+ - Chaque étape (Explorer, Événement, Défi, Trésor, Boss) propose 2 choix ; parfois un
+   🗝 chemin secret (Découverte) avec un gros butin. L'équipe additionne l'attribut demandé.
+ - Capacité : une fois par aventure, chaque carte peut doubler sa valeur pour une étape.
+ - 3 vies ; un échec coûte une vie. Butin : éclats, poussière, clés, cartes ; premier passage
+   = clés bonus. Abandon ou défaite : la moitié du butin est gardée.
+
+📜 Contrats de collection (Objectifs → Contrats)
+ - Générés depuis le catalogue : « Vérifiés par … », « Créés par … », « Le Top 10 », « La Main
+   List », « L'Extended List », « Les joueurs du Top 10 ». Il suffit d'environ 75 % des cartes
+   du thème (une carte introuvable ne bloque pas). Récompenses : éclats, poussière, clés.
+
+★ Maîtrise des cartes
+ - Une carte gagne de l'XP de maîtrise quand elle part en chapitre. 5 rangs avec bordure :
+   Bronze, Argent, Or, Constellation, Prisme (badge MI…MV sur la carte, détail à la Forge).
+
+Spécialisations (Talents, à partir du niveau 25)
+ - Collectionneur (finitions, nouvelles cartes, contrats), Explorateur (4 vies, chemins
+   secrets, expéditions) ou Artisan (Forge, poussière, maîtrise). Chacune débloque un talent
+   exclusif. Changer coûte 5 000 ◆ (talent exclusif remboursé).
+
+Succès ajoutés : Chapitre 4, Toute l'aventure (titre « Aventurier »), 5 / 20 contrats
+(titre « Archiviste »), Maîtrise Or, Maîtrise Prisme (titre « Maître de carte »).
+
+Fichiers : index.html, js/v118-cards-lab.js, css/v131-cards.css
