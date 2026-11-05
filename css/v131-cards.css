@@ -345,3 +345,4 @@ html.dark .c131-step.t0,.dlfr117-panel .c131-step.t0,.dlfr117-game .c131-step.t0
 .dlfr166-gift.is-open{display:block}
 .dlfr166-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin:12px 0;max-height:520px;overflow:auto}
 .dlfr166-card.is-txt{padding:8px;border-radius:10px;background:rgba(255,255,255,.05);font-size:.82rem}
+.dlfr165-ban.is-shadow{border-color:rgba(148,163,184,.5);background:rgba(71,85,105,.25);color:#e2e8f0;font-weight:500}

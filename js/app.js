@@ -1203,7 +1203,7 @@ async function loadCardShowcase(){
   const {data,error}=await db.rpc('dlfr_cards_public',{p_player_key:key});if(error)throw error;
   if(seq!==cardShowSeq||!area.isConnected)return;
   const ids=(data?.showcase||[]).map(Number);
-  if(!Number(data?.owned)){area.hidden=true;return;}
+  if(!Number(data?.owned)||data?.hidden){area.hidden=true;return;} // V168 : soft ban = plus de vitrine
   let cards=[];
   if(ids.length){const r=await db.from('dlfr_cards').select('*').in('id',ids);if(!r.error)cards=ids.map(id=>(r.data||[]).find(c=>Number(c.id)===id)).filter(Boolean);}
   if(seq!==cardShowSeq||!area.isConnected)return;

@@ -1342,11 +1342,11 @@ async function syncCards(){
   const cur=owned.get(id);if(count>0){if(get(id)){const x=cur||{count:0,finish:0,stars:0};x.count=count;owned.set(id,x);}}else owned.delete(id);
  }
  serverCounts=next;
- if(Number(data?.queued)>0)toast('DLFR Cards',`Limite du jour atteinte (120 cartes) : ${data.queued} carte(s) mises de côté. Rien n’est perdu, elles rejoindront ta collection demain.`,'info');
+ if(Number(data?.capped)>0)toast('DLFR Cards',`Limite de cartes atteinte pour aujourd’hui : ${data.capped} carte(s) non ajoutée(s). Reviens demain !`,'info');
  if(Number(data?.delivered)>0)toast('DLFR Cards',`${data.delivered} carte(s) mises de côté ont rejoint ta collection.`,'info');
  queueTotal=Number(data?.queue_total)||0;
  for(const b of data?.bonuses||[])toast('Collection complète !',`${b.collection} : +${b.coins} Wayllings dorés`,'achievement');
- if(Number(data?.queued)>0||Number(data?.delivered)>0||(data?.bonuses||[]).length)setTimeout(repaint,0);
+ if(Number(data?.capped)>0||Number(data?.delivered)>0||(data?.bonuses||[]).length)setTimeout(repaint,0);
  window.DLFR_CARDS?.invalidate?.();
 }
 function scheduleSave(){
@@ -1376,7 +1376,7 @@ function antiBlock(e){e.preventDefault();e.stopImmediatePropagation();}
 function antiClick(e){
  const zone=e.target?.closest?.(ANTI_ZONE);if(!zone||!gate)return;
  if(ANTI.status?.banned){if(e.target.closest('button,[data-v112-act]')){antiBlock(e);toast('DLFR Cards',ANTI.status.banned,'info');}return;}
- if(!e.isTrusted){antiBlock(e);antiFlag('synthetic','clic généré par un script');return;}
+ if(!e.isTrusted){if(e.target.closest('input,label,a[download]')||!e.target.closest('button,[data-v112-act],[data-mode]'))return;antiBlock(e);antiFlag('synthetic','clic généré par un script');return;}
  const now=performance.now();
  if(now<ANTI.lock){antiBlock(e);return;}
  if(e.detail===0){ // clic au clavier (Entrée / Espace) : touche maintenue = répétition automatique, on la freine
@@ -1432,7 +1432,7 @@ async function giftClaim(id){
 function antiBanner(){
  const st=ANTI.status;if(!st)return giftPanel();
  if(st.banned)return `<div class="dlfr165-ban">⛔ ${esc(st.banned)}</div>`;
- const gp=giftPanel();
+ const gp=giftPanel()+(st.shadow?`<div class="dlfr165-ban is-shadow">👁 Compte restreint (${esc(st.shadow)}) : tu peux continuer à jouer, mais tu n’apparais plus dans les classements et ta vitrine est masquée.</div>`:'');
  const rs=st.reset;if(rs?.at&&Date.now()-Date.parse(rs.at)<72*3600000)return gp+`<div class="dlfr165-ban is-reset">⚠ ${new Date(rs.at).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · ${esc(rs.reason)}.</div>`;
  if(st.strikes>0)return gp+`<div class="dlfr165-ban is-warn">⚠ ${st.strikes} alerte${st.strikes>1?'s':''} pour clics automatiques ou rythme impossible ces dernières 24 h. À 3, tes cartes Ultra et Secrètes te sont retirées.</div>`;
  return gp;
@@ -1443,21 +1443,22 @@ const SANC={data:null,busy:false,err:''};
 function sancWhen(t){return t?new Date(t).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';}
 function sanctionsPanel(){
  const d=SANC.data,row=(x,extra)=>`<li><b>${esc(x.name||x.player_key||'?')}</b> ${extra}</li>`;
- return `<section class="dlfr112-panel dlfr165-sanc"><div class="dlfr112-section-head"><h2>Anti-triche · Sanctions</h2><p>Détection automatique : clics générés par script, autoclicker (clics trop réguliers), rafales, plus de 1 200 boosters ou 40 chapitres en une heure. 3 alertes en 24 h = cartes Ultra et Secrètes retirées.</p></div>
+ return `<section class="dlfr112-panel dlfr165-sanc"><div class="dlfr112-section-head"><h2>Anti-triche · Sanctions</h2><p>Détection automatique : clics générés par script, autoclicker, rafales, plus de 1 200 boosters ou 20 chapitres en une heure, cartes ajoutées au-delà des quotas du serveur. 3 alertes en 24 h = cartes Ultra et Secrètes retirées ; à la 2e sanction = soft ban automatique.</p></div>
   <div class="dlfr112-admin-edit"><label>Pseudo de la fiche joueur<input id="dlfr165SancKey" type="text" maxlength="60" placeholder="ex. zuperxivi"></label><label>Raison<input id="dlfr165SancReason" type="text" maxlength="120" placeholder="autoclicker"></label><label>Durée du ban (jours, vide = définitif)<input id="dlfr165SancDays" type="number" min="1" max="3650"></label></div>
-  <div class="dlfr112-admin-actions"><button class="btn subtle" type="button" data-v112-act="sanc-do" data-what="soft">Retirer Ultra + Secrètes</button><button class="btn subtle" type="button" data-v112-act="sanc-do" data-what="reset">Remise à zéro totale</button><button class="btn subtle" type="button" data-v112-act="sanc-do" data-what="ban">Bannir du jeu</button><button class="btn subtle" type="button" data-v112-act="sanc-do" data-what="unban">Lever le ban / effacer les alertes</button><button class="btn" type="button" data-v112-act="sanc-load">${d?'↻ Actualiser':'Afficher les alertes'}</button></div>
+  <div class="dlfr112-admin-actions"><button class="btn subtle" type="button" data-v112-act="sanc-do" data-what="soft">Retirer Ultra + Secrètes</button><button class="btn subtle" type="button" data-v112-act="sanc-do" data-what="reset">Remise à zéro totale</button><button class="btn subtle" type="button" data-v112-act="sanc-do" data-what="shadow">Soft ban (masqué)</button><button class="btn subtle" type="button" data-v112-act="sanc-do" data-what="unshadow">Lever le soft ban</button><button class="btn subtle" type="button" data-v112-act="sanc-do" data-what="ban">Bannir du jeu</button><button class="btn subtle" type="button" data-v112-act="sanc-do" data-what="unban">Lever le ban / effacer les alertes</button><button class="btn" type="button" data-v112-act="sanc-load">${d?'↻ Actualiser':'Afficher les alertes'}</button></div>
   ${SANC.err?`<p class="dlfr165-err">${esc(SANC.err)}</p>`:''}
   ${d?`<div class="dlfr165-cols">
+   <div><h3>Soft ban (masqués du classement)</h3><ul>${(d.shadows||[]).map(x=>row(x,`· ${sancWhen(x.at)} · ${esc(x.reason)}`)).join('')||'<li class="muted">Aucun</li>'}</ul></div>
    <div><h3>Bans en cours</h3><ul>${d.bans.map(x=>row(x,`· ${x.until?'jusqu’au '+sancWhen(x.until):'définitif'} · ${esc(x.reason)}`)).join('')||'<li class="muted">Aucun</li>'}</ul></div>
    <div><h3>Sanctions récentes</h3><ul>${d.resets.map(x=>row(x,`· ${sancWhen(x.at)} · ${esc(x.reason)}`)).join('')||'<li class="muted">Aucune</li>'}</ul></div>
    <div><h3>Alertes (7 jours)</h3><ul>${d.strikes.map(x=>row(x,`· ${sancWhen(x.at)} · ${esc(String(x.kind).replace(':sanctionné',' (sanctionné)'))} · ${esc(x.detail||'')}`)).join('')||'<li class="muted">Aucune</li>'}</ul></div>
-   <div><h3>Plus gros rythmes (48 h, boosters/heure)</h3><ul>${d.top_rate.map(x=>row(x,`· ${fmt(x.packs)} / h`)).join('')||'<li class="muted">Rien</li>'}</ul></div></div>`:''}</section>`;
+   <div><h3>Plus gros rythmes (48 h, par heure)</h3><ul>${d.top_rate.map(x=>row(x,`· ${fmt(x.packs)} boosters · ${fmt(x.chapters||0)} chapitres`)).join('')||'<li class="muted">Rien</li>'}</ul></div></div>`:''}</section>`;
 }
 async function sancLoad(){if(!DB)return;SANC.err='';const {data,error}=await DB.rpc('dlfr_cards_sanctions');if(error){SANC.err=error.message;}else SANC.data=data;repaint();}
 async function sancDo(what){
  const key=(document.getElementById('dlfr165SancKey')?.value||'').trim(),reason=(document.getElementById('dlfr165SancReason')?.value||'').trim(),days=Number(document.getElementById('dlfr165SancDays')?.value)||null;
  if(!key){SANC.err='Indique le pseudo de la fiche joueur.';repaint();return;}
- const label={soft:'retirer ses cartes Ultra et Secrètes',reset:'REMETTRE À ZÉRO toute sa partie Aventure (irréversible)',ban:`le bannir du jeu de cartes ${days?days+' jour(s)':'DÉFINITIVEMENT'}`,unban:'lever son ban et effacer ses alertes'}[what];
+ const label={shadow:'le passer en soft ban (il joue mais disparaît des classements, vitrine masquée)',unshadow:'lever son soft ban',soft:'retirer ses cartes Ultra et Secrètes',reset:'REMETTRE À ZÉRO toute sa partie Aventure (irréversible)',ban:`le bannir du jeu de cartes ${days?days+' jour(s)':'DÉFINITIVEMENT'}`,unban:'lever son ban et effacer ses alertes'}[what];
  if(!label||!confirm(`${key} : ${label} ?`))return;
  const {error}=await DB.rpc('dlfr_cards_sanction_set',{p_player_key:key,p_action:what,p_days:what==='ban'?days:null,p_reason:reason||null});
  if(error){SANC.err=error.message;repaint();return;}
