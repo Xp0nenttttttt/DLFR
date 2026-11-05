@@ -1,0 +1,14 @@
+DLFR V166 — 10 packs de dédommagement
+=====================================
+(Inclut V165 et avant. Base de données : DÉJÀ APPLIQUÉE — supabase/166_PACKS_DEDOMMAGEMENT.sql = archive.)
+
+ - Chaque joueur connecté voit un bandeau doré « Packs de dédommagement » dans DLFR Cards
+   (tous les onglets) et peut ouvrir 10 packs de 5 cartes, une seule fois, jusqu'au 19 novembre.
+ - Chances un peu meilleures qu'un Explorateur : Commun 60 %, Rare 30 %, Épique 8,4 %,
+   Légendaire 1,4 %, Mythique 0,2 %, Ultra 1 sur 7 500 (2× la normale). La 5e carte de chaque
+   pack est Rare ou mieux. Jamais de Secrète.
+ - Le tirage est fait par le serveur (impossible à tricher) ; les 50 cartes s'affichent puis vont
+   directement dans la collection.
+ - Les joueurs bannis du jeu de cartes ne peuvent pas le récupérer.
+
+Fichiers : index.html, js/v118-cards-lab.js, css/v131-cards.css

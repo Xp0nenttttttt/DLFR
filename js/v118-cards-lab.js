@@ -43,6 +43,7 @@ let editor=false,userId=null;
 let serverCounts=null,queueTotal=0; // V138 : collection unique (serveur) — exemplaires connus côté serveur
 const SAVE={loaded:false,version:0,timer:0,saving:false,pending:false,status:'',tainted:false,conflict:false};
 const ANTI={t:[],lock:0,kb:0,status:null,seenReset:''};
+const GIFT={list:[],result:null,busy:false}; // V166 — packs offerts (dédommagement)
 try{ANTI.seenReset=localStorage.getItem('dlfr-cards-reset-seen')||'';}catch(e){}
 const catalog={status:'local',error:'',selCol:1,editCard:null,editCol:null,draft:null,colDraft:null,busy:false,msg:'',msgKind:'',pendingFile:null};
 
@@ -1396,7 +1397,8 @@ function antiFlag(kind,detail){
 }
 async function antiStatus(){
  if(!DB||!userId)return;
- try{const {data,error}=await DB.rpc('dlfr_cards_my_status');if(error)return;ANTI.status=data||null;
+ try{DB.rpc('dlfr_cards_gifts_open').then(({data})=>{const l=Array.isArray(data)?data:[];if(l.length!==GIFT.list.length){GIFT.list=l;repaint();}}).catch(()=>{});
+  const {data,error}=await DB.rpc('dlfr_cards_my_status');if(error)return;ANTI.status=data||null;
   const rs=data?.reset;
   if(rs?.at&&rs.at!==ANTI.seenReset){
    ANTI.seenReset=rs.at;try{localStorage.setItem('dlfr-cards-reset-seen',rs.at);}catch(e){}
@@ -1406,12 +1408,33 @@ async function antiStatus(){
   repaint();
  }catch(e){}
 }
+function giftPanel(){
+ const RO=['Ultra','Mythique','Légendaire','Épique','Rare','Commun'],data=srcData();
+ if(GIFT.result){const all=GIFT.result.flat().map(x=>({x,c:get(Number(x.id))})).sort((a,b)=>RO.indexOf(a.x.rarity)-RO.indexOf(b.x.rarity));
+  const counts=RO.map(r=>[r,all.filter(a=>a.x.rarity===r).length]).filter(([,n])=>n);
+  return `<section class="dlfr166-gift is-open"><div><b>🎁 Tes ${GIFT.result.length} packs sont ouverts !</b><p>${counts.map(([r,n])=>`${n} ${esc(r)}`).join(' · ')} · tout est déjà dans ta collection.</p></div>
+   <div class="dlfr166-cards">${all.map(({x,c})=>c?`<div class="dlfr166-card">${figure(c,data,true)}</div>`:`<div class="dlfr166-card is-txt">${esc(x.name)} <small>${esc(x.rarity)}</small></div>`).join('')}</div>
+   <button type="button" class="btn small subtle" data-v112-act="gift-close">Fermer</button></section>`;}
+ const g=GIFT.list[0];if(!g)return '';
+ return `<section class="dlfr166-gift"><div><b>🎁 ${esc(g.title)} : ${g.packs} packs de ${g.per_pack} cartes</b><p>${esc(g.message)} À récupérer avant le ${new Date(g.expires).toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}.</p></div>
+  <button type="button" class="btn" data-v112-act="gift-claim" data-id="${g.id}" ${GIFT.busy?'disabled':''}>${GIFT.busy?'Ouverture…':'Ouvrir mes packs'}</button></section>`;
+}
+async function giftClaim(id){
+ if(GIFT.busy||!DB||!userId)return;GIFT.busy=true;repaint();
+ try{const {data,error}=await DB.rpc('dlfr_cards_gift_claim',{p_gift:id});if(error)throw error;
+  GIFT.result=data?.packs||[];GIFT.list=GIFT.list.filter(g=>g.id!==id);
+  if(data?.inventory)setServerInventory(data.inventory,false);window.DLFR_CARDS?.invalidate?.();
+  toast('🎁 Packs ouverts',`${GIFT.result.flat().length} cartes ajoutées à ta collection.`,'achievement');
+ }catch(e){toast('Packs offerts',e?.message||'Impossible pour le moment.','info');}
+ finally{GIFT.busy=false;repaint();}
+}
 function antiBanner(){
- const st=ANTI.status;if(!st)return '';
+ const st=ANTI.status;if(!st)return giftPanel();
  if(st.banned)return `<div class="dlfr165-ban">⛔ ${esc(st.banned)}</div>`;
- const rs=st.reset;if(rs?.at&&Date.now()-Date.parse(rs.at)<72*3600000)return `<div class="dlfr165-ban is-reset">⚠ ${new Date(rs.at).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · ${esc(rs.reason)}.</div>`;
- if(st.strikes>0)return `<div class="dlfr165-ban is-warn">⚠ ${st.strikes} alerte${st.strikes>1?'s':''} pour clics automatiques ou rythme impossible ces dernières 24 h. À 3, tes cartes Ultra et Secrètes te sont retirées.</div>`;
- return '';
+ const gp=giftPanel();
+ const rs=st.reset;if(rs?.at&&Date.now()-Date.parse(rs.at)<72*3600000)return gp+`<div class="dlfr165-ban is-reset">⚠ ${new Date(rs.at).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · ${esc(rs.reason)}.</div>`;
+ if(st.strikes>0)return gp+`<div class="dlfr165-ban is-warn">⚠ ${st.strikes} alerte${st.strikes>1?'s':''} pour clics automatiques ou rythme impossible ces dernières 24 h. À 3, tes cartes Ultra et Secrètes te sont retirées.</div>`;
+ return gp;
 }
 document.addEventListener('click',antiClick,true);
 // V165 — panneau Sanctions (équipe)
@@ -1446,6 +1469,8 @@ function handleClick(event){
  const act=b.dataset.v112Act;
  const TEST=['give','take','holo','all','holo-all','cheat','cooldown-skip','skills-reset','reset','rarity','trade','open-session-import'];
  if(TEST.includes(act)||act.startsWith('cat-')){if(!editor)return;if(TEST.includes(act)&&act!=='open-session-import'){if(!SAVE.tainted&&SAVE.loaded&&!window.confirm('Outil de test : à partir de maintenant, ta partie Aventure ne sera plus sauvegardée (tout ce que tu feras sera perdu au rechargement).\n\nTa vraie partie reste intacte : tu pourras la récupérer avec « Revenir à ma partie ».\n\nContinuer ?'))return;SAVE.tainted=true;clearTimeout(SAVE.timer);SAVE.timer=0;repaint();}}
+ if(act==='gift-claim'){giftClaim(Number(b.dataset.id));return;}
+ if(act==='gift-close'){GIFT.result=null;repaint();return;}
  if(act==='sanc-load'||act==='sanc-do'){if(!editor)return;if(act==='sanc-load')sancLoad();else sancDo(b.dataset.what);return;}
  if(act==='leave-test'){SAVE.tainted=false;SAVE.loaded=false;serverCounts=null;setSaveLabel(saveLabel());loadSave().then(()=>toast('DLFR Cards','Ta partie sauvegardée est de retour.','info'));return;}
  if(act.startsWith('cat-')){

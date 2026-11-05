@@ -337,3 +337,11 @@ html.dark .c131-step.t0,.dlfr117-panel .c131-step.t0,.dlfr117-game .c131-step.t0
 .dlfr165-cols ul{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:.84rem;max-height:260px;overflow:auto}
 .dlfr165-cols li{padding:5px 8px;border-radius:8px;background:rgba(255,255,255,.04);overflow-wrap:anywhere}
 .dlfr165-err{color:#fca5a5;font-size:.88rem}
+
+/* V166 — packs offerts */
+.dlfr166-gift{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:12px 0;padding:14px 16px;border-radius:14px;border:1px solid rgba(250,204,21,.55);background:linear-gradient(135deg,#3b2a0c,#2a1748);color:#fff7e0}
+.dlfr166-gift b{color:#fde68a}
+.dlfr166-gift p{margin:4px 0 0;font-size:.88rem;opacity:.9}
+.dlfr166-gift.is-open{display:block}
+.dlfr166-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin:12px 0;max-height:520px;overflow:auto}
+.dlfr166-card.is-txt{padding:8px;border-radius:10px;background:rgba(255,255,255,.05);font-size:.82rem}
