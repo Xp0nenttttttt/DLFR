@@ -1425,6 +1425,7 @@ async function giftClaim(id){
   GIFT.result=data?.packs||[];GIFT.list=GIFT.list.filter(g=>g.id!==id);
   if(data?.inventory)setServerInventory(data.inventory,false);window.DLFR_CARDS?.invalidate?.();
   toast('🎁 Packs ouverts',`${GIFT.result.flat().length} cartes ajoutées à ta collection.`,'achievement');
+  if(data?.badge==='crise-tcg')toast('🃏 Nouveau badge','« A traversé la grande crise du TCG » est sur ta fiche joueur.','achievement');
  }catch(e){toast('Packs offerts',e?.message||'Impossible pour le moment.','info');}
  finally{GIFT.busy=false;repaint();}
 }

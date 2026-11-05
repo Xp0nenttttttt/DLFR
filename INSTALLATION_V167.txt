@@ -1,0 +1,13 @@
+DLFR V167 — Badge « A traversé la grande crise du TCG » + 10 000 éclats pour tous
+================================================================================
+(Inclut V166, V165 et avant. Base de données : DÉJÀ APPLIQUÉE — supabase/167_*.sql = archive.)
+
+ - Nouveau badge Légendaire 🃏 « A traversé la grande crise du TCG », dans une nouvelle catégorie
+   « Événements » des badges.
+   Déjà donné aux 64 joueurs qui avaient une partie Aventure ou des cartes ; donné aussi
+   automatiquement à ceux qui ouvrent les packs de dédommagement d'ici le 19 novembre.
+   La modération peut aussi le donner à la main (comme « Le Goat »).
+ - Toutes les parties Aventure ont maintenant 10 000 éclats (déjà fait).
+   Si un joueur avait la page ouverte, il verra « recharge la page » : c'est normal.
+
+Fichiers : index.html, js/badge-system.js, js/v118-cards-lab.js
