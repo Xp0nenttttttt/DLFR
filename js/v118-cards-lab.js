@@ -1250,7 +1250,7 @@ function catalogView(data){
 }
 
 // ============================================================ PAGE
-function tabs(){const t=[...(window.DLFR_CARDS?[['official','★ Collection']]:[]),...(window.DLFR_ADVENT?[['advent','🎄 Avent']]:[]),...(window.DLFR_SEASON?[['boss','⚔ Boss'],['season','🏆 Saison']]:[]),...(window.DLFR_TRADES?[['trades','🔄 Échanges']]:[]),['packs','✦ Boosters'],['chapters','🧭 Chapitres'],['expeditions','Expéditions'],['talents','Talents'],['forge','Forge'],['goals','Objectifs'],['album','Album'],['collection','Ma collection']];return editor?t.concat([['catalog','✎ Catalogue'],['exchanges','Échanges fictifs'],['control','Outils de test']]):t;}
+function tabs(){const t=[...(window.DLFR_CARDS?[['official','★ Collection']]:[]),...(window.DLFR_ADVENT?[['advent','🎄 Avent']]:[]),...(window.DLFR_SEASON?[['boss','⚔ Boss'],['season','🏆 Saison']]:[]),['packs','✦ Boosters'],['chapters','🧭 Chapitres'],['expeditions','Expéditions'],['talents','Talents'],['forge','Forge'],['goals','Objectifs'],['album','Album'],['collection','Ma collection']];return editor?t.concat([['catalog','✎ Catalogue'],['exchanges','Échanges fictifs'],['control','Outils de test']]):t;}
 function filtered(){return shownCards().filter(c=>(view!=='collection'||has(c.id))&&(filter==='all'||filter==='owned'&&has(c.id)||filter==='missing'&&!has(c.id)||filter===c.type||filter==='col:'+c.collectionId)&&normalize(c.name+' '+c.series+' '+rarity(c)).includes(normalize(query)));}
 function albumView(data){
  const current=get(selected)||CARDS[0];
@@ -1264,7 +1264,7 @@ function viewPage(data){
  if(view==='official'&&!window.DLFR_CARDS)view='packs';
  if(view==='advent'&&!window.DLFR_ADVENT)view='official';
  if((view==='boss'||view==='season')&&!window.DLFR_SEASON)view='official';
- if(view==='trades'&&!window.DLFR_TRADES)view='official';
+ if(view==='trades')view='official'; // V169 : échanges retirés (jeu solo)
  if(!editor&&['catalog','exchanges','control'].includes(view))view='album';
  const current=get(selected)||CARDS[0];
  const prog=['packs','chapters','expeditions','talents','forge','goals'].includes(view),total=Math.max(1,shownCards().length);
@@ -1287,7 +1287,7 @@ function viewPage(data){
    <div class="dlfr112-admin-actions"><button class="btn" type="button" data-v112-act="all">✦ Recevoir toutes les cartes</button><button class="btn subtle" type="button" data-v112-act="holo-all">✧ Tout passer en Holo</button><button class="btn subtle" type="button" data-v112-act="cheat" data-what="shards">+1 000 ◆</button><button class="btn subtle" type="button" data-v112-act="cheat" data-what="dust">+500 ✧</button><button class="btn subtle" type="button" data-v112-act="cheat" data-what="keys">+5 🔑</button><button class="btn subtle" type="button" data-v112-act="cheat" data-what="levels">+5 niveaux</button><button class="btn subtle" type="button" data-v112-act="cooldown-skip">Terminer les expéditions</button><button class="btn subtle" type="button" data-v112-act="skills-reset">Réinitialiser les talents (remboursement)</button><button class="btn danger" type="button" data-v112-act="reset">Réinitialiser la progression de test</button></div>
    ${current?`<div class="dlfr112-admin-edit"><label>Carte à modifier<select id="dlfr112CardPick">${CARDS.map(c=>`<option value="${c.id}" ${c.id===selected?'selected':''}>${idString(c.id)} · ${esc(c.name)}</option>`).join('')}</select></label><label>Rareté fictive (test, non enregistrée)<select id="dlfr112Rarity">${rarities.map(r=>`<option value="${esc(r)}" ${r===rarity(current)?'selected':''}>${esc(r)}</option>`).join('')}</select></label><button class="btn subtle" type="button" data-v112-act="rarity">Tester la rareté</button></div>`:''}
    <div class="dlfr112-admin-edit"><label>Simulateur d'équilibrage (rien n'est donné)<select id="dlfr117SimPack">${allPacks().map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></label><button class="btn subtle" type="button" data-v112-act="simulate">Simuler 1 000 paquets</button></div>
-   <p class="dlfr117-sim" id="dlfr117SimOut"></p></section>${sanctionsPanel()}`:''}
+   <p class="dlfr117-sim" id="dlfr117SimOut"></p></section>`:''}
   ${journal.length?`<section class="dlfr112-panel dlfr112-log"><div class="dlfr112-section-head"><h2>Historique de cette session</h2><span class="muted small">Effacé au rechargement</span></div>${journal.slice(-6).reverse().map(x=>`<p>• ${esc(x)}</p>`).join('')}</section>`:''}
  </section>`;
 }
@@ -1430,6 +1430,7 @@ async function giftClaim(id){
  finally{GIFT.busy=false;repaint();}
 }
 function antiBanner(){
+ return giftPanel(); // V169 : jeu solo, plus de bandeaux de sanction
  const st=ANTI.status;if(!st)return giftPanel();
  if(st.banned)return `<div class="dlfr165-ban">⛔ ${esc(st.banned)}</div>`;
  const gp=giftPanel()+(st.shadow?`<div class="dlfr165-ban is-shadow">👁 Compte restreint (${esc(st.shadow)}) : tu peux continuer à jouer, mais tu n’apparais plus dans les classements et ta vitrine est masquée.</div>`:'');
@@ -1437,7 +1438,7 @@ function antiBanner(){
  if(st.strikes>0)return gp+`<div class="dlfr165-ban is-warn">⚠ ${st.strikes} alerte${st.strikes>1?'s':''} pour clics automatiques ou rythme impossible ces dernières 24 h. À 3, tes cartes Ultra et Secrètes te sont retirées.</div>`;
  return gp;
 }
-document.addEventListener('click',antiClick,true);
+// V169 : jeu solo, plus de détection d'autoclicker (les quotas serveur restent).
 // V165 — panneau Sanctions (équipe)
 const SANC={data:null,busy:false,err:''};
 function sancWhen(t){return t?new Date(t).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';}

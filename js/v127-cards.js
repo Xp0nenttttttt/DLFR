@@ -20,7 +20,7 @@ async function load(force=false){
   const [c,k,st,lb,oc]=await Promise.all([
    db.from('dlfr_card_collections').select('*').order('sort_order'),
    db.from('dlfr_cards').select('*').order('sort_order'),
-   db.rpc('dlfr_cards_status'),db.rpc('dlfr_cards_leaderboard'),db.rpc('dlfr_cards_owner_counts')]);
+   db.rpc('dlfr_cards_status'),Promise.resolve({data:[]}),db.rpc('dlfr_cards_owner_counts')]); // V169 : jeu solo, plus de classement
   if(c.error)throw c.error;if(k.error)throw k.error;if(st.error)throw st.error;
   S.board=lb.error?[]:(lb.data||[]);S.owners=oc.error?{}:(oc.data||{});
   S.collections=(c.data||[]).filter(x=>x.is_published!==false);{const live=new Set(S.collections.map(x=>Number(x.id)));S.cards=(k.data||[]).filter(r=>live.has(Number(r.collection_id))).map(r=>({row:r,card:toCard(r)}));}S.status=st.data||{};S.loaded=true;S.error='';
@@ -44,6 +44,7 @@ function showcaseHTML(st){
   <div class="dlfr137-showcase-row">${cards.map(c=>`<div class="dlfr137-show-slot" data-card-zoom="${c.id}" role="button" tabindex="0">${fig(c,true)}<button type="button" class="dlfr137-unshow" data-showcase-toggle="${c.id}" title="Retirer de la vitrine" aria-label="Retirer ${esc(c.name)} de la vitrine">✕</button></div>`).join('')}${Array.from({length:5-cards.length},()=>'<div class="dlfr137-show-empty" aria-hidden="true">★</div>').join('')}</div></section>`;
 }
 function boardHTML(){
+ return ''; // V169 : jeu solo
  if(!S.board.length)return '';
  const total=S.cards.filter(x=>x.card.rarity!=='Secrète').length,me=S.ctx?.ownKey;
  return `<section class="dlfr137-board"><h3>🏆 Meilleurs collectionneurs</h3><p class="muted small">Cartes différentes de la collection officielle.</p><ol>${S.board.slice(0,10).map((r,i)=>`<li class="${r.player_key===me?'is-me':''}"><span class="dlfr137-rank">${i<3?['🥇','🥈','🥉'][i]:'#'+(i+1)}</span><a href="?page=player&player=${encodeURIComponent(r.player_key)}" data-nav>${esc(r.name)}</a><span class="dlfr137-bar"><i style="width:${total?Math.min(100,r.owned/total*100):0}%"></i></span><b>${r.owned} / ${total}</b><small>${r.mythic?`✺ ${r.mythic}`:''}${r.legendary?` ★ ${r.legendary}`:''}</small></li>`).join('')}</ol></section>`;
