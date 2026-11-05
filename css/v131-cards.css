@@ -325,3 +325,15 @@ html.dark .c131-step.t0,.dlfr117-panel .c131-step.t0,.dlfr117-game .c131-step.t0
 .dlfr162-sp{position:relative;display:flex;flex-direction:column;gap:4px;text-align:left;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.25);color:inherit;font:inherit;cursor:pointer}
 .dlfr162-sp span{font-size:1.5rem}.dlfr162-sp small{font-size:.78rem;opacity:.8}.dlfr162-sp.is-on{border-color:#ffd25e;background:rgba(255,210,94,.14)}.dlfr162-sp em{position:absolute;top:10px;right:12px;font-style:normal;color:#7dffb0;font-weight:800;font-size:.78rem}
 .dlfr162-specskills{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:10px}
+
+/* V165 — anti-triche + énergie des chapitres */
+.dlfr165-ban{margin:10px 0;padding:10px 14px;border-radius:12px;border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.12);color:#fecaca;font-weight:600;font-size:.92rem;line-height:1.4}
+.dlfr165-ban.is-reset{border-color:rgba(245,158,11,.45);background:rgba(245,158,11,.12);color:#fde68a}
+.dlfr165-ban.is-warn{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.08);color:#fcd34d;font-weight:500}
+.dlfr165-energy{display:inline-block;margin:0 0 8px;padding:6px 10px;border-radius:999px;background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.3);font-size:.86rem}
+.dlfr165-sanc .dlfr112-admin-edit input{width:100%}
+.dlfr165-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:12px}
+.dlfr165-cols h3{font-size:.95rem;margin:0 0 6px}
+.dlfr165-cols ul{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:.84rem;max-height:260px;overflow:auto}
+.dlfr165-cols li{padding:5px 8px;border-radius:8px;background:rgba(255,255,255,.04);overflow-wrap:anywhere}
+.dlfr165-err{color:#fca5a5;font-size:.88rem}

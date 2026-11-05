@@ -42,6 +42,8 @@ let DB=null;
 let editor=false,userId=null;
 let serverCounts=null,queueTotal=0; // V138 : collection unique (serveur) — exemplaires connus côté serveur
 const SAVE={loaded:false,version:0,timer:0,saving:false,pending:false,status:'',tainted:false,conflict:false};
+const ANTI={t:[],lock:0,kb:0,status:null,seenReset:''};
+try{ANTI.seenReset=localStorage.getItem('dlfr-cards-reset-seen')||'';}catch(e){}
 const catalog={status:'local',error:'',selCol:1,editCard:null,editCol:null,draft:null,colDraft:null,busy:false,msg:'',msgKind:'',pendingFile:null};
 
 // ============================================================ RÈGLES DE PROGRESSION V117
@@ -406,7 +408,7 @@ function openPack(id){
  if(!pack||OPEN.st||progress.level<pack.level||!canAfford(pack.cost))return false;
  if(!poolFor(pack).length){toast('Boosters','Aucune carte disponible dans les boosters : ajoute des cartes au catalogue.','info');return false;}
  const before={level:progress.level,xp:progress.xp,target:levelTarget(progress.level),shards:progress.shards,dust:progress.dust};
- levelUps.length=0;pay(pack.cost);S().packs++;emit('packs');
+ levelUps.length=0;pay(pack.cost);S().packs++;emit('packs');SAVE.urgent=true; // V165 : sauvegarde immédiate (actualiser ne relance plus un booster)
  const count=packCount(pack),guarantee=packGuarantee(pack),pool=poolFor(pack),draws=[];
  for(let i=0;i<count;i++){
   const last=i===count-1;let minT=last?guarantee:0,pityHit='';
@@ -573,7 +575,14 @@ const CHOICE_TXT={pre:'Passer au pixel près',end:'Tenir jusqu’au bout',tec:'E
 let chTeam=[];
 function chState(){progress.chapters=progress.chapters||{cleared:{},run:null};return progress.chapters;}
 function chUnlocked(ch,i){const s=chState();return progress.level>=ch.level&&(i===0||!!s.cleared[CHAPTERS[i-1].id]);}
-function chCost(ch){return {shards:40*ch.d,keys:ch.d>=5?1:0};}
+function chCost(ch){return {shards:60*ch.d,keys:ch.d>=5?1:0};}
+// V165 — énergie des chapitres : 6 charges, +1 toutes les 20 min (fini le farm de milliers de runs).
+const CH_MAX=6,CH_REGEN=20*60000;
+function chEnergy(){const s=chState(),now=Date.now();let e=s.energy;if(!e||typeof e!=='object'||!IV(e.n,CH_MAX)||!IV(e.t,now+60000)){e=s.energy={n:CH_MAX,t:now};}
+ if(e.n>=CH_MAX)e.t=now;else{const g=Math.floor((now-e.t)/CH_REGEN);if(g>0){e.n=Math.min(CH_MAX,e.n+g);e.t=e.n>=CH_MAX?now:e.t+g*CH_REGEN;}}return e;}
+function chNext(){const e=chEnergy();return e.n>=CH_MAX?0:Math.max(0,e.t+CH_REGEN-Date.now());}
+// Tirages fixés par la graine de l'aventure : recharger la page ne relance pas un échec.
+function seeded(str){let h=hashStr(str);return()=>{h=(h+0x6D2B79F5)>>>0;let t=h;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};}
 function chReq(d,kind){return Math.round((6+7.5*(d-1))*STEP_KIND[kind][2]*(.9+Math.random()*.2));}
 function buildSteps(ch){
  const n=4+Math.floor(ch.d/2),kinds=['explore','event','challenge','treasure'],out=[];
@@ -589,24 +598,27 @@ function startChapter(id){
  const i=CHAPTERS.findIndex(c=>c.id===id),ch=CHAPTERS[i],s=chState();if(!ch||s.run||!chUnlocked(ch,i))return;
  const team=chTeam.filter(x=>has(x)).slice(0,3);if(team.length<1){toast('Chapitres','Choisis au moins une carte pour ton équipe.','info');return;}
  const cost=chCost(ch);if(!canAfford(cost)){toast('Chapitres',`Il faut ${costText(cost)} pour partir.`,'info');return;}
- pay(cost);const ml=isSpec('exp')?4:3;s.run={ch:ch.id,step:0,lives:ml,max:ml,team,used:[],armed:null,steps:buildSteps(ch),loot:{shards:0,dust:0,keys:0,cards:[]},log:[]};
+ const en=chEnergy();if(en.n<1){toast('Chapitres',`Plus d’énergie : prochaine charge dans ${Math.ceil(chNext()/60000)} min.`,'info');return;}
+ en.n--;if(en.n===CH_MAX-1)en.t=Date.now();
+ pay(cost);const ml=isSpec('exp')?4:3;s.run={ch:ch.id,step:0,lives:ml,max:ml,team,used:[],armed:null,steps:buildSteps(ch),loot:{shards:0,dust:0,keys:0,cards:[]},log:[],seed:Math.floor(Math.random()*2147483647)};
  log(`Chapitre lancé : ${ch.name}.`);
 }
 function chArm(id){const r=chState().run;if(!r||r.used.includes(id)||!r.team.includes(id))return;r.armed=r.armed===id?null:id;}
 function chChoose(k){
  const s=chState(),r=s.run;if(!r)return;const ch=CHAPTERS.find(c=>c.id===r.ch),st=r.steps[r.step],c=st?.choices[k];if(!c)return;
- const total=teamStat(c.attr,r),p=total>=c.req?.95:total>=c.req*.8?.5:.1,ok=Math.random()<p,km=STEP_KIND[st.kind][2]*(c.secret?1.6:1);
- if(r.armed){r.used.push(r.armed);r.armed=null;}
+ const rnd=seeded(`${r.seed||0}:${r.ch}:${r.step}:${c.attr}:${c.secret?1:0}`),rp=a=>a[Math.floor(rnd()*a.length)];
+ const total=teamStat(c.attr,r),p=total>=c.req?.95:total>=c.req*.8?.5:.1,ok=rnd()<p,km=STEP_KIND[st.kind][2]*(c.secret?1.6:1)*(s.cleared[ch.id]?.6:1);
+ if(r.armed){r.used.push(r.armed);r.armed=null;}SAVE.urgent=true;
  if(ok){const sh=Math.round(15*ch.d*km),du=Math.round(5*ch.d*km);r.loot.shards+=sh;r.loot.dust+=du;
-  let extra='';if(st.kind==='treasure'||c.secret){if(Math.random()<.5){r.loot.keys++;extra=' · +1 🔑';}}
-  if((st.kind==='treasure'&&Math.random()<.35)||st.kind==='boss'||c.secret){const pool=packable();if(pool.length){const tw=[0,70,24,5,1],tiers=[...new Set(pool.map(tierOf))].filter(t=>t>=1);let tt=tiers[0]??0,rr=Math.random()*tiers.reduce((a,t)=>a+(tw[t]||0),0);for(const t of tiers.sort((a,b)=>a-b)){rr-=tw[t]||0;if(rr<=0){tt=t;break;}}const cd=pick(pool.filter(x=>tierOf(x)===tt))||pick(pool);r.loot.cards.push(cd.id);extra+=` · carte ${cd.name}`;}}
+  let extra='';if(st.kind==='treasure'||c.secret){if(rnd()<.3){r.loot.keys++;extra=' · +1 🔑';}}
+  if((st.kind==='treasure'&&rnd()<.2)||(st.kind==='boss'&&rnd()<(s.cleared[ch.id]?.5:1))||(c.secret&&rnd()<.5)){const pool=packable();if(pool.length){const tw=[0,85,13,1.8,.2],tiers=[...new Set(pool.map(tierOf))].filter(t=>t>=1&&t<=4);let tt=tiers[0]??0,rr=rnd()*tiers.reduce((a,t)=>a+(tw[t]||0),0);for(const t of tiers.sort((a,b)=>a-b)){rr-=tw[t]||0;if(rr<=0){tt=t;break;}}const cd=rp(pool.filter(x=>tierOf(x)===tt))||rp(pool);r.loot.cards.push(cd.id);extra+=` · carte ${cd.name}`;}}
   r.log.push(`✓ ${STEP_KIND[st.kind][0]} réussi (${ATTRS.find(a=>a[0]===c.attr)[1]} ${total}/${c.req}) : +${sh} ◆ +${du} ✧${extra}`);r.step++;}
  else{r.lives--;r.log.push(`✗ ${STEP_KIND[st.kind][0]} raté (${ATTRS.find(a=>a[0]===c.attr)[1]} ${total}/${c.req}) : −1 vie`);if(st.kind!=='boss')r.step++;}
  if(r.step>=r.steps.length||r.lives<=0)finishChapter(r.step>=r.steps.length&&r.lives>0);
 }
 function finishChapter(win){
  const s=chState(),r=s.run,ch=CHAPTERS.find(c=>c.id===r.ch),f=(win?1:.5)*(1+.1*rank('se1')),first=win&&!s.cleared[ch.id];
- const parts=[`+${fmt(addShards(r.loot.shards*f*shardMult()))} ◆`,`+${fmt(addDust(r.loot.dust*f*dustMult()))} ✧`,`+${fmt(addXP(40*ch.d*(win?3:1)*xpMult()))} XP`];
+ const parts=[`+${fmt(addShards(r.loot.shards*f*shardMult()))} ◆`,`+${fmt(addDust(r.loot.dust*f*dustMult()))} ✧`,`+${fmt(addXP(40*ch.d*(win?(first?3:1.5):1)*xpMult()))} XP`];
  const keys=Math.floor(r.loot.keys*f)+(first?ch.d:0);if(keys){progress.keys+=keys;parts.push(`+${keys} 🔑`);}
  for(const id of (win?r.loot.cards:r.loot.cards.slice(0,Math.floor(r.loot.cards.length/2)))){const c=get(id);if(!c)continue;const isNew=!has(id),fin=rollFinish({});give(id,1,fin);registerPull(c,fin,isNew);parts.push(`${c.name}${isNew?' (nouvelle !)':''}`);}
  if(win)s.cleared[ch.id]=(s.cleared[ch.id]||0)+1;
@@ -630,9 +642,9 @@ function chaptersView(){
   </section>`;}
  const mine=shownCards().filter(c=>has(c.id)).map(c=>({c,s:cardStats(c)})).sort((a,b)=>(b.s.pre+b.s.end+b.s.tec+b.s.dec)-(a.s.pre+a.s.end+a.s.tec+a.s.dec));
  chTeam=chTeam.filter(x=>has(x)).slice(0,3);
- return `<section class="dlfr117-panel dlfr161"><div class="dlfr117-head"><div><small>AVENTURE</small><h2>Chapitres</h2><p>Forme une équipe de 3 cartes et explore un chapitre étape par étape. Chaque carte a 4 attributs (🎯 Précision, 🛡 Endurance, ⚙ Technique, 🔍 Découverte) selon sa rareté, ses étoiles et sa finition. Certaines cartes Communes ont une spécialité très forte (attribut doré) : elles peuvent être indispensables. La Découverte ouvre les chemins secrets.</p></div></div>
+ return `<section class="dlfr117-panel dlfr161"><div class="dlfr117-head"><div><small>AVENTURE</small><h2>Chapitres</h2><p class="dlfr165-energy">⚡ Énergie : <b>${chEnergy().n}/${CH_MAX}</b>${chNext()?` · prochaine charge dans ${Math.ceil(chNext()/60000)} min`:''} · une charge par départ, rejouer un chapitre déjà terminé rapporte moins.</p><p>Forme une équipe de 3 cartes et explore un chapitre étape par étape. Chaque carte a 4 attributs (🎯 Précision, 🛡 Endurance, ⚙ Technique, 🔍 Découverte) selon sa rareté, ses étoiles et sa finition. Certaines cartes Communes ont une spécialité très forte (attribut doré) : elles peuvent être indispensables. La Découverte ouvre les chemins secrets.</p></div></div>
   <div class="dlfr161-chapters">${CHAPTERS.map((ch,i)=>{const un=chUnlocked(ch,i),cost=chCost(ch),done=s.cleared[ch.id]||0;return `<article class="dlfr161-ch ${un?'':'is-locked'} ${done?'is-cleared':''}"><small>Chapitre ${i+1} · difficulté ${ch.d}/8</small><h3>${esc(ch.name)}</h3><p>${4+Math.floor(ch.d/2)} étapes · ${done?`terminé ${done}×`:'jamais terminé'}</p>
-   <button type="button" class="btn ${un?'':'subtle'}" data-v112-act="ch-start" data-id="${ch.id}" ${!un||chTeam.length<1||!canAfford(cost)?'disabled':''}>${un?`Partir · ${costText(cost)}`:progress.level<ch.level?`🔒 Niveau ${ch.level}`:'🔒 Termine le chapitre précédent'}</button></article>`;}).join('')}</div>
+   <button type="button" class="btn ${un?'':'subtle'}" data-v112-act="ch-start" data-id="${ch.id}" ${!un||chTeam.length<1||!canAfford(cost)||chEnergy().n<1?'disabled':''}>${un?`Partir · ${costText(cost)}`:progress.level<ch.level?`🔒 Niveau ${ch.level}`:'🔒 Termine le chapitre précédent'}</button></article>`;}).join('')}</div>
   <div class="dlfr117-sub"><h3>Ton équipe (${chTeam.length}/3)</h3><div class="dlfr161-pick">${mine.slice(0,60).map(({c})=>`<button type="button" class="dlfr161-card ${chTeam.includes(c.id)?'is-on':''}" data-v112-act="ch-team" data-id="${c.id}">${figure(c,data,true)}${statPills(c)}</button>`).join('')||'<p class="dlfr117-empty">Ouvre des boosters pour avoir des cartes.</p>'}</div></div>
  </section>`;
 }
@@ -723,10 +735,11 @@ async function importSession(file){
 // Restaure une sauvegarde (fichier ou compte). Lève une erreur si le contenu est incohérent.
 const IV=(v,max,min=0)=>Number.isSafeInteger(v)&&v>=min&&v<=max;
 function cleanChapters(c){const out={cleared:{},run:null};if(!c||typeof c!=='object')return out;
+ if(c.energy&&IV(c.energy.n,CH_MAX)&&IV(c.energy.t,Date.now()+60000))out.energy={n:c.energy.n,t:c.energy.t};else if(c.energy)out.energy={n:0,t:Date.now()};
  for(const [k,v] of Object.entries(c.cleared||{}))if(CHAPTERS.some(x=>x.id===k)&&IV(v,100000,1))out.cleared[k]=v;
  const r=c.run;if(r&&CHAPTERS.some(x=>x.id===r.ch)&&Array.isArray(r.steps)&&r.steps.length<=10&&IV(r.step,r.steps.length)&&IV(r.lives,4,1)&&Array.isArray(r.team)&&r.team.length<=3&&r.team.every(n=>IV(n,100000000,1)))
   out.run={ch:r.ch,step:r.step,lives:r.lives,max:IV(r.max,4,3)?r.max:3,team:r.team,used:(r.used||[]).filter(n=>r.team.includes(n)),armed:null,steps:r.steps.filter(s=>STEP_KIND[s?.kind]&&Array.isArray(s.choices)).map(s=>({kind:s.kind,txt:String(s.txt||'').slice(0,120),choices:s.choices.filter(c=>CHOICE_TXT[c?.attr]&&IV(c.req,100000,1)).slice(0,3).map(c=>({attr:c.attr,req:c.req,secret:!!c.secret}))})),
-   loot:{shards:IV(r.loot?.shards,1e7)?r.loot.shards:0,dust:IV(r.loot?.dust,1e7)?r.loot.dust:0,keys:IV(r.loot?.keys,1000)?r.loot.keys:0,cards:(r.loot?.cards||[]).filter(n=>IV(n,100000000,1)).slice(0,20)},log:[]};
+   loot:{shards:IV(r.loot?.shards,1e7)?r.loot.shards:0,dust:IV(r.loot?.dust,1e7)?r.loot.dust:0,keys:IV(r.loot?.keys,1000)?r.loot.keys:0,cards:(r.loot?.cards||[]).filter(n=>IV(n,100000000,1)).slice(0,20)},log:[],seed:IV(r.seed,2147483647)?r.seed:0};
  return out;}
 function restoreSession(x,interactive){
  {
@@ -1258,6 +1271,7 @@ function viewPage(data){
  return `<section class="dlfr112 dlfr117" id="dlfr112Lab">
   <div class="dlfr112-header"><div><div class="dlfr112-eyebrow">DLFR CARDS${view==='official'?' · COLLECTION':view==='advent'?' · CALENDRIER DE L’AVENT':view==='boss'?' · BOSS COMMUNAUTAIRE':view==='season'?' · SAISON':view==='trades'?' · ÉCHANGES':' · MODE AVENTURE'}</div><h1>DLFR Cards</h1><p>${shownCards().length} cartes · ${COLLECTIONS.length} collections${src?` · ${src}`:''}${progress.title?` · <b>${esc(progress.title)}</b>`:''}</p></div><span class="dlfr141-savebox"><span class="dlfr112-demo-label ${SAVE.tainted||SAVE.conflict?'is-warn':''}" id="dlfr129Save" aria-live="polite" title="Sauvegarde du mode Aventure">Aventure · ${esc(saveLabel())}</span>${SAVE.tainted&&userId?'<button type="button" class="btn small dlfr141-leave" data-v112-act="leave-test">↺ Revenir à ma partie</button>':''}</span></div>
   <p class="dlfr129-intro">${view==='trades'?'Échange tes doublons avec les autres collectionneurs.':view==='boss'?'Un démon de la liste à abattre ensemble chaque semaine.':view==='season'?'Une saison de 4 semaines : 28 paliers de récompenses et une carte exclusive.':view==='advent'?'Une case par jour du 1er au 25 décembre : cartes <b>Festive</b> et Wayllings dorés. Les jours ratés se rattrapent jusqu’au 31.':view==='official'?'Ta collection, ta vitrine et le classement. Les autres onglets, c’est le mode Aventure.':'Boosters avec tes éclats ◆, expéditions, Forge et talents. Les cartes gagnées vont dans ta collection.'}</p>
+  ${antiBanner()}
   <div class="dlfr112-toolbar">${['official','advent','boss','season','trades'].includes(view)?'':`<div class="dlfr112-summary"><b>Aventure · ${status()}</b><span>Progression : ${Math.round(inventoryUnique()/total*100)} %</span><div class="dlfr112-meter"><span style="width:${inventoryUnique()/total*100}%"></span></div></div>`}<div class="dlfr112-modes" role="tablist" aria-label="Sections du mode Aventure">${tabs().map(([id,title])=>`<button type="button" role="tab" aria-selected="${view===id}" class="${view===id?'active':''}" data-v112-act="mode" data-mode="${id}">${title}${id==='expeditions'&&progress.camps.some(c=>Date.now()>=c.end)?' <i class="dlfr117-dot"></i>':''}${id==='goals'&&progress.quests.some(q=>q.have>=q.target)?' <i class="dlfr117-dot"></i>':''}</button>`).join('')}</div></div>
   ${view==='official'?OFFICIAL:''}
   ${view==='advent'?'<div id="dlfr139Advent" class="dlfr139-advent" aria-live="polite"><div class="dlfr127-loading">Chargement du calendrier…</div></div>':''}
@@ -1272,7 +1286,7 @@ function viewPage(data){
    <div class="dlfr112-admin-actions"><button class="btn" type="button" data-v112-act="all">✦ Recevoir toutes les cartes</button><button class="btn subtle" type="button" data-v112-act="holo-all">✧ Tout passer en Holo</button><button class="btn subtle" type="button" data-v112-act="cheat" data-what="shards">+1 000 ◆</button><button class="btn subtle" type="button" data-v112-act="cheat" data-what="dust">+500 ✧</button><button class="btn subtle" type="button" data-v112-act="cheat" data-what="keys">+5 🔑</button><button class="btn subtle" type="button" data-v112-act="cheat" data-what="levels">+5 niveaux</button><button class="btn subtle" type="button" data-v112-act="cooldown-skip">Terminer les expéditions</button><button class="btn subtle" type="button" data-v112-act="skills-reset">Réinitialiser les talents (remboursement)</button><button class="btn danger" type="button" data-v112-act="reset">Réinitialiser la progression de test</button></div>
    ${current?`<div class="dlfr112-admin-edit"><label>Carte à modifier<select id="dlfr112CardPick">${CARDS.map(c=>`<option value="${c.id}" ${c.id===selected?'selected':''}>${idString(c.id)} · ${esc(c.name)}</option>`).join('')}</select></label><label>Rareté fictive (test, non enregistrée)<select id="dlfr112Rarity">${rarities.map(r=>`<option value="${esc(r)}" ${r===rarity(current)?'selected':''}>${esc(r)}</option>`).join('')}</select></label><button class="btn subtle" type="button" data-v112-act="rarity">Tester la rareté</button></div>`:''}
    <div class="dlfr112-admin-edit"><label>Simulateur d'équilibrage (rien n'est donné)<select id="dlfr117SimPack">${allPacks().map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></label><button class="btn subtle" type="button" data-v112-act="simulate">Simuler 1 000 paquets</button></div>
-   <p class="dlfr117-sim" id="dlfr117SimOut"></p></section>`:''}
+   <p class="dlfr117-sim" id="dlfr117SimOut"></p></section>${sanctionsPanel()}`:''}
   ${journal.length?`<section class="dlfr112-panel dlfr112-log"><div class="dlfr112-section-head"><h2>Historique de cette session</h2><span class="muted small">Effacé au rechargement</span></div>${journal.slice(-6).reverse().map(x=>`<p>• ${esc(x)}</p>`).join('')}</section>`:''}
  </section>`;
 }
@@ -1297,6 +1311,7 @@ async function loadSave(){
    if(!dr.error&&uid===userId){inv=dr.data?.inventory||inv;queueTotal=Number(dr.data?.queue_total)||0;if(Number(dr.data?.delivered)>0)toast('DLFR Cards',`${dr.data.delivered} carte(s) mises de côté ont rejoint ta collection.`,'info');}}
   setServerInventory(inv,true);
   SAVE.loaded=true;SAVE.conflict=false;SAVE.status=SAVE.status||'✓ Sauvegardé';
+  if(!ANTI.status)setTimeout(antiStatus,0);
  }catch(e){SAVE.status='Sauvegarde indisponible : ta progression ne sera pas enregistrée.';console.warn('[DLFR Cards] Chargement :',e);}
  repaint();
 }
@@ -1335,16 +1350,18 @@ async function syncCards(){
 }
 function scheduleSave(){
  if(!SAVE.loaded||SAVE.tainted||SAVE.conflict||!DB||!userId)return;
- clearTimeout(SAVE.timer);SAVE.timer=setTimeout(flushSave,1200);setSaveLabel('Sauvegarde…');
+ const d=SAVE.urgent?60:1200;SAVE.urgent=false;
+ clearTimeout(SAVE.timer);SAVE.timer=setTimeout(flushSave,d);setSaveLabel('Sauvegarde…');
 }
 async function flushSave(){
  SAVE.timer=0;if(SAVE.tainted||SAVE.conflict||!SAVE.loaded){setSaveLabel(saveLabel());return;}
  if(SAVE.saving){SAVE.pending=true;return;}
  SAVE.saving=true;
  try{await syncCards();const {data,error}=await DB.rpc('dlfr_adventure_save',{p_save:sessionObject(),p_version:SAVE.version});
-  if(error){if(/conflict/.test(error.message||'')){SAVE.conflict=true;SAVE.status='⚠ Progression modifiée dans un autre onglet : recharge la page.';}else throw error;}
+  if(error){if(/conflict/.test(error.message||'')){SAVE.conflict=true;SAVE.status='⚠ Progression modifiée ailleurs : recharge la page.';antiStatus();}else throw error;}
+  else if(Number(data)===0){SAVE.conflict=true;SAVE.status='⚠ Progression remise à zéro : recharge la page.';antiStatus();}
   else{SAVE.version=Number(data)||SAVE.version+1;SAVE.status='✓ Sauvegardé';}
- }catch(e){SAVE.status='⚠ Échec de la sauvegarde, nouvel essai bientôt.';setTimeout(scheduleSave,8000);}
+ }catch(e){if(/suspendu/i.test(e?.message||'')){SAVE.conflict=true;SAVE.status='⛔ Compte suspendu du jeu de cartes';antiStatus();}else{SAVE.status='⚠ Échec de la sauvegarde, nouvel essai bientôt.';setTimeout(scheduleSave,8000);}}
  finally{SAVE.saving=false;setSaveLabel(saveLabel());if(SAVE.pending){SAVE.pending=false;scheduleSave();}}
 }
 function setSaveLabel(t){const el=document.getElementById('dlfr129Save');if(el){el.textContent=t;el.classList.toggle('is-warn',SAVE.tainted||SAVE.conflict);}}
@@ -1352,6 +1369,76 @@ function saveLabel(){return SAVE.tainted?'SESSION DE TEST · NON SAUVEGARDÉE':!
 window.addEventListener('beforeunload',e=>{if(SAVE.timer&&SAVE.loaded&&!SAVE.tainted&&!SAVE.conflict&&!SAVE.saving&&document.getElementById('dlfr112Lab')){clearTimeout(SAVE.timer);flushSave();}});
 function repaint(){scheduleSave();const p=document.getElementById('dlfr112Lab');if(p){const y=window.scrollY;p.outerHTML=viewPage(srcData());window.scrollTo(0,y);if(document.getElementById('dlfr127Cards'))window.DLFR_CARDS?.refresh?.();if(document.getElementById('dlfr139Advent'))window.DLFR_ADVENT?.refresh?.();if(document.getElementById('dlfr160Boss')||document.getElementById('dlfr160Season'))window.DLFR_SEASON?.refresh?.();if(document.getElementById('dlfr163Trades'))window.DLFR_TRADES?.refresh?.();}}
 function reset(){owned.clear();overrides.clear();journal.length=0;selected=CARDS[0]?.id||0;query='';filter='all';Object.assign(progress,freshProgress());forgeSel=0;if(OPEN.st){OPEN.st=null;unmountOpening(true);}}
+// V165 — anti-autoclicker / macros. 3 alertes en 24 h = cartes Ultra et Secrètes retirées (côté serveur).
+const ANTI_ZONE='#dlfr112Lab,#dlfr117Open,#dlfr160Boss,#dlfr160Season,#dlfr163Trades,#dlfr139Advent';
+function antiBlock(e){e.preventDefault();e.stopImmediatePropagation();}
+function antiClick(e){
+ const zone=e.target?.closest?.(ANTI_ZONE);if(!zone||!gate)return;
+ if(ANTI.status?.banned){if(e.target.closest('button,[data-v112-act]')){antiBlock(e);toast('DLFR Cards',ANTI.status.banned,'info');}return;}
+ if(!e.isTrusted){antiBlock(e);antiFlag('synthetic','clic généré par un script');return;}
+ const now=performance.now();
+ if(now<ANTI.lock){antiBlock(e);return;}
+ if(e.detail===0){ // clic au clavier (Entrée / Espace) : touche maintenue = répétition automatique, on la freine
+  if(now-ANTI.kb<180){antiBlock(e);return;}ANTI.kb=now;return;}
+ const t=ANTI.t;t.push(now);if(t.length>40)t.shift();
+ if(t.length>=25){const iv=[];for(let i=t.length-24;i<t.length;i++)iv.push(t[i]-t[i-1]);
+  const m=iv.reduce((a,b)=>a+b,0)/iv.length;
+  if(m<450){const sd=Math.sqrt(iv.reduce((a,b)=>a+(b-m)**2,0)/iv.length);
+   if(sd<Math.max(5,m*.035)){antiFlag('regular',`intervalle ${Math.round(m)} ms, écart ${sd.toFixed(1)} ms`);antiBlock(e);return;}}}
+ const n3=t.filter(x=>now-x<3000).length;
+ if(n3>=48){antiFlag('burst',`${n3} clics en 3 s`);antiBlock(e);}
+}
+function antiFlag(kind,detail){
+ ANTI.lock=performance.now()+20000;ANTI.t.length=0;
+ toast('⚠ Clics automatiques détectés','Actions bloquées 20 s. Autoclicker et macros sont interdits : au bout de 3 alertes en 24 h, tes cartes Ultra et Secrètes te sont retirées.','info');
+ if(!DB||!userId)return;
+ DB.rpc('dlfr_cards_report',{p_kind:kind,p_detail:detail}).then(({data})=>{if(data)antiStatus();}).catch(()=>{});
+}
+async function antiStatus(){
+ if(!DB||!userId)return;
+ try{const {data,error}=await DB.rpc('dlfr_cards_my_status');if(error)return;ANTI.status=data||null;
+  const rs=data?.reset;
+  if(rs?.at&&rs.at!==ANTI.seenReset){
+   ANTI.seenReset=rs.at;try{localStorage.setItem('dlfr-cards-reset-seen',rs.at);}catch(e){}
+   toast('Sanction anti-triche',rs.reason,'info');
+   if(SAVE.loaded){clearTimeout(SAVE.timer);SAVE.timer=0;SAVE.loaded=false;serverCounts=null;await loadSave();return;}
+  }
+  repaint();
+ }catch(e){}
+}
+function antiBanner(){
+ const st=ANTI.status;if(!st)return '';
+ if(st.banned)return `<div class="dlfr165-ban">⛔ ${esc(st.banned)}</div>`;
+ const rs=st.reset;if(rs?.at&&Date.now()-Date.parse(rs.at)<72*3600000)return `<div class="dlfr165-ban is-reset">⚠ ${new Date(rs.at).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · ${esc(rs.reason)}.</div>`;
+ if(st.strikes>0)return `<div class="dlfr165-ban is-warn">⚠ ${st.strikes} alerte${st.strikes>1?'s':''} pour clics automatiques ou rythme impossible ces dernières 24 h. À 3, tes cartes Ultra et Secrètes te sont retirées.</div>`;
+ return '';
+}
+document.addEventListener('click',antiClick,true);
+// V165 — panneau Sanctions (équipe)
+const SANC={data:null,busy:false,err:''};
+function sancWhen(t){return t?new Date(t).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';}
+function sanctionsPanel(){
+ const d=SANC.data,row=(x,extra)=>`<li><b>${esc(x.name||x.player_key||'?')}</b> ${extra}</li>`;
+ return `<section class="dlfr112-panel dlfr165-sanc"><div class="dlfr112-section-head"><h2>Anti-triche · Sanctions</h2><p>Détection automatique : clics générés par script, autoclicker (clics trop réguliers), rafales, plus de 1 200 boosters ou 40 chapitres en une heure. 3 alertes en 24 h = cartes Ultra et Secrètes retirées.</p></div>
+  <div class="dlfr112-admin-edit"><label>Pseudo de la fiche joueur<input id="dlfr165SancKey" type="text" maxlength="60" placeholder="ex. zuperxivi"></label><label>Raison<input id="dlfr165SancReason" type="text" maxlength="120" placeholder="autoclicker"></label><label>Durée du ban (jours, vide = définitif)<input id="dlfr165SancDays" type="number" min="1" max="3650"></label></div>
+  <div class="dlfr112-admin-actions"><button class="btn subtle" type="button" data-v112-act="sanc-do" data-what="soft">Retirer Ultra + Secrètes</button><button class="btn subtle" type="button" data-v112-act="sanc-do" data-what="reset">Remise à zéro totale</button><button class="btn subtle" type="button" data-v112-act="sanc-do" data-what="ban">Bannir du jeu</button><button class="btn subtle" type="button" data-v112-act="sanc-do" data-what="unban">Lever le ban / effacer les alertes</button><button class="btn" type="button" data-v112-act="sanc-load">${d?'↻ Actualiser':'Afficher les alertes'}</button></div>
+  ${SANC.err?`<p class="dlfr165-err">${esc(SANC.err)}</p>`:''}
+  ${d?`<div class="dlfr165-cols">
+   <div><h3>Bans en cours</h3><ul>${d.bans.map(x=>row(x,`· ${x.until?'jusqu’au '+sancWhen(x.until):'définitif'} · ${esc(x.reason)}`)).join('')||'<li class="muted">Aucun</li>'}</ul></div>
+   <div><h3>Sanctions récentes</h3><ul>${d.resets.map(x=>row(x,`· ${sancWhen(x.at)} · ${esc(x.reason)}`)).join('')||'<li class="muted">Aucune</li>'}</ul></div>
+   <div><h3>Alertes (7 jours)</h3><ul>${d.strikes.map(x=>row(x,`· ${sancWhen(x.at)} · ${esc(String(x.kind).replace(':sanctionné',' (sanctionné)'))} · ${esc(x.detail||'')}`)).join('')||'<li class="muted">Aucune</li>'}</ul></div>
+   <div><h3>Plus gros rythmes (48 h, boosters/heure)</h3><ul>${d.top_rate.map(x=>row(x,`· ${fmt(x.packs)} / h`)).join('')||'<li class="muted">Rien</li>'}</ul></div></div>`:''}</section>`;
+}
+async function sancLoad(){if(!DB)return;SANC.err='';const {data,error}=await DB.rpc('dlfr_cards_sanctions');if(error){SANC.err=error.message;}else SANC.data=data;repaint();}
+async function sancDo(what){
+ const key=(document.getElementById('dlfr165SancKey')?.value||'').trim(),reason=(document.getElementById('dlfr165SancReason')?.value||'').trim(),days=Number(document.getElementById('dlfr165SancDays')?.value)||null;
+ if(!key){SANC.err='Indique le pseudo de la fiche joueur.';repaint();return;}
+ const label={soft:'retirer ses cartes Ultra et Secrètes',reset:'REMETTRE À ZÉRO toute sa partie Aventure (irréversible)',ban:`le bannir du jeu de cartes ${days?days+' jour(s)':'DÉFINITIVEMENT'}`,unban:'lever son ban et effacer ses alertes'}[what];
+ if(!label||!confirm(`${key} : ${label} ?`))return;
+ const {error}=await DB.rpc('dlfr_cards_sanction_set',{p_player_key:key,p_action:what,p_days:what==='ban'?days:null,p_reason:reason||null});
+ if(error){SANC.err=error.message;repaint();return;}
+ toast('Sanctions',`${key} : fait.`,'info');await sancLoad();
+}
 function handleClick(event){
  const b=event.target.closest?.('[data-v112-act]');if(!b||!gate)return;
  if(!document.getElementById('dlfr112Lab')||b.closest('#dlfr117Open'))return;
@@ -1359,6 +1446,7 @@ function handleClick(event){
  const act=b.dataset.v112Act;
  const TEST=['give','take','holo','all','holo-all','cheat','cooldown-skip','skills-reset','reset','rarity','trade','open-session-import'];
  if(TEST.includes(act)||act.startsWith('cat-')){if(!editor)return;if(TEST.includes(act)&&act!=='open-session-import'){if(!SAVE.tainted&&SAVE.loaded&&!window.confirm('Outil de test : à partir de maintenant, ta partie Aventure ne sera plus sauvegardée (tout ce que tu feras sera perdu au rechargement).\n\nTa vraie partie reste intacte : tu pourras la récupérer avec « Revenir à ma partie ».\n\nContinuer ?'))return;SAVE.tainted=true;clearTimeout(SAVE.timer);SAVE.timer=0;repaint();}}
+ if(act==='sanc-load'||act==='sanc-do'){if(!editor)return;if(act==='sanc-load')sancLoad();else sancDo(b.dataset.what);return;}
  if(act==='leave-test'){SAVE.tainted=false;SAVE.loaded=false;serverCounts=null;setSaveLabel(saveLabel());loadSave().then(()=>toast('DLFR Cards','Ta partie sauvegardée est de retour.','info'));return;}
  if(act.startsWith('cat-')){
   if(act==='cat-reload'){loadCatalog();return;}
