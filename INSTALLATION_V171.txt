@@ -1,0 +1,12 @@
+DLFR V171 — Deux bugs corrigés
+==============================
+(Inclut V170 à V165 et avant. Base de données : DÉJÀ APPLIQUÉE — supabase/171_*.sql = archive.)
+
+ 1. Vitrine : « Tu ne peux exposer que des cartes de ta collection. » quand la vitrine contenait une
+    ancienne carte qu'on n'a plus (ex. GRIEF retirée). Les cartes disparues sont maintenant enlevées
+    automatiquement de la vitrine. Si une carte toute neuve n'est pas encore enregistrée, un message
+    demande de réessayer dans quelques secondes.
+ 2. Onglet « Ma collection » : le filtre « Manquantes » affichait toujours « Aucune carte pour ce filtre ».
+    Il montre maintenant les cartes qui manquent.
+
+Fichiers : index.html, js/v118-cards-lab.js, js/v127-cards.js

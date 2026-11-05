@@ -1251,7 +1251,7 @@ function catalogView(data){
 
 // ============================================================ PAGE
 function tabs(){const t=[...(window.DLFR_CARDS?[['official','★ Collection']]:[]),...(window.DLFR_ADVENT?[['advent','🎄 Avent']]:[]),...(window.DLFR_SEASON?[['boss','⚔ Boss'],['season','🏆 Saison']]:[]),['packs','✦ Boosters'],['chapters','🧭 Chapitres'],['expeditions','Expéditions'],['talents','Talents'],['forge','Forge'],['goals','Objectifs'],['album','Album'],['collection','Ma collection']];return editor?t.concat([['catalog','✎ Catalogue'],['exchanges','Échanges fictifs'],['control','Outils de test']]):t;}
-function filtered(){return shownCards().filter(c=>(view!=='collection'||has(c.id))&&(filter==='all'||filter==='owned'&&has(c.id)||filter==='missing'&&!has(c.id)||filter===c.type||filter==='col:'+c.collectionId)&&normalize(c.name+' '+c.series+' '+rarity(c)).includes(normalize(query)));}
+function filtered(){return shownCards().filter(c=>(view!=='collection'||has(c.id)||filter==='missing')&&(filter==='all'||filter==='owned'&&has(c.id)||filter==='missing'&&!has(c.id)||filter===c.type||filter==='col:'+c.collectionId)&&normalize(c.name+' '+c.series+' '+rarity(c)).includes(normalize(query)));}
 function albumView(data){
  const current=get(selected)||CARDS[0];
  if(!current)return '<section class="dlfr112-panel"><p>Le catalogue est vide. Ajoute des cartes dans l’onglet ✎ Catalogue.</p></section>';

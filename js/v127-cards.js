@@ -66,10 +66,11 @@ function zoom(id){
   const rc=e.target.closest('[data-cards-recycle]');if(rc){d.close();recycle(Number(rc.dataset.cardsRecycle));}});
 }
 async function toggleShowcase(id){
- const cur=(S.status?.showcase||[]).map(Number),next=cur.includes(id)?cur.filter(x=>x!==id):cur.concat(id);
+ const inv0=S.status?.inventory||{},cur=(S.status?.showcase||[]).map(Number).filter(x=>Number(inv0[x])>0),next=cur.includes(id)?cur.filter(x=>x!==id):cur.concat(id);
  if(next.length>5){S.ctx.toast?.('Ta vitrine contient déjà 5 cartes : retires-en une d’abord.');return;}
  try{const {data,error}=await S.ctx.db.rpc('dlfr_cards_set_showcase',{p_ids:next});if(error)throw error;
-  S.status={...S.status,showcase:data||next};S.ctx.toast?.(cur.includes(id)?'Carte retirée de ta vitrine.':'Carte ajoutée à ta vitrine ★');paint();}
+  const saved=(data||next).map(Number);S.status={...S.status,showcase:saved};
+  S.ctx.toast?.(cur.includes(id)?'Carte retirée de ta vitrine.':saved.includes(Number(id))?'Carte ajoutée à ta vitrine ★':'Cette carte n’est pas encore enregistrée dans ta collection : réessaie dans quelques secondes.');paint();}
  catch(e){S.ctx.toast?.(e.message||'Vitrine indisponible.');}
 }
 function view(){
