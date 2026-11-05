@@ -1,0 +1,24 @@
+DLFR V159 — Missions nerfées + fin de jeu beaucoup plus longue
+==============================================================
+(Inclut V158 et avant — lis aussi V158, V157, V156, V154, V152. Aucune requête SQL.)
+
+Ce qui était « cheat » : les missions. Une mission réclamée était remplacée tout de suite et
+ses récompenses montaient sans fin avec le niveau (loxow : 2 347 missions en une nuit, près de
+3 millions d'éclats, 40 % de chances de clé par mission).
+
+Missions
+ - Une mission réclamée est remplacée au bout de 1 h 30 (compte à rebours visible) :
+   au maximum ~48 missions par jour au lieu de plusieurs centaines par heure.
+ - Récompenses plafonnées au niveau 100 et réduites : au niveau 100 ≈ 1 000 XP, 315 ◆,
+   210 ✧ par mission (avant, au niveau 400 : ≈ 5 600 XP et 1 820 ◆). Clé : 15 % max (avant 40 %).
+ - Changer une mission : prix plafonné, impossible sur une mission en préparation.
+
+Fin de jeu plus longue (objectif : des centaines d'heures pour tout maxer)
+ - Niveaux 100 → 1000 : 15 000 XP au niveau 100, 150 000 au niveau 1000
+   (≈ 75 millions d'XP au total, ~1,6× plus qu'avant).
+ - Éveil ★6 → ★10 : 15 / 22 / 30 / 40 / 50 doublons (avant 12 → 30) et ≈ 2,5× plus de
+   poussière par étoile.
+ - Poussière gagnée sur les doublons : −40 %.
+ - Rien de déjà gagné n'est retiré.
+
+Fichiers : index.html, js/v118-cards-lab.js, css/v131-cards.css

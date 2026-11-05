@@ -47,10 +47,10 @@ const catalog={status:'local',error:'',selCol:1,editCard:null,editCol:null,draft
 // ============================================================ RÈGLES DE PROGRESSION V117
 const MAX_LEVEL=1000, MAX_PRESTIGE=100, RENAISSANCE_LEVEL=100; // V152 : niveau max 1000, 100 Renaissances
 const RVAL=[1,2,4,8,16,40];                       // valeur de collection par rareté
-const DUST_DUP=[5,12,30,80,200,600];               // poussière gagnée par doublon
+const DUST_DUP=[3,7,18,48,120,360];               // poussière gagnée par doublon
 const CRAFT=[40,100,260,800,2400,8000];             // coût de fabrication d'une carte manquante
-const STAR_COPIES=[1,2,3,5,8,12,16,20,25,30]; // doublons consommés pour ★1…★10 (V151 : ★6-★10 = Éveil)
-const STAR_DUST=[15,35,80,180,400,900,1600,2600,4000,6000]; // poussière de base pour ★1…★10
+const STAR_COPIES=[1,2,3,5,8,15,22,30,40,50]; // doublons consommés pour ★1…★10 (V151 : ★6-★10 = Éveil)
+const STAR_DUST=[15,35,80,180,400,2000,4000,7000,11000,16000]; // poussière de base pour ★1…★10
 const MAX_STARS=10;
 const STAR_FACTOR=[1,1.5,2.5,4,6,9];
 const FIN=['none','holo','prism','obsidian','shiny'], FIN_NAME=['Standard','Holo','Prismatique','Obsidienne','Shiny']; // V150 : Shiny
@@ -242,7 +242,7 @@ function take(id){const x=owned.get(Number(id));if(!x||x.count<=0)return false;x
 
 function download(obj,name){const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);}
 // ============================================================ PROGRESSION : formules
-function levelTarget(l){return Math.round(l<=100?60+15*Math.pow(l,1.45):11976+90*(l-100));} // V154 : 1,5× plus d’XP, jusqu’au niveau 1000
+function levelTarget(l){return Math.round(l<=100?60+15*Math.pow(l,1.45):15000+150*(l-100));} // V159 : ~75 M d’XP du niveau 100 au niveau 1000
 function rankInfo(level=progress.level){let r=RANKS[0];for(const x of RANKS)if(level>=x[0])r=x;const i=RANKS.indexOf(r);return {name:r[1],color:r[2],index:i,next:RANKS[i+1]||null};}
 function totalPoints(){return 1+Math.floor(progress.level/2)+3*progress.prestige;}
 function spentPoints(){return SKILLS.reduce((n,s)=>n+rank(s.id)*s.pts,0);}
@@ -298,24 +298,26 @@ function addXP(earned){
 function grant(r){if(!r)return '';const out=[];if(r.shards)out.push(`+${addShards(r.shards)} ◆`);if(r.dust)out.push(`+${addDust(r.dust)} ✧`);if(r.keys){progress.keys+=r.keys;out.push(`+${r.keys} 🔑`);}if(r.xp)out.push(`+${addXP(r.xp)} XP`);return out.join(' · ');}
 
 // ============================================================ Missions, succès, séries
-function emit(type,n=1){for(const q of progress.quests)if(q.type===type&&q.have<q.target)q.have=Math.min(q.target,q.have+n);}
+const QUEST_CD=90*60000; // V159 : une mission réclamée revient au bout de 1 h 30
+const questReady=q=>!(q.at>Date.now());
+function emit(type,n=1){for(const q of progress.quests)if(questReady(q)&&q.type===type&&q.have<q.target)q.have=Math.min(q.target,q.have+n);}
 function makeQuest(exclude=[]){
  const lvl=progress.level,pool=QUEST_POOL.filter(q=>q.lvl<=lvl&&!exclude.includes(q.type));
  const t=pick(pool.length?pool:QUEST_POOL);
  let target=t.base[0]+Math.floor(Math.random()*(t.base[1]-t.base[0]+1));
  if(t.scale)target=Math.round(target*(1+Math.min(lvl,150)*.06)/5)*5;
- const ql=Math.min(lvl,300),xp=Math.round((50+lvl*14)*(.8+target/(t.base[1]||1)*.3)),shards=Math.round(20+ql*6);
- const reward={xp,shards};if(Math.random()<Math.min(.4,.18+lvl*.004))reward.keys=1;else reward.dust=Math.round(15+ql*3);
+ const ql=Math.min(lvl,100),xp=Math.round((40+ql*10)*(.8+target/(t.base[1]||1)*.3)),shards=Math.round(15+ql*3); // V159 : récompenses plafonnées au niveau 100
+ const reward={xp,shards};if(Math.random()<Math.min(.15,.05+ql*.001))reward.keys=1;else reward.dust=Math.round(10+ql*2);
  progress.questSeed++;
  return {id:'q'+progress.questSeed,type:t.type,target,have:0,reward};
 }
 function ensureQuests(){while(progress.quests.length<3)progress.quests.push(makeQuest(progress.quests.map(q=>q.type)));}
 function questText(q){const t=QUEST_POOL.find(x=>x.type===q.type);return t?t.text(q.target):q.type;}
 function claimQuest(id){const i=progress.quests.findIndex(q=>q.id===id);const q=progress.quests[i];if(!q||q.have<q.target)return;
- const txt=grant(q.reward);S().quests++;progress.quests.splice(i,1,makeQuest(progress.quests.filter(x=>x.id!==id).map(x=>x.type)));
+ const txt=grant(q.reward);S().quests++;const nq=makeQuest(progress.quests.filter(x=>x.id!==id).map(x=>x.type));nq.at=Date.now()+QUEST_CD;progress.quests.splice(i,1,nq);
  toast('Mission accomplie',txt,'quest');log(`Mission accomplie : ${questText(q)} (${txt})`);}
-function rerollCost(){return 10+progress.level*3;}
-function rerollQuest(id){const i=progress.quests.findIndex(q=>q.id===id);if(i<0||progress.shards<rerollCost())return;pay({shards:rerollCost()});progress.quests.splice(i,1,makeQuest(progress.quests.map(x=>x.type)));}
+function rerollCost(){return 10+Math.min(progress.level,100)*3;}
+function rerollQuest(id){const i=progress.quests.findIndex(q=>q.id===id);if(i<0||!questReady(progress.quests[i])||progress.shards<rerollCost())return;pay({shards:rerollCost()});progress.quests.splice(i,1,makeQuest(progress.quests.map(x=>x.type)));}
 function checkAchievements(){
  for(let pass=0;pass<4;pass++){let any=false;
   for(const a of ACHIEVEMENTS){if(progress.achievements[a.id])continue;if(a.value()>=a.target){progress.achievements[a.id]=true;any=true;const txt=grant(a.reward);toast('Succès : '+a.name,`${a.desc} · ${txt}${a.title?' · titre « '+a.title+' »':''}`,'achievement');log(`Succès débloqué : ${a.name} (${txt})`);}}
@@ -552,7 +554,7 @@ function forgeView(data){
 function goalsView(){
  const tabs=[['quests','Missions'],['achievements',`Succès ${Object.keys(progress.achievements).length}/${ACHIEVEMENTS.length}`],['sets',`Séries ${Object.keys(progress.sets).length}/${SETS.length}`],['renaissance','Renaissance']];
  let body='';
- if(goalsTab==='quests')body=`<div class="dlfr117-quests">${progress.quests.map(q=>{const done=q.have>=q.target;return `<article class="dlfr117-quest ${done?'is-done':''}"><h4>${esc(questText(q))}</h4><div class="dlfr117-bar small"><i style="width:${q.have/q.target*100}%"></i></div><small>${fmt(q.have)} / ${fmt(q.target)}</small><p>Récompense : ${q.reward.xp} XP · ◆ ${q.reward.shards}${q.reward.keys?' · 🔑 1':''}${q.reward.dust?' · ✧ '+q.reward.dust:''}</p><div class="dlfr117-row">${done?`<button class="btn" type="button" data-v112-act="quest-claim" data-id="${q.id}">Réclamer</button>`:`<button class="btn subtle" type="button" data-v112-act="quest-reroll" data-id="${q.id}" ${progress.shards<rerollCost()?'disabled':''}>Changer · ◆ ${rerollCost()}</button>`}</div></article>`;}).join('')}</div><p class="dlfr117-muted">Une mission réclamée est aussitôt remplacée. Les récompenses grandissent avec ton niveau.</p>`;
+ if(goalsTab==='quests')body=`<div class="dlfr117-quests">${progress.quests.map(q=>{if(!questReady(q))return `<article class="dlfr117-quest is-wait"><h4>Nouvelle mission en préparation</h4><p class="dlfr159-wait" data-quest-at="${q.at}">Disponible dans <b>${duration(q.at-Date.now())}</b></p></article>`;const done=q.have>=q.target;return `<article class="dlfr117-quest ${done?'is-done':''}"><h4>${esc(questText(q))}</h4><div class="dlfr117-bar small"><i style="width:${q.have/q.target*100}%"></i></div><small>${fmt(q.have)} / ${fmt(q.target)}</small><p>Récompense : ${q.reward.xp} XP · ◆ ${q.reward.shards}${q.reward.keys?' · 🔑 1':''}${q.reward.dust?' · ✧ '+q.reward.dust:''}</p><div class="dlfr117-row">${done?`<button class="btn" type="button" data-v112-act="quest-claim" data-id="${q.id}">Réclamer</button>`:`<button class="btn subtle" type="button" data-v112-act="quest-reroll" data-id="${q.id}" ${progress.shards<rerollCost()?'disabled':''}>Changer · ◆ ${rerollCost()}</button>`}</div></article>`;}).join('')}</div><p class="dlfr117-muted">Une mission réclamée est remplacée par une nouvelle au bout de 1 h 30. Les récompenses grandissent avec ton niveau (jusqu’au niveau 100).</p>`;
  if(goalsTab==='achievements')body=`<div class="dlfr117-achievements">${ACHIEVEMENTS.map(a=>{const ok=progress.achievements[a.id],v=Math.min(a.value(),a.target);return `<article class="dlfr117-ach ${ok?'is-done':''}"><span>${ok?'🏆':'◌'}</span><div><h4>${esc(a.name)}</h4><p>${esc(a.desc)}</p><div class="dlfr117-bar small"><i style="width:${v/a.target*100}%"></i></div><small>${fmt(v)} / ${fmt(a.target)} · ${Object.entries(a.reward).map(([k,n])=>`${{keys:'🔑',dust:'✧',shards:'◆',xp:'XP'}[k]} ${n}`).join(' ')}${a.title?` · titre « ${esc(a.title)} »`:''}</small></div></article>`;}).join('')}</div>`;
  if(goalsTab==='sets')body=`<div class="dlfr117-sets">${SETS.map(s=>{const pr=setProgress(s),done=progress.sets[s.id],ready=!done&&pr.total&&pr.have>=pr.total;return `<article class="dlfr117-set ${done?'is-done':''}"><h4>${esc(s.name)}</h4><p>${s.finish?`Toutes en ${FIN_NAME[s.finish]} ou mieux`:s.stars?`Toutes à ★${s.stars} ou plus`:'Toutes les cartes de la série'}</p><div class="dlfr117-bar small"><i style="width:${pr.total?pr.have/pr.total*100:0}%"></i></div><small>${pr.have} / ${pr.total} · 🔑 ${s.reward.keys} · ✧ ${s.reward.dust} · +5 % ◆ permanents</small>${done?'<b class="dlfr117-ok">✓ Terminée</b>':`<button class="btn" type="button" data-v112-act="set-claim" data-id="${s.id}" ${ready?'':'disabled'}>Valider la série</button>`}</article>`;}).join('')}</div>`;
  if(goalsTab==='renaissance'){const g=renaissanceGain();body=`<div class="dlfr117-reborn"><div class="dlfr117-reborn-mark">✺</div><div><h3>Renaissance ${progress.prestige}/${MAX_PRESTIGE}</h3><p>À partir du niveau ${RENAISSANCE_LEVEL}, tu peux renaître : retour au niveau 1, talents remis à zéro, mais tu gardes toute ta collection, la poussière, les clés, les succès et les séries.</p><ul><li>Chaque ✺ : +10 % d’XP et d’éclats, +3 points de talent permanents.</li><li>Gain : 1 ✺ au niveau ${RENAISSANCE_LEVEL}, +1 tous les 25 niveaux au-delà.</li><li>Bonus actuel : +${Math.round((prestMult()-1)*100)} % · ${progress.prestige*3} points de talent supplémentaires.</li></ul><button class="btn" type="button" data-v112-act="renaissance" ${g?'':'disabled'}>${g?`Renaître · +${g} ✺`:progress.prestige>=MAX_PRESTIGE?'Maximum atteint':`Disponible au niveau ${RENAISSANCE_LEVEL}`}</button></div></div>`;}
@@ -602,7 +604,7 @@ function restoreSession(x,interactive){
    for(const c of camps)if(!DESTS.some(d=>d.id===c?.dest)||!I(c.start,4102444800000)||!I(c.end,4102444800000)||c.end<c.start)throw new Error('Expédition invalide');
    const flags=(o,list)=>{const out={};if(!o||typeof o!=='object'||Array.isArray(o))return out;for(const [k,v] of Object.entries(o))if(v===true&&list.some(z=>z.id===k))out[k]=true;return out;};
    const st=p.stats||{},stats=newStats();for(const k of Object.keys(stats)){if(Array.isArray(stats[k])){if(Array.isArray(st[k])&&st[k].length<=stats[k].length&&st[k].every(n=>I(n,100000000)))st[k].forEach((n,i)=>{stats[k][i]=n;});}else if(I(st[k],100000000))stats[k]=st[k];}
-   const quests=Array.isArray(p.quests)?p.quests.filter(q=>q&&QUEST_POOL.some(t=>t.type===q.type)&&I(q.target,100000,1)&&I(q.have,q.target)&&q.reward&&typeof q.reward==='object'&&['xp','shards','dust','keys'].every(k=>q.reward[k]===undefined||I(q.reward[k],1000000))).slice(0,3).map(q=>({id:String(q.id).slice(0,20),type:q.type,target:q.target,have:q.have,reward:{...q.reward}})):[];
+   const quests=Array.isArray(p.quests)?p.quests.filter(q=>q&&QUEST_POOL.some(t=>t.type===q.type)&&I(q.target,100000,1)&&I(q.have,q.target)&&q.reward&&typeof q.reward==='object'&&['xp','shards','dust','keys'].every(k=>q.reward[k]===undefined||I(q.reward[k],1000000))).slice(0,3).map(q=>({id:String(q.id).slice(0,20),type:q.type,target:q.target,have:q.have,reward:{...q.reward},...(I(q.at,4102444800000)&&q.at>0?{at:q.at}:{})})):[];
    Object.assign(np,{level:p.level,xp:p.xp,shards:p.shards,dust:p.dust,keys:p.keys,prestige:p.prestige,skills,camps:camps.map(c=>({dest:c.dest,start:c.start,end:c.end})),quests,questSeed:p.questSeed||0,
     achievements:flags(p.achievements,ACHIEVEMENTS),sets:flags(Object.fromEntries(Object.entries(p.sets||{}).map(([k,v])=>[['legends','modern','players','dlfr'].includes(k)?'col-'+k:k,v])),SETS),pity:{leg:I(p.pity?.leg,5000)?p.pity.leg:0,myth:I(p.pity?.myth,5000)?p.pity.myth:0},stats,title:typeof p.title==='string'?p.title.slice(0,40):''});
   }
@@ -1332,6 +1334,7 @@ setInterval(()=>{
   const bar=row.querySelector('[data-v117-bar]');if(bar)bar.style.width=Math.min(100,(Date.now()-c.start)/(c.end-c.start)*100)+'%';
   const t=row.querySelector('[data-v117-left]');if(t)t.textContent=left?'Retour dans '+duration(left):'De retour !';
   const btn=row.querySelector('button');if(btn&&!left&&btn.disabled){btn.disabled=false;btn.textContent='Récupérer';}});
+ let rq=false;lab.querySelectorAll('[data-quest-at]').forEach(el=>{const left=Number(el.dataset.questAt)-Date.now();if(left<=0)rq=true;else{const b=el.querySelector('b');if(b)b.textContent=duration(left);}});if(rq)repaint();
 },1000);
 document.addEventListener('click',handleClick);
 document.addEventListener('input',handleInput);

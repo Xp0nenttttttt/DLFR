@@ -282,3 +282,4 @@ html.dark .c131-step.t0,.dlfr117-panel .c131-step.t0,.dlfr117-game .c131-step.t0
 .dlfr158-go{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;margin-top:12px}.dlfr158-go label{display:flex;flex-direction:column;gap:4px;font-size:.8rem;font-weight:700}
 .dlfr158-go small{flex-basis:100%;opacity:.7}
 @media (max-width:700px){.dlfr158-row{grid-template-columns:auto minmax(0,1fr) 110px}.dlfr158-row .dlfr158-type,.dlfr158-row small{display:none}}
+.dlfr117-quest.is-wait{opacity:.7;border-style:dashed}.dlfr159-wait{margin:6px 0 0;font-size:.85rem}
