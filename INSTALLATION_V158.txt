@@ -1,0 +1,19 @@
+DLFR V158 — Propositions automatiques de cartes (à valider à la main)
+====================================================================
+(Inclut V157 et avant — lis aussi V157, V156, V154, V152. Aucune requête SQL.)
+
+Onglet ✎ Catalogue → en bas : « ✨ Proposer des cartes automatiquement »
+ - Trois sources :
+   • Niveaux · Top 150 : #1 Ultra · #2-5 Mythique · #6-20 Légendaire · #21-50 Épique ·
+     #51-100 Rare · #101-150 Commun
+   • Niveaux · NLW (200 premiers) : Commun par défaut
+   • Joueurs · classement : Top 1 Ultra · 2-3 Mythique · 4-10 Légendaire · 11-25 Épique ·
+     26-60 Rare · ensuite Commun (joueurs avec des points, « Anonyme » exclu)
+ - Les noms qui existent déjà en carte sont masqués (même règle que l'alerte doublon).
+ - Pour chaque proposition : case à cocher + rareté modifiable. Filtre par nom, « tout cocher ».
+ - Choisis la collection (de préférence une collection EN PRÉPARATION), puis « Créer N cartes ».
+   Rien n'est créé sans cette confirmation.
+ - Image vide : le visuel du niveau (miniature) ou l'avatar du joueur s'affiche
+   automatiquement ; tu peux ensuite mettre ta propre image carte par carte.
+
+Fichiers : index.html, js/app.js, js/v118-cards-lab.js, css/v131-cards.css

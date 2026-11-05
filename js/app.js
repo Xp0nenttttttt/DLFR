@@ -1878,6 +1878,8 @@ function nlwLeaderboardHtml(users,countries){
  <div class="rank-list" id="rankList">${rankRows(nlw,chosen,'nlw')}</div><p class="small muted">Sélectionne un joueur pour voir son aperçu, puis accéder à son profil complet.</p></div>
  <aside id="dlfr251StatsPreview" class="dlfr251-preview-column" aria-live="polite">${statsProfilePreview(chosen)}</aside></div></section>`;
 }
+// V158 : classement exposé pour les propositions automatiques de cartes.
+window.DLFR_RANKING=()=>{try{return ranked().filter(statsPlayerVisible).map((p,i)=>({key:p.player_key,name:fullName(p),points:Number(p.score)||0,rank:i+1}));}catch(e){return [];}};
 function statsPage(){const users=ranked().filter(statsPlayerVisible);const countries=['MONDE',...new Set(users.map(p=>p.country_code).filter(Boolean))].sort((a,b)=>a==='MONDE'?-1:b==='MONDE'?1:a.localeCompare(b));
  const filtered=users.filter(p=>(state.country==='MONDE'||p.country_code===state.country)&&(state.country!=='FR'||state.region==='ALL'||regionFor(p)===state.region)&&key(fullName(p)).includes(key(state.keyword)));
  const chosen=filtered.find(p=>p.player_key===state.selectedPlayer)||filtered[0]||null;if(chosen)state.selectedPlayer=chosen.player_key;

@@ -263,3 +263,22 @@ html.dark .c131-step.t0,.dlfr117-panel .c131-step.t0,.dlfr117-game .c131-step.t0
 .c155-step-secret b{color:#fff}
 .c155-odd i{background:conic-gradient(#ff004c,#ffea00,#00ff9d,#00b3ff,#b400ff,#ff004c)!important}
 @media (prefers-reduced-motion:reduce){.dlfr131-card.dlfr112-secrete,.dlfr131-card.dlfr112-secrete .c131-plate strong{animation:none}}
+/* V158 — propositions automatiques de cartes */
+.dlfr158-open{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-top:18px;padding:14px 16px;border-radius:14px;border:1px dashed rgba(160,130,255,.5)}
+.dlfr158-open span{font-size:.85rem;opacity:.75}
+.dlfr158{margin-top:18px;padding:16px;border-radius:16px;background:rgba(124,92,255,.08);border:1px solid rgba(160,130,255,.4)}
+.dlfr158 header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.dlfr158 header small{font-size:.7rem;letter-spacing:.14em;font-weight:800;color:#b9a5ff}.dlfr158 header h3{margin:2px 0 4px}.dlfr158 header p{margin:0;font-size:.82rem;opacity:.8}
+.dlfr158-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0 6px}
+.dlfr158-src{display:flex;flex-wrap:wrap;gap:6px}.dlfr158-src button{border:1px solid rgba(160,130,255,.4);background:transparent;color:inherit;border-radius:999px;padding:6px 12px;font:inherit;font-size:.82rem;font-weight:700;cursor:pointer}
+.dlfr158-src button.active{background:#7c5cff;border-color:#7c5cff;color:#fff}
+.dlfr158-bar input{flex:1 1 180px;min-width:0;padding:7px 10px;border-radius:10px;border:1px solid rgba(127,127,127,.4);background:transparent;color:inherit;font:inherit}
+.dlfr158-count{font-size:.8rem;opacity:.85;margin:4px 0 8px}.dlfr158 .linklike{background:none;border:0;padding:0;color:#b9a5ff;text-decoration:underline;cursor:pointer;font:inherit}
+.dlfr158-list{display:flex;flex-direction:column;gap:4px;max-height:420px;overflow:auto;padding-right:4px}
+.dlfr158-row{display:grid;grid-template-columns:auto 80px minmax(0,1fr) auto 130px;gap:10px;align-items:center;padding:6px 10px;border-radius:10px;background:rgba(0,0,0,.18);font-size:.85rem;cursor:pointer}
+.dlfr158-row.is-on{background:rgba(124,92,255,.25)}
+.dlfr158-row b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dlfr158-row small{opacity:.7;white-space:nowrap}.dlfr158-type{font-size:.72rem;opacity:.75}
+.dlfr158-row select{padding:4px 6px;border-radius:8px;font:inherit;font-size:.8rem}
+.dlfr158-go{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;margin-top:12px}.dlfr158-go label{display:flex;flex-direction:column;gap:4px;font-size:.8rem;font-weight:700}
+.dlfr158-go small{flex-basis:100%;opacity:.7}
+@media (max-width:700px){.dlfr158-row{grid-template-columns:auto minmax(0,1fr) 110px}.dlfr158-row .dlfr158-type,.dlfr158-row small{display:none}}

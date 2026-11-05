@@ -891,6 +891,55 @@ async function uploadImage(file){
  return DB.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 }
 async function removeImage(url){const p=storagePath(url);if(!p)return;try{await DB.storage.from(BUCKET).remove([p]);}catch(e){console.warn('[DLFR Cards] Image non supprimée :',e);}}
+// ============================================================ V158 : propositions automatiques de cartes
+// Raretés proposées selon la position du niveau dans la liste ou le rang du joueur au classement.
+// Rien n'est créé sans validation : le propriétaire / supermodo coche, ajuste la rareté et confirme.
+const SUGG={open:false,src:'levels',sel:new Set(),rar:{},col:0,q:''};
+function levelRarity(pos){return pos<=1?'Ultra':pos<=5?'Mythique':pos<=20?'Légendaire':pos<=50?'Épique':pos<=100?'Rare':'Commun';}
+function playerRarity(rank){return rank<=1?'Ultra':rank<=3?'Mythique':rank<=10?'Légendaire':rank<=25?'Épique':rank<=60?'Rare':'Commun';}
+function suggestions(){
+ const data=srcData(),taken=new Set(CARDS.map(c=>dupKey(c.name))),out=[];
+ if(SUGG.src==='players'){
+  const list=(window.DLFR_RANKING?.()||[]).slice(0,200);
+  for(const p of list){if(!p.name||!(p.points>0)||/^anonyme/i.test(p.name))continue;out.push({id:'p:'+p.key,type:'player',name:p.name,info:`#${p.rank} du classement · ${Math.round(p.points).toLocaleString('fr-FR')} pts`,rarity:playerRarity(p.rank),order:p.rank,dup:taken.has(dupKey(p.name))});}
+ }else{
+  const nlw=SUGG.src==='nlw';
+  const list=(data.demons||[]).filter(d=>d.is_public!==false&&!d.is_legacy&&Number(d.position)>0&&(nlw?Number(d.position)>150&&Number(d.position)<=350:Number(d.position)<=150)).sort((a,b)=>a.position-b.position);
+  for(const d of list){const pos=Number(d.position);out.push({id:'l:'+(d.id??pos),type:'level',name:String(d.name||'').trim(),info:nlw?`NLW #${pos-150}`:`#${pos} de la liste`,rarity:nlw?'Commun':levelRarity(pos),order:pos,dup:taken.has(dupKey(d.name))});}
+ }
+ const q=normalize(SUGG.q||'');return out.filter(x=>x.name&&(!q||normalize(x.name).includes(q)));
+}
+function suggestView(){
+ if(!SUGG.open)return `<div class="dlfr158-open"><button class="btn" type="button" data-v112-act="cat-sugg-toggle">✨ Proposer des cartes automatiquement</button><span>À partir de la liste des niveaux et du classement des joueurs, avec une rareté proposée. Tu valides avant toute création.</span></div>`;
+ const list=suggestions(),fresh=list.filter(x=>!x.dup),sel=fresh.filter(x=>SUGG.sel.has(x.id));
+ if(!colOf(SUGG.col))SUGG.col=(COLLECTIONS.find(c=>c.published===false)||COLLECTIONS[0])?.id||0;
+ const opt=r=>ALL_RARITIES.filter(x=>x!==FESTIVE).map(x=>`<option ${x===r?'selected':''}>${esc(x)}</option>`).join('');
+ return `<section class="dlfr158" aria-label="Propositions automatiques de cartes">
+  <header><div><small>PROPOSITIONS AUTOMATIQUES</small><h3>Cartes suggérées</h3><p>Raretés proposées : ${SUGG.src==='players'?'Top 1 Ultra · 2-3 Mythique · 4-10 Légendaire · 11-25 Épique · 26-60 Rare · ensuite Commun':SUGG.src==='nlw'?'NLW : Commun par défaut':'#1 Ultra · #2-5 Mythique · #6-20 Légendaire · #21-50 Épique · #51-100 Rare · #101-150 Commun'}. Vérifie et ajuste avant de créer.</p></div><button class="btn subtle small" type="button" data-v112-act="cat-sugg-toggle">Fermer</button></header>
+  <div class="dlfr158-bar">
+   <div class="dlfr158-src" role="tablist">${[['levels','Niveaux · Top 150'],['nlw','Niveaux · NLW'],['players','Joueurs · classement']].map(([k,l])=>`<button type="button" class="${SUGG.src===k?'active':''}" data-v112-act="cat-sugg-src" data-src="${k}">${l}</button>`).join('')}</div>
+   <input type="search" data-v158="q" placeholder="Filtrer par nom…" value="${esc(SUGG.q)}">
+  </div>
+  <p class="dlfr158-count">${fresh.length} proposition${fresh.length>1?'s':''}${list.length-fresh.length?` · ${list.length-fresh.length} déjà en carte (masquée${list.length-fresh.length>1?'s':''})`:''} · <button type="button" class="linklike" data-v112-act="cat-sugg-all">tout cocher</button> · <button type="button" class="linklike" data-v112-act="cat-sugg-none">tout décocher</button></p>
+  <div class="dlfr158-list">${fresh.slice(0,250).map(x=>`<label class="dlfr158-row ${SUGG.sel.has(x.id)?'is-on':''}"><input type="checkbox" data-v158-sel="${esc(x.id)}" ${SUGG.sel.has(x.id)?'checked':''}><span class="dlfr158-type">${x.type==='player'?'★ Joueur':'◆ Niveau'}</span><b>${esc(x.name)}</b><small>${esc(x.info)}</small><select data-v158-rar="${esc(x.id)}">${opt(SUGG.rar[x.id]||x.rarity)}</select></label>`).join('')||'<p class="dlfr117-empty">Aucune proposition : tout existe déjà en carte.</p>'}</div>
+  <div class="dlfr158-go"><label>Collection<select data-v158="col">${COLLECTIONS.map(c=>`<option value="${c.id}" ${c.id===SUGG.col?'selected':''}>${esc(c.name)}${c.published===false?' (en préparation)':''}</option>`).join('')}</select></label>
+   <button class="btn" type="button" data-v112-act="cat-sugg-create" ${sel.length?'':'disabled'}>Créer ${sel.length} carte${sel.length>1?'s':''}</button>
+   <small>Conseil : crée-les dans une collection <b>en préparation</b>, ajoute les images, puis publie. Les visuels des niveaux et avatars des joueurs s’affichent automatiquement quand l’image est vide.</small></div>
+ </section>`;
+}
+function createSuggestions(){
+ const col=colOf(SUGG.col);if(!col){setMsg('Choisis une collection.','error');return;}
+ const rows=suggestions().filter(x=>!x.dup&&SUGG.sel.has(x.id));if(!rows.length)return;
+ if(!confirm(`Créer ${rows.length} carte(s) dans « ${col.name} » ?${col.published===false?'':'\n\n⚠ Cette collection est publiée : les joueurs verront les cartes tout de suite.'}`))return;
+ withBusy('Création des cartes…',async()=>{
+  let sort=cardsOf(col.id).reduce((m,x)=>Math.max(m,x.sort||0),0),n=0;
+  for(const x of rows.sort((a,b)=>a.order-b.order)){
+   const {error}=await DB.rpc('dlfr_cards_admin_save_card',{p_id:null,p_collection_id:col.id,p_name:x.name.slice(0,80),p_type:x.type,p_rarity:SUGG.rar[x.id]||x.rarity,p_description:'',p_image_url:'',p_in_packs:true,p_sort:++sort});
+   if(error)throw error;n++;SUGG.sel.delete(x.id);
+  }
+  log(`${n} carte(s) créées automatiquement dans ${col.name}`);catalog.selCol=col.id;await loadCatalog();setMsg(`${n} carte(s) créée(s) ✓ — vérifie-les dans « ${col.name} »`,'ok');
+ });
+}
 async function withBusy(label,fn){
  if(!canEdit())return;catalog.busy=true;setMsg(label,'busy');document.querySelectorAll('#dlfr112Lab .dlfr118-cat button').forEach(b=>b.disabled=true);
  try{await fn();}catch(e){catalog.msg=errText(e);catalog.msgKind='error';console.warn('[DLFR Cards] Catalogue :',e);}
@@ -1030,6 +1079,7 @@ function catalogView(data){
      ${cardForm}
      <div class="dlfr118-grid">${list.map(c=>`<button type="button" class="dlfr112-pick ${catalog.editCard===c.id?'is-current':''}" data-v112-act="cat-card" data-id="${c.id}" aria-label="Modifier ${esc(c.name)}">${figure(c,data,true,{finish:0,stars:0})}<span class="dlfr112-pick-label">#${idString(c.id)}${c.inPacks?'':' · hors boosters'}</span></button>`).join('')||'<p class="dlfr117-empty">Collection vide. Ajoute une première carte.</p>'}</div>`
     :(cardForm||'<p class="dlfr117-empty">Crée une collection pour commencer.</p>')}</div></div>
+  ${suggestView()}
  </section></div>`;
 }
 
@@ -1162,6 +1212,11 @@ function handleClick(event){
   else if(act==='cat-col-edit')openColEditor(catalog.selCol);
   else if(act==='cat-col-cancel'){catalog.editCol=null;catalog.colDraft=null;}
   else if(act==='cat-col-delete'){deleteCollection();return;}
+  else if(act==='cat-sugg-toggle'){SUGG.open=!SUGG.open;}
+  else if(act==='cat-sugg-src'){SUGG.src=b.dataset.src;SUGG.sel.clear();}
+  else if(act==='cat-sugg-all'){for(const x of suggestions())if(!x.dup)SUGG.sel.add(x.id);}
+  else if(act==='cat-sugg-none'){SUGG.sel.clear();}
+  else if(act==='cat-sugg-create'){createSuggestions();return;}
   else if(act==='cat-col-publish'){const c=colOf(catalog.selCol),on=b.dataset.on==='1';if(!c)return;
    if(!confirm(on?`Publier « ${c.name} » ?\n\nSes ${cardsOf(c.id).length} carte(s) deviennent visibles pour tous les joueurs et peuvent sortir des boosters.`:`Repasser « ${c.name} » en préparation ?\n\nElle disparaîtra pour les joueurs (les cartes déjà obtenues restent dans leur inventaire).`))return;
    withBusy(on?'Publication…':'Mise en préparation…',async()=>{const {error}=await DB.rpc('dlfr_cards_admin_publish_collection',{p_id:c.id,p_published:on});if(error)throw error;log(`${c.name} : ${on?'publiée':'en préparation'}`);await loadCatalog();setMsg(on?'Collection publiée ✓':'Collection repassée en préparation','ok');});return;}
@@ -1215,12 +1270,16 @@ function handleClick(event){
 function handleChange(event){
  if(!gate||!document.getElementById('dlfr112Lab'))return;
  const e=event.target;
+ if(e.dataset?.v158Sel!==undefined){if(e.checked)SUGG.sel.add(e.dataset.v158Sel);else SUGG.sel.delete(e.dataset.v158Sel);repaint();return;}
+ if(e.dataset?.v158Rar!==undefined){SUGG.rar[e.dataset.v158Rar]=e.value;return;}
+ if(e.dataset?.v158==='col'){SUGG.col=Number(e.value);return;}
  if(e.matches('[data-v112-field="filter"]')){filter=e.value;repaint();}
  else if(e.matches('[data-v117-field="title"]')){progress.title=titles().includes(e.value)?e.value:'';repaint();}
 }
 function handleInput(event){
  if(!gate||!document.getElementById('dlfr112Lab'))return;
  const e=event.target;
+ if(e.dataset?.v158==='q'){SUGG.q=e.value;clearTimeout(SUGG.t);SUGG.t=setTimeout(()=>{repaint();const i=document.querySelector('[data-v158="q"]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length);}},250);return;}
  if(e.dataset?.v118Card&&catalog.draft){const k=e.dataset.v118Card;catalog.draft[k]=e.type==='checkbox'?e.checked:e.value;if(k==='imageUrl'&&e.value){catalog.pendingFile=null;catalog.draft.preview='';}if(k==='name')dupHint();refreshCatPreview();return;}
  if(e.dataset?.v118Col&&catalog.colDraft){const k=e.dataset.v118Col,cd=catalog.colDraft;cd[k]=e.type==='checkbox'?e.checked:e.value;if(k==='slug')cd.slugTouched=true;if(k==='name'&&!cd.slugTouched){cd.slug=slugify(e.value);const s=document.querySelector('[data-v118-col="slug"]');if(s)s.value=cd.slug;}return;}
  if(!e.matches('[data-v112-field="search"]'))return;
