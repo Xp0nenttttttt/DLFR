@@ -1,0 +1,47 @@
+/* DLFR V160 — Boss communautaire et Saisons */
+.dlfr160-boss,.dlfr160-season{padding:22px;border-radius:22px;color:#fff;display:flex;flex-direction:column;gap:16px}
+.dlfr160-boss{background:radial-gradient(circle at 80% 0%,rgba(255,60,60,.35),transparent 55%),linear-gradient(160deg,#1a0508,#2a0a10 60%,#12030a);border:1px solid rgba(255,80,80,.35)}
+.dlfr160-season{background:radial-gradient(circle at 15% 0%,rgba(255,200,80,.25),transparent 50%),linear-gradient(160deg,#141022,#1e1638 60%,#0f0b1c);border:1px solid rgba(255,200,90,.3)}
+.dlfr160-boss header,.dlfr160-season header{display:flex;flex-wrap:wrap;gap:14px 24px;justify-content:space-between;align-items:flex-start}
+.dlfr160-boss header>div:first-child,.dlfr160-season header>div:first-child{flex:1 1 320px}
+.dlfr160-kicker{font-size:.72rem;font-weight:800;letter-spacing:.14em;color:#ff9a9a}.dlfr160-season .dlfr160-kicker{color:#ffd27a}
+.dlfr160-boss h2,.dlfr160-season h2{margin:4px 0 6px;font-size:1.8rem}
+.dlfr160-boss header p,.dlfr160-season header p{margin:0 0 6px;font-size:.88rem;opacity:.85;max-width:70ch}
+.dlfr160-timer{display:flex;flex-direction:column;align-items:center;padding:10px 16px;border-radius:14px;background:rgba(0,0,0,.35)}
+.dlfr160-timer span{font-size:.72rem;opacity:.75}.dlfr160-timer b{font-size:1.2rem}
+.dlfr160-hp-bar,.dlfr160-xp-bar{height:22px;border-radius:999px;background:rgba(255,255,255,.1);overflow:hidden;border:1px solid rgba(255,255,255,.15)}
+.dlfr160-hp-bar i{display:block;height:100%;background:linear-gradient(90deg,#ff2d2d,#ff7a3d);box-shadow:0 0 18px rgba(255,60,60,.6);transition:width .6s}
+.dlfr160-boss.is-dead .dlfr160-hp-bar i{background:#555}
+.dlfr160-hp-txt{margin-top:6px;font-size:.85rem;opacity:.85}.dlfr160-hp-txt b{font-size:1.05rem}
+.dlfr160-act{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.dlfr160-me{display:flex;flex-direction:column;padding:8px 14px;border-radius:12px;background:rgba(0,0,0,.3)}.dlfr160-me span{font-size:.72rem;opacity:.7}.dlfr160-me b{font-size:1.15rem}
+.dlfr160-attack{font-size:1.05rem!important;padding:12px 22px!important;background:linear-gradient(135deg,#ff3d3d,#ff8a3d)!important;border:0!important}
+.dlfr160-hit{flex-basis:100%;margin:0;font-weight:800;color:#ffb3b3;animation:dlfr160pop .4s ease-out}
+@keyframes dlfr160pop{from{transform:scale(1.3);opacity:0}to{transform:none;opacity:1}}
+.dlfr160-win{padding:12px 14px;border-radius:12px;background:rgba(255,215,90,.15);border:1px solid rgba(255,215,90,.5)}
+.dlfr160-reward{width:150px}
+.dlfr160-guest{margin:0;opacity:.85}
+.dlfr160-top h3{margin:0 0 8px;font-size:1rem}.dlfr160-top ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.dlfr160-top li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 10px;border-radius:10px;background:rgba(0,0,0,.25);font-size:.88rem}
+.dlfr160-top li span{font-weight:900;opacity:.7}.dlfr160-top li b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dlfr160-top li em{font-style:normal;font-weight:800}
+.dlfr160-top li.is-me{outline:2px solid rgba(255,215,90,.7)}
+.dlfr160-top p{margin:8px 0 0}
+.dlfr160-xp{display:flex;flex-direction:column;gap:10px}.dlfr160-xp>div:first-child{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline}
+.dlfr160-xp>div:first-child b{font-size:1.2rem}.dlfr160-xp>div:first-child span{font-size:.85rem;opacity:.8}
+.dlfr160-xp-bar i{display:block;height:100%;background:linear-gradient(90deg,#ffb347,#ffe08a);box-shadow:0 0 14px rgba(255,200,80,.6)}
+.dlfr160-xp .btn{align-self:flex-start}
+.dlfr160-ready{margin:0;font-weight:800;color:#ffe08a}
+.dlfr160-ex{display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:12px;border-radius:14px;background:rgba(255,215,90,.1);border:1px solid rgba(255,215,90,.4)}.dlfr160-ex>div{width:130px}.dlfr160-ex p{margin:0;flex:1 1 200px}
+.dlfr160-tiers{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.dlfr160-tier{position:relative;display:flex;flex-direction:column;gap:4px;min-height:96px;padding:10px;border-radius:12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);opacity:.65}
+.dlfr160-tier span{font-weight:900;font-size:1.1rem}.dlfr160-tier small{font-size:.72rem;line-height:1.25;opacity:.85}
+.dlfr160-tier.is-ok{opacity:1;border-color:rgba(255,215,90,.6)}.dlfr160-tier.is-got{opacity:.8;background:rgba(80,200,120,.15);border-color:rgba(80,200,120,.5)}
+.dlfr160-tier.is-ex{background:linear-gradient(160deg,rgba(255,215,90,.25),rgba(0,0,0,.3));border-color:#ffd25e}
+.dlfr160-tier em{position:absolute;top:8px;right:10px;font-style:normal;color:#7dffb0;font-weight:900}
+.dlfr160-tier .btn{margin-top:auto}
+.dlfr160-editor{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.06)}.dlfr160-editor summary{cursor:pointer;font-weight:800}
+.dlfr160-editor form{display:flex;flex-direction:column;gap:10px;margin-top:10px}.dlfr160-editor label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;font-weight:700}
+.dlfr160-editor input,.dlfr160-editor select{padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:#fff;color:#111;font:inherit}
+.dlfr160-editor .btn{align-self:flex-start}
+@media (max-width:600px){.dlfr160-boss,.dlfr160-season{padding:16px}.dlfr160-boss h2,.dlfr160-season h2{font-size:1.4rem}}
+@media (prefers-reduced-motion:reduce){.dlfr160-hit{animation:none}}
