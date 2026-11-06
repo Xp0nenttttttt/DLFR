@@ -1,0 +1,9 @@
+-- V172 (DÉJÀ APPLIQUÉ, migration dlfr_172_save_never_resets)
+-- dlfr_adventure_save refuse désormais une partie neuve (0 booster) qui remplacerait une partie avancée
+-- (> 50 boosters). Ajouté juste après le test de version :
+--   if coalesce((p_save->'progress'->'stats'->>'packs')::numeric, 0) = 0
+--      and coalesce((v_old->'progress'->'stats'->>'packs')::numeric, 0) > 50 then
+--    raise exception 'Sauvegarde refusée : elle aurait remplacé ta partie par une partie neuve. Recharge la page.';
+--   end if;
+-- Cause : le site refusait de charger une partie contenant plus de 10 000 exemplaires d'une carte
+-- (limite de validation), repartait d'une partie neuve et l'enregistrait par-dessus (cas de Loxow).
