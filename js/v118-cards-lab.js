@@ -750,7 +750,7 @@ function restoreSession(x,interactive){
   const ids=new Set(CARDS.map(c=>c.id));
   const inv=[];for(const row of x.owned){
    const finish=x.version===1?(row.holo===true?1:0):row.finish,stars=x.version===1?0:row.stars;
-   if(!I(row?.id,100000000,1)||!I(row.count,10000,1)||!I(finish,4)||!I(stars,MAX_STARS))throw new Error('Inventaire invalide');if(!ids.has(row.id)){skipped++;continue;}inv.push([row.id,{count:row.count,finish,stars,holo:finish>0}]);}
+   if(!I(row?.id,100000000,1)||!I(row.count,1e12,1)||!I(finish,4)||!I(stars,MAX_STARS))throw new Error('Inventaire invalide');if(!ids.has(row.id)){skipped++;continue;}inv.push([row.id,{count:row.count,finish,stars,holo:finish>0}]);}
   const rares=[];for(const e of x.overrides){if(!Array.isArray(e)||!rarities.includes(e[1]))throw new Error('Rareté invalide');if(ids.has(e[0]))rares.push(e);}
   const p=x.progress;if(!p||typeof p!=='object')throw new Error('Progression absente');
   let np=freshProgress();
@@ -759,7 +759,7 @@ function restoreSession(x,interactive){
    if(!I(p.level,30,1)||!I(p.shards,1000000))throw new Error('Statistiques invalides');
    Object.assign(np,{level:p.level,shards:p.shards});np.stats.packs=I(p.packsOpened,100000)?p.packsOpened:0;np.stats.expeditions=I(p.expeditions,100000)?p.expeditions:0;np.stats.bestLevel=p.level;
   }else{
-   if(!I(p.level,MAX_LEVEL,1)||!I(p.xp,10000000)||!I(p.shards,100000000)||!I(p.dust,100000000)||!I(p.keys,100000)||!I(p.prestige,MAX_PRESTIGE)||!I(p.questSeed||0,10000000))throw new Error('Statistiques invalides');
+   if(!I(p.level,MAX_LEVEL,1)||!I(p.xp,1e15)||!I(p.shards,1e15)||!I(p.dust,1e15)||!I(p.keys,1e12)||!I(p.prestige,MAX_PRESTIGE)||!I(p.questSeed||0,1e12))throw new Error('Statistiques invalides');
    const skills={};if(!p.skills||typeof p.skills!=='object'||Array.isArray(p.skills))throw new Error('Talents invalides');
    for(const [k,r] of Object.entries(p.skills)){const s=SKILLS.find(z=>z.id===k);if(!s||!I(r,s.max,1)||p.level<s.level)throw new Error('Talent invalide');skills[k]=r;}
    for(const k of Object.keys(skills)){const s=SKILLS.find(z=>z.id===k);if(!s.requires.every(r=>skills[r]))throw new Error('Arbre de talents incohérent');}
@@ -767,7 +767,7 @@ function restoreSession(x,interactive){
    const camps=Array.isArray(p.camps)?p.camps:[];if(camps.length>5)throw new Error('Expéditions invalides');
    for(const c of camps)if(!DESTS.some(d=>d.id===c?.dest)||!I(c.start,4102444800000)||!I(c.end,4102444800000)||c.end<c.start)throw new Error('Expédition invalide');
    const flags=(o,list)=>{const out={};if(!o||typeof o!=='object'||Array.isArray(o))return out;for(const [k,v] of Object.entries(o))if(v===true&&list.some(z=>z.id===k))out[k]=true;return out;};
-   const st=p.stats||{},stats=newStats();for(const k of Object.keys(stats)){if(Array.isArray(stats[k])){if(Array.isArray(st[k])&&st[k].length<=stats[k].length&&st[k].every(n=>I(n,100000000)))st[k].forEach((n,i)=>{stats[k][i]=n;});}else if(I(st[k],100000000))stats[k]=st[k];}
+   const st=p.stats||{},stats=newStats();for(const k of Object.keys(stats)){if(Array.isArray(stats[k])){if(Array.isArray(st[k])&&st[k].length<=stats[k].length&&st[k].every(n=>I(n,1e15)))st[k].forEach((n,i)=>{stats[k][i]=n;});}else if(I(st[k],1e15))stats[k]=st[k];}
    const quests=Array.isArray(p.quests)?p.quests.filter(q=>q&&QUEST_POOL.some(t=>t.type===q.type)&&I(q.target,100000,1)&&I(q.have,q.target)&&q.reward&&typeof q.reward==='object'&&['xp','shards','dust','keys'].every(k=>q.reward[k]===undefined||I(q.reward[k],1000000))).slice(0,3).map(q=>({id:String(q.id).slice(0,20),type:q.type,target:q.target,have:q.have,reward:{...q.reward},...(I(q.at,4102444800000)&&q.at>0?{at:q.at}:{})})):[];
    Object.assign(np,{level:p.level,xp:p.xp,shards:p.shards,dust:p.dust,keys:p.keys,prestige:p.prestige,skills,camps:camps.map(c=>({dest:c.dest,start:c.start,end:c.end})),quests,questSeed:p.questSeed||0,
     achievements:flags(p.achievements,ACHIEVEMENTS),sets:flags(Object.fromEntries(Object.entries(p.sets||{}).map(([k,v])=>[['legends','modern','players','dlfr'].includes(k)?'col-'+k:k,v])),SETS),pity:{leg:I(p.pity?.leg,5000)?p.pity.leg:0,myth:I(p.pity?.myth,5000)?p.pity.myth:0},stats,title:typeof p.title==='string'?p.title.slice(0,40):'',chapters:cleanChapters(p.chapters),spec:SPECS[p.spec]?p.spec:null,mastery:Object.fromEntries(Object.entries(p.mastery&&typeof p.mastery==='object'?p.mastery:{}).filter(([k,v])=>/^[0-9]{1,12}$/.test(k)&&Number.isSafeInteger(v)&&v>=0&&v<=1e6).slice(0,5000).map(([k,v])=>[Number(k),v])),contracts:Object.fromEntries(Object.entries(p.contracts&&typeof p.contracts==='object'?p.contracts:{}).filter(([k,v])=>v===true&&k.length<=80).slice(0,500))});
@@ -1049,6 +1049,7 @@ function previewHtml(){return figure(draftCard(),srcData(),false,{finish:0,stars
 function refreshCatPreview(){const el=document.getElementById('dlfr118Preview');if(el)el.innerHTML=previewHtml();}
 function storagePath(url){const mark=`/storage/v1/object/public/${BUCKET}/`;const i=String(url||'').indexOf(mark);return i<0?'':decodeURIComponent(String(url).slice(i+mark.length).split('?')[0]);}
 async function uploadImage(file){
+ if(file&&window.DLFR_SHRINK)file=await window.DLFR_SHRINK(file,640,900); // V173 : carte réduite (~50 Ko au lieu de ~600 Ko)
  if(!file||!IMG_TYPES.includes(file.type)||file.size>IMG_MAX)throw new Error('Image refusée : PNG, JPEG, WebP ou GIF, 2 Mo maximum.');
  const ext={'image/png':'png','image/jpeg':'jpg','image/webp':'webp','image/gif':'gif'}[file.type];
  const path=`cards/${(crypto.randomUUID?.()||Date.now()+'-'+Math.random().toString(36).slice(2))}.${ext}`;
@@ -1298,8 +1299,8 @@ async function loadSave(){
   if(catalog.status==='local'||catalog.status==='loading')await loadCatalog();
   const {data,error}=await DB.rpc('dlfr_adventure_load');if(error)throw error;
   if(uid!==userId)return;
-  reset();
-  if(data?.save){try{restoreSession(data.save,false);}catch(e){console.warn('[DLFR Cards] Sauvegarde ignorée :',e);SAVE.status='Sauvegarde illisible : nouvelle partie.';}}
+  reset();SAVE.unreadable=false;
+  if(data?.save){try{restoreSession(data.save,false);}catch(e){console.warn('[DLFR Cards] Sauvegarde illisible :',e);SAVE.unreadable=true;SAVE.status='⚠ Sauvegarde illisible : rien n’a été écrasé. Préviens l’équipe du site.';}} // V172 : ne jamais écraser une partie qu'on n'arrive pas à lire
   else{ensureQuests();}
   SAVE.version=Number(data?.version)||0;
   // V138 — collection unique : import unique de l'ancienne collection Aventure, puis le serveur fait foi.
@@ -1311,7 +1312,7 @@ async function loadSave(){
   else{const dr=await DB.rpc('dlfr_adventure_sync',{p_delta:{},p_import:false}); // V141 : livre les cartes mises de côté
    if(!dr.error&&uid===userId){inv=dr.data?.inventory||inv;queueTotal=Number(dr.data?.queue_total)||0;if(Number(dr.data?.delivered)>0)toast('DLFR Cards',`${dr.data.delivered} carte(s) mises de côté ont rejoint ta collection.`,'info');}}
   setServerInventory(inv,true);
-  SAVE.loaded=true;SAVE.conflict=false;SAVE.status=SAVE.status||'✓ Sauvegardé';
+  SAVE.loaded=true;SAVE.conflict=!!SAVE.unreadable;SAVE.status=SAVE.status||'✓ Sauvegardé';
   if(!ANTI.status)setTimeout(antiStatus,0);
  }catch(e){SAVE.status='Sauvegarde indisponible : ta progression ne sera pas enregistrée.';console.warn('[DLFR Cards] Chargement :',e);}
  repaint();

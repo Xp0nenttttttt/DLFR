@@ -1,48 +1,42 @@
-**V2.5 :** voir `DISCORD-V2.5-A-LIRE.md` pour la démonstration Discord et la préparation OAuth. Aucun drapeau personnalisé livré.
+# DemonlistFrancophone (DLFR)
 
-> **Mise à jour V2.1** : voir [`DEMARRAGE-V2.1.md`](DEMARRAGE-V2.1.md) pour les clans et la séparation Main/Extended.
+Site statique (HTML / CSS / JavaScript, sans serveur) publié avec **GitHub Pages**, données dans **Supabase**.
 
-# DemonlistFrancophone — V2.0 (front-end de démonstration)
+## Déployer une modification
 
-Reproduction HTML/CSS/JavaScript de la DemonlistFrancophone à partir du projet V1.2, destinée à GitHub Pages, avec mode démonstration **indépendant** de la base officielle.
+1. Modifier les fichiers.
+2. Envoyer sur la branche `main` du dépôt GitHub (`git add -A && git commit -m "…" && git push`).
+3. GitHub Pages republie le site en 1 à 2 minutes.
 
-Voir `V2.0-A-LIRE.md` pour les fonctionnalités, limitations, règles de points et recommandations avant migration Supabase.
+Quand un fichier JS ou CSS change, augmenter son numéro `?v=…` dans `index.html`, sinon les visiteurs gardent l'ancienne version en cache.
 
-## Test rapide
+## Structure
 
-- Publier le projet complet sur GitHub Pages.
-- Ouvrir `https://TON-PSEUDO.github.io/DLFR/?demo=1`.
-- Choisir Clair / Sombre / Midnight / Automne, activer UNRATED, consulter Top 150, NLW, Stats, Actualités, Hall of Fame, Calculateur, Non battus, Achievements FR, Clans et Historique.
-- Dans « Modération », activer le mode modérateur de démonstration.
-- Importer les niveaux depuis un `.csv` exporté par Excel. Les fichiers `.xlsx` fonctionnent via une bibliothèque JavaScript chargée en ligne ; en mode hors-ligne, exporter en `.csv`.
+| Dossier / fichier | Rôle |
+|---|---|
+| `index.html` | Page unique du site : charge tous les CSS et JS. |
+| `js/config.js` | Adresse du projet Supabase + clé publique (anon). |
+| `js/app.js` | Cœur du site : navigation, pages, classement, profils, modération. |
+| `js/v118-cards-lab.js` | Jeu DLFR Cards (mode Aventure, boosters, chapitres, catalogue des cartes pour l'équipe). |
+| `js/v127-cards.js` | Page « Collection » des cartes. |
+| `js/v139-advent.js`, `js/v160-season.js` | Calendrier de l'Avent, boss communautaire et saison. |
+| `js/v145-site-texts.js` | Édition des textes du site par les propriétaires. |
+| `js/badge-system.js` | Badges des profils. |
+| `css/` | Styles (un fichier par version de fonctionnalité). |
+| `assets/` | Logo, drapeaux, images de thème. |
+| `data/niveaux-non-battus.xlsx` | Fichier téléchargeable depuis la page « Non vérifiés ». |
+| `supabase/functions/username-auth/` | Fonction Supabase (Edge Function) de connexion par pseudo. |
+| `supabase/historique/` | Archives SQL des dernières évolutions de la base (déjà appliquées, pour référence). |
+| `tools/snapshot_ranks.py` + `.github/workflows/daily-snapshots.yml` | Instantané quotidien du classement (tâche GitHub Actions, 4h23 UTC). |
 
-## Architecture
+## Supabase
 
-- `index.html` : navigation et fichiers scripts.
-- `css/style.css` : style Pointercrate + 4 thèmes + surlignages.
-- `js/app.js` : navigation, formulaires, rendu des pages, chargement Supabase existant.
-- `js/demo-data.js` et `js/v2-demo.js` : données illustratives, non officielles.
-- `js/v2-core.js` : moteur pur des classements alternatifs NLW, badges, historique Legacy, parseur CSV.
-- `js/config.js` : URL/clé publique de votre projet Supabase (garder sa version existante lors d'un patch).
-- `supabase/04_v2_PREPARATION_NE_PAS_EXECUTER.sql` : esquisse de migration future, non validée pour production.
-- `tests/v2-core.test.js` : tests unitaires exécutables avec Node.js.
+- Projet : `mcoaeocsthivggyspykf`.
+- La sécurité repose sur les règles RLS et les fonctions `security definer` de la base : la clé publique de `js/config.js` peut rester visible.
+- La tâche quotidienne `daily-snapshots` a besoin de deux secrets GitHub Actions : `SUPABASE_URL` et `SUPABASE_SERVICE_ROLE_KEY` (Settings → Secrets and variables → Actions). Ne jamais mettre la clé `service_role` dans le site.
+- Les rôles de l'équipe (propriétaire, modération, NLW) sont gérés dans la base, depuis l'onglet Modération du site.
+- Plan gratuit : 5 Go de trafic sortant par mois. Les images envoyées depuis le site sont réduites automatiquement avant l'envoi (WebP).
 
-## Limites
+## DLFR Cards
 
-Les données réelles MySQL n'ont pas été transférées. Les fonctions V2 ajoutées n'écrivent pas dans Supabase tant que les tables/permissions nécessaires ne sont pas déployées. Le rôle NLW et les sanctions sont simulés en mode local, sans impact sur les comptes Supabase Auth. Le barème NLW est provisoire, à valider avec les administrateurs.
-
-Conserver l'ancien site et les sauvegardes SQL jusqu'à la validation intégrale.
-
-
-## Nouveauté V2.0.1 : Excel communautaire
-La page **Non battus** lit `data/niveaux-non-battus.xlsx` automatiquement depuis GitHub Pages ; elle affiche uniquement les démons encore non vérifiés. Les changements sont détaillés dans `EXCEL-NON-VERIFIES.md`.
-
-
-## Mise à jour V2.2 — Clans avancés
-
-Classements, profils de clans, candidatures, officiers, créations et collection de niveaux : voir `V2.2-CLANS-AREDL.md`. Les nouveaux changements sont pour le mode démo uniquement et ne changent pas Supabase.
-
-
-## V2.3 — Drapeaux et régions françaises
-
-Les drapeaux des pays sont désormais de véritables fichiers images locaux dans `assets/flags/countries/` (sans emoji Unicode dans le HTML). Le sélecteur de région n'apparaît que pour la France. Voir `INSTALLER-DRAPEAUX-V2.3.md` et `assets/flags/regions/fr/EMPLACEMENTS.md`. Les illustrations régionales fournies ne sont pas officielles et doivent être remplacées par les drapeaux souhaités.
+Jeu solo : pas de classement ni d'échanges. Les cartes et collections se gèrent depuis l'onglet « Catalogue » de DLFR Cards (réservé à l'équipe). Une collection « en préparation » est invisible pour les joueurs.
