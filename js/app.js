@@ -185,6 +185,7 @@ function videoContent(value){
 function newsMedia(n){const picture=imageLink(n.image_url);return `${picture?`<a class="news-image-link" target="_blank" rel="noopener noreferrer" href="${esc(picture)}"><img class="news-image" loading="lazy" src="${esc(picture)}" alt="Illustration de : ${esc(n.headline)}"></a>`:''}${n.video_url?videoContent(n.video_url):''}`;}
 async function uploadNewsImage(file){
  if(!file)return '';
+ file=await shrinkProfileImage(file,1400,1400);
  if(!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type))throw Error('Image JPG, PNG, WebP ou GIF uniquement.');
  if(file.size>5*1024*1024)throw Error('Image trop volumineuse : maximum 5 Mo.');
  if(!LIVE){
@@ -1399,6 +1400,7 @@ async function shrinkProfileImage(file,maxW,maxH){
   const blob=await new Promise(ok=>c.toBlob(ok,'image/webp',.88));
   return blob&&blob.size<file.size?new File([blob],'image.webp',{type:'image/webp'}):file;}catch{return file;}
 }
+window.DLFR_SHRINK=shrinkProfileImage; // V173 : images réduites avant envoi partout (moins de trafic Supabase)
 async function uploadProfileImage(file,kind){
  const ext={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'}[file.type];
  if(!ext)throw Error('Utilise une image PNG, JPG, WebP ou GIF.');
@@ -1784,7 +1786,7 @@ async function savePackForm(form){
  if(existing){const ordered=(state.data.dlfr_level_pack_levels||[]).filter(x=>Number(x.pack_id)===Number(f.get('pack_id'))).sort((a,b)=>Number(a.sort_order)-Number(b.sort_order)).map(x=>Number(x.demon_id));if(selected.length===ordered.length&&selected.every(x=>ordered.includes(x)))selected=ordered;}
  if(selected.length<2||selected.length>30)throw Error('Sélectionne 2 à 30 niveaux.');
  // V134 — bannière : fichier envoyé, ou lien direct (les liens de page d'hébergeurs sont refusés).
- const bannerFile=form.elements.banner_file?.files?.[0];
+ let bannerFile=form.elements.banner_file?.files?.[0];if(bannerFile)bannerFile=await shrinkProfileImage(bannerFile,1600,900);
  if(bannerFile){
   if(!['image/jpeg','image/png','image/webp','image/gif'].includes(bannerFile.type))throw Error('Bannière : image JPG, PNG, WebP ou GIF uniquement.');
   if(bannerFile.size>5*1024*1024)throw Error('Bannière : 5 Mo maximum.');
@@ -2613,6 +2615,7 @@ function clanImageLink(value){
 }
 async function uploadClanImage(file,clanId,kind){
  if(!file)return '';
+ file=await shrinkProfileImage(file,kind==='logo'?400:1600,kind==='logo'?400:900);
  if(!LIVE)throw Error('Import de fichiers disponible uniquement sur le site connecté.');
  if(!Number.isSafeInteger(Number(clanId))||Number(clanId)<1||!['logo','banner'].includes(kind))throw Error('Clan ou média invalide.');
  const extensions={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'};

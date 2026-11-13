@@ -27,3 +27,10 @@ create or replace function public.dlfr_trade_accept(p_id bigint)
 returns jsonb language plpgsql security definer set search_path = '' as $$
 begin raise exception 'Les échanges ont été retirés : DLFR Cards est maintenant un jeu solo.'; end $$;
 -- dlfr_boss_status() et dlfr_season_status() : champ 'top' remplacé par '[]'::jsonb.
+
+-- V169b : soft ban désactivé pour de bon (migration dlfr_169b_no_shadow) :
+update public.dlfr_cards_shadow set active = false where active;
+create or replace function public.dlfr_cards_is_shadow(p_auth uuid)
+returns boolean language sql stable security definer set search_path = '' as $$ select false $$;
+create or replace function public.dlfr_cards_apply_shadow(p_auth uuid, p_reason text, p_by uuid default null)
+returns void language sql security definer set search_path = '' as $$ select null::void $$;

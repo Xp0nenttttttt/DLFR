@@ -720,7 +720,7 @@ function progressionPage(data){
  ensureQuests();
  const inner=view==='packs'?boostersView():view==='chapters'?chaptersView():view==='expeditions'?expeditionsView():view==='talents'?talentsView():view==='forge'?forgeView(data):goalsView();
  return `<div class="dlfr117-game">${hud()}${inner}
-  <div class="dlfr117-footer"><p>Ta partie est sauvegardée automatiquement sur ton compte.${editor?' Importer une sauvegarde passe la session en <strong>mode test</strong> (plus de sauvegarde automatique jusqu’au rechargement).':''}</p><div class="dlfr113-create-buttons"><button class="btn subtle" data-v112-act="export-session" type="button">↓ Exporter ma partie</button>${editor?'<button class="btn subtle" data-v112-act="open-session-import" type="button">↑ Importer (test)</button>':''}<input type="file" id="dlfr114SessionFile" accept="application/json,.json" hidden></div></div></div>`;
+  <div class="dlfr117-footer"><p>Ta partie est sauvegardée automatiquement sur ton compte. Tu peux aussi l’exporter dans un fichier et la réimporter plus tard.${editor?' <em>Équipe :</em> le bouton « Importer (test) » ouvre une session de test qui n’est <strong>pas</strong> sauvegardée (« Importer ma partie » remplace et sauvegarde ta vraie partie).':''}</p><div class="dlfr113-create-buttons"><button class="btn subtle" data-v112-act="export-session" type="button">↓ Exporter ma partie</button><button class="btn subtle" data-v112-act="import-own" type="button">↑ Importer ma partie</button><input type="file" id="dlfr173OwnFile" accept="application/json,.json" hidden>${editor?'<button class="btn subtle" data-v112-act="open-session-import" type="button">↑ Importer (test)</button>':''}<input type="file" id="dlfr114SessionFile" accept="application/json,.json" hidden></div></div></div>`;
 }
 
 // ============================================================ Export / import de session
@@ -729,6 +729,19 @@ function sessionObject(){
   progress:{...progress,reveals:[],skills:{...progress.skills},camps:progress.camps.map(c=>({...c})),quests:progress.quests.map(q=>({...q,reward:{...q.reward}})),achievements:{...progress.achievements},sets:{...progress.sets},pity:{...progress.pity},stats:{...progress.stats,tiers:[...progress.stats.tiers],finishes:[...progress.stats.finishes]}}};
 }
 function exportSession(){download(sessionObject(),'DLFR_Cards_aventure.json');log('Sauvegarde exportée.');}
+// V174 — un joueur peut réimporter une partie exportée : elle remplace sa partie et est sauvegardée sur son compte.
+async function importOwnSave(file){
+ if(!file)return;
+ if(file.size>20000000){alert('Fichier trop volumineux (20 Mo maximum).');return;}
+ if(!userId||!SAVE.loaded){toast('DLFR Cards','Connecte-toi et attends le chargement de ta partie avant d’importer.','info');return;}
+ if(SAVE.tainted){toast('DLFR Cards','Tu es en session de test : recharge la page avant d’importer ta partie.','info');return;}
+ let data;try{data=JSON.parse(await file.text());}catch{alert('Ce fichier n’est pas une sauvegarde DLFR Cards.');return;}
+ const lvl=Number(data?.progress?.level)||1,pk=Number(data?.progress?.stats?.packs)||0;
+ if(!confirm(`Importer cette partie (niveau ${lvl}, ${pk} booster${pk>1?'s':''} ouverts) ? Ta partie actuelle sera remplacée.`))return;
+ try{restoreSession(data,false);}catch(error){alert('Import impossible : '+error.message);return;}
+ SAVE.conflict=false;SAVE.unreadable=false;SAVE.urgent=true;view='packs';scheduleSave();repaint();
+ toast('DLFR Cards',`Partie importée (niveau ${lvl}) et en cours de sauvegarde sur ton compte.`,'achievement');
+}
 async function importSession(file){
  if(!file||file.size>20000000){alert('Fichier de session trop volumineux (20 Mo maximum).');return;}
  try{restoreSession(JSON.parse(await file.text()),true);}catch(error){alert('Import de session impossible : '+error.message);}
@@ -1049,6 +1062,7 @@ function previewHtml(){return figure(draftCard(),srcData(),false,{finish:0,stars
 function refreshCatPreview(){const el=document.getElementById('dlfr118Preview');if(el)el.innerHTML=previewHtml();}
 function storagePath(url){const mark=`/storage/v1/object/public/${BUCKET}/`;const i=String(url||'').indexOf(mark);return i<0?'':decodeURIComponent(String(url).slice(i+mark.length).split('?')[0]);}
 async function uploadImage(file){
+ if(file&&window.DLFR_SHRINK)file=await window.DLFR_SHRINK(file,640,900); // V173 : carte réduite (~50 Ko au lieu de ~600 Ko)
  if(!file||!IMG_TYPES.includes(file.type)||file.size>IMG_MAX)throw new Error('Image refusée : PNG, JPEG, WebP ou GIF, 2 Mo maximum.');
  const ext={'image/png':'png','image/jpeg':'jpg','image/webp':'webp','image/gif':'gif'}[file.type];
  const path=`cards/${(crypto.randomUUID?.()||Date.now()+'-'+Math.random().toString(36).slice(2))}.${ext}`;
@@ -1531,6 +1545,7 @@ function handleClick(event){
  else if(act==='cheat'){const w=b.dataset.what;if(w==='shards')addShards(1000);else if(w==='dust')progress.dust+=500;else if(w==='keys')progress.keys+=5;else if(w==='levels'){for(let i=0;i<5&&progress.level<MAX_LEVEL;i++)addXP(levelTarget(progress.level)-progress.xp);}log('Console : '+b.textContent);}
  else if(act==='simulate'){const id=document.getElementById('dlfr117SimPack')?.value,c=simulate(id,1000),tot=Math.max(1,c.reduce((a,x)=>a+x,0));const out=document.getElementById('dlfr117SimOut');if(out)out.textContent=`${PACKS.find(p=>p.id===id)?.name} × 1 000 : `+rarities.map((r,i)=>`${r} ${fmtPercent(c[i]/tot)}`).join(' · ');return;}
  else if(act==='export-session'){exportSession();return;}
+ else if(act==='import-own'){document.getElementById('dlfr173OwnFile')?.click();return;}
  else if(act==='open-session-import'){document.getElementById('dlfr114SessionFile')?.click();return;}
  else if(act==='give'){give(b.dataset.id);log(`+1 ${get(b.dataset.id)?.name}`);}
  else if(act==='take'){if(take(b.dataset.id))log(`−1 ${get(b.dataset.id)?.name}`);}
@@ -1576,6 +1591,7 @@ document.addEventListener('submit',event=>{
 document.addEventListener('change',async event=>{
  if(!gate||!document.getElementById('dlfr112Lab'))return;
  const el=event.target;
+ if(el.id==='dlfr173OwnFile'){const file=el.files?.[0];el.value='';if(file)await importOwnSave(file);return;}
  if(el.id==='dlfr114SessionFile'){const file=el.files?.[0];el.value='';if(file)await importSession(file);return;}
  if(el.id==='dlfr118ImportFile'){const file=el.files?.[0];el.value='';if(file)await importCreations(file);return;}
  if(el.id==='dlfr118ImageFile'){
