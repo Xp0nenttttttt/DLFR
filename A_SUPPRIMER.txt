@@ -1,0 +1,68 @@
+FICHIERS À SUPPRIMER DE TON DOSSIER DLFR
+========================================
+(Plus aucun n'est utilisé par le site. Ensuite : copier le contenu du dossier DLFR de ce ZIP par-dessus le tien.)
+
+Dossiers entiers :
+  dlfr_patch_70/
+  dlfr_v92_1_requests_counter/
+  diagnostic/
+  rapports/
+  imports/
+  tests/
+  docs/                      (vide)
+  assets/easter-eggs/
+  supabase/.temp/
+
+Fichiers :
+  production-tools.js        (à la racine ; celui de js/ reste)
+
+  js/demo-data.js
+  js/nlw-media.js
+  js/v2-demo.js
+  js/v112-cards-lab.js
+  js/v113-cards-lab.js
+  js/v114-cards-lab.js
+  js/v115-cards-lab.js
+  js/v116-cards-lab.js
+  js/v117-cards-lab.js
+  js/v163-trades.js
+
+  css/v112-cards-lab.css
+  css/v113-cards-lab.css
+  css/v114-cards-lab.css
+  css/v115-cards-lab.css
+
+  data/  → tout SAUF niveaux-non-battus.xlsx :
+    data/README-AREDL-MEDIA.md
+    data/aredl-fr-bulk.json
+    data/aredl-nlw-review.csv
+    data/aredl-nlw-review.json
+    data/aredl-nlw-stage-media.json
+    data/aredl-nlw-stage.csv
+    data/aredl-nlw-stage.json
+    data/aredl-nlw-stage.sql
+
+  tools/  → tout SAUF snapshot_ranks.py :
+    tools/aredl-nlw-media-preview.html
+    tools/aredl_bulk_fr.py
+    tools/aredl_catalog_sync.py
+    tools/aredl_fr_evidence_sync.py
+    tools/aredl_nlw_stage_plan.py
+    tools/aredl_nlw_sync.py
+    tools/convert_mysql_csv.py
+    tools/import_legacy_users.py
+    tools/verifier_patch.py
+
+  .github/workflows/  → tout SAUF daily-snapshots.yml :
+    .github/workflows/aredl-bulk-fr.yml
+    .github/workflows/aredl-catalog-supabase.yml
+    .github/workflows/aredl-fr-evidence.yml
+    .github/workflows/aredl-nlw-review.yml
+
+À GARDER (ne pas toucher) : supabase/functions/ (connexion par pseudo), tools/snapshot_ranks.py et
+.github/workflows/daily-snapshots.yml (instantané quotidien du classement), assets/ (sauf easter-eggs),
+data/niveaux-non-battus.xlsx.
+
+APRÈS LA MISE EN LIGNE
+ 1. Recharger le site avec Ctrl+F5.
+ 2. DLFR Cards → onglet ⚙ Gestion → « Optimiser les images » (laisser l'onglet ouvert jusqu'à la fin).

@@ -471,9 +471,16 @@ const READ_SORT_KEYS=Object.freeze({
 // V164 : la preuve AREDL (bulk_fr_evidence, ~1,2 Mo) n'est plus téléchargée à chaque visite :
 // elle est lue à la demande sur la page du niveau.
 const DEMON_COLS='id,position,name,difficulty,requirement,creator,creator_more,publisher,verifier,publisher_user_id,verifier_user_id,video_url,thumbnail_url,description,level_id,level_length,song,object_count,legacy,created_at,unrated,unrated_position,legacy_since,aredl_id,aredl_rank,first_frbe_player,first_frbe_video_url,first_frbe_achieved_at,verifier_video_url,data_source,completion_mode,is_public,first_fr_player,first_fr_video_url,first_fr_thumbnail_url,first_fr_achieved_at';
+// V177 : la preuve est gardée en mémoire par niveau. Avant, elle était rangée dans une copie du niveau
+// reconstruite à chaque affichage : la page la retéléchargeait en boucle (des centaines de milliers de requêtes).
+const DEMON_EVIDENCE=new Map(),DEMON_EVIDENCE_LOADING=new Set();
 function ensureDemonEvidence(d){
- if(!d||d.bulk_fr_evidence!==undefined||d.__evLoading||!db||!LIVE)return;d.__evLoading=true;
- db.from('demons').select('bulk_fr_evidence').eq('id',d.id).maybeSingle().then(({data})=>{d.bulk_fr_evidence=data?.bulk_fr_evidence??null;if(data?.bulk_fr_evidence)render();}).catch(()=>{d.bulk_fr_evidence=null;});
+ if(!d)return;
+ if(DEMON_EVIDENCE.has(d.id)){d.bulk_fr_evidence=DEMON_EVIDENCE.get(d.id);return;}
+ if(d.bulk_fr_evidence!==undefined||DEMON_EVIDENCE_LOADING.has(d.id)||!db||!LIVE)return;
+ DEMON_EVIDENCE_LOADING.add(d.id);
+ db.from('demons').select('bulk_fr_evidence').eq('id',d.id).maybeSingle().then(({data})=>{const ev=data?.bulk_fr_evidence??null;DEMON_EVIDENCE.set(d.id,ev);d.bulk_fr_evidence=ev;if(ev)render();})
+  .catch(()=>{DEMON_EVIDENCE.set(d.id,null);d.bulk_fr_evidence=null;}).finally(()=>DEMON_EVIDENCE_LOADING.delete(d.id));
 }
 async function readAll(name){return withReadSlot(async()=>{
  const start=perfNow();let out=[],from=0;

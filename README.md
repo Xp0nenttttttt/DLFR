@@ -39,4 +39,7 @@ Quand un fichier JS ou CSS change, augmenter son numéro `?v=…` dans `index.ht
 
 ## DLFR Cards
 
+Onglet **⚙ Gestion** (propriétaires, supermodérateurs et rôle « Gestion Cards ») : donner le rôle (propriétaires seulement), revenir à une copie quotidienne de la partie d'un joueur (14 jours) ou la remettre à zéro, modifier les probabilités des boosters et des finitions, créer des événements (packs offerts). Tout est inscrit dans le journal.
+
+
 Jeu solo : pas de classement ni d'échanges. Les cartes et collections se gèrent depuis l'onglet « Catalogue » de DLFR Cards (réservé à l'équipe). Une collection « en préparation » est invisible pour les joueurs.

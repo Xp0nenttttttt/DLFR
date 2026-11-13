@@ -144,9 +144,10 @@ document.addEventListener('click',ev=>{
 document.addEventListener('keydown',ev=>{if((ev.key==='Enter'||ev.key===' ')&&ev.target.matches?.('#dlfr127Cards [data-card-zoom]')){ev.preventDefault();zoom(Number(ev.target.dataset.cardZoom));}});
 window.DLFR_CARDS={
  page(){return '<section class="dlfr127-cards" id="dlfr127Cards" aria-live="polite"><div class="dlfr127-loading">Chargement de ta collection…</div></section>';},
- invalidate(){if(!S.ctx||!S.loaded)return;refreshStatus().then(()=>{if(document.getElementById('dlfr127Cards'))paint();});},
+ // V177 : plus de requête à chaque sauvegarde du jeu (l'inventaire est transmis directement) ; sinon rechargement seulement si la page est affichée.
+ invalidate(inv){if(!S.ctx||!S.loaded)return;const shown=!!document.getElementById('dlfr127Cards');if(inv&&typeof inv==='object'){S.status={...S.status,inventory:inv};if(shown)paint();return;}if(!shown){S.stale=true;return;}refreshStatus().then(()=>{if(document.getElementById('dlfr127Cards'))paint();});},
  refresh(){if(!S.ctx)return;if(S.loaded)paint();else load();},
- mount(ctx){const sessionChanged=S.ctx&&S.ctx.session!==ctx.session;S.ctx=ctx;if(sessionChanged)S.loaded=false;if(S.loaded)paint();else load();},
+ mount(ctx){const sessionChanged=S.ctx&&S.ctx.session!==ctx.session;S.ctx=ctx;if(sessionChanged)S.loaded=false;if(S.loaded&&S.stale){S.stale=false;refreshStatus().then(paint);}else if(S.loaded)paint();else load();},
  reset(){S.loaded=false;S.status=null;}
 };
 })();

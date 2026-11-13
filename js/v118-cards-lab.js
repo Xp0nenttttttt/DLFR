@@ -273,15 +273,29 @@ function xpMult(){return prestMult()*(1+.03*rank('le2'))*(rank('le10')?1.25:1)*(
 function dustMult(){return (1+.2*rank('ma2')+.05*rank('le3')+finBonus().dust)*(rank('le10')?1.25:1);}
 function forgeDiscount(){return Math.max(.3,1-.1*rank('ma4')-.03*rank('le6'))*(isSpec('art')?.8:1);}
 function luck(){return rank('fo1')+(rank('cv')?1:0)+.5*rank('le4');}
-function legPity(){return 200-15*rank('fo4');}
-const MYTH_PITY=1200;
+function legPity(){return Math.max(5,ODDS.legBase-15*rank('fo4'));}
+// V176 : probabilités modifiables depuis l'onglet Gestion (table dlfr_cards_config, clé 'odds').
+const ODDS={secret:SECRET_RATE,mythPity:1200,legBase:200,col:[68.3,26.4,4.6,.55,.095,.00667]};
 function slots(){return Math.min(5,1+rank('ex3')+rank('ex5')+(progress.level>=30?1:0)+rank('le7'));}
 function destDuration(d){return Math.round(d.min*60000*(1-.08*rank('ex2')-.02*rank('le9')));}
 // V147 — un booster par collection (réglé dans le Catalogue).
+const ODDS_DEFAULT={packs:Object.fromEntries(PACKS.map(p=>[p.id,p.weights.slice()])),collection:ODDS.col.slice(),finishes:FIN_BASE.slice(1),secret:ODDS.secret,myth_pity:ODDS.mythPity,leg_pity:ODDS.legBase};
+function oddsNow(){return {packs:{...Object.fromEntries(PACKS.map(p=>[p.id,p.weights.slice()])),collection:ODDS.col.slice()},finishes:FIN_BASE.slice(1),secret:ODDS.secret,myth_pity:ODDS.mythPity,leg_pity:ODDS.legBase};}
+function applyOdds(cfg){
+ const ok6=a=>Array.isArray(a)&&a.length===6&&a.every(x=>Number.isFinite(+x)&&+x>=0)&&a.some(x=>+x>0);
+ const src=cfg&&typeof cfg==='object'?cfg:null,D=ODDS_DEFAULT;
+ for(const p of PACKS){const w=src?.packs?.[p.id];p.weights=(ok6(w)?w:D.packs[p.id]).map(Number);}
+ ODDS.col=(ok6(src?.packs?.collection)?src.packs.collection:D.collection).map(Number);
+ const f=Array.isArray(src?.finishes)&&src.finishes.length===4&&src.finishes.every(x=>Number.isFinite(+x)&&+x>=0&&+x<=.5)?src.finishes:D.finishes;
+ for(let i=0;i<4;i++)FIN_BASE[i+1]=Number(f[i]);
+ ODDS.secret=Number.isFinite(+src?.secret)&&+src.secret>=0&&+src.secret<=.01?+src.secret:D.secret;
+ ODDS.mythPity=Number.isInteger(+src?.myth_pity)&&+src.myth_pity>=10?+src.myth_pity:D.myth_pity;
+ ODDS.legBase=Number.isInteger(+src?.leg_pity)&&+src.leg_pity>=5?+src.leg_pity:D.leg_pity;
+}
 function allPacks(){
  const cols=COLLECTIONS.filter(c=>c.booster!==false&&packable().filter(x=>x.collectionId===c.id).length>=3);
  return [...PACKS,...cols.map(c=>({id:'col-'+c.id,name:c.name,count:c.boosterCount||5,cost:{shards:c.boosterCost||120},level:c.boosterLevel||1,
-  weights:[68.3,26.4,4.6,.55,.095,.00667],guarantee:(c.boosterCount||5)>=5?1:0,theme:'collection',emblem:'❖',color:c.color,
+  weights:ODDS.col.slice(),guarantee:(c.boosterCount||5)>=5?1:0,theme:'collection',emblem:'❖',color:c.color,
   subtitle:`Uniquement les cartes de la collection « ${c.name} »`,filter:x=>x.collectionId===c.id,collection:c.id}))];
 }
 function packCount(p){return p.count+(rank('ma3')&&p.count>=5?1:0)+(rank('ap')?1:0)+(rank('le10')?1:0);}
@@ -379,7 +393,7 @@ function packable(){return CARDS.filter(c=>c.inPacks&&c.rarity!==FESTIVE&&c.rari
 function shownCards(){return CARDS.filter(c=>c.rarity!==SECRET||editor||has(c.id));}
 const countable=c=>c.rarity!==SECRET; // les secrètes ne comptent dans aucune complétion
 function secretPool(){return CARDS.filter(c=>c.inPacks&&c.rarity===SECRET&&colLive(c.collectionId));}
-function secretRoll(pack){const p=secretPool().filter(c=>!pack?.filter||pack.filter(c));return p.length&&Math.random()<SECRET_RATE?pick(p):null;}
+function secretRoll(pack){const p=secretPool().filter(c=>!pack?.filter||pack.filter(c));return p.length&&Math.random()<ODDS.secret?pick(p):null;}
 function poolFor(pack){const base=packable(),p=base.filter(c=>!pack.filter||pack.filter(c));return p.length?p:base;}
 function weights(pack){
  const pool=poolFor(pack),n=luck();
@@ -413,7 +427,7 @@ function openPack(id){
  const count=packCount(pack),guarantee=packGuarantee(pack),pool=poolFor(pack),draws=[];
  for(let i=0;i<count;i++){
   const last=i===count-1;let minT=last?guarantee:0,pityHit='';
-  if(progress.pity.myth+1>=MYTH_PITY){minT=4;pityHit='myth';}else if(progress.pity.leg+1>=legPity()){minT=Math.max(minT,3);pityHit='leg';}
+  if(progress.pity.myth+1>=ODDS.mythPity){minT=4;pityHit='myth';}else if(progress.pity.leg+1>=legPity()){minT=Math.max(minT,3);pityHit='leg';}
   const tier=chooseTier(pack,minT);
   let choices=pool.filter(c=>tierOf(c)===tier);
   if(last&&rank('ma5')){const missing=choices.filter(c=>!has(c.id));if(missing.length)choices=missing;}
@@ -517,7 +531,7 @@ function fmtPercent(n){if(n>0&&n<.0005)return '1 sur '+(Math.round(1/n/100)*100)
 function boostersView(){
  const p=progress;
  return `<section class="dlfr117-panel"><div class="dlfr117-head"><div><small>BOOSTERS DE L’AVENTURE</small><h2>Boosters</h2><p>Chaque booster a ses probabilités visibles. Les doublons deviennent de la poussière ✧ pour la Forge.</p>${ladder()}</div>
-  <div class="dlfr117-pity"><div><span>Garantie Légendaire</span><b>${Math.max(1,legPity()-p.pity.leg)} carte${legPity()-p.pity.leg>1?'s':''}</b><div class="dlfr117-bar small"><i style="width:${p.pity.leg/legPity()*100}%"></i></div></div><div><span>Garantie Mythique</span><b>${Math.max(1,MYTH_PITY-p.pity.myth)} cartes</b><div class="dlfr117-bar small myth"><i style="width:${p.pity.myth/MYTH_PITY*100}%"></i></div></div></div></div>
+  <div class="dlfr117-pity"><div><span>Garantie Légendaire</span><b>${Math.max(1,legPity()-p.pity.leg)} carte${legPity()-p.pity.leg>1?'s':''}</b><div class="dlfr117-bar small"><i style="width:${p.pity.leg/legPity()*100}%"></i></div></div><div><span>Garantie Mythique</span><b>${Math.max(1,ODDS.mythPity-p.pity.myth)} cartes</b><div class="dlfr117-bar small myth"><i style="width:${p.pity.myth/ODDS.mythPity*100}%"></i></div></div></div></div>
   <div class="dlfr117-packs">${allPacks().map(pack=>{
    const locked=p.level<pack.level,afford=canAfford(pack.cost),w=weights(pack),g=packGuarantee(pack);
    return `<article class="dlfr117-pack ${locked?'is-locked':''}"><div class="dlfr117-pack-stage">${packArt(pack)}${locked?`<span class="dlfr117-lock">🔒 Niveau ${pack.level}</span>`:''}</div>
@@ -955,7 +969,7 @@ function renderSummary(){
   <div class="o-gains"><div><b data-count="${shards}">0</b><span>◆ éclats</span></div><div><b data-count="${dust}">0</b><span>✧ poussière</span></div><div><b data-count="${m.xp}">0</b><span>XP</span></div></div>
   <div class="o-xp"><span>Niv. ${progress.level}</span><div class="o-xpbar"><i style="--from:${m.levels.length?0:startPct}%;--to:${endPct}%"></i></div><span>${progress.level>=MAX_LEVEL?'MAX':`${fmt(progress.xp)} / ${fmt(levelTarget(progress.level))}`}</span></div>
   ${m.levels.length?`<div class="o-levelup"><b>NIVEAU ${progress.level} !</b>${m.levels.filter(l=>l.rank).map(l=>`<span>Nouveau rang : ${esc(l.rank)}</span>`).join('')}<small>${m.levels.map(l=>`+${l.bonus} ◆${l.keys?' +1 🔑':''}`).join(' · ')}</small></div>`:''}
-  <p class="o-pity">Garantie Légendaire dans ${Math.max(1,legPity()-progress.pity.leg)} cartes · Mythique dans ${Math.max(1,MYTH_PITY-progress.pity.myth)}</p></div>`);
+  <p class="o-pity">Garantie Légendaire dans ${Math.max(1,legPity()-progress.pity.leg)} cartes · Mythique dans ${Math.max(1,ODDS.mythPity-progress.pity.myth)}</p></div>`);
  setOpening('.o-banner','');
  setOpening('.o-buttons',`${canAgain?`<button type="button" class="o-btn" data-o="again">Rouvrir · ${costText(again.cost)}</button>`:''}<button type="button" class="o-btn o-primary" data-o="close">Terminer</button>`);
  setOpening('.o-hint','Échap ou Espace pour fermer');
@@ -1036,6 +1050,7 @@ function useFallback(){COLLECTIONS=FALLBACK_COLLECTIONS.map(c=>({...c}));CARDS.l
 async function loadCatalog(){
  if(!DB)return;catalog.status='loading';
  try{
+  DB.rpc('dlfr_cards_config_get').then(({data})=>{applyOdds(data);repaint();}).catch(()=>{});
   const [c,k]=await Promise.all([
    DB.from('dlfr_card_collections').select('*').order('sort_order',{ascending:true}).order('id',{ascending:true}),
    DB.from('dlfr_cards').select('id,collection_id,name,card_type,rarity,description,image_url,in_packs,sort_order').order('sort_order',{ascending:true}).order('id',{ascending:true})]);
@@ -1264,7 +1279,7 @@ function catalogView(data){
 }
 
 // ============================================================ PAGE
-function tabs(){const t=[...(window.DLFR_CARDS?[['official','★ Collection']]:[]),...(window.DLFR_ADVENT?[['advent','🎄 Avent']]:[]),...(window.DLFR_SEASON?[['boss','⚔ Boss'],['season','🏆 Saison']]:[]),['packs','✦ Boosters'],['chapters','🧭 Chapitres'],['expeditions','Expéditions'],['talents','Talents'],['forge','Forge'],['goals','Objectifs'],['album','Album'],['collection','Ma collection']];return editor?t.concat([['catalog','✎ Catalogue'],['exchanges','Échanges fictifs'],['control','Outils de test']]):t;}
+function tabs(){const t=[...(window.DLFR_CARDS?[['official','★ Collection']]:[]),...(window.DLFR_ADVENT?[['advent','🎄 Avent']]:[]),...(window.DLFR_SEASON?[['boss','⚔ Boss'],['season','🏆 Saison']]:[]),['packs','✦ Boosters'],['chapters','🧭 Chapitres'],['expeditions','Expéditions'],['talents','Talents'],['forge','Forge'],['goals','Objectifs'],['album','Album'],['collection','Ma collection']];return editor?t.concat([['manage','⚙ Gestion'],['catalog','✎ Catalogue'],['exchanges','Échanges fictifs'],['control','Outils de test']]):t;}
 function filtered(){return shownCards().filter(c=>(view!=='collection'||has(c.id)||filter==='missing')&&(filter==='all'||filter==='owned'&&has(c.id)||filter==='missing'&&!has(c.id)||filter===c.type||filter==='col:'+c.collectionId)&&normalize(c.name+' '+c.series+' '+rarity(c)).includes(normalize(query)));}
 function albumView(data){
  const current=get(selected)||CARDS[0];
@@ -1279,7 +1294,7 @@ function viewPage(data){
  if(view==='advent'&&!window.DLFR_ADVENT)view='official';
  if((view==='boss'||view==='season')&&!window.DLFR_SEASON)view='official';
  if(view==='trades')view='official'; // V169 : échanges retirés (jeu solo)
- if(!editor&&['catalog','exchanges','control'].includes(view))view='album';
+ if(!editor&&['catalog','exchanges','control','manage'].includes(view))view='album';
  const current=get(selected)||CARDS[0];
  const prog=['packs','chapters','expeditions','talents','forge','goals'].includes(view),total=Math.max(1,shownCards().length);
  const src=catalog.status==='loading'?'chargement…':catalog.status==='ready'||catalog.status==='empty'?'':'hors ligne';
@@ -1297,6 +1312,7 @@ function viewPage(data){
   ${view==='album'||view==='collection'?albumView(data):''}
   ${view==='catalog'?catalogView(data):''}
   ${view==='exchanges'?`<section class="dlfr112-panel"><div class="dlfr112-section-head"><h2>Échanges fictifs</h2><p>Simulation locale avec un partenaire imaginaire. Impossible d'impliquer ou de modifier le compte d'un autre joueur.</p></div><div class="dlfr112-trade"><label>Tu donnes<select id="dlfr112TradeGive">${CARDS.filter(c=>has(c.id)).map(optionCard).join('')||'<option value="">Aucune carte possédée</option>'}</select></label><div class="dlfr112-arrows">⇄</div><label>Tu reçois<select id="dlfr112TradeGet">${CARDS.map(optionCard).join('')}</select></label></div><button class="btn" type="button" data-v112-act="trade" ${inventoryUnique()===0?'disabled':''}>Simuler l'échange</button><p class="muted small">Aucun échange n'est enregistré. Le partenaire est fictif.</p></section>`:''}
+  ${view==='manage'?manageHTML():''}
   ${view==='control'?`<section class="dlfr112-panel"><div class="dlfr112-section-head"><h2>Console de test · Pouvoirs admin</h2><p>Pour tester la progression. Le catalogue n’est pas modifié.</p></div>
    <div class="dlfr112-admin-actions"><button class="btn" type="button" data-v112-act="all">✦ Recevoir toutes les cartes</button><button class="btn subtle" type="button" data-v112-act="holo-all">✧ Tout passer en Holo</button><button class="btn subtle" type="button" data-v112-act="cheat" data-what="shards">+1 000 ◆</button><button class="btn subtle" type="button" data-v112-act="cheat" data-what="dust">+500 ✧</button><button class="btn subtle" type="button" data-v112-act="cheat" data-what="keys">+5 🔑</button><button class="btn subtle" type="button" data-v112-act="cheat" data-what="levels">+5 niveaux</button><button class="btn subtle" type="button" data-v112-act="cooldown-skip">Terminer les expéditions</button><button class="btn subtle" type="button" data-v112-act="skills-reset">Réinitialiser les talents (remboursement)</button><button class="btn danger" type="button" data-v112-act="reset">Réinitialiser la progression de test</button></div>
    ${current?`<div class="dlfr112-admin-edit"><label>Carte à modifier<select id="dlfr112CardPick">${CARDS.map(c=>`<option value="${c.id}" ${c.id===selected?'selected':''}>${idString(c.id)} · ${esc(c.name)}</option>`).join('')}</select></label><label>Rareté fictive (test, non enregistrée)<select id="dlfr112Rarity">${rarities.map(r=>`<option value="${esc(r)}" ${r===rarity(current)?'selected':''}>${esc(r)}</option>`).join('')}</select></label><button class="btn subtle" type="button" data-v112-act="rarity">Tester la rareté</button></div>`:''}
@@ -1361,7 +1377,7 @@ async function syncCards(){
  queueTotal=Number(data?.queue_total)||0;
  for(const b of data?.bonuses||[])toast('Collection complète !',`${b.collection} : +${b.coins} Wayllings dorés`,'achievement');
  if(Number(data?.capped)>0||Number(data?.delivered)>0||(data?.bonuses||[]).length)setTimeout(repaint,0);
- window.DLFR_CARDS?.invalidate?.();
+ window.DLFR_CARDS?.invalidate?.(data?.inventory||null); // V177 : inventaire transmis, pas de nouvelle requête
 }
 function scheduleSave(){
  if(!SAVE.loaded||SAVE.tainted||SAVE.conflict||!DB||!userId)return;
@@ -1479,6 +1495,115 @@ async function sancDo(what){
  if(error){SANC.err=error.message;repaint();return;}
  toast('Sanctions',`${key} : fait.`,'info');await sancLoad();
 }
+// V176 — onglet Gestion (équipe : propriétaires, supermodos, rôle « Gestion Cards »)
+const MG={status:null,player:null,gifts:null,err:'',busy:false,loaded:false,opt:null};
+// V177 — compression des images de cartes déjà en ligne, depuis le navigateur d'un membre de l'équipe
+// (même droits que pour envoyer une image de carte). L'ancienne image reste dans le Storage.
+const OPT_RE=/\/storage\/v1\/object\/public\/dlfr-cards\//;
+function optTargets(){return CARDS.filter(c=>c.image&&OPT_RE.test(c.image)&&!/\.webp(\?|$)/i.test(c.image));}
+async function mgOptimize(){
+ if(MG.opt?.running)return;const list=optTargets();
+ if(!list.length)return toast('Gestion','Toutes les images de cartes sont déjà optimisées.','info');
+ if(!window.DLFR_SHRINK)return toast('Gestion','Outil de compression indisponible : recharge la page.','info');
+ if(!confirm(`Optimiser ${list.length} image(s) de cartes ? Garde cet onglet ouvert pendant l’opération (environ ${Math.ceil(list.length*1.5/60)} min).`))return;
+ MG.opt={running:true,total:list.length,done:0,changed:0,skipped:0,failed:0,before:0,after:0};repaint();
+ for(const c of list){
+  try{
+   const res=await fetch(c.image,{mode:'cors'});if(!res.ok)throw new Error('HTTP '+res.status);
+   const blob=await res.blob();MG.opt.before+=blob.size;
+   if(blob.size<120000){MG.opt.skipped++;MG.opt.after+=blob.size;}
+   else{
+    const small=await window.DLFR_SHRINK(new File([blob],'carte',{type:blob.type||'image/png'}),640,900);
+    if(small.type!=='image/webp'||small.size>blob.size*.8){MG.opt.skipped++;MG.opt.after+=blob.size;}
+    else{
+     const url=await uploadImage(small);
+     const {error}=await DB.rpc('dlfr_cards_admin_save_card',{p_id:c.id,p_collection_id:c.collectionId,p_name:c.name,p_type:c.type,p_rarity:c.rarity,p_description:c.description||'',p_image_url:url,p_in_packs:!!c.inPacks,p_sort:Number(c.sort)||0});
+     if(error)throw error;
+     c.image=url;MG.opt.changed++;MG.opt.after+=small.size;
+    }
+   }
+  }catch(e){MG.opt.failed++;console.warn('[DLFR Cards] Optimisation image',c.id,e);}
+  MG.opt.done++;repaint();
+ }
+ MG.opt.running=false;repaint();
+ toast('Gestion',`Images optimisées : ${MG.opt.changed} · ${(MG.opt.before/1048576).toFixed(1)} Mo → ${(MG.opt.after/1048576).toFixed(1)} Mo.`,'achievement');
+}
+const MG_RAR=['Commun','Rare','Épique','Légendaire','Mythique','Ultra'];
+function mgDate(t,withTime){if(!t)return '';const d=new Date(t);return withTime?d.toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit'});}
+function mgVal(id){return (document.getElementById(id)?.value||'').trim();}
+async function mgCall(fn,args){const {data,error}=await DB.rpc(fn,args||{});if(error)throw error;return data;}
+async function mgLoad(){if(!DB)return;MG.err='';try{const [st,g]=await Promise.all([mgCall('dlfr_cards_manage_status'),mgCall('dlfr_cards_gifts_admin')]);MG.status=st;MG.gifts=g||[];MG.loaded=true;}catch(e){MG.err=errText(e);}repaint();}
+function manageHTML(){
+ if(!MG.loaded&&!MG.busy){MG.busy=true;mgLoad().finally(()=>{MG.busy=false;});}
+ const st=MG.status||{},P=MG.player,o=oddsNow(),pct=x=>+(Number(x)*100).toPrecision(4);
+ const packRows=[...PACKS.map(p=>[p.id,p.name]),['collection','Boosters de collection']];
+ const badges=(window.DLFR_BADGES?.definitions||[]).filter(b=>b.manual);
+ return `<section class="dlfr112-panel dlfr176-manage"><div class="dlfr112-section-head"><h2>⚙ Gestion de DLFR Cards</h2><p>Outils de l’équipe : comptes des joueurs, probabilités et événements. Chaque action est inscrite dans le journal.</p></div>
+ ${MG.err?`<p class="dlfr165-err">${esc(MG.err)}</p>`:''}
+ <div class="dlfr176-block"><h3>👥 Rôle « Gestion Cards »</h3>
+  <p class="muted">Accès : propriétaires et supermodérateurs (${esc((st.staff||[]).map(x=>x.name).join(', ')||'…')}), plus les membres ci-dessous.</p>
+  <ul class="dlfr176-list">${(st.managers||[]).map(m=>`<li><b>${esc(m.name||m.player_key||'?')}</b> <span class="muted">depuis le ${mgDate(m.since)}</span>${st.owner?` <button class="btn small subtle" type="button" data-v112-act="mg-mgr" data-add="0" data-key="${esc(m.player_key||'')}">Retirer</button>`:''}</li>`).join('')||'<li class="muted">Personne pour l’instant.</li>'}</ul>
+  ${st.owner?`<div class="dlfr176-row"><input id="dlfr176MgrKey" type="text" maxlength="60" placeholder="Pseudo de fiche joueur"><button class="btn small" type="button" data-v112-act="mg-mgr" data-add="1">Donner le rôle</button></div>`:'<p class="muted">Seuls les propriétaires peuvent donner ou retirer ce rôle.</p>'}</div>
+ <div class="dlfr176-block"><h3>🛟 Comptes des joueurs : retour en arrière / remise à zéro</h3>
+  <p class="muted">Une copie de chaque partie est prise automatiquement chaque jour (14 derniers jours). Avant chaque action, l’état actuel est copié : rien n’est perdu.</p>
+  <div class="dlfr176-row"><input id="dlfr176PlayerKey" type="text" maxlength="60" placeholder="Pseudo de fiche joueur" value="${esc(P?.player_key||'')}"><button class="btn small" type="button" data-v112-act="mg-find">Chercher</button></div>
+  ${P?`<div class="dlfr176-player"><p><b>${esc(P.name||P.player_key)}</b> · ${P.has_save?`niveau ${fmt(P.level||1)}${Number(P.prestige)?` · prestige ${P.prestige}`:''} · ${fmt(P.packs||0)} boosters · ${fmt(P.shards||0)} ◆ · ${fmt(P.cards)} cartes (${fmt(P.copies)} exemplaires) · sauvegardé le ${mgDate(P.updated,true)}`:'pas encore de partie Aventure'}</p>
+   <table class="dlfr176-table"><thead><tr><th>Copie du</th><th>Niveau</th><th>Boosters</th><th>Cartes</th><th></th></tr></thead><tbody>${(P.history||[]).map(h=>`<tr><td>${mgDate(h.day)}</td><td>${fmt(h.level||1)}${Number(h.prestige)?` · P${h.prestige}`:''}</td><td>${fmt(h.packs||0)}</td><td>${h.cards==null?'<span class="muted">non copiées</span>':fmt(h.cards)}</td><td><button class="btn small subtle" type="button" data-v112-act="mg-rollback" data-day="${esc(h.day)}">Revenir à ce jour</button></td></tr>`).join('')||'<tr><td colspan="5" class="muted">Aucune copie pour l’instant.</td></tr>'}</tbody></table>
+   <button class="btn small subtle dlfr176-danger" type="button" data-v112-act="mg-reset">Remettre sa partie Aventure à zéro</button></div>`:''}</div>
+ <div class="dlfr176-block"><h3>🖼 Images des cartes (trafic Supabase)</h3>
+  <p class="muted">Les images des cartes pèsent environ 600 Ko chacune et sont la principale source de trafic Supabase. Ce bouton les réduit (WebP, ~50 Ko) depuis ton navigateur et met à jour les cartes. Les anciennes images restent dans le Storage.</p>
+  ${MG.opt?`<p><b>${MG.opt.running?'En cours…':'Terminé'}</b> ${MG.opt.done}/${MG.opt.total} · ${MG.opt.changed} réduite(s), ${MG.opt.skipped} déjà légère(s)${MG.opt.failed?`, <span class="dlfr165-err">${MG.opt.failed} en échec</span>`:''} · ${(MG.opt.before/1048576).toFixed(1)} Mo → ${(MG.opt.after/1048576).toFixed(1)} Mo</p>${MG.opt.running?`<div class="dlfr117-bar"><i style="width:${MG.opt.done/MG.opt.total*100}%"></i></div>`:''}`:''}
+  <div class="dlfr176-row"><button class="btn small" type="button" data-v112-act="mg-optimize" ${MG.opt?.running?'disabled':''}>Optimiser les images (${optTargets().length} à traiter)</button></div></div>
+ <div class="dlfr176-block"><h3>🎲 Probabilités</h3>
+  <p class="muted">Chances de chaque rareté par booster (en %, le total n’a pas besoin de faire 100 : c’est la proportion qui compte). Les garanties de booster (« une Rare ou mieux »…) restent actives. Appliqué à tous les joueurs au prochain chargement de la page.</p>
+  <div class="dlfr176-scroll"><table class="dlfr176-table dlfr176-odds"><thead><tr><th>Booster</th>${MG_RAR.map(r=>`<th>${r}</th>`).join('')}</tr></thead><tbody>${packRows.map(([id,name])=>`<tr><td>${esc(name)}</td>${(o.packs[id]||[]).map((w,i)=>`<td><input type="number" min="0" max="100" step="any" data-odds-pack="${id}" data-i="${i}" value="${+Number(w).toPrecision(4)}"></td>`).join('')}</tr>`).join('')}</tbody></table></div>
+  <div class="dlfr176-grid">${['Holo','Prismatique','Obsidienne','Shiny'].map((n,i)=>`<label>${n} (% par carte)<input type="number" min="0" max="50" step="any" id="dlfr176Fin${i}" value="${pct(o.finishes[i])}"></label>`).join('')}
+   <label>Carte secrète (1 sur…)<input type="number" min="100" step="1" id="dlfr176Secret" value="${o.secret>0?Math.round(1/o.secret):0}"></label>
+   <label>Garantie Légendaire (cartes)<input type="number" min="5" max="10000" step="1" id="dlfr176Leg" value="${o.leg_pity}"></label>
+   <label>Garantie Mythique (cartes)<input type="number" min="10" max="100000" step="1" id="dlfr176Myth" value="${o.myth_pity}"></label></div>
+  <div class="dlfr176-row"><button class="btn small" type="button" data-v112-act="mg-odds-save">Enregistrer les probabilités</button><button class="btn small subtle" type="button" data-v112-act="mg-odds-default">Revenir aux valeurs par défaut</button></div></div>
+ <div class="dlfr176-block"><h3>🎁 Événements : packs offerts</h3>
+  <p class="muted">Chaque joueur connecté peut récupérer les packs une fois pendant la période (bandeau doré dans DLFR Cards). Les cartes sont tirées par le serveur.</p>
+  <ul class="dlfr176-list">${(MG.gifts||[]).map(g=>`<li><b>${esc(g.title)}</b> · ${g.packs} packs de ${g.per_pack} · ${g.active?'<span class="dlfr176-on">en cours</span>':'terminé'} jusqu’au ${mgDate(g.expires,true)} · ${fmt(g.claims)} joueur(s)${g.badge_id?` · badge ${esc(g.badge_id)}`:''} ${g.active?`<button class="btn small subtle" type="button" data-v112-act="mg-gift-end" data-id="${g.id}">Terminer</button>`:''}</li>`).join('')||'<li class="muted">Aucun événement.</li>'}</ul>
+  <div class="dlfr176-grid"><label>Titre<input id="dlfr176GTitle" type="text" maxlength="80" placeholder="Packs de Noël"></label><label>Message<input id="dlfr176GMsg" type="text" maxlength="300" placeholder="Joyeux Noël !"></label>
+   <label>Nombre de packs<input id="dlfr176GPacks" type="number" min="1" max="50" value="5"></label><label>Cartes par pack<input id="dlfr176GPer" type="number" min="1" max="10" value="5"></label>
+   <label>Durée (jours)<input id="dlfr176GDays" type="number" min="1" max="90" value="7"></label>
+   <label>Badge offert (facultatif)<select id="dlfr176GBadge"><option value="">Aucun</option>${badges.map(b=>`<option value="${esc(b.id)}">${esc(b.symbol||'')} ${esc(b.label)}</option>`).join('')}</select></label></div>
+  <div class="dlfr176-scroll"><table class="dlfr176-table dlfr176-odds"><thead><tr>${MG_RAR.map(r=>`<th>${r}</th>`).join('')}</tr></thead><tbody><tr>${[60,30,8.4,1.4,.2,.0133].map((w,i)=>`<td><input type="number" min="0" max="100" step="any" data-gift-w="${i}" value="${w}"></td>`).join('')}</tr></tbody></table></div>
+  <div class="dlfr176-row"><button class="btn small" type="button" data-v112-act="mg-gift-save">Créer l’événement</button></div></div>
+ </section>`;
+}
+async function manageAction(act,b){
+ try{
+  if(act==='mg-mgr'){const add=b.dataset.add==='1',key=add?mgVal('dlfr176MgrKey'):b.dataset.key;if(!key)return toast('Gestion','Indique un pseudo de fiche joueur.','info');
+   if(!confirm(add?`Donner le rôle « Gestion Cards » à ${key} ?`:`Retirer le rôle « Gestion Cards » à ${key} ?`))return;
+   await mgCall('dlfr_cards_manager_set',{p_player_key:key,p_add:add});toast('Gestion','Rôle mis à jour.','info');return mgLoad();}
+  if(act==='mg-optimize'){return mgOptimize();}
+  if(act==='mg-find'){const key=mgVal('dlfr176PlayerKey');if(!key)return;MG.player=await mgCall('dlfr_cards_admin_player',{p_player_key:key});MG.player.player_key=key;MG.err='';return repaint();}
+  if(act==='mg-rollback'){const P=MG.player;if(!P)return;const d=b.dataset.day;
+   if(!confirm(`Remettre la partie de ${P.name||P.player_key} comme le ${mgDate(d)} ? Sa partie actuelle sera copiée avant, au cas où.`))return;
+   await mgCall('dlfr_cards_admin_rollback',{p_player_key:P.player_key,p_day:d});toast('Gestion',`Partie de ${P.name||P.player_key} remise au ${mgDate(d)}. Il doit recharger la page.`,'info');
+   MG.player=await mgCall('dlfr_cards_admin_player',{p_player_key:P.player_key});MG.player.player_key=P.player_key;return repaint();}
+  if(act==='mg-reset'){const P=MG.player;if(!P)return;
+   if(!confirm(`REMETTRE À ZÉRO la partie Aventure de ${P.name||P.player_key} ? (niveau, éclats, talents et cartes Aventure ; une copie est gardée)`))return;
+   await mgCall('dlfr_cards_admin_reset',{p_player_key:P.player_key});toast('Gestion','Partie remise à zéro.','info');
+   MG.player=await mgCall('dlfr_cards_admin_player',{p_player_key:P.player_key});MG.player.player_key=P.player_key;return repaint();}
+  if(act==='mg-odds-save'||act==='mg-odds-default'){
+   if(act==='mg-odds-default'){if(!confirm('Revenir aux probabilités par défaut pour tout le monde ?'))return;await mgCall('dlfr_cards_config_set',{p_odds:null});applyOdds(null);toast('Gestion','Probabilités par défaut rétablies.','info');return repaint();}
+   const packs={};for(const el of document.querySelectorAll('[data-odds-pack]')){(packs[el.dataset.oddsPack]??=[0,0,0,0,0,0])[+el.dataset.i]=Math.max(0,Number(el.value)||0);}
+   const sec=Number(mgVal('dlfr176Secret'))||0;
+   const odds={packs,finishes:[0,1,2,3].map(i=>Math.max(0,Number(mgVal('dlfr176Fin'+i))||0)/100),secret:sec>0?1/sec:0,leg_pity:Math.round(Number(mgVal('dlfr176Leg'))||200),myth_pity:Math.round(Number(mgVal('dlfr176Myth'))||1200)};
+   if(!confirm('Enregistrer ces probabilités pour tous les joueurs ?'))return;
+   await mgCall('dlfr_cards_config_set',{p_odds:odds});applyOdds(odds);toast('Gestion','Probabilités enregistrées.','info');return repaint();}
+  if(act==='mg-gift-save'){
+   const w=[...document.querySelectorAll('[data-gift-w]')].sort((a,c)=>a.dataset.giftW-c.dataset.giftW).map(el=>Math.max(0,Number(el.value)||0));
+   const days=Math.max(1,Math.min(90,Number(mgVal('dlfr176GDays'))||7)),title=mgVal('dlfr176GTitle');if(!title)return toast('Gestion','Donne un titre à l’événement.','info');
+   if(!confirm(`Créer l’événement « ${title} » pour ${days} jour(s) ?`))return;
+   await mgCall('dlfr_cards_gift_save',{p_id:null,p_title:title,p_message:mgVal('dlfr176GMsg'),p_packs:Number(mgVal('dlfr176GPacks'))||5,p_per_pack:Number(mgVal('dlfr176GPer'))||5,p_weights:w,p_starts:new Date().toISOString(),p_expires:new Date(Date.now()+days*864e5).toISOString(),p_badge:mgVal('dlfr176GBadge')||null});
+   toast('Gestion','Événement créé : les joueurs voient le bandeau au prochain chargement.','info');return mgLoad();}
+  if(act==='mg-gift-end'){if(!confirm('Terminer cet événement maintenant ?'))return;await mgCall('dlfr_cards_gift_end',{p_id:Number(b.dataset.id)});return mgLoad();}
+ }catch(e){MG.err=errText(e);toast('Gestion',MG.err,'info');repaint();}
+}
 function handleClick(event){
  const b=event.target.closest?.('[data-v112-act]');if(!b||!gate)return;
  if(!document.getElementById('dlfr112Lab')||b.closest('#dlfr117Open'))return;
@@ -1486,6 +1611,7 @@ function handleClick(event){
  const act=b.dataset.v112Act;
  const TEST=['give','take','holo','all','holo-all','cheat','cooldown-skip','skills-reset','reset','rarity','trade','open-session-import'];
  if(TEST.includes(act)||act.startsWith('cat-')){if(!editor)return;if(TEST.includes(act)&&act!=='open-session-import'){if(!SAVE.tainted&&SAVE.loaded&&!window.confirm('Outil de test : à partir de maintenant, ta partie Aventure ne sera plus sauvegardée (tout ce que tu feras sera perdu au rechargement).\n\nTa vraie partie reste intacte : tu pourras la récupérer avec « Revenir à ma partie ».\n\nContinuer ?'))return;SAVE.tainted=true;clearTimeout(SAVE.timer);SAVE.timer=0;repaint();}}
+ if(act.startsWith('mg-')){if(!editor)return;manageAction(act,b);return;}
  if(act==='gift-claim'){giftClaim(Number(b.dataset.id));return;}
  if(act==='gift-close'){GIFT.result=null;repaint();return;}
  if(act==='sanc-load'||act==='sanc-do'){if(!editor)return;if(act==='sanc-load')sancLoad();else sancDo(b.dataset.what);return;}
@@ -1643,7 +1769,7 @@ window.DLFR_CARDS_LAB={
   if(uid&&uid!==userId){userId=uid;serverCounts=null;Object.assign(SAVE,{loaded:false,version:0,status:'',tainted:false,conflict:false});loadSave();}
   else if(DB&&catalog.status==='local')loadCatalog();
  },
- setEditor(value){const v=!!value;if(v!==editor){editor=v;if(!editor&&['catalog','exchanges','control'].includes(view))view='album';}},
+ setEditor(value){const v=!!value;if(v!==editor){editor=v;if(!editor&&['catalog','exchanges','control','manage'].includes(view))view='album';}},
  view(data){this.__sourceData=data;return viewPage(data);},
  // V127 — ouverture réelle (tirage fait par Supabase) : on ne rejoue que la mise en scène.
  mkCard,

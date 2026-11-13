@@ -1,0 +1,9 @@
+FICHIERS MODIFIÉS / AJOUTÉS (dans le dossier DLFR de ce ZIP)
+===========================================================
+  index.html             numéros de version mis à jour, lien vers un CSS inexistant retiré
+  js/app.js              titre de la page Cartes, images réduites avant envoi, fin de la boucle des preuves
+  js/v118-cards-lab.js   sauvegardes jamais écrasées, import de partie, onglet Gestion, compression des images
+  js/v127-cards.js       vitrine corrigée, moins de requêtes
+  css/v131-cards.css     styles de l'onglet Gestion
+  README.md              (nouveau) explications pour reprendre le site
+  supabase/historique/   (nouveau) archives SQL déjà appliquées, pour référence seulement
