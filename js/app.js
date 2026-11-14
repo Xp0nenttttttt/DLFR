@@ -1215,8 +1215,11 @@ async function loadCardShowcase(){
   let cards=[];
   if(ids.length){const r=await db.from('dlfr_cards').select('*').in('id',ids);if(!r.error)cards=ids.map(id=>(r.data||[]).find(c=>Number(c.id)===id)).filter(Boolean);}
   if(seq!==cardShowSeq||!area.isConnected)return;
-  const L=window.DLFR_CARDS_LAB,fig=c=>L?.figure&&L.mkCard?L.figure(L.mkCard(c),state.data,true,{official:true,owned:true}):`<b>${esc(c.name)}</b>`;
-  area.innerHTML=`<div class="dlfr137-profile"><div class="dlfr137-profile-head"><h3>🃏 Vitrine DLFR Cards</h3><span>${esc(data.owned)} / ${esc(data.total)} cartes${Number(data.mythic)?` · ✺ ${esc(data.mythic)} Mythique${Number(data.mythic)>1?'s':''}`:''}${Number(data.collections)?` · ${esc(data.collections)} collection${Number(data.collections)>1?'s':''} complète${Number(data.collections)>1?'s':''}`:''}</span></div>
+  // V178 : la vitrine montre la finition (Holo, Obsidienne, Shiny…), les étoiles et le prestige de chaque carte.
+  const meta=data?.showcase_meta&&typeof data.showcase_meta==='object'?data.showcase_meta:{},cl=(v,max)=>Math.max(0,Math.min(max,Math.round(Number(v)||0)));
+  const L=window.DLFR_CARDS_LAB,fig=c=>{const m=meta[c.id];return L?.figure&&L.mkCard?L.figure(L.mkCard(c),state.data,true,{official:true,owned:true,...(m?{finish:cl(m.f,4),stars:cl(m.s,10),prestige:cl(m.p,11)}:{})}):`<b>${esc(c.name)}</b>`;};
+  const pp=cl(data?.prestige,11);
+  area.innerHTML=`<div class="dlfr137-profile"><div class="dlfr137-profile-head"><h3>🃏 Vitrine DLFR Cards</h3><span>${pp?`✺ ${pp>=11?'Prestige MAX':'Prestige '+pp} · `:''}${esc(data.owned)} / ${esc(data.total)} cartes${Number(data.mythic)?` · ✺ ${esc(data.mythic)} Mythique${Number(data.mythic)>1?'s':''}`:''}${Number(data.collections)?` · ${esc(data.collections)} collection${Number(data.collections)>1?'s':''} complète${Number(data.collections)>1?'s':''}`:''}</span></div>
    ${cards.length?`<div class="dlfr137-profile-row">${cards.map(fig).join('')}</div>`:`<p class="muted small">${state.ownKey===key?'Ta vitrine est vide : choisis jusqu’à 5 cartes dans la page <a data-nav href="?page=cards">Cartes</a> (clic sur une carte → « Mettre en vitrine »).':'Aucune carte exposée pour le moment.'}</p>`}</div>`;
   area.hidden=false;
  }catch(e){area.hidden=true;}

@@ -10,7 +10,8 @@ const slug=r=>String(r||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''
 const S={ctx:null,cards:[],collections:[],status:null,board:[],owners:{},loading:false,loaded:false,error:'',busy:false,filter:'all',timer:0};
 const LAB=()=>window.DLFR_CARDS_LAB;
 const toCard=r=>LAB()?.mkCard?LAB().mkCard(r):{id:Number(r.id),name:r.name,rarity:r.rarity,type:r.card_type||'dlfr',image:r.image_url||'',collectionId:Number(r.collection_id)};
-function fig(card,owned){const L=LAB();if(L?.figure)return L.figure(card,S.ctx?.data||{},true,{official:true,owned:!!owned});
+function fig(card,owned){const L=LAB();if(L?.figure){const m=owned?L.meta?.(card.id):null; // V178 : finition, étoiles et prestige visibles dans la Collection et la vitrine
+  return L.figure(card,S.ctx?.data||{},true,{official:true,owned:!!owned,...(m?{finish:m.finish,stars:m.stars,prestige:m.prestige}:{})});}
  return `<div class="dlfr127-fallback-card ${owned?'':'is-missing'}" data-rarity="${slug(card.rarity)}"><b>${esc(card.name)}</b><small>${esc(card.rarity)}</small></div>`;}
 
 async function load(force=false){
