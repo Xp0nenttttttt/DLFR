@@ -179,13 +179,15 @@ const ACHIEVEMENTS=[
  {id:'ar10',name:'Combattant',desc:'Terminer l’étape 10 des Combats',value:()=>progress.arena?.stage||0,target:10,reward:{keys:2}},
  {id:'ar50',name:'Gladiateur',desc:'Terminer l’étape 50 des Combats',value:()=>progress.arena?.stage||0,target:50,reward:{keys:10},title:'Gladiateur'},
  {id:'ar100',name:'Champion de l’arène',desc:'Terminer l’étape 100 des Combats',value:()=>progress.arena?.stage||0,target:100,reward:{keys:30},title:'Champion de l’arène'},
+ {id:'tw30',name:'Sommet de la Tour',desc:'Atteindre l’étage 30 de la Tour de la semaine',value:()=>S().towerBest||0,target:30,reward:{keys:15},title:'Maître de la Tour'},
+ {id:'fu1',name:'Alchimiste',desc:'Réussir une fusion de finition',value:()=>S().fusions||0,target:1,reward:{keys:2}},
  {id:'cp1',name:'Carte prestigieuse',desc:'Faire passer un Prestige à une carte',value:()=>S().cardPrestiges||0,target:1,reward:{keys:3}},
  {id:'cp11',name:'Carte légendaire',desc:'Amener une carte au Prestige MAX',value:()=>Math.max(0,...[...owned.values()].map(v=>v.prestige||0)),target:11,reward:{keys:25},title:'Maître forgeron'},
  ...[[10,{dust:60}],[50,{keys:2}],[150,{keys:5},'Infatigable']].map(([n,reward,title])=>({id:'qs'+n,name:`${n} missions`,desc:`Accomplir ${n} missions`,value:()=>S().quests,target:n,reward,title})),
  ...[[3,{keys:1}],[6,{keys:3}],[9,{keys:6},'Puissance absolue']].map(([n,reward,title])=>({id:'pw'+n,name:`Puissance ${n}`,desc:`Atteindre le palier de puissance ${n}`,value:()=>powerTier(),target:n,reward,title}))
 ];
-const newStats=()=>({packs:0,expeditions:0,pulled:0,newCards:0,tiers:[0,0,0,0,0,0],finishes:[0,0,0,0,0],crafted:0,upgraded:0,quests:0,shardsEarned:0,bestLevel:1,fights:0,fightWins:0,cardPrestiges:0});
-const freshProgress=()=>({xp:0,level:1,shards:35,dust:0,keys:0,prestige:0,skills:{},camps:[],quests:[],achievements:{},sets:{},pity:{leg:0,myth:0},stats:newStats(),title:'',reveals:[],questSeed:0,chapters:{cleared:{},run:null},contracts:{},mastery:{},spec:null,arena:{stage:0,wins:0,daily:''}});
+const newStats=()=>({packs:0,expeditions:0,pulled:0,newCards:0,tiers:[0,0,0,0,0,0],finishes:[0,0,0,0,0],crafted:0,upgraded:0,quests:0,shardsEarned:0,bestLevel:1,fights:0,fightWins:0,cardPrestiges:0,towerBest:0,fusions:0});
+const freshProgress=()=>({xp:0,level:1,shards:35,dust:0,keys:0,prestige:0,skills:{},camps:[],quests:[],achievements:{},sets:{},pity:{leg:0,myth:0},stats:newStats(),title:'',reveals:[],questSeed:0,chapters:{cleared:{},run:null},contracts:{},mastery:{},spec:null,arena:{stage:0,wins:0,daily:''},items:{},equip:{},tower:{week:'',floor:0},fuse:{}});
 const progress=freshProgress();
 
 // Mémoire volatile : le rechargement de la page efface entièrement cette collection.
@@ -597,7 +599,11 @@ const CHAPTERS=[
  {id:'c1',name:'Plaines de Stereo Madness',d:1,level:1},{id:'c2',name:'Forêt de Clubstep',d:2,level:5},
  {id:'c3',name:'Usine Deadlocked',d:3,level:12},{id:'c4',name:'Ruines de Bloodbath',d:4,level:20},
  {id:'c5',name:'Cavernes de Sonic Wave',d:5,level:35},{id:'c6',name:'Abysse de Tartarus',d:6,level:55},
- {id:'c7',name:'Faille d’Acheron',d:7,level:80},{id:'c8',name:'Trône de Tidal Wave',d:8,level:110}];
+ {id:'c7',name:'Faille d’Acheron',d:7,level:80},{id:'c8',name:'Trône de Tidal Wave',d:8,level:110},
+ // V180 : six nouveaux chapitres, pensés pour les cartes à étoiles, objets et Prestiges de carte
+ {id:'c9',name:'Citadelle de Slaughterhouse',d:9,level:150},{id:'c10',name:'Gouffre d’Abyss of Darkness',d:10,level:220},
+ {id:'c11',name:'Tempête d’Avernus',d:11,level:300},{id:'c12',name:'Enfer de Silent Clubstep',d:12,level:400},
+ {id:'c13',name:'Forteresse de Kyouki',d:13,level:550},{id:'c14',name:'Dernier souffle de Grief',d:14,level:700}];
 const STEP_KIND={explore:['Explorer','🧭',1],event:['Événement','❗',1],challenge:['Défi','⚔',1.2],treasure:['Trésor','💰',.85],boss:['Boss','💀',1.5]};
 const STEP_TXT={explore:['Un couloir de pics s’ouvre devant toi.','Le chemin se sépare en deux.','Une série de plateformes mobiles bloque le passage.'],
  event:['Un portail de gravité apparaît au milieu du niveau.','Un orbe jaune clignote au-dessus du vide.','Le niveau passe soudain en double vitesse.'],
@@ -607,7 +613,7 @@ const STEP_TXT={explore:['Un couloir de pics s’ouvre devant toi.','Le chemin s
 const CHOICE_TXT={pre:'Passer au pixel près',end:'Tenir jusqu’au bout',tec:'Enchaîner les inputs',dec:'Chercher un passage caché'};
 let chTeam=[];
 function chState(){progress.chapters=progress.chapters||{cleared:{},run:null};return progress.chapters;}
-function chUnlocked(ch,i){const s=chState();return progress.level>=ch.level&&(i===0||!!s.cleared[CHAPTERS[i-1].id]);}
+function chUnlocked(ch,i){const s=chState();return (progress.level>=ch.level||progress.prestige>0)&&(i===0||!!s.cleared[CHAPTERS[i-1].id]);}
 function chCost(ch){return {shards:60*ch.d,keys:ch.d>=5?1:0};}
 // V165 — énergie des chapitres : 6 charges, +1 toutes les 20 min (fini le farm de milliers de runs).
 const CH_MAX=6,CH_REGEN=20*60000;
@@ -618,7 +624,7 @@ function chNext(){const e=chEnergy();return e.n>=CH_MAX?0:Math.max(0,e.t+CH_REGE
 function seeded(str){let h=hashStr(str);return()=>{h=(h+0x6D2B79F5)>>>0;let t=h;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};}
 function chReq(d,kind){return Math.round((6+7.5*(d-1))*STEP_KIND[kind][2]*(.9+Math.random()*.2));}
 function buildSteps(ch){
- const n=4+Math.floor(ch.d/2),kinds=['explore','event','challenge','treasure'],out=[];
+ const n=Math.min(10,4+Math.floor(ch.d/2)),kinds=['explore','event','challenge','treasure'],out=[];
  for(let i=0;i<n;i++){const kind=i===n-1?'boss':kinds[(i+Math.floor(Math.random()*4))%4];
   const a=[...ATTRS.map(x=>x[0]).filter(x=>x!=='dec')].sort(()=>Math.random()-.5).slice(0,2);
   const choices=a.map(attr=>({attr,req:chReq(ch.d,kind)}));
@@ -655,6 +661,7 @@ function finishChapter(win){
  const keys=Math.floor(r.loot.keys*f)+(first?ch.d:0);if(keys){progress.keys+=keys;parts.push(`+${keys} 🔑`);}
  for(const id of (win?r.loot.cards:r.loot.cards.slice(0,Math.floor(r.loot.cards.length/2)))){const c=get(id);if(!c)continue;const isNew=!has(id),fin=rollFinish({});give(id,1,fin);registerPull(c,fin,isNew);parts.push(`${c.name}${isNew?' (nouvelle !)':''}`);}
  if(win)s.cleared[ch.id]=(s.cleared[ch.id]||0)+1;
+ if(win&&Math.random()<.12+.015*ch.d){const it=itemDrop();parts.push(`objet : ${it.ic} ${it.name}`);} // V180 : les chapitres donnent aussi des objets
  for(const id of r.team)masteryGain?.(id,win?30*ch.d:10*ch.d);
  toast(win?`🧭 ${ch.name} terminé !`:'Aventure interrompue',`${win?'':'Plus de vies : la moitié du butin est gardée. '}${parts.join(' · ')}${first?' · premier passage !':''}`,win?'achievement':'info');
  log(`${ch.name} : ${win?'réussi':'échoué'} (${parts.join(', ')}).`);s.run=null;checkAchievements();
@@ -676,19 +683,40 @@ function chaptersView(){
  const mine=shownCards().filter(c=>has(c.id)).map(c=>({c,s:cardStats(c)})).sort((a,b)=>(b.s.pre+b.s.end+b.s.tec+b.s.dec)-(a.s.pre+a.s.end+a.s.tec+a.s.dec));
  chTeam=chTeam.filter(x=>has(x)).slice(0,3);
  return `<section class="dlfr117-panel dlfr161"><div class="dlfr117-head"><div><small>AVENTURE</small><h2>Chapitres</h2><p class="dlfr165-energy">⚡ Énergie : <b>${chEnergy().n}/${CH_MAX}</b>${chNext()?` · prochaine charge dans ${Math.ceil(chNext()/60000)} min`:''} · une charge par départ, rejouer un chapitre déjà terminé rapporte moins.</p><p>Forme une équipe de 3 cartes et explore un chapitre étape par étape. Chaque carte a 4 attributs (🎯 Précision, 🛡 Endurance, ⚙ Technique, 🔍 Découverte) selon sa rareté, ses étoiles et sa finition. Certaines cartes Communes ont une spécialité très forte (attribut doré) : elles peuvent être indispensables. La Découverte ouvre les chemins secrets.</p></div></div>
-  <div class="dlfr161-chapters">${CHAPTERS.map((ch,i)=>{const un=chUnlocked(ch,i),cost=chCost(ch),done=s.cleared[ch.id]||0;return `<article class="dlfr161-ch ${un?'':'is-locked'} ${done?'is-cleared':''}"><small>Chapitre ${i+1} · difficulté ${ch.d}/8</small><h3>${esc(ch.name)}</h3><p>${4+Math.floor(ch.d/2)} étapes · ${done?`terminé ${done}×`:'jamais terminé'}</p>
-   <button type="button" class="btn ${un?'':'subtle'}" data-v112-act="ch-start" data-id="${ch.id}" ${!un||chTeam.length<1||!canAfford(cost)||chEnergy().n<1?'disabled':''}>${un?`Partir · ${costText(cost)}`:progress.level<ch.level?`🔒 Niveau ${ch.level}`:'🔒 Termine le chapitre précédent'}</button></article>`;}).join('')}</div>
+  <div class="dlfr161-chapters">${CHAPTERS.map((ch,i)=>{const un=chUnlocked(ch,i),cost=chCost(ch),done=s.cleared[ch.id]||0;return `<article class="dlfr161-ch ${un?'':'is-locked'} ${done?'is-cleared':''}"><small>Chapitre ${i+1} · difficulté ${ch.d}/${CHAPTERS.length}</small><h3>${esc(ch.name)}</h3><p>${Math.min(10,4+Math.floor(ch.d/2))} étapes · ${done?`terminé ${done}×`:'jamais terminé'}</p>
+   <button type="button" class="btn ${un?'':'subtle'}" data-v112-act="ch-start" data-id="${ch.id}" ${!un||chTeam.length<1||!canAfford(cost)||chEnergy().n<1?'disabled':''}>${un?`Partir · ${costText(cost)}`:progress.level<ch.level&&!progress.prestige?`🔒 Niveau ${ch.level}`:'🔒 Termine le chapitre précédent'}</button></article>`;}).join('')}</div>
   <div class="dlfr117-sub"><h3>Ton équipe (${chTeam.length}/3)</h3><div class="dlfr161-pick">${mine.slice(0,60).map(({c})=>`<button type="button" class="dlfr161-card ${chTeam.includes(c.id)?'is-on':''}" data-v112-act="ch-team" data-id="${c.id}">${figure(c,data,true)}${statPills(c)}</button>`).join('')||'<p class="dlfr117-empty">Ouvre des boosters pour avoir des cartes.</p>'}</div></div>
  </section>`;
 }
-// ============================================================ V178 — Combats (arène solo contre des équipes générées)
+// ============================================================ V178 / V180 — Combats (arène solo contre des équipes générées)
 // Équipe de 3 cartes, combat automatique au tour par tour. La 1re carte est en première ligne.
 // Types : ◆ Niveau bat ★ Joueur, ★ Joueur bat ✦ DLFR, ✦ DLFR bat ◆ Niveau (+25 % de dégâts, −15 % dans l'autre sens).
-const AR_MAX=5,AR_REGEN=20*60000,AR_STAGES=100;
+// V180 : objets à équiper, capacités spéciales (Légendaire et plus), Tour hebdomadaire.
+const AR_MAX=5,AR_REGEN=20*60000,AR_STAGES=100,TW_FLOORS=30;
 const AR_BEATS={level:'player',player:'dlfr',dlfr:'level'},AR_ICON={level:'◆',player:'★',dlfr:'✦'};
-let arTeam=[];const ARENA={fight:null,timer:0};
+const ITEMS=[
+ {id:'coeur',name:'Cœur de cube',ic:'❤',desc:'+15 % de PV',hp:1.15},
+ {id:'lame',name:'Lame de pic',ic:'🗡',desc:'+12 % d’attaque',atk:1.12},
+ {id:'portail',name:'Portail de vitesse',ic:'💨',desc:'+25 % de vitesse',spd:1.25},
+ {id:'piece',name:'Pièce secrète',ic:'🍀',desc:'+12 % de chance de coup critique',crit:.12},
+ {id:'orbe',name:'Orbe bouclier',ic:'🛡',desc:'−12 % de dégâts reçus',def:.88},
+ {id:'miroir',name:'Portail miroir',ic:'🔮',desc:'Ignore le désavantage de type',noweak:true},
+ {id:'sablier',name:'Sablier',ic:'⏳',desc:'Sa première attaque est un coup critique',firstcrit:true},
+ {id:'rouge',name:'Orbe rouge',ic:'🩸',desc:'Se soigne de 20 % des dégâts qu’elle inflige',leech:.2},
+ {id:'scies',name:'Couronne de scies',ic:'⚙',desc:'Renvoie 15 % des dégâts reçus à l’attaquant',thorns:.15},
+ {id:'demon',name:'Couronne de Demon',ic:'👑',desc:'+8 % de PV, d’attaque et de vitesse (objet rare)',hp:1.08,atk:1.08,spd:1.08,rare:true}];
+const AB_INFO={heal:['💚','Soin','après son attaque, soigne l’allié le plus blessé'],aoe:['💥','Onde de choc','frappe tous les adversaires à la fois'],double:['⚔','Double attaque','attaque deux fois par tour'],guard:['🧱','Garde','subit moins de dégâts'],snipe:['🎯','Tir précis','vise l’adversaire qui a le moins de PV']};
+const TW_RULES=[
+ {id:'players',name:'Tournoi des joueurs',desc:'Seules les cartes ★ Joueur peuvent combattre.',ok:c=>arType(c)==='player'},
+ {id:'levels',name:'Marathon de niveaux',desc:'Seules les cartes ◆ Niveau peuvent combattre.',ok:c=>arType(c)==='level'},
+ {id:'modest',name:'Petits budgets',desc:'Aucune carte au-dessus d’Épique.',ok:c=>tierOf(c)<=2},
+ {id:'tank',name:'Murs de béton',desc:'Les PV de toutes les cartes sont doublés.',hpx:2},
+ {id:'glass',name:'Canons de verre',desc:'Tous les dégâts sont doublés.',dmgx:2},
+ {id:'bare',name:'Sans filet',desc:'Les objets et les capacités spéciales sont désactivés.',bare:true}];
+let arTeam=[],arTab='stages';const ARENA={fight:null,timer:0};
 const arType=c=>AR_BEATS[c?.type]?c.type:'dlfr';
 const arToday=()=>new Date().toLocaleDateString('fr-CA',{timeZone:'Europe/Paris'});
+const arPower=n=>3+2.5*n,twPower=f=>6+6*f;
 function arState(){const a=progress.arena=progress.arena&&typeof progress.arena==='object'?progress.arena:{};if(!IV(a.stage,AR_STAGES))a.stage=0;if(!IV(a.wins,1e9))a.wins=0;if(typeof a.daily!=='string')a.daily='';return a;}
 function cleanArena(a){const out={stage:0,wins:0,daily:''};if(!a||typeof a!=='object')return out;
  if(IV(a.stage,AR_STAGES))out.stage=a.stage;if(IV(a.wins,1e9))out.wins=a.wins;if(typeof a.daily==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(a.daily))out.daily=a.daily;
@@ -698,88 +726,176 @@ function cleanArena(a){const out={stage:0,wins:0,daily:''};if(!a||typeof a!=='ob
 function arEnergy(){const s=arState(),now=Date.now();let e=s.energy;if(!e||typeof e!=='object'||!IV(e.n,AR_MAX)||!IV(e.t,now+60000)){e=s.energy={n:AR_MAX,t:now};}
  if(e.n>=AR_MAX)e.t=now;else{const g=Math.floor((now-e.t)/AR_REGEN);if(g>0){e.n=Math.min(AR_MAX,e.n+g);e.t=e.n>=AR_MAX?now:e.t+g*AR_REGEN;}}return e;}
 function arNext(){const e=arEnergy();return e.n>=AR_MAX?0:Math.max(0,e.t+AR_REGEN-Date.now());}
-function arFighter(c,st,side){const hp=Math.round(40+st.end*6);return {id:c.id,name:c.name,type:arType(c),side,hp,max:hp,atk:6+st.pre*1.5+st.tec*.5,spd:st.tec+st.dec*.5,crit:Math.min(.4,.05+st.dec*.01)};}
-function arEnemies(n,key){
- const rnd=seeded('arena:'+key),pool=packable().length>=3?packable():CARDS,boss=n%10===0,out=[],used=new Set();
+// ---------- Objets
+function itemState(){if(!progress.items||typeof progress.items!=='object')progress.items={};if(!progress.equip||typeof progress.equip!=='object')progress.equip={};return progress;}
+function itemCount(id){return itemState().items[id]||0;}
+function itemUsed(id){return Object.values(itemState().equip).filter(x=>x===id).length;}
+function itemOf(cardId){const k=itemState().equip[cardId];return k&&itemCount(k)>0?ITEMS.find(i=>i.id===k)||null:null;}
+function itemDrop(){const it=pick(ITEMS.flatMap(i=>Array(i.rare?1:4).fill(i))),s=itemState();s.items[it.id]=Math.min(99,(s.items[it.id]||0)+1);return it;}
+function arEquip(cardId,itemId){const s=itemState();if(!itemId){delete s.equip[cardId];return;}
+ if(!ITEMS.some(i=>i.id===itemId)||!has(cardId)||s.equip[cardId]===itemId)return;
+ if(itemCount(itemId)-itemUsed(itemId)<1){toast('Objets','Tous tes exemplaires de cet objet sont déjà équipés sur d’autres cartes.','info');return;}
+ s.equip[cardId]=itemId;}
+function cleanItems(o){const out={};if(o&&typeof o==='object')for(const i of ITEMS)if(IV(o[i.id],99,1))out[i.id]=o[i.id];return out;}
+function cleanEquip(o,items){const out={},used={};if(o&&typeof o==='object')for(const [k,v] of Object.entries(o).slice(0,500)){if(!/^[0-9]{1,12}$/.test(k)||!items[v])continue;used[v]=(used[v]||0)+1;if(used[v]<=items[v])out[k]=v;}return out;}
+// ---------- Capacités spéciales : Légendaire, Mythique et Ultra (plus la rareté est haute, plus l'effet est fort)
+function arAbility(c){const t=tierOf(c);if(t<3)return null;return {k:['heal','aoe','double','guard','snipe'][hashStr('ab:'+c.id+':'+c.name)%5],p:[1,1.25,1.5][t-3]||1.5};}
+function arFighter(c,st,side,rule){
+ const bare=!!rule?.bare,it=side==='a'&&!bare?itemOf(c.id):null,ab=bare?null:arAbility(c);
+ const hp=Math.round((40+st.end*6)*(it?.hp||1)*(rule?.hpx||1));
+ return {id:c.id,name:c.name,type:arType(c),side,hp,max:hp,atk:(6+st.pre*1.5+st.tec*.5)*(it?.atk||1),spd:(st.tec+st.dec*.5)*(it?.spd||1),crit:Math.min(.6,.05+st.dec*.01+(it?.crit||0)),
+  def:it?.def||1,ab,it:it?.id||null,noweak:!!it?.noweak,firstcrit:!!it?.firstcrit,leech:it?.leech||0,thorns:it?.thorns||0};}
+function arEnemies(power,key,boss,rule){
+ const rnd=seeded('arena:'+key),pool=packable().length>=3?packable():CARDS,out=[],used=new Set();
  if(!pool.length)return out;
  for(let i=0;i<3;i++){let c=pool[Math.floor(rnd()*pool.length)],g=0;while(used.has(c.id)&&g++<12)c=pool[Math.floor(rnd()*pool.length)];used.add(c.id);
-  const total=(3+2.5*n)*(boss&&i===1?1.35:1)*(.92+rnd()*.16);out.push({c,f:arFighter(c,statSpread(c,total),'e')});}
+  const f=arFighter(c,statSpread(c,power*(boss&&i===1?1.35:1)*(.92+rnd()*.16)),'e',rule);
+  if(boss&&i===1&&!f.ab&&!rule?.bare)f.ab={k:'aoe',p:1};
+  out.push({c,f});}
  return out;}
-function arSimulate(A,B,seed){
- const rnd=seeded('fight:'+seed),log=[],alive=t=>t.filter(f=>f.hp>0);let round=0;
+function arSimulate(A,B,seed,rule){
+ const rnd=seeded('fight:'+seed),log=[],alive=t=>t.filter(f=>f.hp>0),dx=rule?.dmgx||1;let round=0;
+ const hit=(f,t,mult)=>{
+  let adv=AR_BEATS[f.type]===t.type?1.25:AR_BEATS[t.type]===f.type?.85:1;if(adv<1&&f.noweak)adv=1;
+  const crit=(f.firstcrit&&!f.used)||rnd()<f.crit;f.used=true;
+  const d=Math.max(1,Math.round(f.atk*(.85+rnd()*.3)*adv*(crit?1.75:1)*mult*dx*t.def*(t.ab?.k==='guard'?1-.18*t.ab.p:1)));
+  t.hp=Math.max(0,t.hp-d);log.push({k:'hit',a:f.k,t:t.k,d,c:crit,v:adv>1?1:adv<1?-1:0,hp:t.hp,ko:t.hp<=0});
+  if(f.leech&&f.hp<f.max){const h=Math.min(f.max-f.hp,Math.max(1,Math.round(d*f.leech)));f.hp+=h;log.push({k:'heal',a:f.k,t:f.k,d:h,hp:f.hp});}
+  if(t.thorns){const r=Math.max(1,Math.round(d*t.thorns));f.hp=Math.max(0,f.hp-r);log.push({k:'thorn',a:t.k,t:f.k,d:r,hp:f.hp,ko:f.hp<=0});}};
  while(alive(A).length&&alive(B).length&&round<40){round++;
-  const order=[...alive(A),...alive(B)].map(f=>({f,k:f.spd+rnd()*3})).sort((x,y)=>y.k-x.k);
-  for(const {f} of order){if(f.hp<=0)continue;const foes=alive(f.side==='a'?B:A);if(!foes.length)break;const t=foes[0];
-   const adv=AR_BEATS[f.type]===t.type?1.25:AR_BEATS[t.type]===f.type?.85:1,crit=rnd()<f.crit;
-   const d=Math.max(1,Math.round(f.atk*(.85+rnd()*.3)*adv*(crit?1.75:1)));t.hp=Math.max(0,t.hp-d);
-   log.push({a:f.k,t:t.k,d,c:crit,v:adv>1?1:adv<1?-1:0,hp:t.hp,ko:t.hp<=0});}}
+  const order=[...alive(A),...alive(B)].map(f=>({f,o:f.spd+rnd()*3})).sort((x,y)=>y.o-x.o);
+  for(const {f} of order){if(f.hp<=0)continue;const mates=f.side==='a'?A:B,others=f.side==='a'?B:A;let foes=alive(others);if(!foes.length)break;
+   const ab=f.ab?.k,p=f.ab?.p||1;
+   if(ab==='aoe'){for(const t of foes){if(f.hp<=0)break;hit(f,t,.45*p+.1);}}
+   else{const t=ab==='snipe'?foes.reduce((m,x)=>x.hp<m.hp?x:m,foes[0]):foes[0];hit(f,t,1);
+    if(ab==='double'&&f.hp>0){foes=alive(others);if(foes.length)hit(f,foes.includes(t)?t:foes[0],.5*p);}}
+   if(ab==='heal'&&f.hp>0){const w=alive(mates).filter(x=>x.hp<x.max).sort((x,y)=>x.hp/x.max-y.hp/y.max)[0];
+    if(w){const h=Math.min(w.max-w.hp,Math.round(f.max*.12*p));if(h>0){w.hp+=h;log.push({k:'heal',a:f.k,t:w.k,d:h,hp:w.hp});}}}
+  }}
  return {win:alive(A).length>0&&!alive(B).length,log};}
-function arAuto(){const best=shownCards().filter(c=>has(c.id)).map(c=>({c,s:cardStats(c)})).sort((a,b)=>(b.s.pre+b.s.end+b.s.tec+b.s.dec)-(a.s.pre+a.s.end+a.s.tec+a.s.dec)).slice(0,3).sort((a,b)=>b.s.end-a.s.end);
+// ---------- Tour hebdomadaire : repart de zéro chaque lundi, avec une règle différente
+function twWeek(){const d=new Date(arToday()+'T12:00:00Z');d.setUTCDate(d.getUTCDate()-(d.getUTCDay()+6)%7);return d.toISOString().slice(0,10);}
+function twRule(){return TW_RULES[hashStr('tower:'+twWeek())%TW_RULES.length];}
+function twState(){const t=progress.tower=progress.tower&&typeof progress.tower==='object'?progress.tower:{};const w=twWeek();if(t.week!==w||!IV(t.floor,TW_FLOORS)){t.week=w;t.floor=0;}return t;}
+function cleanTower(t){return t&&typeof t==='object'&&typeof t.week==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(t.week)&&IV(t.floor,TW_FLOORS)?{week:t.week,floor:t.floor}:{week:'',floor:0};}
+function arAuto(rule){const best=shownCards().filter(c=>has(c.id)&&(!rule?.ok||rule.ok(c))).map(c=>({c,s:cardStats(c)})).sort((a,b)=>(b.s.pre+b.s.end+b.s.tec+b.s.dec)-(a.s.pre+a.s.end+a.s.tec+a.s.dec)).slice(0,3).sort((a,b)=>b.s.end-a.s.end);
  arTeam=best.map(x=>x.c.id);arState().team=arTeam.slice();}
 function arStop(){clearInterval(ARENA.timer);ARENA.timer=0;const F=ARENA.fight;if(F){F.i=F.log.length;if(F.note){log(F.note);F.note='';}}}
 function arTick(){const F=ARENA.fight,el=document.getElementById('dlfr178Fight');if(!F||!el){arStop();return;}
  if(F.i<F.log.length)F.i++;el.innerHTML=arFightInner();if(F.i>=F.log.length)arStop();}
-function arStart(n,daily){
- if(ARENA.fight)return;const s=arState(),e=arEnergy(),today=arToday();
- const team=arTeam.filter(x=>has(x)).slice(0,3);if(!team.length){toast('Combats','Choisis au moins une carte pour ton équipe.','info');return;}
- if(daily){if(s.daily===today){toast('Combats','Défi du jour déjà joué : reviens demain.','info');return;}n=Math.max(1,Math.min(AR_STAGES,s.stage));}
- else{if(!Number.isInteger(n)||n<1||n>Math.min(AR_STAGES,s.stage+1))return;if(e.n<1){toast('Combats',`Plus d’énergie : prochaine charge dans ${Math.ceil(arNext()/60000)} min.`,'info');return;}}
- const foesSrc=arEnemies(n,daily?'daily:'+today+':'+n:'stage'+n);if(!foesSrc.length)return;
- if(daily)s.daily=today;else{e.n--;if(e.n===AR_MAX-1)e.t=Date.now();}
- const mine=team.map((id,i)=>{const c=get(id);return {...arFighter(c,cardStats(c),'a'),k:'a'+i};}),foes=foesSrc.map((x,i)=>({...x.f,k:'e'+i}));
- const res=arSimulate(mine.map(x=>({...x})),foes.map(x=>({...x})),Math.floor(Math.random()*2147483647));
- const boss=n%10===0,first=!daily&&res.win&&n>s.stage,f=daily||first?1:.4,parts=[];
- S().fights=(S().fights||0)+1;
+function arRewardCard(want,parts){const pool=packable();let c=null;for(let t=want;t>=0&&!c;t--){const l=pool.filter(x=>tierOf(x)===t);if(l.length)c=pick(l);}
+ if(c){const isNew=!has(c.id),fin=rollFinish({});give(c.id,1,fin);registerPull(c,fin,isNew);parts.push(`carte : ${c.name}${isNew?' (nouvelle !)':''}`);}}
+// mode : 'stage' (étape n), 'daily' (défi du jour) ou 'tower' (étage suivant de la Tour)
+function arBattle(mode,n){
+ if(ARENA.fight)return;const s=arState(),e=arEnergy(),today=arToday(),tw=twState(),rule=mode==='tower'?twRule():null;
+ const team=arTeam.filter(x=>has(x)&&(!rule?.ok||rule.ok(get(x)))).slice(0,3);
+ if(!team.length){toast('Combats',rule?.ok?'Aucune carte de ton équipe ne respecte la règle de la semaine.':'Choisis au moins une carte pour ton équipe.','info');return;}
+ let key,power,boss;
+ if(mode==='daily'){if(s.daily===today){toast('Combats','Défi du jour déjà joué : reviens demain.','info');return;}n=Math.max(1,Math.min(AR_STAGES,s.stage));key='daily:'+today+':'+n;power=arPower(n);boss=false;}
+ else if(mode==='tower'){n=tw.floor+1;if(n>TW_FLOORS)return;key='tower:'+tw.week+':'+n;power=twPower(n);boss=n%5===0;}
+ else{if(!Number.isInteger(n)||n<1||n>Math.min(AR_STAGES,s.stage+1))return;key='stage'+n;power=arPower(n);boss=n%10===0;}
+ if(mode!=='daily'&&e.n<1){toast('Combats',`Plus d’énergie : prochaine charge dans ${Math.ceil(arNext()/60000)} min.`,'info');return;}
+ const foesSrc=arEnemies(power,key,boss,rule);if(!foesSrc.length)return;
+ if(mode==='daily')s.daily=today;else{e.n--;if(e.n===AR_MAX-1)e.t=Date.now();}
+ const mine=team.map((id,i)=>{const c=get(id);return {...arFighter(c,cardStats(c),'a',rule),k:'a'+i};}),foes=foesSrc.map((x,i)=>({...x.f,k:'e'+i}));
+ const res=arSimulate(mine.map(x=>({...x})),foes.map(x=>({...x})),Math.floor(Math.random()*2147483647),rule);
+ const parts=[],st=S();st.fights=(st.fights||0)+1;
+ const item=chance=>{if(Math.random()<chance){const it=itemDrop();parts.push(`objet : ${it.ic} ${it.name}`);}};
  if(res.win){
-  S().fightWins=(S().fightWins||0)+1;s.wins++;
-  parts.push(`+${fmt(addShards((60+30*n)*f*shardMult()))} ◆`,`+${fmt(addDust((6+4*n)*f*dustMult()))} ✧`,`+${fmt(addXP((30+22*n)*(daily||first?1:.5)*xpMult()))} XP`);
-  const keys=daily?1:first&&n%5===0?(boss?3:1):0;if(keys){progress.keys+=keys;parts.push(`+${keys} 🔑`);}
-  if(first&&boss){const pool=packable(),want=n>=80?4:n>=40?3:2;let c=null;for(let t=want;t>=0&&!c;t--){const l=pool.filter(x=>tierOf(x)===t);if(l.length)c=pick(l);}
-   if(c){const isNew=!has(c.id),fin=rollFinish({});give(c.id,1,fin);registerPull(c,fin,isNew);parts.push(`carte : ${c.name}${isNew?' (nouvelle !)':''}`);}}
-  if(first){s.stage=n;parts.push('première victoire !');}
+  st.fightWins=(st.fightWins||0)+1;s.wins++;
+  if(mode==='tower'){
+   parts.push(`+${fmt(addShards((150+60*n)*shardMult()))} ◆`,`+${fmt(addDust((20+10*n)*dustMult()))} ✧`,`+${fmt(addXP((80+40*n)*xpMult()))} XP`);
+   if(boss){progress.keys+=2;parts.push('+2 🔑');item(1);}else item(.15);
+   if(n===TW_FLOORS)arRewardCard(4,parts);
+   tw.floor=n;st.towerBest=Math.max(st.towerBest||0,n);parts.push(n===TW_FLOORS?'sommet de la Tour atteint !':`étage ${n} franchi`);
+  }else{
+   const daily=mode==='daily',first=!daily&&n>s.stage,f=daily||first?1:.4;
+   parts.push(`+${fmt(addShards((60+30*n)*f*shardMult()))} ◆`,`+${fmt(addDust((6+4*n)*f*dustMult()))} ✧`,`+${fmt(addXP((30+22*n)*(daily||first?1:.5)*xpMult()))} XP`);
+   const keys=daily?1:first&&n%5===0?(boss?3:1):0;if(keys){progress.keys+=keys;parts.push(`+${keys} 🔑`);}
+   if(first&&boss){arRewardCard(n>=80?4:n>=40?3:2,parts);item(1);}else item(daily?.5:first?.3:.08);
+   if(first){s.stage=n;parts.push('première victoire !');}
+  }
  }else parts.push(`+${fmt(addXP((8+4*n)*xpMult()))} XP de consolation`);
  for(const id of team)masteryGain?.(id,res.win?10+n:4);
+ const title=mode==='daily'?'Défi du jour':mode==='tower'?`Tour · étage ${n}${boss?' · Gardien':''}`:`Étape ${n}${boss?' · Boss':''}`;
  // Le résultat n'est écrit dans l'historique qu'à la fin de l'animation (pas de spoiler).
- ARENA.fight={n,daily,boss,mine,foes,log:res.log,i:0,win:res.win,parts,note:`Combat ${daily?'du jour':'étape '+n} : ${res.win?'victoire':'défaite'} (${parts.join(', ')}).`};SAVE.urgent=true;
- if(reducedMotion()||!res.log.length)ARENA.fight.i=res.log.length;
+ ARENA.fight={title,mine,foes,log:res.log,i:0,win:res.win,parts,rule,note:`${title} : ${res.win?'victoire':'défaite'} (${parts.join(', ')}).`};SAVE.urgent=true;
+ if(reducedMotion()||!res.log.length)arStop();
  else{clearInterval(ARENA.timer);ARENA.timer=setInterval(arTick,Math.max(110,Math.min(650,Math.round(9000/res.log.length))));}
 }
+function arBadges(f){const ab=f.ab?AB_INFO[f.ab.k]:null,it=f.it?ITEMS.find(i=>i.id===f.it):null;
+ return `${ab?`<i class="c180-ab" title="${ab[1]} : ${ab[2]}">${ab[0]} ${ab[1]}</i>`:''}${it?`<i class="c180-it" title="${esc(it.name)} : ${esc(it.desc)}">${it.ic} ${esc(it.name)}</i>`:''}`;}
+function arLine(f){return `<small>${AR_ICON[f.type]} ❤ ${fmt(f.max)} · ⚔ ${Math.round(f.atk)} · 💨 ${Math.round(f.spd)}</small>${arBadges(f)}`;}
 function arFightInner(){
  const F=ARENA.fight;if(!F)return '';const data=srcData(),all=[...F.mine,...F.foes],hp={};
  for(const f of all)hp[f.k]=f.max;for(let i=0;i<F.i;i++)hp[F.log[i].t]=F.log[i].hp;
  const cur=F.i>0?F.log[F.i-1]:null,done=F.i>=F.log.length,name=k=>all.find(x=>x.k===k)?.name||'?';
- const tile=f=>{const c=get(f.id);return `<div class="c178-f ${hp[f.k]<=0?'is-ko':''} ${cur&&cur.a===f.k?'is-atk':''} ${cur&&cur.t===f.k?'is-hit':''}">${c?figure(c,data,true,f.side==='a'?{hideCount:true}:{official:true,owned:true}):''}<div class="c178-hp"><i style="width:${Math.max(0,hp[f.k]/f.max*100)}%"></i></div><small>${AR_ICON[f.type]} ${fmt(hp[f.k])} / ${fmt(f.max)} PV</small>${cur&&cur.t===f.k?`<b class="c178-dmg ${cur.c?'is-crit':''}">−${fmt(cur.d)}${cur.c?' !':''}</b>`:''}</div>`;};
- const line=cur?`${esc(name(cur.a))} frappe ${esc(name(cur.t))} : ${fmt(cur.d)} dégâts${cur.c?' (coup critique)':''}${cur.v>0?' · avantage de type':cur.v<0?' · désavantage de type':''}${cur.ko?' · K.-O. !':''}`:'Le combat commence…';
- return `<h3 class="c178-title">${F.daily?'Défi du jour':`Étape ${F.n}${F.boss?' · Boss':''}`}</h3>
+ const tile=f=>{const c=get(f.id),tg=cur&&cur.t===f.k;return `<div class="c178-f ${hp[f.k]<=0?'is-ko':''} ${cur&&cur.a===f.k&&cur.k!=='thorn'?'is-atk':''} ${tg&&cur.k!=='heal'?'is-hit':''}">${c?figure(c,data,true,f.side==='a'?{hideCount:true}:{official:true,owned:true}):''}<div class="c178-hp"><i style="width:${Math.max(0,hp[f.k]/f.max*100)}%"></i></div><small>${AR_ICON[f.type]} ${fmt(hp[f.k])} / ${fmt(f.max)} PV</small>${arBadges(f)}${tg?`<b class="c178-dmg ${cur.k==='heal'?'is-heal':cur.c?'is-crit':''}">${cur.k==='heal'?'+':'−'}${fmt(cur.d)}${cur.c?' !':''}</b>`:''}</div>`;};
+ const line=!cur?'Le combat commence…':cur.k==='heal'?(cur.a===cur.t?`${esc(name(cur.a))} récupère ${fmt(cur.d)} PV`:`${esc(name(cur.a))} soigne ${esc(name(cur.t))} : +${fmt(cur.d)} PV`)
+  :cur.k==='thorn'?`${esc(name(cur.t))} se blesse sur les scies de ${esc(name(cur.a))} : ${fmt(cur.d)} dégâts${cur.ko?' · K.-O. !':''}`
+  :`${esc(name(cur.a))} frappe ${esc(name(cur.t))} : ${fmt(cur.d)} dégâts${cur.c?' (coup critique)':''}${cur.v>0?' · avantage de type':cur.v<0?' · désavantage de type':''}${cur.ko?' · K.-O. !':''}`;
+ return `<h3 class="c178-title">${esc(F.title)}</h3>${F.rule?`<p class="c180-rule">Règle de la semaine : <b>${esc(F.rule.name)}</b> · ${esc(F.rule.desc)}</p>`:''}
   <div class="c178-sides"><div class="c178-side"><h4>Adversaires</h4><div class="c178-row">${F.foes.map(tile).join('')}</div></div><div class="c178-vs" aria-hidden="true">VS</div><div class="c178-side"><h4>Ton équipe</h4><div class="c178-row">${F.mine.map(tile).join('')}</div></div></div>
   <p class="c178-line" aria-live="polite">${line}</p>
-  ${done?`<div class="c178-result ${F.win?'is-win':'is-lose'}"><h3>${F.win?'🏆 Victoire !':'Défaite'}</h3><p>${esc(F.parts.join(' · '))}</p>${F.win?'':'<p>Astuce : mets ta carte la plus résistante en première position et joue sur les avantages de type.</p>'}<button class="btn" type="button" data-v112-act="ar-close">Continuer</button></div>`:'<button class="btn small subtle" type="button" data-v112-act="ar-skip">⏩ Passer l’animation</button>'}`;
+  ${done?`<div class="c178-result ${F.win?'is-win':'is-lose'}"><h3>${F.win?'🏆 Victoire !':'Défaite'}</h3><p>${esc(F.parts.join(' · '))}</p>${F.win?'':'<p>Astuce : mets ta carte la plus résistante en première position, joue sur les avantages de type et équipe des objets.</p>'}<button class="btn" type="button" data-v112-act="ar-close">Continuer</button></div>`:'<button class="btn small subtle" type="button" data-v112-act="ar-skip">⏩ Passer l’animation</button>'}`;
 }
 function arenaView(){
- const data=srcData(),s=arState(),e=arEnergy(),today=arToday();
+ const data=srcData(),s=arState(),e=arEnergy(),today=arToday(),tw=twState(),rule=twRule(),inTower=arTab==='tower';
  if(!arTeam.length&&Array.isArray(s.team))arTeam=s.team.slice();
  arTeam=arTeam.filter(x=>has(x)).slice(0,3);
- const head=`<div class="dlfr117-head"><div><small>AVENTURE</small><h2>Combats</h2><p class="dlfr165-energy">⚡ Énergie : <b>${e.n}/${AR_MAX}</b>${arNext()?` · prochaine charge dans ${Math.ceil(arNext()/60000)} min`:''} · étape la plus haute : <b>${s.stage}/${AR_STAGES}</b> · ${fmt(s.wins)} victoire${s.wins>1?'s':''}</p>
-  <p>Forme une équipe de 3 cartes et affronte ${AR_STAGES} étapes de plus en plus dures (un Boss toutes les 10 étapes). Le combat est automatique : chaque carte attaque le <b>premier adversaire encore debout</b>, donc l’ordre de ton équipe compte. Les PV viennent de l’🛡 Endurance, l’attaque de la 🎯 Précision, la vitesse de la ⚙ Technique et les coups critiques de la 🔍 Découverte. Étoiles, finitions et Prestiges de carte rendent tes cartes plus fortes.</p>
+ const head=`<div class="dlfr117-head"><div><small>AVENTURE</small><h2>Combats</h2><p class="dlfr165-energy">⚡ Énergie : <b>${e.n}/${AR_MAX}</b>${arNext()?` · prochaine charge dans ${Math.ceil(arNext()/60000)} min`:''} · étape la plus haute : <b>${s.stage}/${AR_STAGES}</b> · Tour : <b>${tw.floor}/${TW_FLOORS}</b> · ${fmt(s.wins)} victoire${s.wins>1?'s':''}</p>
+  <p>Forme une équipe de 3 cartes. Le combat est automatique : chaque carte attaque le <b>premier adversaire encore debout</b>, donc l’ordre de ton équipe compte. Les PV viennent de l’🛡 Endurance, l’attaque de la 🎯 Précision, la vitesse de la ⚙ Technique et les coups critiques de la 🔍 Découverte. Étoiles, finitions et Prestiges de carte rendent tes cartes plus fortes. Les cartes <b>Légendaires, Mythiques et Ultra</b> ont une capacité spéciale.</p>
   <p class="c178-types"><b>Types :</b> ◆ Niveau bat ★ Joueur · ★ Joueur bat ✦ DLFR · ✦ DLFR bat ◆ Niveau <span>(+25 % de dégâts)</span></p></div></div>`;
  if(ARENA.fight)return `<section class="dlfr117-panel c178">${head}<div id="dlfr178Fight" class="c178-fight">${arFightInner()}</div></section>`;
- const foeTile=({c,f})=>`<div class="c178-f">${figure(c,data,true,{official:true,owned:true})}<small>${AR_ICON[f.type]} ❤ ${fmt(f.max)} · ⚔ ${Math.round(f.atk)} · 💨 ${Math.round(f.spd)}</small></div>`;
- const stage=(n,replay)=>{const boss=n%10===0;return `<article class="c178-stage ${boss?'is-boss':''}"><small>${replay?'REJOUER':'ÉTAPE SUIVANTE'}</small><h3>Étape ${n}${boss?' · 💀 Boss':''}</h3><div class="c178-row">${arEnemies(n,'stage'+n).map(foeTile).join('')}</div>
-   <p>${replay?`Déjà gagnée : récompenses réduites (◆ ${fmt(Math.round((60+30*n)*.4))}).`:`Première victoire : ◆ ${fmt(60+30*n)} · ✧ ${fmt(6+4*n)}${n%5===0?` · 🔑 ${boss?3:1}`:''}${boss?' · 1 carte':''}`} <span class="muted">(avant bonus)</span></p>
-   <button class="btn ${replay?'subtle':''}" type="button" data-v112-act="ar-fight" data-n="${n}" ${arTeam.length&&e.n>0?'':'disabled'}>Combattre · 1 ⚡</button></article>`;};
- const dn=Math.max(1,Math.min(AR_STAGES,s.stage)),dDone=s.daily===today;
- const daily=`<article class="c178-stage is-daily"><small>DÉFI DU JOUR</small><h3>${dDone?'Déjà joué aujourd’hui':'Un combat gratuit par jour'}</h3>${dDone?'':`<div class="c178-row">${arEnemies(dn,'daily:'+today+':'+dn).map(foeTile).join('')}</div>`}
-  <p>Adversaires au niveau de ton étape la plus haute. Victoire : 🔑 1 · ◆ ${fmt(60+30*dn)} · ✧ ${fmt(6+4*dn)} <span class="muted">(avant bonus)</span>. Un seul essai par jour, sans énergie.</p>
-  <button class="btn" type="button" data-v112-act="ar-daily" ${dDone||!arTeam.length?'disabled':''}>${dDone?'Reviens demain':'Relever le défi'}</button></article>`;
- const mine=shownCards().filter(c=>has(c.id)).map(c=>({c,s:cardStats(c)})).sort((a,b)=>(b.s.pre+b.s.end+b.s.tec+b.s.dec)-(a.s.pre+a.s.end+a.s.tec+a.s.dec));
- const stat=c=>{const f=arFighter(c,cardStats(c),'a');return `<small>${AR_ICON[f.type]} ❤ ${fmt(f.max)} · ⚔ ${Math.round(f.atk)} · 💨 ${Math.round(f.spd)}</small>`;};
- return `<section class="dlfr117-panel c178">${head}
-  <div class="c178-stages">${s.stage<AR_STAGES?stage(s.stage+1,false):'<article class="c178-stage is-boss"><small>TERMINÉ</small><h3>🏆 Les 100 étapes sont battues !</h3><p>Tu peux rejouer la dernière étape et relever le défi du jour.</p></article>'}${s.stage>0?stage(s.stage,true):''}${daily}</div>
-  <div class="dlfr117-sub"><h3>Ton équipe (${arTeam.length}/3) <button class="btn small subtle" type="button" data-v112-act="ar-auto">Meilleure équipe automatique</button></h3>
-   <div class="c178-row c178-team">${arTeam.map((id,i)=>{const c=get(id);return c?`<button type="button" class="c178-f c178-mine" data-v112-act="ar-team" data-id="${id}" title="Retirer de l’équipe"><em>${i+1}</em>${figure(c,data,true,{hideCount:true})}${stat(c)}</button>`:'';}).join('')||'<p class="dlfr117-empty">Clique sur des cartes ci-dessous. La première choisie est en première ligne.</p>'}</div>
-   <div class="dlfr161-pick">${mine.slice(0,60).map(({c})=>`<button type="button" class="dlfr161-card ${arTeam.includes(c.id)?'is-on':''}" data-v112-act="ar-team" data-id="${c.id}">${figure(c,data,true)}${stat(c)}</button>`).join('')||'<p class="dlfr117-empty">Ouvre des boosters pour avoir des cartes.</p>'}</div></div>
- </section>`;
+ const tabsBar=`<div class="dlfr117-tabs c180-tabs">${[['stages','Étapes'],['tower','🗼 Tour de la semaine'],['items',`🎒 Objets (${ITEMS.reduce((n,i)=>n+itemCount(i.id),0)})`]].map(([k,l])=>`<button type="button" class="${arTab===k?'active':''}" data-v112-act="ar-tab" data-tab="${k}">${l}</button>`).join('')}</div>`;
+ const foeTile=({c,f})=>`<div class="c178-f">${figure(c,data,true,{official:true,owned:true})}${arLine(f)}</div>`;
+ let body='';
+ if(arTab==='items'){
+  body=`<div class="dlfr117-sub"><h3>Tes objets</h3><p class="dlfr117-muted">Les objets tombent en gagnant des combats, des étages de la Tour et des chapitres. Chaque carte peut en porter un ; un objet équipé reste sur sa carte. Équipe-les dans la section « Ton équipe » des onglets Étapes et Tour.</p>
+   <div class="c180-items">${ITEMS.map(i=>{const n=itemCount(i.id),u=itemUsed(i.id);return `<article class="c180-item ${n?'':'is-none'} ${i.rare?'is-rare':''}"><b>${i.ic}</b><div><strong>${esc(i.name)}</strong><span>${esc(i.desc)}</span><small>${n?`×${n} · ${u} équipé${u>1?'s':''}`:'Pas encore trouvé'}</small></div></article>`;}).join('')}</div></div>`;
+ }else if(inTower){
+  const n=tw.floor+1,done=tw.floor>=TW_FLOORS,boss=n%5===0,okTeam=arTeam.some(x=>!rule.ok||rule.ok(get(x)));
+  body=`<div class="c180-tower"><div class="c180-rule"><small>RÈGLE DE LA SEMAINE</small><h3>${esc(rule.name)}</h3><p>${esc(rule.desc)} La Tour repart de l’étage 0 chaque lundi avec une nouvelle règle.</p></div>
+   <div class="c180-floors" aria-label="Étages de la Tour">${Array.from({length:TW_FLOORS},(_,i)=>`<span class="${i<tw.floor?'is-done':i===tw.floor?'is-next':''} ${(i+1)%5===0?'is-boss':''}">${i+1}</span>`).join('')}</div></div>
+   <div class="c178-stages">${done?'<article class="c178-stage is-boss"><small>TERMINÉ</small><h3>🏆 Sommet de la Tour atteint !</h3><p>Reviens lundi pour une nouvelle Tour et une nouvelle règle.</p></article>'
+    :`<article class="c178-stage ${boss?'is-boss':''}"><small>ÉTAGE SUIVANT</small><h3>Étage ${n}${boss?' · 💀 Gardien':''}</h3><div class="c178-row">${arEnemies(twPower(n),'tower:'+tw.week+':'+n,boss,rule).map(foeTile).join('')}</div>
+     <p>Récompenses : ◆ ${fmt(150+60*n)} · ✧ ${fmt(20+10*n)}${boss?' · 🔑 2 · 1 objet':''}${n===TW_FLOORS?' · 1 carte Mythique':''} <span class="muted">(avant bonus)</span>. Chaque étage ne se gagne qu’une fois par semaine.</p>
+     <button class="btn" type="button" data-v112-act="ar-tower" ${okTeam&&e.n>0?'':'disabled'}>Monter · 1 ⚡</button></article>`}</div>`;
+ }else{
+  const stage=(n,replay)=>{const boss=n%10===0;return `<article class="c178-stage ${boss?'is-boss':''}"><small>${replay?'REJOUER':'ÉTAPE SUIVANTE'}</small><h3>Étape ${n}${boss?' · 💀 Boss':''}</h3><div class="c178-row">${arEnemies(arPower(n),'stage'+n,boss,null).map(foeTile).join('')}</div>
+    <p>${replay?`Déjà gagnée : récompenses réduites (◆ ${fmt(Math.round((60+30*n)*.4))}).`:`Première victoire : ◆ ${fmt(60+30*n)} · ✧ ${fmt(6+4*n)}${n%5===0?` · 🔑 ${boss?3:1}`:''}${boss?' · 1 carte · 1 objet':''}`} <span class="muted">(avant bonus)</span></p>
+    <button class="btn ${replay?'subtle':''}" type="button" data-v112-act="ar-fight" data-n="${n}" ${arTeam.length&&e.n>0?'':'disabled'}>Combattre · 1 ⚡</button></article>`;};
+  const dn=Math.max(1,Math.min(AR_STAGES,s.stage)),dDone=s.daily===today;
+  body=`<div class="c178-stages">${s.stage<AR_STAGES?stage(s.stage+1,false):'<article class="c178-stage is-boss"><small>TERMINÉ</small><h3>🏆 Les 100 étapes sont battues !</h3><p>Tu peux rejouer la dernière étape, relever le défi du jour et grimper la Tour.</p></article>'}${s.stage>0?stage(s.stage,true):''}
+   <article class="c178-stage is-daily"><small>DÉFI DU JOUR</small><h3>${dDone?'Déjà joué aujourd’hui':'Un combat gratuit par jour'}</h3>${dDone?'':`<div class="c178-row">${arEnemies(arPower(dn),'daily:'+today+':'+dn,false,null).map(foeTile).join('')}</div>`}
+   <p>Adversaires au niveau de ton étape la plus haute. Victoire : 🔑 1 · ◆ ${fmt(60+30*dn)} · ✧ ${fmt(6+4*dn)} <span class="muted">(avant bonus)</span>. Un seul essai par jour, sans énergie.</p>
+   <button class="btn" type="button" data-v112-act="ar-daily" ${dDone||!arTeam.length?'disabled':''}>${dDone?'Reviens demain':'Relever le défi'}</button></article></div>`;
+ }
+ const r=inTower?rule:null,allowed=c=>!r?.ok||r.ok(c);
+ const mine=shownCards().filter(c=>has(c.id)).map(c=>({c,s:cardStats(c)})).sort((a,b)=>(allowed(b.c)-allowed(a.c))||(b.s.pre+b.s.end+b.s.tec+b.s.dec)-(a.s.pre+a.s.end+a.s.tec+a.s.dec));
+ const stat=c=>arLine(arFighter(c,cardStats(c),'a',r));
+ const equip=id=>{const cur=itemState().equip[id]||'',opts=ITEMS.filter(i=>itemCount(i.id)>0&&(i.id===cur||itemCount(i.id)-itemUsed(i.id)>0));
+  return opts.length||cur?`<select class="c180-equip" data-v180-equip="${id}" aria-label="Objet équipé"><option value="">Aucun objet</option>${opts.map(i=>`<option value="${i.id}" ${i.id===cur?'selected':''}>${i.ic} ${esc(i.name)}</option>`).join('')}</select>`:'';};
+ const team=arTab==='items'?'':`<div class="dlfr117-sub"><h3>Ton équipe (${arTeam.length}/3) <button class="btn small subtle" type="button" data-v112-act="ar-auto">Meilleure équipe automatique</button></h3>
+   <div class="c178-row c178-team">${arTeam.map((id,i)=>{const c=get(id);return c?`<div class="c178-f c180-slot ${allowed(c)?'':'is-out'}"><button type="button" class="c178-mine" data-v112-act="ar-team" data-id="${id}" title="Retirer de l’équipe"><em>${i+1}</em>${figure(c,data,true,{hideCount:true})}</button>${stat(c)}${allowed(c)?'':'<small class="c180-out">Interdite cette semaine</small>'}${equip(id)}</div>`:'';}).join('')||'<p class="dlfr117-empty">Clique sur des cartes ci-dessous. La première choisie est en première ligne.</p>'}</div>
+   <div class="dlfr161-pick">${mine.slice(0,60).map(({c})=>`<button type="button" class="dlfr161-card ${arTeam.includes(c.id)?'is-on':''} ${allowed(c)?'':'c180-dim'}" data-v112-act="ar-team" data-id="${c.id}">${figure(c,data,true)}${stat(c)}</button>`).join('')||'<p class="dlfr117-empty">Ouvre des boosters pour avoir des cartes.</p>'}</div></div>`;
+ return `<section class="dlfr117-panel c178">${head}${tabsBar}${body}${team}</section>`;
 }
+// ---------- V180 — Fusion de finition (Forge) : des doublons et de la poussière pour tenter la finition suivante
+const FUSE_COPIES=[5,15,40,100],FUSE_DUST=[200,800,3000,10000],FUSE_CHANCE=[.7,.5,.35,.25];
+function fuseInfo(c,v){const f=v.finish||0;if(f>=4)return null;const fails=(progress.fuse||{})[c.id]||0;return {next:f+1,copies:FUSE_COPIES[f],dust:Math.round(FUSE_DUST[f]*forgeDiscount()),chance:Math.min(1,FUSE_CHANCE[f]+.1*fails),fails};}
+function cleanFuse(o){const out={};if(o&&typeof o==='object')for(const [k,v] of Object.entries(o).slice(0,5000))if(/^[0-9]{1,12}$/.test(k)&&IV(v,20,1))out[k]=v;return out;}
+function fuseCard(id){const c=get(id),v=owned.get(Number(id));if(!c||!v)return;const k=fuseInfo(c,v);if(!k||v.count-1<k.copies||progress.dust<k.dust)return;
+ if(!confirm(`Fusion : ${k.copies} doublons de ${c.name} et ${fmt(k.dust)} ✧ pour tenter la finition ${FIN_NAME[k.next]} (${Math.round(k.chance*100)} % de réussite). En cas d’échec, les doublons et la poussière sont perdus, mais la prochaine tentative gagne +10 % de chance. Continuer ?`))return;
+ v.count-=k.copies;progress.dust-=k.dust;if(!progress.fuse||typeof progress.fuse!=='object')progress.fuse={};
+ if(Math.random()<k.chance){v.finish=k.next;v.holo=true;delete progress.fuse[c.id];const st=S();st.fusions=(st.fusions||0)+1;st.finishes[k.next]=(st.finishes[k.next]||0)+1;emit('finish');
+  log(`Fusion réussie : ${c.name} devient ${FIN_NAME[k.next]}.`);toast('✨ Fusion réussie',`${c.name} passe en ${FIN_NAME[k.next]}`,'forge');}
+ else{progress.fuse[c.id]=Math.min(20,k.fails+1);log(`Fusion ratée pour ${c.name}.`);toast('Fusion ratée',`${c.name} reste en ${FIN_NAME[v.finish||0]}. Prochaine tentative : ${Math.round(Math.min(1,k.chance+.1)*100)} % de réussite.`,'info');}}
+function fuseBlock(c,v){const k=fuseInfo(c,v);if(!k)return '<div class="c180-fuse"><h4>✨ Fusion de finition</h4><p>Cette carte est déjà Shiny : la meilleure finition.</p></div>';
+ const okC=v.count-1>=k.copies,okD=progress.dust>=k.dust;
+ return `<div class="c180-fuse"><h4>✨ Fusion de finition</h4><p>Tente de passer de <b>${FIN_NAME[v.finish||0]}</b> à <b>${FIN_NAME[k.next]}</b> : ${Math.round(k.chance*100)} % de réussite${k.fails?` (dont +${k.fails*10} % après ${k.fails} échec${k.fails>1?'s':''})`:''}.</p>
+  <ul class="dlfr117-reqs"><li class="${okC?'ok':''}">Doublons : ${v.count-1} / ${k.copies}</li><li class="${okD?'ok':''}">Poussière : ${fmt(progress.dust)} / ${fmt(k.dust)} ✧</li></ul>
+  <button class="btn subtle" type="button" data-v112-act="fuse" data-id="${c.id}" ${okC&&okD?'':'disabled'}>Tenter la fusion ${FIN_NAME[k.next]}</button></div>`;}
 // ---------- Contrats de collection
 function contracts(){
  const data=srcData(),out=[],dem=new Map((data.demons||[]).filter(d=>d.is_public!==false).map(d=>[normalize(d.name),d]));
@@ -832,7 +948,7 @@ function forgeView(data){
   ${starTrack(cur,v)}${finishPanel()}${powerTrack()}
   ${list.length?`<div class="dlfr117-forge"><div class="dlfr117-forge-list">${list.map(c=>{const o=owned.get(c.id),sc=starCost(c,o),ready=sc&&o.count-1>=sc.copies&&progress.dust>=sc.dust;return `<button type="button" class="dlfr117-forge-item ${c.id===forgeSel?'is-current':''} ${ready?'is-ready':''}" data-v112-act="forge-select" data-id="${c.id}"><span class="t${tierOf(c)}">${esc(c.name)}</span><small>${'★'.repeat(o.stars||0)}${'☆'.repeat(Math.max(0,5-(o.stars||0)))} · ${sc?`${Math.min(o.count-1,sc.copies)}/${sc.copies} doublon${sc.copies>1?'s':''}`:(o.prestige||0)>=CARD_MAX_PRESTIGE?'MAX':'✺ Prestige possible'}${o.prestige?` · ✺${cardPrestigeName(o.prestige)}`:''}</small>${sc?`<i class="dlfr143-mini"><b style="width:${Math.min(100,(o.count-1)/sc.copies*100)}%"></b></i>`:''}${ready?'<em class="dlfr143-ready">Prêt !</em>':''}</button>`;}).join('')}</div>
    <div class="dlfr117-forge-main">${cur?`<div class="dlfr117-forge-card">${figure(cur,data)}</div><div class="dlfr117-forge-info"><h3>${esc(cur.name)}</h3><p>${esc(rarity(cur))} · ${FIN_NAME[v.finish||0]} · ★${v.stars||0}/${MAX_STARS}${v.prestige?` · ✺ Prestige ${cardPrestigeName(v.prestige)}`:''}</p><p class="dlfr162-mline">Maîtrise : ${masteryRank(cur.id)?`rang ${['','I','II','III','IV','V'][masteryRank(cur.id)]} (${MASTERY_NAME[masteryRank(cur.id)]})`:'aucune'} · ${fmt(masteryXp(cur.id))}${masteryRank(cur.id)<5?` / ${fmt(MASTERY[masteryRank(cur.id)])}`:''} XP <small>(gagnée en partant en chapitre avec cette carte)</small></p>
-    ${k?`<ul class="dlfr117-reqs"><li class="${v.count-1>=k.copies?'ok':''}">Doublons : ${v.count-1} / ${k.copies}</li><li class="${progress.dust>=k.dust?'ok':''}">Poussière : ${fmt(progress.dust)} / ${fmt(k.dust)} ✧</li></ul><button class="btn" type="button" data-v112-act="upgrade" data-id="${cur.id}" ${v.count-1>=k.copies&&progress.dust>=k.dust?'':'disabled'}>Forger ★${(v.stars||0)+1}</button>`:(v.prestige||0)>=CARD_MAX_PRESTIGE?'<p class="dlfr117-done">✺ Prestige MAX · ★10 : cette carte est au maximum</p>':`<div class="c178-cp"><p class="dlfr117-done">★10 atteint : Prestige de carte disponible</p><p>La carte repart à ★0 et gagne le <b>Prestige ${cardPrestigeName((v.prestige||0)+1)}</b> : elle devient plus forte qu’une ★10 et le reste pour toujours. Tes doublons en stock sont gardés.</p><ul class="dlfr117-reqs"><li class="${progress.dust>=cardPrestigeCost(v)?'ok':''}">Poussière : ${fmt(progress.dust)} / ${fmt(cardPrestigeCost(v))} ✧</li></ul><button class="btn" type="button" data-v112-act="card-prestige" data-id="${cur.id}" ${progress.dust>=cardPrestigeCost(v)?'':'disabled'}>✺ Passer Prestige ${cardPrestigeName((v.prestige||0)+1)}</button></div>`}</div>`:''}</div></div>`:'<p class="dlfr117-empty">Ouvre des boosters pour remplir la Forge.</p>'}
+    ${k?`<ul class="dlfr117-reqs"><li class="${v.count-1>=k.copies?'ok':''}">Doublons : ${v.count-1} / ${k.copies}</li><li class="${progress.dust>=k.dust?'ok':''}">Poussière : ${fmt(progress.dust)} / ${fmt(k.dust)} ✧</li></ul><button class="btn" type="button" data-v112-act="upgrade" data-id="${cur.id}" ${v.count-1>=k.copies&&progress.dust>=k.dust?'':'disabled'}>Forger ★${(v.stars||0)+1}</button>`:(v.prestige||0)>=CARD_MAX_PRESTIGE?'<p class="dlfr117-done">✺ Prestige MAX · ★10 : cette carte est au maximum</p>':`<div class="c178-cp"><p class="dlfr117-done">★10 atteint : Prestige de carte disponible</p><p>La carte repart à ★0 et gagne le <b>Prestige ${cardPrestigeName((v.prestige||0)+1)}</b> : elle devient plus forte qu’une ★10 et le reste pour toujours. Tes doublons en stock sont gardés.</p><ul class="dlfr117-reqs"><li class="${progress.dust>=cardPrestigeCost(v)?'ok':''}">Poussière : ${fmt(progress.dust)} / ${fmt(cardPrestigeCost(v))} ✧</li></ul><button class="btn" type="button" data-v112-act="card-prestige" data-id="${cur.id}" ${progress.dust>=cardPrestigeCost(v)?'':'disabled'}>✺ Passer Prestige ${cardPrestigeName((v.prestige||0)+1)}</button></div>`}${fuseBlock(cur,v)}</div>`:''}</div></div>`:'<p class="dlfr117-empty">Ouvre des boosters pour remplir la Forge.</p>'}
   <div class="dlfr117-sub"><h3>Doublons des cartes au maximum</h3><p class="dlfr117-muted">Une carte ★10 au Prestige MAX ne peut plus monter : ses doublons peuvent être recyclés en poussière ✧.</p>
    <button class="btn subtle" type="button" data-v112-act="recycle">Recycler les doublons des cartes au maximum</button></div>
  </section>`;
@@ -903,7 +1019,7 @@ function restoreSession(x,interactive){
    const quests=Array.isArray(p.quests)?p.quests.filter(q=>q&&QUEST_POOL.some(t=>t.type===q.type)&&I(q.target,100000,1)&&I(q.have,q.target)&&q.reward&&typeof q.reward==='object'&&['xp','shards','dust','keys'].every(k=>q.reward[k]===undefined||I(q.reward[k],1000000))).slice(0,3).map(q=>({id:String(q.id).slice(0,20),type:q.type,target:q.target,have:q.have,reward:{...q.reward},...(I(q.at,4102444800000)&&q.at>0?{at:q.at}:{})})):[];
    Object.assign(np,{level:p.level,xp:p.xp,shards:p.shards,dust:p.dust,keys:p.keys,prestige:prest,skills,camps:camps.map(c=>({dest:c.dest,start:c.start,end:c.end})),quests,questSeed:p.questSeed||0,
     achievements:flags(p.achievements,ACHIEVEMENTS),sets:flags(Object.fromEntries(Object.entries(p.sets||{}).map(([k,v])=>[['legends','modern','players','dlfr'].includes(k)?'col-'+k:k,v])),SETS),pity:{leg:I(p.pity?.leg,5000)?p.pity.leg:0,myth:I(p.pity?.myth,5000)?p.pity.myth:0},stats,title:typeof p.title==='string'?p.title.slice(0,40):'',chapters:cleanChapters(p.chapters),spec:SPECS[p.spec]?p.spec:null,mastery:Object.fromEntries(Object.entries(p.mastery&&typeof p.mastery==='object'?p.mastery:{}).filter(([k,v])=>/^[0-9]{1,12}$/.test(k)&&Number.isSafeInteger(v)&&v>=0&&v<=1e6).slice(0,5000).map(([k,v])=>[Number(k),v])),contracts:Object.fromEntries(Object.entries(p.contracts&&typeof p.contracts==='object'?p.contracts:{}).filter(([k,v])=>v===true&&k.length<=80).slice(0,500))});
-   np.arena=cleanArena(p.arena);
+   np.arena=cleanArena(p.arena);np.items=cleanItems(p.items);np.equip=cleanEquip(p.equip,np.items);np.tower=cleanTower(p.tower);np.fuse=cleanFuse(p.fuse);
   }
   if(interactive&&!confirm('Restaurer cette sauvegarde ? Les cartes et la progression actuelles seront remplacées.'))return;
   reset();for(const [id,v] of inv)owned.set(id,v);for(const [id,r] of rares)overrides.set(id,r);
@@ -1774,9 +1890,12 @@ function handleClick(event){
  else if(act==='renaissance'){doRenaissance();}
  else if(act==='card-prestige'){prestigeCard(b.dataset.id);}
  else if(act==='ar-team'){const id=Number(b.dataset.id);if(arTeam.includes(id))arTeam=arTeam.filter(x=>x!==id);else if(arTeam.length<3&&has(id))arTeam.push(id);arState().team=arTeam.slice();}
- else if(act==='ar-auto'){arAuto();}
- else if(act==='ar-fight'){arStart(Number(b.dataset.n),false);}
- else if(act==='ar-daily'){arStart(0,true);}
+ else if(act==='ar-auto'){arAuto(arTab==='tower'?twRule():null);}
+ else if(act==='ar-fight'){arBattle('stage',Number(b.dataset.n));}
+ else if(act==='ar-daily'){arBattle('daily',0);}
+ else if(act==='ar-tower'){arBattle('tower',0);}
+ else if(act==='ar-tab'){arTab=['stages','tower','items'].includes(b.dataset.tab)?b.dataset.tab:'stages';}
+ else if(act==='fuse'){fuseCard(b.dataset.id);}
  else if(act==='ar-skip'){arStop();}
  else if(act==='ar-close'){arStop();ARENA.fight=null;}
  else if(act==='cooldown-skip'){for(const c of progress.camps)c.end=Date.now();log('Expéditions terminées depuis la console de test.');}
@@ -1802,6 +1921,7 @@ function handleClick(event){
 function handleChange(event){
  if(!gate||!document.getElementById('dlfr112Lab'))return;
  const e=event.target;
+ if(e.dataset?.v180Equip!==undefined){arEquip(Number(e.dataset.v180Equip),e.value);repaint();return;}
  if(e.dataset?.v158Sel!==undefined){if(e.checked)SUGG.sel.add(e.dataset.v158Sel);else SUGG.sel.delete(e.dataset.v158Sel);repaint();return;}
  if(e.dataset?.v158Rar!==undefined){SUGG.rar[e.dataset.v158Rar]=e.value;return;}
  if(e.dataset?.v158==='col'){SUGG.col=Number(e.value);return;}

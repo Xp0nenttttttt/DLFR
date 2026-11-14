@@ -42,6 +42,6 @@ Quand un fichier JS ou CSS change, augmenter son numéro `?v=…` dans `index.ht
 Onglet **⚙ Gestion** (propriétaires, supermodérateurs et rôle « Gestion Cards ») : donner le rôle (propriétaires seulement), revenir à une copie quotidienne de la partie d'un joueur (14 jours) ou la remettre à zéro, modifier les probabilités des boosters et des finitions, créer des événements (packs offerts). Tout est inscrit dans le journal.
 
 
-Depuis la V178 : onglet **Combats** (100 étapes contre des équipes générées, défi du jour), **Prestige** du joueur (10 paliers puis Prestige MAX), **Prestige de carte** (une carte ★10 repart à ★0 et gagne un palier), finitions visibles dans la vitrine. L'export / import de sauvegarde a été retiré.
+Depuis la V178 : onglet **Combats** (100 étapes contre des équipes générées, défi du jour), **Prestige** du joueur (10 paliers puis Prestige MAX), **Prestige de carte** (une carte ★10 repart à ★0 et gagne un palier), finitions visibles dans la vitrine. L'export / import de sauvegarde a été retiré. V180 : objets à équiper, capacités spéciales des cartes Légendaires et plus, Tour de la semaine (30 étages, règle différente chaque lundi), fusion de finitions dans la Forge, 14 chapitres.
 
 Jeu solo : pas de classement ni d'échanges. Les cartes et collections se gèrent depuis l'onglet « Catalogue » de DLFR Cards (réservé à l'équipe). Une collection « en préparation » est invisible pour les joueurs.
