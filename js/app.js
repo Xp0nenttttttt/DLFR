@@ -1927,7 +1927,8 @@ function statsPage(){const users=ranked().filter(statsPlayerVisible);const count
 function rankRows(users,chosen,mode='main'){return users.length?users.map(p=>`<button type="button" data-stats-preview="${esc(p.player_key)}" aria-pressed="${p.player_key===chosen?.player_key}" class="rank-item ${p.has_account?'':'unclaimed'} ${p.player_key===chosen?.player_key?'selected':''} ${v90Cls(V90_FX.items[p.player_key])}"><span class="rank-num">#${mode==='nlw'?(p.nlwRank||'-'):(p.rank||'-')}</span><span class="rank-name">${flag(p.country_code)} ${regionFlag(p)} <span class="dlfr-pname">${esc(p.display_name||p.username)}</span>${emblemHTML(p.player_key,'sm')}${(DECO.icons||DECO.medals)(V90_FX.items[p.player_key])}</span><span class="rank-score">${fmt(mode==='nlw'?p.nlwScore:p.score)}</span></button>`).join(''):'<div class="empty">Aucun joueur trouvé.</div>';}
 function demonPage(){
  const id=Number(new URLSearchParams(location.search).get('id'));
- const d=catalog().find(x=>Number(x.id)===id);
+ // V181 : un niveau non classé s'ouvre même si l'option « non classés » est désactivée (liens directs, soumissions…).
+ const d=catalog().find(x=>Number(x.id)===id)||(state.unrated?null:integratedCatalog(state.data.demons,true).find(x=>Number(x.id)===id));
  if(!d)return '<div class="center-panel">Niveau introuvable.</div>';
  const recs=state.data.completions.filter(c=>Number(c.demon_id)===id);
  const r=V2.nlwRank(d),isNlw=r>0;

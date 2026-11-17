@@ -427,13 +427,16 @@ function rollFinish(pack){
  return r2<obs?3:r2<obs+pri?2:r2<obs+pri+hol?1:0;
 }
 function registerPull(card,finish,isNew){const t=tierOf(card),s=S();s.pulled++;s.tiers[t]=(s.tiers[t]||0)+1;s.finishes[finish]=(s.finishes[finish]||0)+1;if(isNew){s.newCards++;emit('new');}if(t>=2)emit('epic');if(finish>0)emit('finish');}
-function openPack(id){
- const pack=allPacks().find(p=>p.id===id);
- if(!pack||OPEN.st||progress.level<pack.level||!canAfford(pack.cost))return false;
+// V182 : ouverture de plusieurs boosters d'un coup (×5, ×10).
+function costTimes(cost,n){const out={};for(const [k,v] of Object.entries(cost||{}))out[k]=(Number(v)||0)*n;return out;}
+function openPack(id,times=1){
+ const pack=allPacks().find(p=>p.id===id);times=Math.max(1,Math.min(10,Math.floor(Number(times)||1)));
+ if(!pack||OPEN.st||progress.level<pack.level||!canAfford(costTimes(pack.cost,times)))return false;
  if(!poolFor(pack).length){toast('Boosters','Aucune carte disponible dans les boosters : ajoute des cartes au catalogue.','info');return false;}
  const before={level:progress.level,xp:progress.xp,target:levelTarget(progress.level),shards:progress.shards,dust:progress.dust};
- levelUps.length=0;pay(pack.cost);S().packs++;emit('packs');SAVE.urgent=true; // V165 : sauvegarde immédiate (actualiser ne relance plus un booster)
+ levelUps.length=0;SAVE.urgent=true; // V165 : sauvegarde immédiate (actualiser ne relance plus un booster)
  const count=packCount(pack),guarantee=packGuarantee(pack),pool=poolFor(pack),draws=[];
+ for(let t=0;t<times;t++){pay(pack.cost);S().packs++;emit('packs');
  for(let i=0;i<count;i++){
   const last=i===count-1;let minT=last?guarantee:0,pityHit='';
   if(progress.pity.myth+1>=ODDS.mythPity){minT=4;pityHit='myth';}else if(progress.pity.leg+1>=legPity()){minT=Math.max(minT,3);pityHit='leg';}
@@ -447,13 +450,13 @@ function openPack(id){
   const shards=isNew?addShards(6*(1+.5*rank('ma6'))*(isSpec('col')?2:1)*shardMult()):addShards(2*shardMult());
   const dust=isNew?0:addDust(DUST_DUP[t]*dustMult()*(isSpec('art')?1.3:1));
   draws.push({id:card.id,tier:t,finish,isNew,shards,dust,pity:pityHit&&t>=(pityHit==='myth'?4:3)?pityHit:''});
- }
- const xp=addXP(count*6*xpMult());
+ }}
+ const xp=addXP(count*times*6*xpMult());
  progress.reveals=draws.map(d=>({...d}));
  checkAchievements();
- log(`${pack.name} ouvert : ${count} cartes, +${draws.reduce((n,d)=>n+d.shards,0)} ◆, +${draws.reduce((n,d)=>n+d.dust,0)} ✧.`);
+ log(`${times>1?times+' × ':''}${pack.name} ouvert${times>1?'s':''} : ${draws.length} cartes, +${draws.reduce((n,d)=>n+d.shards,0)} ◆, +${draws.reduce((n,d)=>n+d.dust,0)} ✧.`);
  // Les cartes sont attribuées UNE SEULE FOIS ici ; l'animation n'est qu'une mise en scène.
- startOpening(pack,draws,{before,xp,levels:levelUps.slice()});
+ startOpening(pack,draws,{before,xp,levels:levelUps.slice(),times});
  scheduleSave();
  return true;
 }
@@ -555,7 +558,8 @@ function boostersView(){
     <h3>${esc(pack.name)}</h3><p>${esc(pack.subtitle)}</p>
     <div class="dlfr117-odds">${rarities.map((r,i)=>w[i]>0?`<span class="t${i}"><i></i>${esc(r)} ${fmtPercent(w[i])}</span>`:'').join('')}</div>
     <small>${packCount(pack)} cartes${g?` · ${rarities[g]} ou mieux garantie`:''}${pack.finishBoost?` · finitions ×${pack.finishBoost}`:''}</small>
-    <button type="button" class="btn" data-v112-act="open-pack" data-pack="${pack.id}" ${locked||!afford?'disabled':''}>${locked?'Verrouillé':afford?`Ouvrir · ${costText(pack.cost)}`:`${costText(pack.cost)} requis`}</button></article>`;}).join('')}</div>
+    <button type="button" class="btn" data-v112-act="open-pack" data-pack="${pack.id}" ${locked||!afford?'disabled':''}>${locked?'Verrouillé':afford?`Ouvrir · ${costText(pack.cost)}`:`${costText(pack.cost)} requis`}</button>
+    ${locked?'':`<div class="c182-multi">${[5,10].map(n=>`<button type="button" class="btn small subtle" data-v112-act="open-pack" data-pack="${pack.id}" data-times="${n}" ${canAfford(costTimes(pack.cost,n))?'':'disabled'} title="${n} boosters : ${costText(costTimes(pack.cost,n))}">×${n} · ${costText(costTimes(pack.cost,n))}</button>`).join('')}</div>`}</article>`;}).join('')}</div>
   ${p.reveals.length?`<div class="dlfr117-sub"><h3>Dernier booster</h3><div class="dlfr117-mini-grid">${p.reveals.map(d=>{const c=get(d.id);return c?`<div>${figure(c,srcData(),true,{finish:d.finish})}<span class="${d.isNew?'is-new':''}">${d.isNew?'Nouvelle':'Doublon'} · +${d.shards} ◆${d.dust?` +${d.dust} ✧`:''}</span></div>`:'';}).join('')}</div></div>`:''}
  </section>`;
 }
@@ -1036,7 +1040,8 @@ const cardOf=d=>d.card||get(d.id);
 function startOpening(pack,draws,meta){
  // Les meilleures cartes à la fin, pour le suspense.
  const order=draws.map((d,i)=>({...d,k:i})).sort((a,b)=>(a.tier*10+a.finish)-(b.tier*10+b.finish)||a.k-b.k);
- OPEN.st={pack,draws:order,i:0,stage:'sealed',flipped:false,busy:false,tear:0,meta};
+ const multi=(meta?.times||1)>1,show=multi?order.filter(d=>d.tier>=3||d.finish>=2||cardOf(d)?.rarity===SECRET):order;
+ OPEN.st={pack,draws:show,all:multi?order:null,i:0,stage:'sealed',flipped:false,busy:false,tear:0,meta};
  mountOpening();
 }
 function mountOpening(){
@@ -1044,7 +1049,7 @@ function mountOpening(){
  const st=OPEN.st,el=document.createElement('div');
  el.id='dlfr117Open';el.className=`dlfr117-open o-theme-${st.pack.theme}`;el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');el.setAttribute('aria-labelledby','dlfr117OpenTitle');
  el.innerHTML=`<div class="o-bg"></div><div class="o-rays" aria-hidden="true"></div><canvas class="o-fx" aria-hidden="true"></canvas><div class="o-flash" aria-hidden="true"></div>
-  <header class="o-top"><div><small>DLFR CARDS · OUVERTURE</small><h2 id="dlfr117OpenTitle">${esc(st.pack.name)}</h2></div><div class="o-tools"><span class="o-count" aria-live="polite"></span><button type="button" data-o="sound" aria-pressed="false">🔇 Son</button><button type="button" data-o="skip">Tout révéler ⏭</button></div></header>
+  <header class="o-top"><div><small>DLFR CARDS · OUVERTURE</small><h2 id="dlfr117OpenTitle">${(st.meta?.times||1)>1?`${st.meta.times} × `:''}${esc(st.pack.name)}</h2></div><div class="o-tools"><span class="o-count" aria-live="polite"></span><button type="button" data-o="sound" aria-pressed="false">🔇 Son</button><button type="button" data-o="skip">Tout révéler ⏭</button></div></header>
   <div class="o-stage"></div><div class="o-banner" aria-live="polite"></div><div class="o-tray" aria-hidden="true"></div>
   <footer class="o-foot"><div class="o-buttons"></div><p class="o-hint"></p></footer>`;
  document.body.append(el);OPEN.el=el;document.documentElement.classList.add('dlfr117-noscroll');
@@ -1064,12 +1069,13 @@ function renderOpening(){
  const st=OPEN.st,el=OPEN.el;if(!st||!el)return;
  el.dataset.stage=st.stage;
  const n=st.draws.length,data=srcData();
- el.querySelector('.o-count').textContent=st.stage==='cards'?`Carte ${st.i+1} / ${n}`:st.stage==='summary'?'Bilan':`${n} carte${n>1?'s':''}`;
+ const tot=(st.all||st.draws).length;
+ el.querySelector('.o-count').textContent=st.stage==='cards'?(st.all?`Belle carte ${st.i+1} / ${n}`:`Carte ${st.i+1} / ${n}`):st.stage==='summary'?'Bilan':`${tot} carte${tot>1?'s':''}`;
  el.querySelector('[data-o="skip"]').hidden=st.stage==='summary';
  if(st.stage==='sealed'){
   setOpening('.o-stage',`<div class="o-pack" style="--tear:0" data-o="pack" tabindex="-1"><div class="o-pack-half o-pack-top">${packArt(st.pack,'is-big')}</div><div class="o-pack-half o-pack-bottom">${packArt(st.pack,'is-big')}</div><div class="o-tear-line"><span class="o-tear-cut"></span><i class="o-tear-handle">✂</i></div></div>`);
   setOpening('.o-buttons',`<button type="button" class="o-btn o-primary" data-o="next">Déchirer le booster</button>`);
-  setOpening('.o-hint','Glisse le long de la ligne pour déchirer · ou clique / Espace');setOpening('.o-banner','');
+  setOpening('.o-hint',st.all?`${st.meta.times} boosters d’un coup : seules les belles cartes (Légendaire et plus, Prismatique et plus) sont révélées une par une, puis le bilan.`:'Glisse le long de la ligne pour déchirer · ou clique / Espace');setOpening('.o-banner','');
  }else if(st.stage==='opening'){
   setOpening('.o-buttons','');setOpening('.o-hint','');
  }else if(st.stage==='cards'){
@@ -1124,7 +1130,7 @@ async function tearComplete(){
  renderOpening();sfx('tear');
  const r=pack.getBoundingClientRect();burst(r.left+r.width/2,r.top+r.height*.16,2,0,true);
  await wait(1150);if(!OPEN.st)return;
- st.stage='cards';OPEN.el.querySelector('.o-tray').innerHTML='';renderOpening();
+ st.stage=st.draws.length?'cards':'summary';OPEN.el.querySelector('.o-tray').innerHTML='';renderOpening();
 }
 async function autoTear(){
  const st=OPEN.st;if(!st||st.stage!=='sealed'||st.busy)return;st.busy=true;
@@ -1163,7 +1169,7 @@ function openingClick(e){
  else if(a==='card'){if(OPEN.st.stage==='cards')primaryAction();}
  else if(a==='skip')skipAll();
  else if(a==='close')closeOpening();
- else if(a==='again'){if(OPEN.st.meta?.real){const m=OPEN.st.meta;unmountOpening(true);OPEN.st=null;m.onAgain?.();return;}const id=OPEN.st.pack.id;unmountOpening(true);OPEN.st=null;if(!openPack(id))repaint();}
+ else if(a==='again'){if(OPEN.st.meta?.real){const m=OPEN.st.meta;unmountOpening(true);OPEN.st=null;m.onAgain?.();return;}const id=OPEN.st.pack.id,tm=OPEN.st.meta?.times||1;unmountOpening(true);OPEN.st=null;if(!openPack(id,tm))repaint();}
  else if(a==='sound'){OPEN.sound=!OPEN.sound;b.textContent=OPEN.sound?'🔊 Son':'🔇 Son';b.setAttribute('aria-pressed',String(OPEN.sound));if(OPEN.sound)sfx('flip');}
 }
 function renderRealSummary(){
@@ -1181,19 +1187,22 @@ function renderRealSummary(){
 }
 function renderSummary(){
  if(OPEN.st?.meta?.real)return renderRealSummary();
- const st=OPEN.st,data=srcData(),m=st.meta,draws=st.draws;
+ const st=OPEN.st,data=srcData(),m=st.meta,draws=st.all||st.draws,times=m.times||1;
  const shards=draws.reduce((n,d)=>n+d.shards,0),dust=draws.reduce((n,d)=>n+d.dust,0),news=draws.filter(d=>d.isNew).length;
+ // En multiple : cartes regroupées (même carte, même finition), les plus rares d'abord.
+ const groups=[];if(st.all){const map=new Map();for(const d of draws){const k=d.id+':'+d.finish;let g=map.get(k);if(!g){g={...d,n:0,anyNew:false};map.set(k,g);groups.push(g);}g.n++;if(d.isNew)g.anyNew=true;}groups.sort((a,b)=>(b.tier*10+b.finish)-(a.tier*10+a.finish));}
  const best=draws.reduce((a,d)=>d.tier>a.tier||(d.tier===a.tier&&d.finish>a.finish)?d:a,draws[0]);
  const startPct=m.before.level>=MAX_LEVEL?100:m.before.xp/m.before.target*100,endPct=progress.level>=MAX_LEVEL?100:progress.xp/levelTarget(progress.level)*100;
- const again=allPacks().find(p=>p.id===st.pack.id),canAgain=again&&canAfford(again.cost)&&progress.level>=again.level;
- setOpening('.o-stage',`<div class="o-summary"><h3>${news} nouvelle${news>1?'s':''} carte${news>1?'s':''} · ${draws.length-news} doublon${draws.length-news>1?'s':''}</h3>
-  <div class="o-sum-grid">${draws.map((d,k)=>{const c=get(d.id);return c?`<div class="o-sum-card t${d.tier} ${d===best&&d.tier>=2?'is-best':''}" style="--k:${k}">${figure(c,data,true,{finish:d.finish})}<span class="${d.isNew?'is-new':''}">${d.isNew?'NOUVELLE':'DOUBLON'}</span></div>`:'';}).join('')}</div>
+ const again=allPacks().find(p=>p.id===st.pack.id),canAgain=again&&canAfford(costTimes(again.cost,times))&&progress.level>=again.level;
+ setOpening('.o-stage',`<div class="o-summary"><h3>${times>1?`${times} boosters · ${draws.length} cartes · `:''}${news} nouvelle${news>1?'s':''} carte${news>1?'s':''} · ${draws.length-news} doublon${draws.length-news>1?'s':''}</h3>
+  <div class="o-sum-grid ${st.all?'is-multi':''}">${st.all?groups.map((g,k)=>{const c=get(g.id);return c?`<div class="o-sum-card t${g.tier} ${g.tier>=3?'is-best':''}" style="--k:${Math.min(k,20)}">${figure(c,data,true,{finish:g.finish})}<span class="${g.anyNew?'is-new':''}">${g.anyNew?'NOUVELLE':'DOUBLON'}${g.n>1?` · ×${g.n}`:''}</span></div>`:'';}).join('')
+   :draws.map((d,k)=>{const c=get(d.id);return c?`<div class="o-sum-card t${d.tier} ${d===best&&d.tier>=2?'is-best':''}" style="--k:${k}">${figure(c,data,true,{finish:d.finish})}<span class="${d.isNew?'is-new':''}">${d.isNew?'NOUVELLE':'DOUBLON'}</span></div>`:'';}).join('')}</div>
   <div class="o-gains"><div><b data-count="${shards}">0</b><span>◆ éclats</span></div><div><b data-count="${dust}">0</b><span>✧ poussière</span></div><div><b data-count="${m.xp}">0</b><span>XP</span></div></div>
   <div class="o-xp"><span>Niv. ${progress.level}</span><div class="o-xpbar"><i style="--from:${m.levels.length?0:startPct}%;--to:${endPct}%"></i></div><span>${progress.level>=MAX_LEVEL?'MAX':`${fmt(progress.xp)} / ${fmt(levelTarget(progress.level))}`}</span></div>
   ${m.levels.length?`<div class="o-levelup"><b>NIVEAU ${progress.level} !</b>${m.levels.filter(l=>l.rank).map(l=>`<span>Nouveau rang : ${esc(l.rank)}</span>`).join('')}<small>${m.levels.map(l=>`+${l.bonus} ◆${l.keys?' +1 🔑':''}`).join(' · ')}</small></div>`:''}
   <p class="o-pity">Garantie Légendaire dans ${Math.max(1,legPity()-progress.pity.leg)} cartes · Mythique dans ${Math.max(1,ODDS.mythPity-progress.pity.myth)}</p></div>`);
  setOpening('.o-banner','');
- setOpening('.o-buttons',`${canAgain?`<button type="button" class="o-btn" data-o="again">Rouvrir · ${costText(again.cost)}</button>`:''}<button type="button" class="o-btn o-primary" data-o="close">Terminer</button>`);
+ setOpening('.o-buttons',`${canAgain?`<button type="button" class="o-btn" data-o="again">Rouvrir${times>1?` ×${times}`:''} · ${costText(costTimes(again.cost,times))}</button>`:''}<button type="button" class="o-btn o-primary" data-o="close">Terminer</button>`);
  setOpening('.o-hint','Échap ou Espace pour fermer');
  OPEN.el.querySelectorAll('[data-count]').forEach(b=>countUp(b,+b.dataset.count));
  if(m.levels.length){sfx('level');setTimeout(()=>{if(!OPEN.el)return;const r=OPEN.el.querySelector('.o-levelup')?.getBoundingClientRect();if(r)burst(r.left+r.width/2,r.top+r.height/2,3,0,true);},500);}
@@ -1871,7 +1880,7 @@ function handleClick(event){
  else if(act==='claim-exp'){claimExpedition(Number(b.dataset.index));}
  else if(act==='claim-all'){claimAllExpeditions();}
  else if(act==='skill'){buySkill(b.dataset.skill);}
- else if(act==='open-pack'){openPack(b.dataset.pack);return;}
+ else if(act==='open-pack'){openPack(b.dataset.pack,Number(b.dataset.times)||1);return;}
  else if(act==='forge-select'){forgeSel=Number(b.dataset.id);}
  else if(act==='forge-open'){forgeSel=Number(b.dataset.id);view='forge';}
  else if(act==='upgrade'){upgradeCard(b.dataset.id);}

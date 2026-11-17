@@ -450,3 +450,9 @@ html.dark .c131-step.t0,.dlfr117-panel .c131-step.t0,.dlfr117-game .c131-step.t0
 .c178-dmg.is-heal{background:rgba(22,163,74,.95)}
 .c180-fuse{display:grid;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(148,163,184,.25)}
 .c180-fuse h4,.c180-fuse p{margin:0}
+
+/* V182 — ouverture multiple */
+.c182-multi{display:flex;gap:6px;margin-top:6px}
+.c182-multi .btn{flex:1;min-width:0;font-size:.74rem;padding:5px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.o-sum-grid.is-multi{max-height:52vh;overflow-y:auto;padding:4px}
+.o-sum-grid.is-multi .o-sum-card{width:clamp(78px,11vw,104px)}
