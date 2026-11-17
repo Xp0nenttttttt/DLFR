@@ -1,0 +1,3 @@
+-- V183 (DÉJÀ APPLIQUÉ, migration dlfr_183_three_owners)
+-- dlfr_add_coowner : jusqu'à 3 propriétaires (avant : exactement 1 propriétaire requis pour en ajouter un 2e).
+--   IF v_owners>=3 THEN RAISE EXCEPTION 'La DLFR a deja le maximum de 3 proprietaires (actuel: %)', v_owners; END IF;
