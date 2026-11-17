@@ -1,0 +1,10 @@
+-- V185 (appliqué) : la garde anti-effacement de dlfr_adventure_sync ne bloque plus
+-- « Tout améliorer » de la Forge. Avant : refus si plus de 50 % des cartes retirées.
+-- Maintenant : refus seulement si la synchro retire TOUTES les copies d'au moins 5 cartes
+-- (la Forge garde toujours au moins 1 copie de chaque carte).
+-- Remplacement fait dans la fonction existante :
+--   if (select count(*) from jsonb_each(p_delta) dd(dk, dv) join public.dlfr_card_inventory ii
+--         on ii.auth_user_id = v_auth and dd.dk ~ '^[0-9]{1,15}$' and ii.card_id = dd.dk::bigint
+--       where jsonb_typeof(dd.dv) = 'number' and dd.dv::text::numeric < 0 and ii.qty + ii.adv_qty > 0
+--         and -(dd.dv::text::numeric) >= ii.qty + ii.adv_qty) >= 5 then
+--     raise exception 'Synchronisation refusée : elle aurait retiré trop de cartes. Recharge la page.';
