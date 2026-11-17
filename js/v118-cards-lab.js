@@ -37,6 +37,7 @@ const rarities=['Commun','Rare','Épique','Légendaire','Mythique','Ultra']; // 
 const FESTIVE='Festive',SECRET='Secrète',SECRET_RATE=1/1000000,ALL_RARITIES=[...rarities,SECRET,FESTIVE]; // V155 : cartes secrètes (1 sur 1 000 000) // V139 : rareté spéciale du calendrier de l'Avent
 const MAX_IMPORT=250;
 let gate=false, view='official', filter='all', query='', selected=2, forgeSel=0, goalsTab='quests';
+const FORGE={q:'',f:'all',r:'all',sort:'ready',max:5}; // V184 : navigation de la Forge
 let DB=null;
 // V129 — mode Aventure : ouvert à tous, sauvegardé par compte. Catalogue + outils de test : propriétaires et supermodos.
 let editor=false,userId=null;
@@ -468,8 +469,23 @@ function simulate(packId,times=100){
 
 // ============================================================ Forge
 function starCost(card,v){const s=v.stars||0;if(s>=MAX_STARS)return null;const t=tierOf(card);return {copies:STAR_COPIES[s],dust:Math.round(STAR_DUST[s]*STAR_FACTOR[t]*forgeDiscount()*(s>=5?1-.05*rank('sa1'):1))};}
-function upgradeCard(id){const c=get(id),v=owned.get(Number(id));if(!c||!v)return;const k=starCost(c,v);if(!k||v.count-1<k.copies||progress.dust<k.dust)return;
- v.count-=k.copies;progress.dust-=k.dust;v.stars=(v.stars||0)+1;S().upgraded++;emit('forge');log(`${c.name} passe à ★${v.stars}.`);toast('Forge',`${c.name} atteint ★${v.stars}`,'forge');}
+function upgradeCard(id,silent){const c=get(id),v=owned.get(Number(id));if(!c||!v)return false;const k=starCost(c,v);if(!k||v.count-1<k.copies||progress.dust<k.dust)return false;
+ v.count-=k.copies;progress.dust-=k.dust;v.stars=(v.stars||0)+1;S().upgraded++;emit('forge');if(!silent){log(`${c.name} passe à ★${v.stars}.`);toast('Forge',`${c.name} atteint ★${v.stars}`,'forge');}return true;}
+// V184 — « Tout améliorer » : utilise la poussière au mieux en prenant toujours l'amélioration la moins chère possible
+// (le plus d'étoiles possible pour la poussière disponible). Option : ne pas toucher aux cartes déjà ★5 ou plus (Éveil coûteux).
+function upgradePlan(maxStars){
+ const sim=new Map(),steps=[];let dust=progress.dust;
+ for(const c of CARDS){const v=owned.get(c.id);if(v&&v.count>1&&(v.stars||0)<maxStars)sim.set(c.id,{c,count:v.count,stars:v.stars||0,prestige:v.prestige||0});}
+ for(let guard=0;guard<20000;guard++){let best=null,bk=null;
+  for(const x of sim.values()){if(x.stars>=maxStars)continue;const k=starCost(x.c,{stars:x.stars,prestige:x.prestige});if(!k||x.count-1<k.copies||dust<k.dust)continue;if(!bk||k.dust<bk.dust){best=x;bk=k;}}
+  if(!best)break;best.count-=bk.copies;best.stars++;dust-=bk.dust;steps.push({id:best.c.id,dust:bk.dust});}
+ const cards=new Set(steps.map(x=>x.id));return {steps,cards:cards.size,dust:progress.dust-dust};
+}
+function upgradeAll(maxStars){const plan=upgradePlan(maxStars);
+ if(!plan.steps.length){toast('Forge',maxStars<=5?'Aucune carte ne peut monter jusqu’à ★5 avec tes doublons et ta poussière.':'Aucune amélioration possible avec tes doublons et ta poussière.','info');return;}
+ if(!confirm(`Améliorer automatiquement : ${plan.steps.length} étoile${plan.steps.length>1?'s':''} sur ${plan.cards} carte${plan.cards>1?'s':''}, pour ${fmt(plan.dust)} ✧ (il te restera ${fmt(progress.dust-plan.dust)} ✧).${maxStars<=5?' Les cartes ★5 et plus ne sont pas touchées.':''} Continuer ?`))return;
+ let n=0;for(const st of plan.steps)if(upgradeCard(st.id,true))n++;
+ log(`Forge automatique : ${n} étoile${n>1?'s':''} ajoutée${n>1?'s':''} sur ${plan.cards} carte${plan.cards>1?'s':''}.`);toast('Forge',`${n} étoile${n>1?'s':''} ajoutée${n>1?'s':''} sur ${plan.cards} carte${plan.cards>1?'s':''}`,'forge');SAVE.urgent=true;}
 // V178 — Prestige de carte : une carte ★10 repart à ★0 et gagne un palier de Prestige (10 paliers puis MAX).
 function cardPrestigeCost(v){return Math.round(8000*((v.prestige||0)+1)*forgeDiscount());}
 function prestigeCard(id){const c=get(id),v=owned.get(Number(id));if(!c||!v||(v.stars||0)<MAX_STARS||(v.prestige||0)>=CARD_MAX_PRESTIGE)return;
@@ -945,17 +961,36 @@ function talentsView(){
  </section>`;
 }
 function forgeView(data){
- const list=CARDS.filter(c=>has(c.id)).sort((a,b)=>tierOf(b)-tierOf(a)||a.id-b.id);
- if(!list.find(c=>c.id===forgeSel))forgeSel=list[0]?.id||0;
+ const all=CARDS.filter(c=>has(c.id));
+ const info=c=>{const o=owned.get(c.id),sc=starCost(c,o),ready=!!(sc&&o.count-1>=sc.copies&&progress.dust>=sc.dust),fu=fuseInfo(c,o);
+  return {c,o,sc,ready,copiesOk:!!(sc&&o.count-1>=sc.copies),pres:!sc&&(o.prestige||0)<CARD_MAX_PRESTIGE,max:!sc&&(o.prestige||0)>=CARD_MAX_PRESTIGE,fuse:!!(fu&&o.count-1>=fu.copies&&progress.dust>=fu.dust)};};
+ const q=FORGE.q.trim().toLowerCase(),rows=all.map(info);
+ const counts={all:rows.length,ready:rows.filter(x=>x.ready).length,copies:rows.filter(x=>x.copiesOk&&!x.ready).length,pres:rows.filter(x=>x.pres).length,fuse:rows.filter(x=>x.fuse).length,max:rows.filter(x=>x.max).length};
+ const shown=rows.filter(x=>(!q||x.c.name.toLowerCase().includes(q))&&(FORGE.r==='all'||String(tierOf(x.c))===FORGE.r)
+   &&(FORGE.f==='all'||(FORGE.f==='ready'&&x.ready)||(FORGE.f==='copies'&&x.copiesOk&&!x.ready)||(FORGE.f==='pres'&&x.pres)||(FORGE.f==='fuse'&&x.fuse)||(FORGE.f==='max'&&x.max)))
+  .sort((a,b)=>FORGE.sort==='name'?a.c.name.localeCompare(b.c.name,'fr'):FORGE.sort==='stars'?((b.o.prestige||0)*11+(b.o.stars||0))-((a.o.prestige||0)*11+(a.o.stars||0))||tierOf(b.c)-tierOf(a.c)
+   :FORGE.sort==='dups'?(b.o.count-a.o.count)||tierOf(b.c)-tierOf(a.c):FORGE.sort==='rarity'?tierOf(b.c)-tierOf(a.c)||a.c.id-b.c.id
+   :(b.ready-a.ready)||(b.copiesOk-a.copiesOk)||(b.pres-a.pres)||tierOf(b.c)-tierOf(a.c)||a.c.id-b.c.id);
+ const list=shown.map(x=>x.c);
+ if(!all.find(c=>c.id===forgeSel))forgeSel=(list[0]||all[0])?.id||0;
+ const plan5=upgradePlan(5),planAll=upgradePlan(MAX_STARS);
+ const toolbar=`<div class="c184-auto"><div><b>⚡ Amélioration automatique</b><span>Ajoute le plus d’étoiles possible avec tes doublons et ta poussière (${fmt(progress.dust)} ✧), en commençant par les améliorations les moins chères.</span></div>
+  <div class="c184-auto-btns"><button class="btn" type="button" data-v112-act="forge-all" data-max="5" ${plan5.steps.length?'':'disabled'}>Jusqu’à ★5 · ${plan5.steps.length} étoile${plan5.steps.length>1?'s':''} · ${fmt(plan5.dust)} ✧</button>
+  <button class="btn subtle" type="button" data-v112-act="forge-all" data-max="${MAX_STARS}" ${planAll.steps.length?'':'disabled'}>Tout, Éveil compris · ${planAll.steps.length} étoile${planAll.steps.length>1?'s':''} · ${fmt(planAll.dust)} ✧</button></div></div>
+  <div class="c184-tools"><input type="search" data-v184-forge="q" value="${esc(FORGE.q)}" placeholder="Rechercher une carte…" aria-label="Rechercher une carte">
+   <select data-v184-forge="f" aria-label="Filtrer">${[['all','Toutes'],['ready','Prêtes à améliorer'],['copies','Doublons OK, poussière manquante'],['pres','Prestige possible (★10)'],['fuse','Fusion possible'],['max','Au maximum']].map(([k,l])=>`<option value="${k}" ${FORGE.f===k?'selected':''}>${l} (${counts[k]})</option>`).join('')}</select>
+   <select data-v184-forge="r" aria-label="Rareté"><option value="all">Toutes les raretés</option>${rarities.map((r,i)=>`<option value="${i}" ${FORGE.r===String(i)?'selected':''}>${esc(r)}</option>`).join('')}</select>
+   <select data-v184-forge="sort" aria-label="Trier">${[['ready','Prêtes d’abord'],['rarity','Rareté'],['stars','Étoiles'],['dups','Doublons'],['name','Nom']].map(([k,l])=>`<option value="${k}" ${FORGE.sort===k?'selected':''}>Tri : ${l}</option>`).join('')}</select></div>
+  <p class="c184-count">${list.length} carte${list.length>1?'s':''} affichée${list.length>1?'s':''} sur ${all.length}</p>`;
  const cur=get(forgeSel),v=cur&&owned.get(cur.id),k=cur&&v?starCost(cur,v):null;
  return `<section class="dlfr117-panel"><div class="dlfr117-head"><div><small>FORGE</small><h2>Étoiles</h2><p>Consomme des doublons et de la poussière ✧ pour faire monter une carte jusqu’à ★5, puis jusqu’à ★10 avec l’<b>Éveil</b> (★6 à ★10, très coûteux). Une carte ★10 peut ensuite passer un <b>Prestige de carte</b> (10 paliers puis MAX). Chaque étoile augmente ta puissance de collection, qui donne des bonus permanents.</p></div></div>
-  ${starTrack(cur,v)}${finishPanel()}${powerTrack()}
-  ${list.length?`<div class="dlfr117-forge"><div class="dlfr117-forge-list">${list.map(c=>{const o=owned.get(c.id),sc=starCost(c,o),ready=sc&&o.count-1>=sc.copies&&progress.dust>=sc.dust;return `<button type="button" class="dlfr117-forge-item ${c.id===forgeSel?'is-current':''} ${ready?'is-ready':''}" data-v112-act="forge-select" data-id="${c.id}"><span class="t${tierOf(c)}">${esc(c.name)}</span><small>${'★'.repeat(o.stars||0)}${'☆'.repeat(Math.max(0,5-(o.stars||0)))} · ${sc?`${Math.min(o.count-1,sc.copies)}/${sc.copies} doublon${sc.copies>1?'s':''}`:(o.prestige||0)>=CARD_MAX_PRESTIGE?'MAX':'✺ Prestige possible'}${o.prestige?` · ✺${cardPrestigeName(o.prestige)}`:''}</small>${sc?`<i class="dlfr143-mini"><b style="width:${Math.min(100,(o.count-1)/sc.copies*100)}%"></b></i>`:''}${ready?'<em class="dlfr143-ready">Prêt !</em>':''}</button>`;}).join('')}</div>
+  ${all.length?toolbar:''}
+  ${list.length?`<div class="dlfr117-forge"><div class="dlfr117-forge-list">${list.map(c=>{const o=owned.get(c.id),sc=starCost(c,o),ready=sc&&o.count-1>=sc.copies&&progress.dust>=sc.dust;return `<button type="button" class="dlfr117-forge-item ${c.id===forgeSel?'is-current':''} ${ready?'is-ready':''}" data-v112-act="forge-select" data-id="${c.id}"><span class="t${tierOf(c)}">${esc(c.name)}</span><small>★${o.stars||0}/${MAX_STARS} · ×${o.count} · ${sc?`${Math.min(o.count-1,sc.copies)}/${sc.copies} doublon${sc.copies>1?'s':''}`:(o.prestige||0)>=CARD_MAX_PRESTIGE?'MAX':'✺ Prestige possible'}${o.prestige?` · ✺${cardPrestigeName(o.prestige)}`:''}</small>${sc?`<i class="dlfr143-mini"><b style="width:${Math.min(100,(o.count-1)/sc.copies*100)}%"></b></i>`:''}${ready?'<em class="dlfr143-ready">Prêt !</em>':''}</button>`;}).join('')}</div>
    <div class="dlfr117-forge-main">${cur?`<div class="dlfr117-forge-card">${figure(cur,data)}</div><div class="dlfr117-forge-info"><h3>${esc(cur.name)}</h3><p>${esc(rarity(cur))} · ${FIN_NAME[v.finish||0]} · ★${v.stars||0}/${MAX_STARS}${v.prestige?` · ✺ Prestige ${cardPrestigeName(v.prestige)}`:''}</p><p class="dlfr162-mline">Maîtrise : ${masteryRank(cur.id)?`rang ${['','I','II','III','IV','V'][masteryRank(cur.id)]} (${MASTERY_NAME[masteryRank(cur.id)]})`:'aucune'} · ${fmt(masteryXp(cur.id))}${masteryRank(cur.id)<5?` / ${fmt(MASTERY[masteryRank(cur.id)])}`:''} XP <small>(gagnée en partant en chapitre avec cette carte)</small></p>
     ${k?`<ul class="dlfr117-reqs"><li class="${v.count-1>=k.copies?'ok':''}">Doublons : ${v.count-1} / ${k.copies}</li><li class="${progress.dust>=k.dust?'ok':''}">Poussière : ${fmt(progress.dust)} / ${fmt(k.dust)} ✧</li></ul><button class="btn" type="button" data-v112-act="upgrade" data-id="${cur.id}" ${v.count-1>=k.copies&&progress.dust>=k.dust?'':'disabled'}>Forger ★${(v.stars||0)+1}</button>`:(v.prestige||0)>=CARD_MAX_PRESTIGE?'<p class="dlfr117-done">✺ Prestige MAX · ★10 : cette carte est au maximum</p>':`<div class="c178-cp"><p class="dlfr117-done">★10 atteint : Prestige de carte disponible</p><p>La carte repart à ★0 et gagne le <b>Prestige ${cardPrestigeName((v.prestige||0)+1)}</b> : elle devient plus forte qu’une ★10 et le reste pour toujours. Tes doublons en stock sont gardés.</p><ul class="dlfr117-reqs"><li class="${progress.dust>=cardPrestigeCost(v)?'ok':''}">Poussière : ${fmt(progress.dust)} / ${fmt(cardPrestigeCost(v))} ✧</li></ul><button class="btn" type="button" data-v112-act="card-prestige" data-id="${cur.id}" ${progress.dust>=cardPrestigeCost(v)?'':'disabled'}>✺ Passer Prestige ${cardPrestigeName((v.prestige||0)+1)}</button></div>`}${fuseBlock(cur,v)}</div>`:''}</div></div>`:'<p class="dlfr117-empty">Ouvre des boosters pour remplir la Forge.</p>'}
   <div class="dlfr117-sub"><h3>Doublons des cartes au maximum</h3><p class="dlfr117-muted">Une carte ★10 au Prestige MAX ne peut plus monter : ses doublons peuvent être recyclés en poussière ✧.</p>
    <button class="btn subtle" type="button" data-v112-act="recycle">Recycler les doublons des cartes au maximum</button></div>
- </section>`;
+ ${starTrack(cur,v)}${finishPanel()}${powerTrack()}</section>`;
 }
 function goalsView(){
  const tabs=[['quests','Missions'],['achievements',`Succès ${Object.keys(progress.achievements).length}/${ACHIEVEMENTS.length}`],['sets',`Séries ${Object.keys(progress.sets).length}/${SETS.length}`],['contracts','Contrats'],['renaissance','✺ Prestige']];
@@ -1884,6 +1919,7 @@ function handleClick(event){
  else if(act==='forge-select'){forgeSel=Number(b.dataset.id);}
  else if(act==='forge-open'){forgeSel=Number(b.dataset.id);view='forge';}
  else if(act==='upgrade'){upgradeCard(b.dataset.id);}
+ else if(act==='forge-all'){upgradeAll(Number(b.dataset.max)||5);}
  else if(act==='recycle'){const n=recycleSpare();if(!n)toast('Forge','Aucun doublon à recycler (seulement les cartes ★10).','info');}
  else if(act==='goals-tab'){goalsTab=b.dataset.tab;}
  else if(act==='ch-team'){const id=Number(b.dataset.id);if(chTeam.includes(id))chTeam=chTeam.filter(x=>x!==id);else if(chTeam.length<3)chTeam.push(id);}
@@ -1931,6 +1967,7 @@ function handleChange(event){
  if(!gate||!document.getElementById('dlfr112Lab'))return;
  const e=event.target;
  if(e.dataset?.v180Equip!==undefined){arEquip(Number(e.dataset.v180Equip),e.value);repaint();return;}
+ if(e.dataset?.v184Forge&&e.dataset.v184Forge!=='q'){FORGE[e.dataset.v184Forge]=e.value;repaint();return;}
  if(e.dataset?.v158Sel!==undefined){if(e.checked)SUGG.sel.add(e.dataset.v158Sel);else SUGG.sel.delete(e.dataset.v158Sel);repaint();return;}
  if(e.dataset?.v158Rar!==undefined){SUGG.rar[e.dataset.v158Rar]=e.value;return;}
  if(e.dataset?.v158==='col'){SUGG.col=Number(e.value);return;}
@@ -1940,6 +1977,7 @@ function handleChange(event){
 function handleInput(event){
  if(!gate||!document.getElementById('dlfr112Lab'))return;
  const e=event.target;
+ if(e.dataset?.v184Forge==='q'){FORGE.q=e.value;clearTimeout(FORGE.t);FORGE.t=setTimeout(()=>{repaint();const i=document.querySelector('[data-v184-forge="q"]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length);}},200);return;}
  if(e.dataset?.v158==='q'){SUGG.q=e.value;clearTimeout(SUGG.t);SUGG.t=setTimeout(()=>{repaint();const i=document.querySelector('[data-v158="q"]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length);}},250);return;}
  if(e.dataset?.v118Card&&catalog.draft){const k=e.dataset.v118Card;catalog.draft[k]=e.type==='checkbox'?e.checked:e.value;if(k==='imageUrl'&&e.value){catalog.pendingFile=null;catalog.draft.preview='';}if(k==='name')dupHint();refreshCatPreview();return;}
  if(e.dataset?.v118Col&&catalog.colDraft){const k=e.dataset.v118Col,cd=catalog.colDraft;cd[k]=e.type==='checkbox'?e.checked:e.value;if(k==='slug')cd.slugTouched=true;if(k==='name'&&!cd.slugTouched){cd.slug=slugify(e.value);const s=document.querySelector('[data-v118-col="slug"]');if(s)s.value=cd.slug;}return;}
