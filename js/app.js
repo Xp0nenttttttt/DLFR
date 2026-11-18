@@ -220,11 +220,14 @@ function productionProofMedia(d){
 }
 function staffNamesHTML(team){
  if(state.data?.staff_directory_error)return '<p class="small muted">L’équipe de modération ne peut pas être affichée pour le moment.</p>';
- const labels={owner:'propriétaire',editor:'supermodo (ancien rôle)',supermoderator:'supermodo',moderator:'modo',nlw:'modo NLW'};
- const members=(state.data?.staff_directory||[]).filter(m=>m.team===team).sort((a,b)=>Number(b.role==='owner')-Number(a.role==='owner')||sortPlayerName(a).localeCompare(sortPlayerName(b),'fr'));
+ const labels=STAFF_ROLE_NAMES;
+ const members=(state.data?.staff_directory||[]).filter(m=>m.team===team).sort((a,b)=>(STAFF_ORDER(a.role)-STAFF_ORDER(b.role))||sortPlayerName(a).localeCompare(sortPlayerName(b),'fr'));
  if(!members.length)return '<p class="small muted">Aucun membre renseigné pour le moment.</p>';
  return members.map(m=>`<div class="staff-name">${m.country_code?flag(m.country_code)+' ':''}${esc(m.display_name||'Modérateur')}${labels[m.role]?` <span class="muted">· ${esc(labels[m.role])}</span>`:''}</div>`).join('');
 }
+// V186 — noms des rôles validés par le staff (Helper, List helper, Modérateur, List mod, Admin, Owner).
+const STAFF_ORDER=r=>['owner','admin','supermoderator','editor','moderateur','moderator','nlw'].indexOf(r)>>>0;
+const STAFF_ROLE_NAMES={owner:'Owner',admin:'Admin',supermoderator:'List mod',editor:'List mod',moderateur:'Modérateur',moderator:'List helper',nlw:'Helper',former:'Ancien membre'};
 const flag = code => GEO?.countryImage(code) || '';
 const regionFor = p=> p?.country_code==='FR' ? (profileByKey().get(p.player_key)?.region_code||'') : '';
 const regionFlag = p=>GEO?.regionImage(regionFor(p))||'';
@@ -257,9 +260,11 @@ async function loadStaffCandidates(){
  state.teamCandidatesReady=false;
  // Deux réponses légères en parallèle : comptes candidats + compteurs agrégés.
  // L'échec d'un compteur ne doit pas bloquer l'attribution des rôles.
- const [candidates,counts]=await Promise.all([
-  db.rpc('dlfr_staff_candidates'),db.rpc('dlfr_team_level_counts')
+ const [candidates,counts,titles]=await Promise.all([
+  db.rpc('dlfr_staff_candidates'),db.rpc('dlfr_team_level_counts'),db.rpc('dlfr_staff_titles')
  ]);
+ state.teamTitles=Object.create(null);
+ if(!titles.error&&Array.isArray(titles.data))for(const t of titles.data)if(t?.auth_user_id)state.teamTitles[t.auth_user_id]=t.title||'';
  state.teamCandidatesError=candidates.error?.message||'';
  state.teamCandidates=candidates.error?[]:(Array.isArray(candidates.data)?candidates.data:[]);
  state.teamCountsError=counts.error?.message||'';
@@ -304,12 +309,12 @@ function moderationLeaderboardPage(){
  const approved=played.reduce((x,r)=>x+Number(r.accepted||0),0);
  const rejected=played.reduce((x,r)=>x+Number(r.rejected||0),0);
  const max=Math.max(1,...played.map(r=>Number(r.total)||0));
- const roleName={owner:'Propriétaire',supermoderator:'Supermodo',editor:'Supermodo',moderator:'Modo',nlw:'Modo NLW',former:'Ancien membre'};
+ const roleName=STAFF_ROLE_NAMES;
  const periodButtons=[[0,'Depuis toujours'],[30,'30 jours'],[7,'7 jours']].map(([days,label])=>`<button type="button" data-mod-leaderboard-period="${days}" class="btn small ${state.modLeaderboardPeriod===days?'':'subtle'}" aria-pressed="${state.modLeaderboardPeriod===days}">${label}</button>`).join('');
  const displayName=r=>r.player_key?`<a data-nav class="link" href="${url('player',{player:r.player_key})}">${esc(r.display_name||'Modérateur')}</a>`:esc(r.display_name||'Modérateur');
  const medal=['🥇','🥈','🥉'];
- const podium=[1,0,2].filter(i=>played[i]).map(i=>{const r=played[i];return `<div class="dlfr-v100-podium-card dlfr-v100-place-${i+1} ${r.is_self?'is-self':''}"><div class="dlfr-v100-medal" aria-hidden="true">${medal[i]}</div><div class="dlfr-v100-podium-name">${displayName(r)}</div><span class="dlfr-v100-podium-role">${esc(roleName[r.moderation_role]||'Modo')}</span><strong>${Number(r.total)||0}</strong><span class="small muted">soumissions traitées</span></div>`;}).join('');
- const cards=rows.map((r,i)=>{const total=Number(r.total)||0,accept=Number(r.accepted)||0,deny=Number(r.rejected)||0;return `<div class="dlfr-v100-rank-row ${r.is_self?'is-self':''}"><div class="dlfr-v100-rank-position">${total>0&&i<3?medal[i]:`#${i+1}`}</div><div class="dlfr-v100-rank-body"><div class="dlfr-v100-rank-name">${r.country_code?flag(r.country_code)+' ':''}${displayName(r)}${r.is_self?'<span class="dlfr-v100-you">Toi</span>':''}<small>${esc(roleName[r.moderation_role]||'Modo')}</small></div><div class="dlfr-v100-progress" role="img" aria-label="${total} soumissions traitées"><span style="width:${total?Math.max(1,Math.round(total/max*100)):0}%"></span></div></div><div class="dlfr-v100-rank-split"><span><b>${accept}</b> acceptée(s)</span><span><b>${deny}</b> refusée(s)</span></div><div class="dlfr-v100-total"><strong>${total}</strong><small>total</small></div></div>`;}).join('');
+ const podium=[1,0,2].filter(i=>played[i]).map(i=>{const r=played[i];return `<div class="dlfr-v100-podium-card dlfr-v100-place-${i+1} ${r.is_self?'is-self':''}"><div class="dlfr-v100-medal" aria-hidden="true">${medal[i]}</div><div class="dlfr-v100-podium-name">${displayName(r)}</div><span class="dlfr-v100-podium-role">${esc(roleName[r.moderation_role]||'List helper')}</span><strong>${Number(r.total)||0}</strong><span class="small muted">soumissions traitées</span></div>`;}).join('');
+ const cards=rows.map((r,i)=>{const total=Number(r.total)||0,accept=Number(r.accepted)||0,deny=Number(r.rejected)||0;return `<div class="dlfr-v100-rank-row ${r.is_self?'is-self':''}"><div class="dlfr-v100-rank-position">${total>0&&i<3?medal[i]:`#${i+1}`}</div><div class="dlfr-v100-rank-body"><div class="dlfr-v100-rank-name">${r.country_code?flag(r.country_code)+' ':''}${displayName(r)}${r.is_self?'<span class="dlfr-v100-you">Toi</span>':''}<small>${esc(roleName[r.moderation_role]||'List helper')}</small></div><div class="dlfr-v100-progress" role="img" aria-label="${total} soumissions traitées"><span style="width:${total?Math.max(1,Math.round(total/max*100)):0}%"></span></div></div><div class="dlfr-v100-rank-split"><span><b>${accept}</b> acceptée(s)</span><span><b>${deny}</b> refusée(s)</span></div><div class="dlfr-v100-total"><strong>${total}</strong><small>total</small></div></div>`;}).join('');
  return `<section class="dlfr-v100-board"><div class="dlfr-v100-head"><div><span class="kicker">ÉQUIPE DLFR · SOUMISSIONS</span><h2>Classement des modérateurs</h2><p class="muted small">Chaque soumission de niveau acceptée ou refusée compte une fois, au nom du compte ayant pris la décision. Les demandes en attente ne comptent pas.</p></div><button type="button" class="btn subtle small" data-mod-leaderboard-refresh ${state.modLeaderboardLoading?'disabled':''}>↻ Actualiser</button></div><div class="dlfr-v100-controls">${periodButtons}</div>${state.modLeaderboardLoading?'<p class="notice" aria-live="polite">Chargement du classement…</p>':state.modLeaderboardError?`<div class="notice warning">Classement indisponible. ${esc(state.modLeaderboardError)}</div>`:`<div class="dlfr-v100-summary"><div><strong>${overall}</strong><span>Soumissions traitées</span></div><div><strong>${approved}</strong><span>Acceptées</span></div><div><strong>${rejected}</strong><span>Refusées</span></div><div><strong>${played.length}</strong><span>Modos ayant traité une demande</span></div></div>${podium?`<div class="dlfr-v100-podium">${podium}</div>`:''}<div class="dlfr-v100-rank-list">${cards||'<p class="muted">Aucune soumission modérée sur cette période.</p>'}</div><p class="small muted">${state.modLeaderboardUpdatedAt?'Mis à jour à '+esc(state.modLeaderboardUpdatedAt)+' · ':''}Les anciens membres ayant un historique apparaissent également. Les actions anciennes non attribuées à un modérateur ne sont pas comptabilisées.</p>`}</section>`;
 }
 // V105 — la base applique tous les contrôles d'autorisation et de sécurité.
@@ -405,7 +410,7 @@ function approvedReversalPanel(){
 }
 function staffTeamPanel(){
  if(state.staffRole!=='owner'||ownerPreviewActive())return '';
- const roles={owner:'Propriétaire',supermoderator:'Supermodo',editor:'Supermodo (ancien)',moderator:'Modo',nlw:'Modo NLW'};
+ const roles=STAFF_ROLE_NAMES;const titleOf=uid=>(state.teamTitles||{})[uid]||'';const shownRole=x=>x.current_role==='supermoderator'&&titleOf(x.auth_user_id)==='admin'?'admin':x.current_role==='moderator'&&titleOf(x.auth_user_id)==='moderateur'?'moderateur':x.current_role;
  const members=state.teamCandidates.filter(x=>x.current_role);
  const owners=members.filter(x=>x.current_role==='owner');
  const levelCounts=state.teamLevelCounts||{};
@@ -415,15 +420,16 @@ function staffTeamPanel(){
   const x=levelCounts[uid];
   return x?`${x.created} création(s) · ${x.edited} modification(s)`:'Aucune action de niveau enregistrée';
  };
- const label=x=>`${x.display_name||'Compte DLFR'} — ${x.auth_user_id.slice(0,8)}…${x.current_role?' · '+(roles[x.current_role]||x.current_role):''}`;
+ const label=x=>`${x.display_name||'Compte DLFR'} — ${x.auth_user_id.slice(0,8)}…${x.current_role?' · '+(roles[shownRole(x)]||x.current_role):''}`;
  const options='<option value="">Sélectionner un compte connecté</option>'+state.teamCandidates.map(x=>`<option value="${esc(x.auth_user_id)}">${esc(label(x))}</option>`).join('');
  return `<section class="admin-card dlfr-team-panel" data-admin-section="team"><div class="dlfr-team-heading"><div><span class="kicker">GESTION PROPRIÉTAIRE</span><h3>Équipe de modération</h3><p class="muted">Attribue les accès à un compte déjà inscrit sur la DLFR. Seuls les propriétaires peuvent modifier ces droits.</p></div><button class="btn subtle small" type="button" data-refresh-team>↻ Actualiser</button></div>
  ${state.teamCandidatesError?`<div class="notice warning">Impossible de charger les comptes autorisés. Vérifie que la migration 49 est installée. <small>${esc(state.teamCandidatesError)}</small></div>`:''}
  ${state.teamCountsError?`<div class="notice warning">Les compteurs de niveaux sont indisponibles, mais tu peux toujours gérer les rôles. <small>${esc(state.teamCountsError)}</small></div>`:''}
  ${!state.teamCandidatesReady?'<p class="muted">Chargement des comptes…</p>':''}
- <div class="dlfr-team-list"><h4>Équipe actuelle</h4><p class="small muted">Niveaux gérés = fiches distinctes créées ou modifiées via les outils de modération journalisés. Les anciennes actions non enregistrées ne peuvent pas être comptées rétroactivement.</p>${members.map(x=>`<div class="dlfr-team-member"><span><b>${esc(x.display_name||'Compte DLFR')}</b><small>${esc(x.auth_user_id.slice(0,8))}…</small><small>${esc(managedDetails(x.auth_user_id))}</small></span><span class="dlfr-team-member-meta"><span class="tag ${x.current_role==='owner'?'dlfr-team-owner':''}">${esc(roles[x.current_role]||x.current_role)}</span><strong class="dlfr-managed-count">${managedCount(x.auth_user_id)} <small>niveau(x)</small></strong></span></div>`).join('')||'<p class="muted">Aucun compte retourné.</p>'}</div>
- <div class="dlfr-team-forms"><form data-form="prodManageStaff" class="dlfr-team-form"><h4>Attribuer ou retirer un rôle</h4><label class="field">Compte DLFR<select name="auth_user_id" required>${options}</select></label><label class="field">Rôle<select name="role"><option value="nlw">Modo NLW</option><option value="moderator">Modo</option><option value="supermoderator">Supermodo</option></select></label><label class="field">Action<select name="enabled"><option value="yes">Attribuer</option><option value="no">Retirer ce rôle</option></select></label><button type="submit" class="btn" ${!state.teamCandidatesReady||!!state.teamCandidatesError?'disabled':''}>Enregistrer le rôle</button><p class="small muted">Les propriétaires ne peuvent pas être rétrogradés depuis ce formulaire.</p></form>
- <form data-form="addCoowner" class="dlfr-team-form dlfr-team-form-owner"><h4>Ajouter un propriétaire (3 maximum)</h4><p class="small muted">Accès total, y compris aux permissions et aux paramètres sensibles. Réserve cette fonction à une personne de confiance.</p><label class="field">Compte à promouvoir<select name="auth_user_id" required>${options}</select></label><label class="field">Confirmation : écrire COPROPRIETAIRE<input name="confirmation" autocomplete="off" placeholder="COPROPRIETAIRE" required></label><button type="submit" class="btn danger" ${!state.teamCandidatesReady||!!state.teamCandidatesError||owners.length>=3?'disabled':''}>Nommer copropriétaire</button><p class="small muted">${owners.length>=3?'Trois propriétaires sont déjà enregistrés (le maximum).':'Cette action est irréversible depuis le site ; aucun propriétaire ne peut être retiré depuis ce panneau.'}</p></form></div></section>`;
+ <div class="dlfr-team-list"><h4>Équipe actuelle</h4><p class="small muted">Niveaux gérés = fiches distinctes créées ou modifiées via les outils de modération journalisés. Les anciennes actions non enregistrées ne peuvent pas être comptées rétroactivement.</p>${members.map(x=>`<div class="dlfr-team-member"><span><b>${esc(x.display_name||'Compte DLFR')}</b><small>${esc(x.auth_user_id.slice(0,8))}…</small><small>${esc(managedDetails(x.auth_user_id))}</small></span><span class="dlfr-team-member-meta"><span class="tag ${x.current_role==='owner'?'dlfr-team-owner':''}">${esc(roles[shownRole(x)]||x.current_role)}</span><strong class="dlfr-managed-count">${managedCount(x.auth_user_id)} <small>niveau(x)</small></strong></span></div>`).join('')||'<p class="muted">Aucun compte retourné.</p>'}</div>
+ <div class="dlfr-team-forms"><form data-form="prodManageStaff" class="dlfr-team-form"><h4>Attribuer ou retirer un rôle</h4><label class="field">Compte DLFR<select name="auth_user_id" required>${options}</select></label><label class="field">Rôle<select name="role"><option value="nlw">Helper · NLW seulement</option><option value="moderator">List helper · Top 150 + NLW</option><option value="supermoderator">List mod · administration du site</option></select></label><label class="field">Action<select name="enabled"><option value="yes">Attribuer</option><option value="no">Retirer ce rôle</option></select></label><button type="submit" class="btn" ${!state.teamCandidatesReady||!!state.teamCandidatesError?'disabled':''}>Enregistrer le rôle</button><p class="small muted">Les owners ne peuvent pas être rétrogradés depuis ce formulaire.</p></form>
+ <form data-form="staffTitle" class="dlfr-team-form"><h4>Titre affiché</h4><p class="small muted">Change seulement le nom affiché, pas les permissions. « Admin » = List mod qui est aussi admin du serveur. « Modérateur » = modération du serveur Discord, avec les permissions de List helper.</p><label class="field">Compte DLFR<select name="auth_user_id" required>${options}</select></label><label class="field">Titre<select name="title"><option value="">Titre du rôle (par défaut)</option><option value="admin">Admin (rôle List mod)</option><option value="moderateur">Modérateur (rôle List helper)</option></select></label><button type="submit" class="btn" ${!state.teamCandidatesReady||!!state.teamCandidatesError?'disabled':''}>Enregistrer le titre</button></form>
+ <form data-form="addCoowner" class="dlfr-team-form dlfr-team-form-owner"><h4>Ajouter un owner (3 maximum)</h4><p class="small muted">Accès total, y compris aux permissions et aux paramètres sensibles. Réserve cette fonction à une personne de confiance.</p><label class="field">Compte à promouvoir<select name="auth_user_id" required>${options}</select></label><label class="field">Confirmation : écrire COPROPRIETAIRE<input name="confirmation" autocomplete="off" placeholder="COPROPRIETAIRE" required></label><button type="submit" class="btn danger" ${!state.teamCandidatesReady||!!state.teamCandidatesError||owners.length>=3?'disabled':''}>Nommer owner</button><p class="small muted">${owners.length>=3?'Trois owners sont déjà enregistrés (le maximum).':'Cette action est irréversible depuis le site ; aucun owner ne peut être retiré depuis ce panneau.'}</p></form></div></section>`;
 }
 // V83 — insertion directe des UNRATED aux rangs simulés, dans une seule liste.
 // Ne touche jamais aux positions SQL officielles.
@@ -2487,7 +2493,7 @@ function adminPage(){if(LIVE&&!state.staff){
  if(LIVE&&(['nlw','moderator'].includes(state.staffRole)||ownerPreviewActive()&&['nlw','moderator'].includes(state.ownerPreview))){
    const role=ownerPreviewActive()?state.ownerPreview:state.staffRole;
    const view=ownerPreviewActive()?{...state,staffRole:role,scopedQueue:state.ownerPreviewQueue.filter(x=>role==='moderator'||Number(x.position)>150),scopedQueueError:state.ownerPreviewError}:state;
-   return `${templateNotice()}<div class="paper"><div class="admin-mode">Modération · ${role==='nlw'?'NLW':'Top 150 + NLW'}</div><div class="row-between"><h1>Modération</h1><button class="btn subtle small" data-action="logout">Déconnexion</button></div><div class="dlfr-v60-tabs"><button type="button" data-admin-tab="requests" class="${state.adminTab!=='levels'?'active':''}">Soumissions</button><button type="button" data-admin-tab="levels" class="${state.adminTab==='levels'?'active':''}">Niveaux</button><button type="button" data-admin-tab="leaderboard" class="${state.adminTab==='leaderboard'?'active':''}">🏆 Classement</button></div><p class="small muted">Les permissions de création et de modification sont vérifiées par Supabase selon ton rôle.</p></div>${state.adminTab==='leaderboard'?moderationLeaderboardPage():state.adminTab==='levels'?scopedLevelsPanel(role):`${PROD.scopedReview(view)}${approvedReversalPanel()}${window.DLFR_CLAIMS.moderation(state)}<div class="paper dlfr27-scoped-packs">${state.adminTab==='packs'?packModerationEditor():''}</div>`}`;
+   return `${templateNotice()}<div class="paper"><div class="admin-mode">Modération · ${role==='nlw'?'Helper · NLW':'List helper · Top 150 + NLW'}</div><div class="row-between"><h1>Modération</h1><button class="btn subtle small" data-action="logout">Déconnexion</button></div><div class="dlfr-v60-tabs"><button type="button" data-admin-tab="requests" class="${state.adminTab!=='levels'?'active':''}">Soumissions</button><button type="button" data-admin-tab="levels" class="${state.adminTab==='levels'?'active':''}">Niveaux</button><button type="button" data-admin-tab="leaderboard" class="${state.adminTab==='leaderboard'?'active':''}">🏆 Classement</button></div><p class="small muted">Les permissions de création et de modification sont vérifiées par Supabase selon ton rôle.</p></div>${state.adminTab==='leaderboard'?moderationLeaderboardPage():state.adminTab==='levels'?scopedLevelsPanel(role):`${PROD.scopedReview(view)}${approvedReversalPanel()}${window.DLFR_CLAIMS.moderation(state)}<div class="paper dlfr27-scoped-packs">${state.adminTab==='packs'?packModerationEditor():''}</div>`}`;
  }
  const mergePlayers=state.adminTab==='profiles'?mergePlayerOptions():''; const players=['profiles','awards','achievements','safety','nlw'].includes(state.adminTab)?playerOptions():'';return `${templateNotice()}<div class="paper"><div class="admin-mode">Espace privé · équipe de modération</div><div class="row-between"><h1>Modération</h1><div><button class="btn subtle small" data-action="logout">Déconnexion</button></div></div><p class="muted">Choisis une action ci-dessous. Les modifications sont enregistrées et contrôlées automatiquement.</p></div><div class="admin-workspace" data-role="${state.demoRole}"><div class="admin-nav" role="tablist" aria-label="Sections de modération">${[['overview','Accueil'],['requests','Demandes'+((state.mergeRequests||[]).filter(x=>x.status==='pending').length?' · '+(state.mergeRequests||[]).filter(x=>x.status==='pending').length+' fusion(s)':'')],['levels','Niveaux'],['leaderboard','🏆 Classement modos'],['packs','Level Packs'],...(state.staffRole==='owner'&&!ownerPreviewActive()?[['weekly','Défis & tests']]:[]),['news','Actualités'],['profiles','Profils'],['awards','Badges & Palmarès'],['achievements','Achievements FR'],['clans','Clans'],['safety','Sanctions'],['audit','Journal'],...(state.staffRole==='owner'&&!ownerPreviewActive()?[['team','Équipe']]:[])].map(([id,label])=>`<button type="button" role="tab" aria-selected="${state.adminTab===id}" class="${state.adminTab===id?'active':''}" data-admin-tab="${id}">${label}</button>`).join('')}</div><div class="admin-content">${state.adminTab==='weekly'?v86AdminHTML():''}${state.adminTab==='weekly'?'':adminGuideHtml()}<div class="dlfr29-requests" ${state.adminTab==='requests'?'':'hidden'}>${state.adminTab==='requests'?(LIVE?PROD.scopedReview(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state)+PROD.moderation(ownerPreviewActive()?{...state,staffRole:state.ownerPreview}:state):'')+window.DLFR_CLAIMS.moderation(state)+mergeRequestsModeratorPanel()+approvedReversalPanel():''}</div><div class="admin-intro ${state.adminTab==='overview'?'':'is-hidden'}"><h2>Tableau de bord</h2>${state.adminTab==='overview'?statsOverview():''}<p class="muted">Choisis une action dans les raccourcis ou une rubrique dans le menu. Chaque modification est contrôlée avant son enregistrement.</p>${(state.mergeRequests||[]).some(r=>r.status==='pending')?`<p class="notice">⇄ ${(state.mergeRequests||[]).filter(r=>r.status==='pending').length} demande(s) de fusion de fiches en attente. <button type="button" class="btn subtle small" data-admin-tab="requests">Ouvrir les demandes</button></p>`:''}</div><div class="moderation-sections" data-active-admin="${state.adminTab}">
  ${state.adminTab==='leaderboard'?moderationLeaderboardPage():''}${state.adminTab==='team'?staffTeamPanel():''}
@@ -2857,7 +2863,7 @@ function render(){
  if(page==='admin'&&state.staffRole==='owner'){
    const switcher=document.createElement('section');switcher.className='paper owner-role-switcher';
    switcher.innerHTML='<h2>Aperçu des rôles de modération</h2><p class="small muted">Vue de l’interface seulement : ton compte reste propriétaire. Aucun enregistrement n’est autorisé en aperçu.</p><div class="owner-role-actions">'+
-   [['owner','Propriétaire'],['nlw','Modo NLW'],['moderator','Modo'],['supermoderator','Supermodo']].map(([role,label])=>`<button type="button" class="btn ${state.ownerPreview===role?'':'subtle'}" data-owner-preview-role="${role}" aria-pressed="${state.ownerPreview===role}">${label}</button>`).join('')+'</div>'+
+   [['owner','Owner'],['nlw','Helper'],['moderator','List helper'],['supermoderator','List mod']].map(([role,label])=>`<button type="button" class="btn ${state.ownerPreview===role?'':'subtle'}" data-owner-preview-role="${role}" aria-pressed="${state.ownerPreview===role}">${label}</button>`).join('')+'</div>'+
    (ownerPreviewActive()?'<div class="notice warning"><b>APERÇU — LECTURE SEULE</b> · Aucune permission ni rôle réel n’a été modifié.</div>':'');
    el.prepend(switcher);
    if(ownerPreviewActive()){
@@ -2914,7 +2920,7 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
    await refreshLiveData();state.adminTab='levels';render();return;
   }
  if(type==='compactNlw'){
-  if(!hasFullStaffPowers())throw Error('Supermodération requise.');
+  if(!hasFullStaffPowers())throw Error('Rôle List mod requis.');
   if(await window.DLFR_CLAIMS.compact(db,form,submitter)){await refreshLiveData();toast('Rangs NLW regroupés.');}return;
  }
  if(type==='claimVerification'){
@@ -2927,7 +2933,7 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   if(error)throw Error(error.message);await refreshLiveData();render();toast('Décision enregistrée.');return;
  }
  if(type==='bulkNlwFR'){
-  if(!hasFullStaffPowers())throw Error('Supermodération requise.');
+  if(!hasFullStaffPowers())throw Error('Rôle List mod requis.');
   const published=await window.DLFR_BULK.submit(db,form,submitter);
   if(published){await refreshLiveData();toast('Import NLW terminé.');}
   return;
@@ -2958,7 +2964,7 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   await refreshLiveData();toast('Niveau masqué supprimé définitivement.');render();return;
  }
  if(type==='prodCompletion'){
-  if(!hasFullStaffPowers()||!state.staff)throw Error('Supermodérateur requis.');
+  if(!hasFullStaffPowers()||!state.staff)throw Error('List mod requis.');
   if(f.confirm_verified!=='yes')throw Error('Confirme avoir vérifié la victoire.');
   const level=(state.data.demons||[]).find(d=>String(d.id)===String(f.demon_id));
   const player=(state.data.players||[]).find(p=>p.player_key===f.player_key);
@@ -2966,6 +2972,13 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   if((state.mergedSourceKeys||[]).includes(player.player_key))throw Error('Cette fiche a déjà été fusionnée.');
   const previous=(state.data.completions||[]).find(r=>Number(r.demon_id)===Number(level.id)&&key(r.player)===player.player_key);
   if(!confirm(`${previous?'Mettre à jour':'Attribuer'} la victoire 100 % de ${sortPlayerName(player)} sur ${level.name} ?${previous?' Un record existe déjà ('+previous.progress+' %).':''}`))return;
+ }
+ if(type==='staffTitle'){
+  if(!LIVE||state.staffRole!=='owner')throw Error('Réservé aux owners.');
+  if(!f.auth_user_id)throw Error('Choisis un compte.');
+  const {error}=await db.rpc('dlfr_set_staff_title',{p_user:f.auth_user_id,p_title:f.title||null});
+  if(error)throw Error(error.message);
+  await refreshLiveData();await loadStaffCandidates();render();toast('Titre enregistré.');return;
  }
  if(type==='addCoowner'){
   if(!LIVE||state.staffRole!=='owner')throw Error('Réservé au propriétaire.');
@@ -2978,7 +2991,7 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   await refreshLiveData();await loadStaffCandidates();render();toast('Propriétaire ajouté.');return;
  }
  if(type==='linkVerifier'){
-  if(!LIVE||!state.staff||['nlw','moderator'].includes(state.staffRole))throw Error('Supermodérateur requis.');
+  if(!LIVE||!state.staff||['nlw','moderator'].includes(state.staffRole))throw Error('List mod requis.');
   if(f.confirmation!=='RATTACHER')throw Error('Écris RATTACHER pour confirmer.');
   if(!f.verifier_name)throw Error('Choisis un vérificateur.');
   f.verifier_name=window.__dlfrVerifierUnlinked?.[Number(f.verifier_name)]?.verifier_name;
@@ -2998,7 +3011,7 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   await refreshLiveData();render();toast('Demande de fusion envoyée à la modération.');return;
  }
  if(type==='reviewPlayerMerge'){
-  if(!LIVE||!hasFullStaffPowers()||ownerPreviewActive())throw Error('Supermodérateur requis.');
+  if(!LIVE||!hasFullStaffPowers()||ownerPreviewActive())throw Error('List mod requis.');
   const request=(state.mergeRequests||[]).find(r=>Number(r.id)===Number(f.request_id)&&r.status==='pending');
   if(!request)throw Error('Demande introuvable ou déjà traitée.');
   const act=submitter?.value;
@@ -3018,7 +3031,7 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   await refreshLiveData();render();toast(act==='accept'?'Demande acceptée : fusion enregistrée.':'Demande refusée.');return;
  }
  if(type==='mergePlayers'){
-  if(!LIVE||!state.staff||['nlw','moderator'].includes(state.staffRole))throw Error('Supermodérateur requis.');
+  if(!LIVE||!state.staff||['nlw','moderator'].includes(state.staffRole))throw Error('List mod requis.');
   if(!f.source_key||!f.target_key||f.source_key===f.target_key)throw Error('Choisis deux profils distincts.');
   if(state.mergedSourceError)throw Error('Impossible de vérifier l’historique des fusions.');
   if(!mergeCandidates().some(p=>p.player_key===f.source_key)||!mergeCandidates().some(p=>p.player_key===f.target_key))throw Error('Ce profil a déjà été fusionné ou n’existe plus dans la liste des profils actifs.');
@@ -3034,7 +3047,7 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
  if(LIVE&&PROD.handles(type)){
   if(type!=='prodClaim'&&type!=='selfCreatePlayer'&&type!=='submitRecord'&&!state.staff)throw Error('Modérateur requis.');
   // Les actions personnelles restent accessibles aux joueurs ayant aussi un rôle de modération.
-  if(['nlw','moderator'].includes(state.staffRole)&&!['prodScopedReview','prodClaim','selfCreatePlayer','submitRecord'].includes(type))throw Error('Action réservée aux supermodérateurs.');
+  if(['nlw','moderator'].includes(state.staffRole)&&!['prodScopedReview','prodClaim','selfCreatePlayer','submitRecord'].includes(type))throw Error('Action réservée aux List mods.');
   if(type==='submitRecord'){f.__demon=f.submission_mode==='new'?null:(state.data.demons||[]).find(d=>String(d.id)===String(f.demon_id));f.__cfg=cfg();}
   await PROD.send(db,type,f,submitter);
   await refreshLiveData();
@@ -3120,7 +3133,7 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
  if(!LIVE&&state.demoRole==='nlw_editor'&&type!=='demon')throw Error('Le rôle NLW peut seulement ajouter des niveaux hors Top 150.');
  if(LIVE&&['clan','clanMember','safety','nlwStaff'].includes(type))throw Error('Nouvelle fonctionnalité en lecture seule : migration V2 Supabase non appliquée.');
  if(type==='levelStudio'){
-  if(!LIVE||!hasFullStaffPowers())throw Error('Supermodérateur requis.');
+  if(!LIVE||!hasFullStaffPowers())throw Error('List mod requis.');
   const id=Number(f.demon_id),pos=Number(f.position),current=(state.data.demons||[]).find(x=>Number(x.id)===id);
   if(!current)throw Error('Fiche introuvable.');
   if(current.unrated){
@@ -3153,7 +3166,7 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   await refreshLiveData();toast('Fiche enregistrée et classement synchronisé.');render();return;
  }
  if(type==='levelCredits'){
-  if(!LIVE||!hasFullStaffPowers())throw Error('Supermodérateur requis.');
+  if(!LIVE||!hasFullStaffPowers())throw Error('List mod requis.');
   const id=Number(f.demon_id);
   if(!Number.isSafeInteger(id)||id<=0)throw Error('Niveau invalide.');
   const recover=submitter?.value==='recover';
@@ -3165,7 +3178,7 @@ async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLS
   await refreshLiveData();toast(recover?'Crédits récupérés depuis la sauvegarde.':'Crédits du niveau enregistrés.');render();return;
  }
  if(type==='historicNlwPublish'){
-  if(!LIVE||!hasFullStaffPowers())throw Error('Supermodérateur requis.');
+  if(!LIVE||!hasFullStaffPowers())throw Error('List mod requis.');
   if(plain(f.confirmation)!=='PUBLIER NLW')throw Error('Saisis exactement PUBLIER NLW pour confirmer.');
   const legacyId=Number(f.legacy_id),position=Number(f.position);
   if(!Number.isSafeInteger(legacyId)||legacyId<=0||!Number.isSafeInteger(position)||position<151||position>=99999999)throw Error('Identifiant historique ou rang NLW invalide.');

@@ -62,7 +62,7 @@ function staffSection(s){
  return `<section class="prod-panel"><h2>Gestion des modérateurs</h2><p class="small muted">Propriétaire uniquement. Cette action est réservée au propriétaire. Sélectionne le compte concerné avec son identifiant unique et vérifie attentivement le rôle.</p>
  <form data-form="prodManageStaff" class="prod-staff-grid">
  ${row('Identifiant du compte','<input name="auth_user_id" required placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" pattern="[a-fA-F0-9-]{36}">')}
- ${row('Équipe','<select name="role"><option value="nlw">Modo NLW · complétions NLW seulement</option><option value="moderator">Modo · complétions Top 150 + NLW</option><option value="supermoderator">Supermodo · niveaux, actus et administration</option></select>')}
+ ${row('Équipe','<select name="role"><option value="nlw">Helper · complétions NLW seulement</option><option value="moderator">List helper · complétions Top 150 + NLW</option><option value="supermoderator">List mod · niveaux, actus et administration</option></select>')}
  ${row('Action','<select name="enabled"><option value="yes">Ajouter / attribuer</option><option value="no">Retirer ce rôle</option></select>')}
  ${button('Enregistrer les permissions')}
  </form>

@@ -34,7 +34,7 @@ Quand un fichier JS ou CSS change, augmenter son numéro `?v=…` dans `index.ht
 - Projet : `mcoaeocsthivggyspykf`.
 - La sécurité repose sur les règles RLS et les fonctions `security definer` de la base : la clé publique de `js/config.js` peut rester visible.
 - La tâche quotidienne `daily-snapshots` a besoin de deux secrets GitHub Actions : `SUPABASE_URL` et `SUPABASE_SERVICE_ROLE_KEY` (Settings → Secrets and variables → Actions). Ne jamais mettre la clé `service_role` dans le site.
-- Les rôles de l'équipe (propriétaire, modération, NLW) sont gérés dans la base, depuis l'onglet Modération du site.
+- Les rôles de l'équipe se gèrent depuis Modération → Équipe : Helper (NLW seulement), List helper (Top 150 + NLW), List mod (administration du site), Owner. Le « Titre affiché » permet d'afficher Admin (pour un List mod) ou Modérateur (pour un List helper) sans changer les permissions.
 - Plan gratuit : 5 Go de trafic sortant par mois. Les images envoyées depuis le site sont réduites automatiquement avant l'envoi (WebP).
 
 ## DLFR Cards

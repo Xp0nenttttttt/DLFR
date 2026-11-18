@@ -58,7 +58,7 @@ function ensureButton(){
  let b=document.getElementById('dlfr145Toggle');
  if(!S.owner){b?.remove();if(S.editing)setEditing(false);return;}
  if(!b){b=document.createElement('button');b.type='button';b.id='dlfr145Toggle';b.className='dlfr145-toggle';b.dataset.dlfr145='1';
-  b.textContent='✎ Textes du site';b.title='Modifier les textes du site (propriétaires)';b.addEventListener('click',()=>setEditing(!S.editing));document.body.append(b);}
+  b.textContent='✎ Textes du site';b.title='Modifier les textes du site (owners)';b.addEventListener('click',()=>setEditing(!S.editing));document.body.append(b);}
  b.classList.toggle('is-on',S.editing);b.textContent=S.editing?'✓ Terminer':'✎ Textes du site';
 }
 function paintBar(){

@@ -66,7 +66,7 @@ function seasonView(){
  </section>`;
 }
 function editorHTML(s){
- return `<details class="dlfr160-editor"><summary>✎ Régler la saison (propriétaires et supermodérateurs)</summary>
+ return `<details class="dlfr160-editor"><summary>✎ Régler la saison (owners, admins et List mods)</summary>
   <form data-season-edit><label>Nom<input name="name" maxlength="60" value="${esc(s.name)}"></label>
   <label>Description (facultatif)<input name="description" maxlength="300" value="${esc(s.description||'')}" placeholder="Ex. : The Abyss, les niveaux les plus sombres"></label>
   <label>Carte exclusive (paliers 14 et 28)<select name="card"><option value="">— Aucune (carte Légendaire+ aléatoire) —</option>${S.cards.map(c=>`<option value="${c.id}" ${Number(s.reward_card_id)===Number(c.id)?'selected':''}>#${c.id} · ${esc(c.name)} (${esc(c.rarity)})</option>`).join('')}</select></label>
