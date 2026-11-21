@@ -408,8 +408,14 @@ function poolFor(pack){const base=packable(),p=base.filter(c=>!pack.filter||pack
 function weights(pack){
  const pool=poolFor(pack),n=luck();
  const mult=[1,1+.05*n,1+.08*n,1+.12*n,Math.min(3,(1+.15*n)*(1+.2*rank('fo5'))*(rank('ap')?1.3:1)),1+.3*rank('le8')]; // V157 : chance bien plus modérée, Mythiques ×3 au maximum  // V154 : Ultra = 1 carte sur 15 000, la chance ne compte pas
- const w=pack.weights.map((x,i)=>pool.some(c=>tierOf(c)===i)?x*mult[i]:0);
- const total=w.reduce((a,b)=>a+b,0);return total>0?w.map(x=>x/total):w;
+ // V188 : la chance ne doit jamais faire BAISSER la proba d'Ultra. Avant, les autres raretés
+ // grossissaient et la part de l'Ultra diminuait à la normalisation. Maintenant l'Ultra garde
+ // sa part de base (× le bonus « le8 ») et la chance se répartit seulement entre les autres raretés.
+ const U=mult.length-1,base=pack.weights.map((x,i)=>pool.some(c=>tierOf(c)===i)?x:0),bt=base.reduce((a,b)=>a+b,0);
+ if(bt<=0)return base;
+ const u=Math.min(.5,base[U]/bt*mult[U]),w=base.map((x,i)=>i===U?0:x*mult[i]),ot=w.reduce((a,b)=>a+b,0);
+ if(ot<=0)return base.map((x,i)=>i===U&&x>0?1:0);
+ return w.map((x,i)=>i===U?u:x/ot*(1-u));
 }
 function chooseTier(pack,minTier){
  const pool=poolFor(pack),avail=rarities.map((_,i)=>pool.some(c=>tierOf(c)===i)),ULTRA=rarities.length-1;
