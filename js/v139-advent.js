@@ -1,21 +1,24 @@
 /* DLFR V139 — Calendrier de l'Avent DLFR Cards (onglet « 🎄 Avent » de la page Cartes).
  * Les ouvertures et récompenses sont validées par Supabase (dlfr_advent_open). Les propriétaires et
- * supermodérateurs préparent les 25 cases (carte + Wayllings + titre) via dlfr_advent_set_day.
+ * supermodérateurs préparent les 25 cases (carte + cosmétique + Wayllings + titre) via dlfr_advent_set_day.
  */
 (()=>{'use strict';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // Ordre « mélangé » des cases, comme un vrai calendrier (toujours le même).
 const ORDER=[7,18,3,24,12,1,20,9,15,5,22,11,25,2,16,8,19,13,4,21,10,23,6,17,14];
-const S={ctx:null,status:null,cards:[],loaded:false,loading:false,busy:false,error:'',editOpen:false};
+const S={ctx:null,status:null,cards:[],items:[],loaded:false,loading:false,busy:false,error:'',editOpen:false};
 const LAB=()=>window.DLFR_CARDS_LAB;
+const item=k=>S.items.find(x=>x.item_key===k);
+const CAT_NAME={theme:'Thème',name:'Couleur de pseudo',banner:'Bannière',frame:'Cadre',card:'Style de carte',badge:'Badge'};
+const itemHTML=k=>{const it=item(k);return it?`<span class="c191-item" title="${esc(it.description||'')}"><span>${esc(it.emoji||'🎁')}</span><b>${esc(it.label)}</b><small>${esc(CAT_NAME[it.category]||'Cosmétique')}</small></span>`:'';};
 const card=id=>S.cards.find(c=>Number(c.id)===Number(id));
 const mk=r=>LAB()?.mkCard?LAB().mkCard(r):{id:Number(r.id),name:r.name,rarity:r.rarity,type:r.card_type,image:r.image_url};
 function fig(r){const L=LAB();return L?.figure?L.figure(mk(r),S.ctx?.data||{},true,{official:true,owned:true}):`<b>${esc(r.name)}</b>`;}
 
 async function load(force){
  const db=S.ctx?.db;if(!db||S.loading||(S.loaded&&!force))return;S.loading=true;
- try{const [st,k]=await Promise.all([db.rpc('dlfr_advent_status'),db.from('dlfr_cards').select('*').order('sort_order')]);
-  if(st.error)throw st.error;if(k.error)throw k.error;S.status=st.data||{};S.cards=k.data||[];S.loaded=true;S.error='';}
+ try{const [st,k,it]=await Promise.all([db.rpc('dlfr_advent_status'),db.from('dlfr_cards').select('*').order('sort_order'),db.from('dlfr_reward_catalog').select('item_key,label,emoji,category,description,sort_order').order('category').order('sort_order')]);
+  if(st.error)throw st.error;if(k.error)throw k.error;S.status=st.data||{};S.cards=k.data||[];S.items=it.error?[]:(it.data||[]);S.loaded=true;S.error='';}
  catch(e){S.error=e.message||'Calendrier indisponible.';}
  finally{S.loading=false;paint();}
 }
@@ -30,18 +33,19 @@ function doorHTML(d){
  if(d.claimed){
   const c=d.card_id?card(d.card_id):null;
   return `<div class="dlfr139-door is-open d${d.day}" data-day="${d.day}"><span class="dlfr139-num">${d.day}</span>
-   <div class="dlfr139-gift">${c?`<div class="dlfr139-gift-card">${fig(c)}</div>`:'<span class="dlfr139-coin">✦</span>'}${d.coins?`<b class="dlfr139-coins">+${esc(d.coins)} ✦</b>`:''}${d.title?`<small>${esc(d.title)}</small>`:''}</div></div>`;
+   <div class="dlfr139-gift">${c?`<div class="dlfr139-gift-card">${fig(c)}</div>`:d.item_key?'':'<span class="dlfr139-coin">✦</span>'}${d.item_key?itemHTML(d.item_key):''}${d.coins?`<b class="dlfr139-coins">+${esc(d.coins)} ✦</b>`:''}${d.title?`<small>${esc(d.title)}</small>`:''}</div></div>`;
  }
- if(d.unlocked)return `<button type="button" class="dlfr139-door is-ready ${isToday?'is-today':''} d${d.day}" data-advent-open="${d.day}" ${S.busy||!st.signed_in?'disabled':''} aria-label="Ouvrir la case du ${d.day} décembre"><span class="dlfr139-num">${d.day}</span><span class="dlfr139-ribbon" aria-hidden="true"></span><span class="dlfr139-cta">${isToday?'Ouvrir !':past?'À rattraper':'Ouvrir'}</span>${d.has_card?'<span class="dlfr139-hint" title="Une carte se cache derrière">🃏</span>':''}</button>`;
+ if(d.unlocked)return `<button type="button" class="dlfr139-door is-ready ${isToday?'is-today':''} d${d.day}" data-advent-open="${d.day}" ${S.busy||!st.signed_in?'disabled':''} aria-label="Ouvrir la case du ${d.day} décembre"><span class="dlfr139-num">${d.day}</span><span class="dlfr139-ribbon" aria-hidden="true"></span><span class="dlfr139-cta">${isToday?'Ouvrir !':past?'À rattraper':'Ouvrir'}</span>${d.has_card?'<span class="dlfr139-hint" title="Une carte se cache derrière">🃏</span>':''}${d.has_item?`<span class="dlfr139-hint c191-hint" title="Un cosmétique se cache derrière">🎁</span>`:''}</button>`;
  return `<div class="dlfr139-door is-locked d${d.day}" aria-label="Case du ${d.day} décembre, pas encore ouverte"><span class="dlfr139-num">${d.day}</span><span class="dlfr139-lock" aria-hidden="true">❄</span></div>`;
 }
 function editorHTML(){
  const st=S.status||{};if(!st.editor)return '';
  const fest=S.cards.filter(c=>c.rarity==='Festive'),other=S.cards.filter(c=>c.rarity!=='Festive');
  const opts=sel=>`<option value="">— Aucune carte —</option>${fest.length?`<optgroup label="❄ Cartes Festive">${fest.map(c=>`<option value="${c.id}" ${Number(sel)===Number(c.id)?'selected':''}>#${c.id} · ${esc(c.name)}</option>`).join('')}</optgroup>`:''}<optgroup label="Autres cartes">${other.map(c=>`<option value="${c.id}" ${Number(sel)===Number(c.id)?'selected':''}>#${c.id} · ${esc(c.name)} (${esc(c.rarity)})</option>`).join('')}</optgroup>`;
+ const itemOpts=sel=>`<option value="">— Aucun cosmétique —</option>${Object.keys(CAT_NAME).map(cat=>{const l=S.items.filter(x=>x.category===cat);return l.length?`<optgroup label="${esc(CAT_NAME[cat])}">${l.map(x=>`<option value="${esc(x.item_key)}" ${sel===x.item_key?'selected':''}>${esc(x.emoji||'')} ${esc(x.label)}</option>`).join('')}</optgroup>`:'';}).join('')}`;
  return `<details class="dlfr139-editor" ${S.editOpen?'open':''}><summary>✎ Préparer le calendrier ${esc(st.year)} <span>(owners, admins et List mods)</span></summary>
-  <p class="muted small">Pour chaque jour : une carte (crée d’abord tes cartes de rareté <b>Festive</b> dans l’onglet ✎ Catalogue, idéalement avec « dans les boosters » décoché), des Wayllings dorés et un titre facultatif. Les joueurs ne voient la récompense qu’en ouvrant la case.${fest.length?'':' <b>Aucune carte Festive pour l’instant.</b>'}</p>
-  <div class="dlfr139-edit-grid">${(st.days||[]).map(d=>`<form class="dlfr139-edit-row" data-advent-edit="${d.day}"><b>${d.day} déc.</b><select name="card">${opts(d.card_id)}</select><label>✦<input type="number" name="coins" min="0" max="5000" step="10" value="${esc(d.coins??0)}"></label><input name="title" maxlength="60" placeholder="Titre (facultatif)" value="${esc(d.title||'')}"><button class="btn small" type="submit">Enregistrer</button></form>`).join('')}</div></details>`;
+  <p class="muted small">Pour chaque jour : un cosmétique de la boutique (offert à l’ouverture, s’il ne l’a pas déjà), une carte (crée d’abord tes cartes de rareté <b>Festive</b> dans l’onglet ✎ Catalogue, idéalement avec « dans les boosters » décoché), des Wayllings dorés et un titre facultatif. Les joueurs ne voient la récompense qu’en ouvrant la case.${fest.length?'':' <b>Aucune carte Festive pour l’instant.</b>'}</p>
+  <div class="dlfr139-edit-grid">${(st.days||[]).map(d=>`<form class="dlfr139-edit-row" data-advent-edit="${d.day}"><b>${d.day} déc.</b><select name="card">${opts(d.card_id)}</select><select name="item" aria-label="Cosmétique">${itemOpts(d.item_key)}</select><label>✦<input type="number" name="coins" min="0" max="5000" step="10" value="${esc(d.coins??0)}"></label><input name="title" maxlength="60" placeholder="Titre (facultatif)" value="${esc(d.title||'')}"><button class="btn small" type="submit">Enregistrer</button></form>`).join('')}</div></details>`;
 }
 function view(){
  if(S.error)return `<div class="notice warning">${esc(S.error)}</div>`;
@@ -49,7 +53,7 @@ function view(){
  const st=S.status||{},days=st.days||[],byDay=new Map(days.map(d=>[d.day,d]));
  const opened=days.filter(d=>d.claimed).length,festOwned=days.filter(d=>d.claimed&&d.card_id).length,ready=days.filter(d=>d.unlocked&&!d.claimed).length;
  return `<section class="dlfr139-cal">
-  <header class="dlfr139-head"><div><span class="dlfr139-kicker">❄ DLFR CARDS · ${esc(st.year)}</span><h2>Calendrier de l’Avent</h2><p>25 cases, du 1er décembre à Noël. Des cartes <b>Festive</b> (rareté spéciale introuvable dans les boosters) et des Wayllings dorés.</p></div>
+  <header class="dlfr139-head"><div><span class="dlfr139-kicker">❄ DLFR CARDS · ${esc(st.year)}</span><h2>Calendrier de l’Avent</h2><p>25 cases, du 1er décembre à Noël. Des cartes <b>Festive</b> (rareté spéciale introuvable dans les boosters), des cosmétiques et des Wayllings dorés.</p></div>
    ${countdown()||`<div class="dlfr139-stats"><div><span>Cases ouvertes</span><b>${opened} / 25</b></div><div><span>Cartes Festive</span><b>${festOwned}</b></div>${ready?`<div class="is-hot"><span>À ouvrir</span><b>${ready}</b></div>`:''}</div>`}</header>
   ${!st.signed_in?'<p class="dlfr139-guest">Connecte-toi pour ouvrir les cases du calendrier.</p>':''}
   <div class="dlfr139-grid">${ORDER.map(n=>byDay.get(n)).filter(Boolean).map(doorHTML).join('')}</div>
@@ -68,12 +72,14 @@ async function openDay(day){
   const c=data.card_id?card(data.card_id):null;
   if(c&&LAB()?.playReal){LAB().playReal({name:`Calendrier · ${day} décembre`,theme:'crimson',emblem:'🎄'},[{card:mk(c),isNew:data.is_new,value:60}],{data:S.ctx.data,balance:data.balance,bonuses:data.bonuses||[],onClose:()=>paint()});}
   else paint();
-  S.ctx.toast?.(`Case du ${day} décembre ouverte !${data.coins?` +${data.coins} Wayllings dorés ✦`:''}`);
+  const it=data.item_key?item(data.item_key):null;
+  S.ctx.toast?.(`Case du ${day} décembre ouverte !${it?` Cosmétique : ${it.emoji||''} ${it.label}.`:''}${data.coins?` +${data.coins} Wayllings dorés ✦`:''}`);
+  if(it)window.dispatchEvent(new CustomEvent('dlfr-rewards-changed'));
  }catch(e){S.busy=false;paint();S.ctx.toast?.(e.message||'Ouverture impossible.');}
 }
 async function saveDay(form){
  const day=Number(form.dataset.adventEdit),st=S.status||{},btn=form.querySelector('button');btn.disabled=true;
- try{const {error}=await S.ctx.db.rpc('dlfr_advent_set_day',{p_year:Number(st.year),p_day:day,p_card_id:form.card.value?Number(form.card.value):null,p_coins:Number(form.coins.value)||0,p_title:form.title.value||null});
+ try{const {error}=await S.ctx.db.rpc('dlfr_advent_set_day2',{p_year:Number(st.year),p_day:day,p_card_id:form.card.value?Number(form.card.value):null,p_coins:Number(form.coins.value)||0,p_title:form.title.value||null,p_item_key:form.item.value||null});
   if(error)throw error;S.editOpen=true;S.ctx.toast?.(`Jour ${day} enregistré.`);await load(true);}
  catch(e){S.ctx.toast?.(e.message||'Enregistrement impossible.');btn.disabled=false;}
 }
