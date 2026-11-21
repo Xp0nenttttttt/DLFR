@@ -71,7 +71,11 @@ const PACKS=[
  {id:'players',name:'Joueurs FR',count:5,cost:{shards:135},level:11,weights:[68.5,25.6,5,.7,.14,.00667],guarantee:1,theme:'green',emblem:'★',subtitle:'Uniquement des cartes Joueur',filter:c=>c.type==='player'},
  {id:'prestige',name:'Prestige',count:5,cost:{shards:225},level:15,weights:[0,75.5,21,3,.48,.00667],guarantee:2,theme:'gold',emblem:'♛',subtitle:'Une carte Épique ou mieux garantie',finishBoost:1.5},
  {id:'demon',name:'Coffre Démoniaque',count:6,cost:{keys:1},level:20,weights:[0,69.6,26.4,3.5,.47,.00667],guarantee:3,theme:'demon',emblem:'🔑',subtitle:'Une Légendaire garantie · ouvert avec une clé',finishBoost:1.5},
- {id:'relic',name:'Coffre Mythique',count:7,cost:{keys:4,shards:900},level:45,weights:[0,0,86,12.25,1.65,.00667],guarantee:4,theme:'prism',emblem:'✺',subtitle:'Une Mythique garantie',finishBoost:2}
+ {id:'relic',name:'Coffre Mythique',count:7,cost:{keys:4,shards:900},level:45,weights:[0,0,86,12.25,1.65,.00667],guarantee:4,theme:'prism',emblem:'✺',subtitle:'Une Mythique garantie',finishBoost:2},
+ // V190 : boosters exclusifs, très chers et très généreux (la chance ne change pas la part d'Ultra).
+ {id:'elite',name:'Booster Élite',count:8,cost:{shards:10000},level:1,weights:[0,30,50,17,3,.03],guarantee:3,theme:'royal',emblem:'⚜',subtitle:'Exclusif · 8 cartes, Légendaire garantie, finitions ×3',finishBoost:3,exclusive:1},
+ {id:'divin',name:'Booster Divin',count:10,cost:{shards:100000},level:1,weights:[0,0,40,45,15,.3],guarantee:4,theme:'divine',emblem:'☀',subtitle:'Exclusif · 10 cartes, Mythique garantie, finitions ×6',finishBoost:6,exclusive:2},
+ {id:'cosmic',name:'Booster Cosmique',count:12,cost:{shards:1000000},level:1,weights:[0,0,0,55,42,3],guarantee:4,theme:'cosmic',emblem:'🌌',subtitle:'Ultra-exclusif · 12 cartes, environ 30 % de chances d’Ultra par booster, finitions ×12',finishBoost:12,exclusive:3}
 ];
 const DESTS=[
  {id:'stereo',name:'Plaines de Stereo Madness',icon:'▲',min:2,level:1,shards:14,xp:16,dust:0,key:0,card:0},
@@ -576,7 +580,7 @@ function boostersView(){
   <div class="dlfr117-pity"><div><span>Garantie Légendaire</span><b>${Math.max(1,legPity()-p.pity.leg)} carte${legPity()-p.pity.leg>1?'s':''}</b><div class="dlfr117-bar small"><i style="width:${p.pity.leg/legPity()*100}%"></i></div></div><div><span>Garantie Mythique</span><b>${Math.max(1,ODDS.mythPity-p.pity.myth)} cartes</b><div class="dlfr117-bar small myth"><i style="width:${p.pity.myth/ODDS.mythPity*100}%"></i></div></div></div></div>
   <div class="dlfr117-packs">${allPacks().map(pack=>{
    const locked=p.level<pack.level,afford=canAfford(pack.cost),w=weights(pack),g=packGuarantee(pack);
-   return `<article class="dlfr117-pack ${locked?'is-locked':''}"><div class="dlfr117-pack-stage">${packArt(pack)}${locked?`<span class="dlfr117-lock">🔒 Niveau ${pack.level}</span>`:''}</div>
+   return `<article class="dlfr117-pack ${locked?'is-locked':''} ${pack.exclusive?'c190-exclusive c190-x'+pack.exclusive:''}"><div class="dlfr117-pack-stage">${packArt(pack)}${locked?`<span class="dlfr117-lock">🔒 Niveau ${pack.level}</span>`:''}</div>
     <h3>${esc(pack.name)}</h3><p>${esc(pack.subtitle)}</p>
     <div class="dlfr117-odds">${rarities.map((r,i)=>w[i]>0?`<span class="t${i}"><i></i>${esc(r)} ${fmtPercent(w[i])}</span>`:'').join('')}</div>
     <small>${packCount(pack)} cartes${g?` · ${rarities[g]} ou mieux garantie`:''}${pack.finishBoost?` · finitions ×${pack.finishBoost}`:''}</small>

@@ -467,3 +467,13 @@ html.dark .c131-step.t0,.dlfr117-panel .c131-step.t0,.dlfr117-game .c131-step.t0
 .c184-count{margin:0 0 8px;font-size:.8rem;opacity:.75}
 .dlfr117-forge-list{max-height:560px}
 @media (max-width:720px){.c184-tools{grid-template-columns:1fr 1fr}.c184-tools input{grid-column:1/-1}.c184-auto-btns .btn{flex:1 1 100%}}
+/* V190 — boosters exclusifs */
+.b-royal{--b1:#1a0b33;--b2:#9b5cff;--b3:#ffe28a}.b-divine{--b1:#3d2a00;--b2:#ffd34d;--b3:#fffbe6}.b-cosmic{--b1:#03021a;--b2:#3a2bff;--b3:#ffffff}
+.o-theme-royal{--b1:#1a0b33;--b2:#9b5cff;--b3:#ffe28a}.o-theme-divine{--b1:#3d2a00;--b2:#ffd34d;--b3:#fffbe6}.o-theme-cosmic{--b1:#03021a;--b2:#3a2bff;--b3:#ffffff}
+.b-royal .b-body{background:linear-gradient(160deg,#c9a2ff,#5b23b8 35%,#1a0b33 70%,#0b0418)}
+.b-divine .b-body{background:radial-gradient(circle at 50% 38%,#fff6c9,#ffcf3d 30%,#b27400 62%,#3d2a00)}
+.b-cosmic .b-body{background:radial-gradient(1px 1px at 20% 30%,#fff,transparent),radial-gradient(1px 1px at 70% 20%,#fff,transparent),radial-gradient(1.5px 1.5px at 40% 75%,#fff,transparent),radial-gradient(1px 1px at 85% 60%,#fff,transparent),radial-gradient(circle at 50% 45%,#7b3cff,#1c0f6b 40%,#03021a 75%);background-size:100% 100%}
+.c190-exclusive{position:relative;border-color:#ffd34d!important;box-shadow:0 0 0 1px rgba(255,211,77,.35),0 8px 30px rgba(255,190,40,.18)}
+.c190-exclusive::before{content:'EXCLUSIF';position:absolute;top:.5rem;right:.5rem;z-index:3;padding:.15rem .5rem;border-radius:999px;font-size:.68rem;font-weight:800;letter-spacing:.08em;color:#2b1d00;background:linear-gradient(90deg,#ffe28a,#ffc23d)}
+.c190-x3{border-color:#9d8cff!important;box-shadow:0 0 0 1px rgba(157,140,255,.5),0 10px 40px rgba(90,60,255,.35)}
+.c190-x3::before{content:'ULTRA-EXCLUSIF';color:#fff;background:linear-gradient(90deg,#ff7eb3,#7c5cff,#2ec5ff)}
