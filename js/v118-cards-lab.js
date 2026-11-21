@@ -1670,7 +1670,12 @@ async function flushSave(){
 function setSaveLabel(t){const el=document.getElementById('dlfr129Save');if(el){el.textContent=t;el.classList.toggle('is-warn',SAVE.tainted||SAVE.conflict);}}
 function saveLabel(){return SAVE.tainted?'SESSION DE TEST · NON SAUVEGARDÉE':!SAVE.loaded?(userId?'Chargement de ta partie…':'Connecte-toi pour sauvegarder'):SAVE.status||'✓ Sauvegardé';}
 window.addEventListener('beforeunload',e=>{if(SAVE.timer&&SAVE.loaded&&!SAVE.tainted&&!SAVE.conflict&&!SAVE.saving&&document.getElementById('dlfr112Lab')){clearTimeout(SAVE.timer);flushSave();}});
-function repaint(){scheduleSave();const p=document.getElementById('dlfr112Lab');if(p){const y=window.scrollY;p.outerHTML=viewPage(srcData());window.scrollTo(0,y);if(document.getElementById('dlfr127Cards'))window.DLFR_CARDS?.refresh?.();if(document.getElementById('dlfr139Advent'))window.DLFR_ADVENT?.refresh?.();if(document.getElementById('dlfr160Boss')||document.getElementById('dlfr160Season'))window.DLFR_SEASON?.refresh?.();if(document.getElementById('dlfr163Trades'))window.DLFR_TRADES?.refresh?.();}}
+// V189 : la liste de la Forge a sa propre barre de défilement. Le réaffichage la remettait tout en haut
+// à chaque clic : on garde sa position, et si la carte choisie a bougé (tri par étoiles), on la ramène en vue.
+function keepForgeScroll(top){const l=document.querySelector('#dlfr112Lab .dlfr117-forge-list');if(!l)return;l.scrollTop=top;
+ const it=l.querySelector('.dlfr117-forge-item.is-current');if(!it)return;const a=it.offsetTop-l.offsetTop,h=it.offsetHeight;
+ if(a<l.scrollTop)l.scrollTop=a-4;else if(a+h>l.scrollTop+l.clientHeight)l.scrollTop=a+h-l.clientHeight+4;}
+function repaint(){scheduleSave();const p=document.getElementById('dlfr112Lab');if(p){const y=window.scrollY,ls=p.querySelector('.dlfr117-forge-list')?.scrollTop||0;p.outerHTML=viewPage(srcData());window.scrollTo(0,y);keepForgeScroll(ls);if(document.getElementById('dlfr127Cards'))window.DLFR_CARDS?.refresh?.();if(document.getElementById('dlfr139Advent'))window.DLFR_ADVENT?.refresh?.();if(document.getElementById('dlfr160Boss')||document.getElementById('dlfr160Season'))window.DLFR_SEASON?.refresh?.();if(document.getElementById('dlfr163Trades'))window.DLFR_TRADES?.refresh?.();}}
 function reset(){owned.clear();overrides.clear();journal.length=0;selected=CARDS[0]?.id||0;query='';filter='all';Object.assign(progress,freshProgress());forgeSel=0;arTeam=[];arStop();ARENA.fight=null;if(OPEN.st){OPEN.st=null;unmountOpening(true);}}
 // V165 — anti-autoclicker / macros. 3 alertes en 24 h = cartes Ultra et Secrètes retirées (côté serveur).
 const ANTI_ZONE='#dlfr112Lab,#dlfr117Open,#dlfr160Boss,#dlfr160Season,#dlfr163Trades,#dlfr139Advent';
