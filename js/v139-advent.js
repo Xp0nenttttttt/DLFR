@@ -17,7 +17,7 @@ function fig(r){const L=LAB();return L?.figure?L.figure(mk(r),S.ctx?.data||{},tr
 
 async function load(force){
  const db=S.ctx?.db;if(!db||S.loading||(S.loaded&&!force))return;S.loading=true;
- try{const [st,k,it]=await Promise.all([db.rpc('dlfr_advent_status'),db.from('dlfr_cards').select('*').order('sort_order'),db.from('dlfr_reward_catalog').select('item_key,label,emoji,category,description,sort_order').order('category').order('sort_order')]);
+ try{const [st,k,it]=await Promise.all([db.rpc('dlfr_advent_status'),(window.DLFR_CARDS_CATALOG?window.DLFR_CARDS_CATALOG.load(db,false).then(r=>r.cards):db.from('dlfr_cards').select('*').order('sort_order')),db.from('dlfr_reward_catalog').select('item_key,label,emoji,category,description,sort_order').order('category').order('sort_order')]);
   if(st.error)throw st.error;if(k.error)throw k.error;S.status=st.data||{};S.cards=k.data||[];S.items=it.error?[]:(it.data||[]);S.loaded=true;S.error='';}
  catch(e){S.error=e.message||'Calendrier indisponible.';}
  finally{S.loading=false;paint();}

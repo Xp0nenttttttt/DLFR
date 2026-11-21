@@ -18,9 +18,9 @@ async function load(force=false){
  const db=S.ctx?.db;if(!db||S.loading||(S.loaded&&!force))return;
  S.loading=true;
  try{
+  const cat=window.DLFR_CARDS_CATALOG?window.DLFR_CARDS_CATALOG.load(db,!!force).then(r=>r):Promise.all([db.from('dlfr_card_collections').select('*').order('sort_order'),db.from('dlfr_cards').select('*').order('sort_order')]).then(([a,b])=>({collections:a,cards:b}));
   const [c,k,st,lb,oc]=await Promise.all([
-   db.from('dlfr_card_collections').select('*').order('sort_order'),
-   db.from('dlfr_cards').select('*').order('sort_order'),
+   cat.then(r=>r.collections),cat.then(r=>r.cards),
    db.rpc('dlfr_cards_status'),Promise.resolve({data:[]}),db.rpc('dlfr_cards_owner_counts')]); // V169 : jeu solo, plus de classement
   if(c.error)throw c.error;if(k.error)throw k.error;if(st.error)throw st.error;
   S.board=lb.error?[]:(lb.data||[]);S.owners=oc.error?{}:(oc.data||{});

@@ -520,12 +520,41 @@ async function refreshPendingPlayerNotes(){
 const CACHEABLE_TABLES=new Set(['players','demons','completions','player_profiles','badge_awards','news_items','site_settings','profile_titles','player_profile_titles','hall_of_fame']);
 let dataStamps=null;
 async function loadDataStamps(){try{const {data,error}=await db.rpc('dlfr_data_stamps');dataStamps=error?null:(data||null);}catch{dataStamps=null;}}
+// V192 : la copie locale passe dans IndexedDB. localStorage (≈ 5 Mo) était trop petit : la liste des niveaux
+// à elle seule le remplissait presque, les autres tables n'étaient plus gardées et se retéléchargeaient
+// à chaque visite. L'empreinte (journal des modifications, alimenté par des déclencheurs sur chaque table)
+// suffit à savoir si une table a changé : la copie reste valable 30 jours au lieu de 24 h.
+const CACHE_DB=(()=>{let p=null;const open=()=>p||(p=Promise.race([new Promise((res,rej)=>{try{const r=indexedDB.open('dlfr-cache',1);r.onupgradeneeded=()=>r.result.createObjectStore('t');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}}),new Promise((_,rej)=>setTimeout(()=>rej(Error('idb lent')),2000))]).catch(()=>null));
+ const run=(mode,fn)=>open().then(db=>db?new Promise(res=>{try{const tx=db.transaction('t',mode),q=fn(tx.objectStore('t'));tx.oncomplete=()=>res(q?.result??null);tx.onerror=tx.onabort=()=>res(null);}catch{res(null);}}):null);
+ return {get:k=>run('readonly',st=>st.get(k)),set:(k,v)=>run('readwrite',st=>{st.put(v,k);return null;})};})();
+try{for(const k of Object.keys(localStorage))if(/^dlfr-cache-v1s?:/.test(k))localStorage.removeItem(k);}catch{}
+// V192 : catalogue des cartes partagé par tous les onglets Cartes (Aventure, Collection, Avent, Saison, Échanges).
+// Avant, chaque onglet retéléchargeait toutes les cartes à chaque ouverture (≈ 2 000 fois par jour).
+// Copie locale gardée tant que l'empreinte des tables dlfr_cards / dlfr_card_collections ne change pas.
+window.DLFR_CARDS_CATALOG=(()=>{let mem=null,pending=null;
+ const fetchAll=c=>Promise.all([c.from('dlfr_card_collections').select('*').order('sort_order',{ascending:true}).order('id',{ascending:true}),
+  c.from('dlfr_cards').select('*').order('sort_order',{ascending:true}).order('id',{ascending:true})]);
+ async function load(c,force){
+  c=c||db;if(!c)return {collections:{data:[],error:Error('Hors ligne')},cards:{data:[],error:Error('Hors ligne')}};
+  if(!force&&mem&&Date.now()-mem.at<5*6e4)return mem.res;
+  if(pending&&!force)return pending;
+  pending=(async()=>{
+   let st=dataStamps;if(force||!st||st.dlfr_cards==null){try{const r=await c.rpc('dlfr_data_stamps');if(!r.error&&r.data){st=r.data;dataStamps={...(dataStamps||{}),...r.data};}}catch{}}
+   const stamp=st&&st.dlfr_cards!=null?`${st.dlfr_cards}.${st.dlfr_card_collections}`:null,k=(state.staff?'s:':'p:')+'cards';
+   if(stamp){const x=await CACHE_DB.get(k);if(x&&x.stamp===stamp&&Array.isArray(x.cards)&&Array.isArray(x.cols)&&Date.now()-x.at<30*864e5){const res={collections:{data:x.cols,error:null},cards:{data:x.cards,error:null}};mem={at:Date.now(),res};return res;}}
+   const [col,cards]=await fetchAll(c),res={collections:col,cards};
+   if(!col.error&&!cards.error){mem={at:Date.now(),res};if(stamp)CACHE_DB.set(k,{stamp,at:Date.now(),cols:col.data||[],cards:cards.data||[]});}
+   return res;
+  })();
+  try{return await pending;}finally{pending=null;}
+ }
+ return {load,clear(){mem=null;}};})();
 async function readCached(name){
  if(!LIVE||!dataStamps||!CACHEABLE_TABLES.has(name)||dataStamps[name]==null)return readAll(name);
- const stamp=dataStamps[name],k=(state.staff?'dlfr-cache-v1s:':'dlfr-cache-v1:')+name; // copie séparée pour l'équipe (niveaux masqués inclus)
- try{const raw=localStorage.getItem(k);if(raw){const c=JSON.parse(raw);if(c&&c.stamp===stamp&&Array.isArray(c.rows)&&Date.now()-c.at<864e5)return c.rows;}}catch{}
+ const stamp=dataStamps[name],k=(state.staff?'s:':'p:')+name; // copie séparée pour l'équipe (niveaux masqués inclus)
+ const c=await CACHE_DB.get(k);if(c&&c.stamp===stamp&&Array.isArray(c.rows)&&Date.now()-c.at<30*864e5)return c.rows;
  const rows=await readAll(name);
- try{localStorage.setItem(k,JSON.stringify({stamp,at:Date.now(),rows}));}catch{try{localStorage.removeItem(k);}catch{}}
+ CACHE_DB.set(k,{stamp,at:Date.now(),rows});
  return rows;
 }
 async function refreshLiveData(){

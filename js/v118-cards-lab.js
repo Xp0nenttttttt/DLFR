@@ -1327,7 +1327,8 @@ async function loadCatalog(){
  if(!DB)return;catalog.status='loading';
  try{
   DB.rpc('dlfr_cards_config_get').then(({data})=>{applyOdds(data);repaint();}).catch(()=>{});
-  const [c,k]=await Promise.all([
+  // V192 : catalogue partagé et gardé en copie locale (l'équipe recharge toujours la version à jour).
+  const [c,k]=window.DLFR_CARDS_CATALOG?await window.DLFR_CARDS_CATALOG.load(DB,editor).then(r=>[r.collections,r.cards]):await Promise.all([
    DB.from('dlfr_card_collections').select('*').order('sort_order',{ascending:true}).order('id',{ascending:true}),
    DB.from('dlfr_cards').select('id,collection_id,name,card_type,rarity,description,image_url,in_packs,sort_order').order('sort_order',{ascending:true}).order('id',{ascending:true})]);
   if(c.error)throw c.error;if(k.error)throw k.error;
@@ -1639,10 +1640,12 @@ async function syncCards(){
  const delta={};const ids=new Set([...owned.keys(),...serverCounts.keys()]);
  for(const id of ids){if(!get(id))continue; /* carte inconnue du navigateur (collection en préparation…) : on n'y touche pas */const d=(owned.get(id)?.count||0)-(serverCounts.get(id)||0);if(d)delta[id]=d;}
  if(!Object.keys(delta).length)return;
- const {data,error}=await DB.rpc('dlfr_adventure_sync',{p_delta:delta,p_import:false});if(error)throw error;
+ const {data,error}=await DB.rpc('dlfr_adventure_sync',{p_delta:delta,p_import:false,p_partial:true});if(error)throw error; // V192 : réponse allégée
  const sent=new Map(Object.entries(delta).map(([k,v])=>[Number(k),v]));
  // Le serveur fait foi pour ce qui a été envoyé ; on conserve ce qui a changé pendant l'envoi.
- const next=new Map(Object.entries(data?.inventory||{}).map(([k,v])=>[Number(k),Number(v)||0]));
+ let next=new Map(Object.entries(data?.inventory||{}).map(([k,v])=>[Number(k),Number(v)||0]));
+ // V192 : réponse partielle = seulement les cartes envoyées (absente = 0 exemplaire) ; le reste ne change pas.
+ if(data?.partial){const part=next;next=new Map(serverCounts);for(const id of sent.keys()){const v=part.get(id)||0;if(v>0)next.set(id,v);else next.delete(id);}}
  for(const id of new Set([...next.keys(),...sent.keys(),...serverCounts.keys()])){
   const expected=(serverCounts.get(id)||0)+(sent.get(id)||0),pendingLocal=(owned.get(id)?.count||0)-expected,count=Math.max(0,(next.get(id)||0)+pendingLocal);
   const cur=owned.get(id);if(count>0){if(get(id)){const x=cur||{count:0,finish:0,stars:0};x.count=count;owned.set(id,x);}}else owned.delete(id);
@@ -1653,17 +1656,19 @@ async function syncCards(){
  queueTotal=Number(data?.queue_total)||0;
  for(const b of data?.bonuses||[])toast('Collection complète !',`${b.collection} : +${b.coins} Wayllings dorés`,'achievement');
  if(Number(data?.capped)>0||Number(data?.delivered)>0||(data?.bonuses||[]).length)setTimeout(repaint,0);
- window.DLFR_CARDS?.invalidate?.(data?.inventory||null); // V177 : inventaire transmis, pas de nouvelle requête
+ window.DLFR_CARDS?.invalidate?.(data?.partial?Object.fromEntries(next):(data?.inventory||null)); // V177 : inventaire transmis, pas de nouvelle requête
 }
 function scheduleSave(){
  if(!SAVE.loaded||SAVE.tainted||SAVE.conflict||!DB||!userId)return;
- const d=SAVE.urgent?60:1200;SAVE.urgent=false;
- clearTimeout(SAVE.timer);SAVE.timer=setTimeout(flushSave,d);setSaveLabel('Sauvegarde…');
+ // V192 : au plus une sauvegarde toutes les 2,5 s après un booster, toutes les 12 s sinon (avant : jusqu'à 1 par seconde).
+ const now=Date.now(),gap=SAVE.urgent?2500:12000,d=Math.max(SAVE.urgent?60:1200,(SAVE.last||0)+gap-now);SAVE.urgent=false;
+ if(SAVE.timer&&SAVE.due&&SAVE.due<=now+d)return setSaveLabel('Sauvegarde…');
+ clearTimeout(SAVE.timer);SAVE.due=now+d;SAVE.timer=setTimeout(flushSave,d);setSaveLabel('Sauvegarde…');
 }
 async function flushSave(){
- SAVE.timer=0;if(SAVE.tainted||SAVE.conflict||!SAVE.loaded){setSaveLabel(saveLabel());return;}
+ SAVE.timer=0;SAVE.due=0;if(SAVE.tainted||SAVE.conflict||!SAVE.loaded){setSaveLabel(saveLabel());return;}
  if(SAVE.saving){SAVE.pending=true;return;}
- SAVE.saving=true;
+ SAVE.saving=true;SAVE.last=Date.now();
  try{await syncCards();const {data,error}=await DB.rpc('dlfr_adventure_save',{p_save:sessionObject(),p_version:SAVE.version});
   if(error){if(/conflict/.test(error.message||'')){SAVE.conflict=true;SAVE.status='⚠ Progression modifiée ailleurs : recharge la page.';antiStatus();}else throw error;}
   else if(Number(data)===0){SAVE.conflict=true;SAVE.status='⚠ Progression remise à zéro : recharge la page.';antiStatus();}
@@ -1673,6 +1678,7 @@ async function flushSave(){
 }
 function setSaveLabel(t){const el=document.getElementById('dlfr129Save');if(el){el.textContent=t;el.classList.toggle('is-warn',SAVE.tainted||SAVE.conflict);}}
 function saveLabel(){return SAVE.tainted?'SESSION DE TEST · NON SAUVEGARDÉE':!SAVE.loaded?(userId?'Chargement de ta partie…':'Connecte-toi pour sauvegarder'):SAVE.status||'✓ Sauvegardé';}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&SAVE.timer&&SAVE.loaded&&!SAVE.tainted&&!SAVE.conflict&&!SAVE.saving){clearTimeout(SAVE.timer);flushSave();}}); // V192 : onglet quitté = sauvegarde tout de suite
 window.addEventListener('beforeunload',e=>{if(SAVE.timer&&SAVE.loaded&&!SAVE.tainted&&!SAVE.conflict&&!SAVE.saving&&document.getElementById('dlfr112Lab')){clearTimeout(SAVE.timer);flushSave();}});
 // V189 : la liste de la Forge a sa propre barre de défilement. Le réaffichage la remettait tout en haut
 // à chaque clic : on garde sa position, et si la carte choisie a bougé (tri par étoiles), on la ramène en vue.

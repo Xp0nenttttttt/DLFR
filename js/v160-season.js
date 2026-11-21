@@ -13,7 +13,7 @@ function left(dateStr){const ms=new Date(`${dateStr}T00:00:00+01:00`)-Date.now()
 
 async function load(force){
  const db=S.ctx?.db;if(!db||S.loading||(S.loaded&&!force))return;S.loading=true;
- try{const [b,s,k]=await Promise.all([db.rpc('dlfr_boss_status'),db.rpc('dlfr_season_status'),S.cards.length&&!force?{data:S.cards}:db.from('dlfr_cards').select('id,name,rarity,card_type,image_url,collection_id').order('sort_order')]);
+ try{const [b,s,k]=await Promise.all([db.rpc('dlfr_boss_status'),db.rpc('dlfr_season_status'),S.cards.length&&!force?{data:S.cards}:window.DLFR_CARDS_CATALOG?window.DLFR_CARDS_CATALOG.load(db,false).then(r=>r.cards):db.from('dlfr_cards').select('id,name,rarity,card_type,image_url,collection_id').order('sort_order')]);
   if(b.error)throw b.error;if(s.error)throw s.error;S.boss=b.data||{};S.season=s.data||{};if(!k.error)S.cards=k.data||[];S.loaded=true;S.error='';}
  catch(e){S.error=e.message||'Indisponible pour le moment.';}
  finally{S.loading=false;paint();}
