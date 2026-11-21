@@ -1,0 +1,7 @@
+-- V187 (appliqué le 21/11/2026) : badges « Équipe DLFR ».
+-- Catalogue (dlfr_badge_catalog) : staff-helper, staff-list-helper, staff-moderateur, staff-list-mod, staff-admin,
+--   staff-owner (badge du rôle actuel, remplacé automatiquement quand le rôle change),
+--   staff-ancien (donné quand on quitte l'équipe), staff-review-50 / 250 / 1000 (soumissions traitées, définitifs).
+-- public.dlfr_sync_staff_badges() recalcule tout ; déclenchée (for each statement) par les modifications de
+--   staff_roles, nlw_staff_roles, player_profile_owners et du statut de level_submissions.
+-- Les badges vont sur la fiche joueur reliée au compte (player_profile_owners).

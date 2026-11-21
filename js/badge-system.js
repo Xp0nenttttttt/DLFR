@@ -3,9 +3,9 @@
  * Ici : affichage + simulation locale (démo). */
 (function(){'use strict';
 const rarities=['Beginner','Impressive','Epic','Légendaire','Mythique','Ultra'];
-const categories=[{id:1,name:'Progression Demonlist'},{id:5,name:'Vérifications'},{id:2,name:'Progression NLW'},{id:3,name:'Exploits UNRATED'},{id:4,name:'Distinctions & classements'},{id:6,name:'Événements'}];
+const categories=[{id:1,name:'Progression Demonlist'},{id:5,name:'Vérifications'},{id:2,name:'Progression NLW'},{id:3,name:'Exploits UNRATED'},{id:4,name:'Distinctions & classements'},{id:6,name:'Événements'},{id:7,name:'Équipe DLFR'}];
 // [id, nom, rareté, catégorie, icône, règle, seuil, description, indice (badge non obtenu)]
-// Règles : list | main | nlw | unrated | top75 | all150 | beat_pos | verif | verif_pos | manual
+// Règles : list | main | nlw | unrated | top75 | all150 | beat_pos | verif | verif_pos | manual | staff (V187, attribués par Supabase selon le rôle)
 const specs=[
  ['bienvenue-club','Bienvenue au club','Impressive',1,'🎟️','list',1,'Premier niveau du Top 150 battu à 100 %.','Bats un niveau du Top 150.'],
  ['dix','Dix','Impressive',1,'🔟','list',10,'10 niveaux différents du Top 150 battus.','Bats 10 niveaux du Top 150.'],
@@ -38,6 +38,16 @@ const specs=[
  ['goat-pays','Le Goat tout simplement','Ultra',4,'🐐','manual',null,'Désigné meilleur joueur du pays par la modération.','Une distinction décernée par la modération.'],
  ['goat-region','Le Goat de ta région','Mythique',4,'🦁','manual',null,'Désigné meilleur joueur de sa région par la modération.','Une distinction décernée par la modération.'],
  ['clash-clans','Clash of Clans','Légendaire',4,'🏰','manual',null,'Distinction de clan décernée par la modération.','Une distinction décernée par la modération.'],
+ ['staff-helper','Helper','Epic',7,'🧩','staff',null,'Membre de l’équipe : Helper (niveaux NLW).','Réservé à l’équipe de la DLFR.'],
+ ['staff-list-helper','List helper','Légendaire',7,'📋','staff',null,'Membre de l’équipe : List helper (Top 150 et NLW).','Réservé à l’équipe de la DLFR.'],
+ ['staff-moderateur','Modérateur','Légendaire',7,'🛡️','staff',null,'Membre de l’équipe : modérateur du serveur Discord.','Réservé à l’équipe de la DLFR.'],
+ ['staff-list-mod','List mod','Mythique',7,'📜','staff',null,'Membre de l’équipe : List mod (administration du site).','Réservé à l’équipe de la DLFR.'],
+ ['staff-admin','Admin','Mythique',7,'⚙️','staff',null,'Membre de l’équipe : admin du site et du serveur.','Réservé à l’équipe de la DLFR.'],
+ ['staff-owner','Owner','Ultra',7,'👑','staff',null,'Owner de la DemonlistFrancophone.','Réservé aux owners de la DLFR.'],
+ ['staff-ancien','Ancien du staff','Epic',7,'🎖️','staff',null,'A fait partie de l’équipe de la DLFR.','Pour ceux qui ont fait partie de l’équipe.'],
+ ['staff-review-50','Correcteur','Epic',7,'✍️','staff',null,'50 soumissions traitées en modération.','Traite 50 soumissions en modération.'],
+ ['staff-review-250','Infatigable','Légendaire',7,'🔥','staff',null,'250 soumissions traitées en modération.','Traite 250 soumissions en modération.'],
+ ['staff-review-1000','Machine de guerre','Mythique',7,'🤖','staff',null,'1 000 soumissions traitées en modération.','Traite 1 000 soumissions en modération.'],
  ['crise-tcg','A traversé la grande crise du TCG','Légendaire',6,'🃏','manual',null,'Était là pendant la grande crise des DLFR Cards de novembre 2026 (sauvegardes perdues, cartes disparues, chasse aux autoclickers).','Un badge d’événement, réservé à ceux qui étaient là.']
 ];
 const defs=specs.map(([id,label,rarity,category_id,symbol,rule,threshold,description,hint])=>({id,label,rarity,category_id,symbol,rule,threshold:threshold||null,automatic:rule!=='manual',manual:rule==='manual',description:description||'',hint:hint||''}));
