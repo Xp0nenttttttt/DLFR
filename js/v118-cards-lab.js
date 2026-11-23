@@ -1374,7 +1374,7 @@ function useFallback(){COLLECTIONS=FALLBACK_COLLECTIONS.map(c=>({...c}));CARDS.l
 async function loadCatalog(){
  if(!DB)return;catalog.status='loading';
  try{
-  Promise.all([DB.rpc('dlfr_cards_packs_get').catch(()=>({data:null})),DB.rpc('dlfr_cards_config_get')]).then(([pk,od])=>{LAST_ODDS=od?.data&&typeof od.data==='object'?od.data:null;applyPacks(pk?.data||null);repaint();}).catch(()=>{}); // V195
+  Promise.all([Promise.resolve(DB.rpc('dlfr_cards_packs_get')).catch(()=>({data:null})),DB.rpc('dlfr_cards_config_get')]).then(([pk,od])=>{LAST_ODDS=od?.data&&typeof od.data==='object'?od.data:null;applyPacks(pk?.data||null);repaint();}).catch(()=>{}); // V195
   // V192 : catalogue partagé et gardé en copie locale (l'équipe recharge toujours la version à jour).
   const [c,k]=window.DLFR_CARDS_CATALOG?await window.DLFR_CARDS_CATALOG.load(DB,editor).then(r=>[r.collections,r.cards]):await Promise.all([
    DB.from('dlfr_card_collections').select('*').order('sort_order',{ascending:true}).order('id',{ascending:true}),
