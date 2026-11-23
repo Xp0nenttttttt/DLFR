@@ -557,7 +557,11 @@ async function readCached(name){
  CACHE_DB.set(k,{stamp,at:Date.now(),rows});
  return rows;
 }
+// V194 : styles des cosmétiques créés depuis le site (petite requête, une fois par visite).
+let v194StylesLoaded=false;
+function v194LoadStyles(){if(v194StylesLoaded||!LIVE||!db)return;v194StylesLoaded=true;db.from('dlfr_reward_catalog').select('item_key,category,style').not('style','is',null).then(({data,error})=>{if(!error&&data?.length)window.DLFR_DECO?.setStyles?.(data);},()=>{v194StylesLoaded=false;});}
 async function refreshLiveData(){
+ v194LoadStyles();
  state.modLeaderboardReady=false;
  ++dataGeneration; // Invalider les chargements optionnels antérieurs à une modification.
  resetRenderCalculations();
@@ -1013,9 +1017,58 @@ function v86AdminHTML(){
  const monday=new Date();const dow=(monday.getUTCDay()+6)%7;monday.setUTCDate(monday.getUTCDate()-dow);const week=monday.toISOString().slice(0,10);
  return `<section class="paper v86-owner" id="v86-owner"><h2>📅 Défis hebdomadaires</h2><p class="muted small">Programme plusieurs semaines à l'avance. La publication est automatique chaque lundi à 00:00 UTC.</p>
  <form data-form="v86Weekly" class="v86-weekly-form"><label class="field">Semaine (lundi UTC)<input name="week_start" type="date" required value="${week}"></label><label class="field">Niveau<select name="demon_id" required><option value="">Choisir un niveau public</option>${(state.data?.demons||[]).filter(d=>d.is_public!==false).sort((a,b)=>String(a.name).localeCompare(String(b.name),'fr')).map(d=>`<option value="${esc(d.id)}">${esc(d.name)} · #${esc(d.position)}</option>`).join('')}</select></label><label class="field">Wayllings dorés<input type="number" name="reward" min="1" max="500" value="50" required></label><button class="btn" type="submit">Ajouter / modifier la semaine</button></form>
- <div id="v86-schedule"><p class="small muted">Chargement du calendrier…</p></div><h2>🧪 Essais de la boutique</h2><p class="small muted">Accès de test réservé à ton compte. Aucun achat ni dépense : tu peux essayer les objets depuis la boutique et retirer leurs accès ici.</p><div id="v86-cosmetics"><p class="small muted">Chargement des objets…</p></div><p class="small muted">Après avoir activé un essai, retrouve ton objet dans l’espace Boutique et équipe-le sans aucun achat.</p><a class="btn small" data-nav href="${url('shop')}">✦ Ouvrir la boutique ↗</a></section>`;
+ <div id="v86-schedule"><p class="small muted">Chargement du calendrier…</p></div><h2>🧪 Essais de la boutique</h2><p class="small muted">Accès de test réservé à ton compte. Aucun achat ni dépense : tu peux essayer les objets depuis la boutique et retirer leurs accès ici.</p><div id="v86-cosmetics"><p class="small muted">Chargement des objets…</p></div><p class="small muted">Après avoir activé un essai, retrouve ton objet dans l’espace Boutique et équipe-le sans aucun achat.</p><a class="btn small" data-nav href="${url('shop')}">✦ Ouvrir la boutique ↗</a>${v194CosmeticEditorHTML()}</section>`;
+}
+// V194 — Éditeur de cosmétiques (owners) : créer ou modifier pseudos, bannières, cadres, fonds de fiche et badges
+// sans toucher au code. Le style (2 à 4 couleurs + animation) est stocké dans dlfr_reward_catalog.style.
+const V194={items:[],edit:null,undo:null};
+const V194_CATS={name:'Couleur de pseudo',banner:'Bannière',frame:'Cadre',card:'Fond de fiche',badge:'Badge',theme:'Thème (modification seulement)'};
+const V194_DEF={name:['#ff5ea8','#7c5cff','#2ec5ff'],banner:['#120a35','#5b2bd6','#ff6fb1'],frame:['#ffd34d','#ff7a3d','#ff3d8b'],card:['#0b1e3d','#1e6ad6','#47e0ff'],badge:['#fff3b0','#ffb020','#c2410c']};
+function v194CosmeticEditorHTML(){
+ return `<h2>🎨 Cosmétiques de la boutique</h2><p class="small muted">Crée un nouvel objet ou modifie un objet existant. Les pseudos, bannières, cadres, fonds de fiche et badges se dessinent à partir de 2 à 4 couleurs. Un objet décoché « En vente » disparaît de la boutique mais reste à ceux qui l’ont déjà. Les nouveaux thèmes complets demandent du code.</p><div id="v194-cosm"><p class="small muted">Chargement des cosmétiques…</p></div>`;
+}
+function v194FormHTML(it){
+ const cat=it?.category||'name',st=it?.style||{c:V194_DEF[cat]||V194_DEF.name,anim:true},cols=(st.c||[]).slice(0,4);while(cols.length<4)cols.push('#ffffff');const n=Math.max(2,Math.min(4,(st.c||[]).length||3));
+ const dt=v=>v?new Date(v).toISOString().slice(0,16):'';
+ return `<form data-form="v194Cosmetic" class="v194-form"><input type="hidden" name="existing" value="${esc(it?.item_key||'')}">
+ <div class="v194-grid"><label class="field">Catégorie<select name="category" ${it?'disabled':''}>${Object.entries(V194_CATS).filter(([k])=>it||k!=='theme').map(([k,l])=>`<option value="${k}" ${cat===k?'selected':''}>${l}</option>`).join('')}</select></label>
+ <label class="field">Identifiant<span class="v194-key"><b data-v194-prefix>${esc(cat)}_</b><input name="slug" required pattern="[a-z0-9_]{1,34}" value="${esc(it?String(it.item_key).slice(cat.length+1):'')}" ${it?'readonly':''} placeholder="ex. foret_enchantee"></span></label>
+ <label class="field">Nom<input name="label" required maxlength="60" value="${esc(it?.label||'')}" placeholder="Pseudo Forêt"></label>
+ <label class="field">Emoji<input name="emoji" maxlength="8" value="${esc(it?.emoji||'✦')}"></label>
+ <label class="field v194-wide">Description<input name="description" maxlength="200" value="${esc(it?.description||'')}" placeholder="Une phrase affichée dans la boutique."></label>
+ <label class="field">Prix (Wayllings)<input name="price" type="number" min="1" max="100000" required value="${esc(it?.price||300)}"></label>
+ <label class="field">Rareté<select name="rarity">${['Commun','Rare','Épique','Légendaire','Mythique'].map(r=>`<option ${String(it?.rarity||'Rare')===r?'selected':''}>${r}</option>`).join('')}</select></label>
+ ${cat==='theme'||(it&&!it.style)?`<p class="small muted v194-wide">Style d’origine dessiné à la main : il est conservé. Ici, seuls le nom, la description, le prix, la rareté et la mise en vente se modifient.</p>`:`<div class="field v194-wide"><span>Couleurs</span><div class="v194-colors">${cols.map((c,i)=>`<input type="color" name="c${i}" value="${esc(c)}" ${i>=n?'data-off':''} aria-label="Couleur ${i+1}">`).join('')}<select name="ncolors" aria-label="Nombre de couleurs">${[2,3,4].map(x=>`<option value="${x}" ${x===n?'selected':''}>${x} couleurs</option>`).join('')}</select><label class="v194-check"><input type="checkbox" name="anim" ${st.anim?'checked':''}> Animé</label></div></div>`}
+ <label class="field">Édition limitée : début<input type="datetime-local" name="from" value="${dt(it?.available_from)}"></label>
+ <label class="field">Édition limitée : fin<input type="datetime-local" name="until" value="${dt(it?.available_until)}"></label>
+ <label class="v194-check v194-wide"><input type="checkbox" name="active" ${it?.active===false?'':'checked'}> En vente dans la boutique</label></div>
+ <div class="v194-preview" data-v194-preview></div>
+ <div class="v194-actions"><button class="btn" type="submit">${it?'Enregistrer les modifications':'Créer le cosmétique'}</button>${it?'<button class="btn subtle" type="button" data-v194-new>Nouveau cosmétique</button>':''}</div></form>`;
+}
+function v194Render(){
+ const host=document.getElementById('v194-cosm');if(!host)return;
+ const it=V194.edit?V194.items.find(x=>x.item_key===V194.edit):null;
+ host.innerHTML=v194FormHTML(it)+`<div class="v194-list">${Object.keys(V194_CATS).map(cat=>{const l=V194.items.filter(x=>x.category===cat);return l.length?`<h4>${esc(V194_CATS[cat].replace(/ \(.*\)/,''))} · ${l.length}</h4>${l.map(x=>`<div class="v86-row ${x.active===false?'is-off':''}"><div>${esc(x.emoji||'✦')} <b>${esc(x.label)}</b> <span class="muted small">${esc(x.item_key)} · ✦ ${esc(x.price)} · ${esc(x.rarity||'')}${x.active===false?' · retiré de la vente':''}${x.style?' · créé depuis le site':''}</span></div><button type="button" class="btn subtle small" data-v194-edit="${esc(x.item_key)}">Modifier</button></div>`).join('')}`:'';}).join('')}</div>`;
+ v194Preview();
+}
+function v194Style(form){const n=Number(form.ncolors?.value||3),c=[];for(let i=0;i<n;i++)c.push(form['c'+i].value);return {c,anim:!!form.anim?.checked};}
+function v194Preview(){
+ const form=document.querySelector('[data-form="v194Cosmetic"]');if(!form)return;const box=form.querySelector('[data-v194-preview]');
+ const cat=form.category.value;form.querySelector('[data-v194-prefix]').textContent=cat+'_';
+ form.querySelectorAll('.v194-colors input[type=color]').forEach((x,i)=>x.toggleAttribute('data-off',i>=Number(form.ncolors?.value||3)));
+ if(cat==='theme'||!form.c0){const k0=form.existing.value;box.innerHTML=cat==='theme'?'<p class="small muted">Aperçu : utilise « Essayer » dans la boutique.</p>':`<span class="small muted">Aperçu</span><div class="dlfr109-item v194-shopcard"><div class="dlfr109-item-art dlfr109-category-${esc(cat)}">${DECO.preview(k0,3,form.emoji.value||'✦')||''}</div></div>`;return;}
+ const key=cat+'_'+(form.slug.value||'apercu').replace(/[^a-z0-9_]/g,'')||cat+'_apercu';
+ if(V194.undo)V194.undo();V194.undo=DECO.previewStyle?DECO.previewStyle(key,cat,v194Style(form)):null;
+ box.innerHTML=`<span class="small muted">Aperçu (comme dans la boutique)</span><div class="dlfr109-item v194-shopcard"><div class="dlfr109-item-art dlfr109-category-${esc(cat)}">${DECO.preview(key,3,form.emoji.value||'✦')||''}<span class="dlfr109-art-emoji" aria-hidden="true">${esc(form.emoji.value||'✦')}</span></div></div>`;
+}
+async function v194Load(){
+ if(!document.getElementById('v194-cosm')||!db)return;
+ const {data,error}=await db.rpc('dlfr_owner_cosmetics_list');
+ if(error){document.getElementById('v194-cosm').textContent='Erreur de chargement : '+error.message;return;}
+ V194.items=data||[];DECO.setStyles?.(V194.items);v194Render();
 }
 async function v86AdminLoad(){
+ v194Load();
  const host=document.getElementById('v86-owner');if(!host||!db)return;
  const seq=++v86Loading;
  try{
@@ -1076,6 +1129,7 @@ async function v81RewardsRender(){
   const [sr,cr,ir,gr]=await Promise.all([db.rpc('dlfr_rewards_status'),db.from('dlfr_reward_catalog').select('*').eq('active',true).order('price'),
     inShop?db.rpc('dlfr_shop_info'):Promise.resolve({data:null}),inShop&&state.session?db.rpc('dlfr_reward_gifts_inbox',{p_mark_seen:false}):Promise.resolve({data:[]})]);
   if(sr.error)throw sr.error;if(cr.error)throw cr.error;
+  DECO.setStyles?.(cr.data||[]); // V194 : cosmétiques créés depuis le site
   if(seq!==v81Request||!area.isConnected)return;
   const status=sr.data||{},owns=new Set(status.inventory||[]),equip=status.equipped||{};
   v96ApplyHalloweenStatus(status);
@@ -2809,7 +2863,7 @@ function clansPage(){
    return `<div class="clan-v22-member"><div><a data-nav class="link" href="${url('player',{player:m.player_key})}"><strong>${esc(who(m.player_key))}</strong></a><span class="tag">${roleTag(m.role)}</span></div><b>${fmt(person?.score||0)} pts</b>${memberActions}</div>`;
   }).join('');
   const finished=[...selected.entries].sort((a,b)=>Number(a.demon.position)-Number(b.demon.position));
-  const completedHtml=finished.slice(0,100).map(e=>`<div class="clan-v22-level"><span class="clan-v22-position">#${esc(e.demon.position||'—')}</span><div><a class="link" data-nav href="${url('demon',{id:e.demon.id})}"><b>${esc(e.demon.name)}</b></a><div class="small muted">Terminé par ${[...e.players].map(who).map(esc).join(', ')}</div></div><span>${Number(e.demon.position)<=150?fmt(score(e.demon,100))+' pts':'NLW'}</span></div>`).join('');
+  const completedHtml=finished.slice(0,100).map(e=>`<div class="clan-v22-level"><span class="clan-v22-position">#${esc(e.demon.position||'—')}</span><div><a class="link" data-nav href="${url('demon',{id:e.demon.id})}"><b>${esc(e.demon.name)}</b></a><div class="small muted">Terminé par ${[...e.players].map(k=>esc(who(k))+(e.verifiers?.has(k)?' <span class="tag">vérification</span>':'')).join(', ')}</div></div><span>${Number(e.demon.position)<=150?fmt(score(e.demon,100))+' pts':'NLW'}</span></div>`).join('');
   const latest=[...selected.completions].sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||''))).slice(0,8);
   return v2Header('Profil de clan · '+esc(c.name),'Classement, membres, accomplissements et gestion communautaire.')+actorSelect+clanInvitationsHtml(actor,data)+`<a data-nav class="clan-v22-back" href="${url('clans')}">← Retour au classement des clans</a><div class="clan-v22-hero clan-v99-style-${clanStyle(c.card_style)}" style="--clan-accent:${esc(CLAN_PLUS.hex(c.color))}">${showPicture(c.banner_url,'clan-v22-banner')}<div class="clan-v22-hero-body"><div class="clan-v22-logo">${showPicture(c.logo_url,'clan-v22-logo-image',c.tag)||esc(c.tag)}</div><div><span class="clan-v22-eyebrow">[${esc(c.tag)}] · ${c.recruiting?'Recrutement ouvert':'Sur invitation'}</span><h2>${esc(c.name)}</h2>${c.motto?`<div class="clan-v99-hero-motto">${esc(c.motto)}</div>`:''}<p>${esc(c.description||'')}</p></div></div></div>${rankBlock(selected)}${metrics(selected)}<div class="clan-v22-tabs">${[['overview','Présentation'],['members','Membres'],['levels','Démons complétés'],['created','Créations']].map(([id,label])=>`<button class="${tab===id?'active':''}" data-clan-tab="${id}" type="button">${label}</button>`).join('')}</div>${tab==='members'?`<section class="clan-section"><h2>Membres du clan (${selected.members.length})</h2>${membersHtml||'<p class="muted">Aucun membre.</p>'}</section>`:tab==='levels'?`<section class="clan-section"><h2>Collection de démons du clan</h2><p class="small muted">Chaque niveau est compté une seule fois, même si plusieurs membres l'ont terminé. Les points principaux cumulés, eux, sont la somme des points individuels.</p><div class="clan-v22-split"><span>Main : ${selected.mainCount}</span><span>Extended : ${selected.extendedCount}</span><span>NLW : ${selected.nlw.length}</span><span>Créés ou publiés : ${selected.created.length}</span></div><div class="clan-v22-levels">${completedHtml||'<p class="muted">Aucune complétion.</p>'}</div>${finished.length>100?'<p class="small muted">Seuls les 100 premiers niveaux sont affichés pour garder la page rapide.</p>':''}</section>`:tab==='created'?`<section class="clan-section"><h2>Niveaux créés ou publiés</h2><p class="muted small">Niveaux dont un membre est crédité comme créateur ou éditeur. Les crédits ne rapportent pas automatiquement des points de clan.</p><div class="clan-v22-levels">${selected.created.map(d=>`<div class="clan-v22-level"><span class="clan-v22-position">#${esc(d.position||'—')}</span><a data-nav class="link" href="${url('demon',{id:d.id})}">${esc(d.name)}</a><span>${Number(d.position)<=150?'Top 150':'NLW'}</span></div>`).join('')||'<p class="muted">Aucun niveau créé ou publié connu.</p>'}</div></section>`:`<section class="clan-section"><h2>Vue d'ensemble</h2><div class="clan-v22-split"><span>Points de niveaux distincts : ${fmt(selected.levelPoints)}</span><span>Top 150 : ${selected.topCount}</span><span>Main : ${selected.mainCount}</span><span>Extended : ${selected.extendedCount}</span></div><h3>Dernières complétions des membres</h3>${latest.map(r=>`<div class="clan-v22-recent"><span>${esc(date(r.created_at)||'Date inconnue')}</span><a data-nav class="link" href="${url('player',{player:key(r.player)})}">${esc(who(r.player))}</a><span>→</span><a data-nav class="link" href="${url('demon',{id:r.demon.id})}">${esc(r.demon.name)}</a></div>`).join('')||'<p class="muted">Aucune complétion.</p>'}</section>`}${actions(c)}</section>`;
  }
@@ -2916,7 +2970,15 @@ async function save(table,item,{upsert=false,on=null}={}){
  const {error}=await q;if(error)throw Error(error.message);
 }
 async function handleForm(form,submitter=null){if(ownerPreviewActive()&&new URLSearchParams(location.search).get('page')==='admin')throw Error('Aperçu du rôle en lecture seule.');if(state.busy)return;state.busy=true;const submit=form.querySelector('[type="submit"],button:not([type])');if(submit)submit.disabled=true;
- try{ if(form.dataset.form==='v86Weekly'){
+ try{ if(form.dataset.form==='v194Cosmetic'){
+  if(!LIVE||state.staffRole!=='owner'||ownerPreviewActive())throw Error('Réservé aux owners.');
+  const cat=form.category.value,slug=String(form.slug.value||'').trim().toLowerCase();
+  const toIso=v=>v?new Date(v).toISOString():null;
+  const {error}=await db.rpc('dlfr_owner_cosmetic_save',{p_item_key:form.existing.value||cat+'_'+slug,p_category:cat,p_label:form.label.value,p_description:form.description.value,p_emoji:form.emoji.value,
+   p_price:Number(form.price.value),p_rarity:form.rarity.value,p_active:form.active.checked,p_style:(cat==='theme'||!form.c0)?null:v194Style(form),p_available_from:toIso(form.from.value),p_available_until:toIso(form.until.value)});
+  if(error)throw error;V194.undo=null;V194.edit=form.existing.value||cat+'_'+slug;toast('Cosmétique enregistré : il est visible dans la boutique.');await v194Load();return;
+ }
+ if(form.dataset.form==='v86Weekly'){
   if(!LIVE||state.staffRole!=='owner'||ownerPreviewActive())throw Error('Réservé au propriétaire.');
   const f=Object.fromEntries(new FormData(form).entries());
   const {error}=await db.rpc('dlfr_owner_weekly_save',{p_week:f.week_start,p_demon_id:Number(f.demon_id),p_reward:Number(f.reward)});
@@ -3497,6 +3559,10 @@ function bootEvents(){
    if(button.matches('[data-owner-preview-role],[data-admin-tab],[data-level-group],[data-identity-tab]'))return;
    ev.preventDefault();ev.stopImmediatePropagation();toast('Aperçu en lecture seule.');
  },true);
+ // V194 — éditeur de cosmétiques
+ document.addEventListener('click',ev=>{const e=ev.target.closest?.('[data-v194-edit],[data-v194-new]');if(!e)return;ev.preventDefault();if(V194.undo){V194.undo();V194.undo=null;}V194.edit=e.dataset.v194Edit||null;v194Render();document.getElementById('v194-cosm')?.scrollIntoView({behavior:'smooth',block:'start'});});
+ const v194Input=ev=>{const f=ev.target.closest?.('[data-form="v194Cosmetic"]');if(!f)return;if(ev.type==='change'&&ev.target.name==='category'){const cat=f.category.value,d=V194_DEF[cat];if(d)d.forEach((c,i)=>{if(f['c'+i])f['c'+i].value=c;});}v194Preview();};
+ document.addEventListener('input',v194Input);document.addEventListener('change',v194Input);
  document.addEventListener('click',async(ev)=>{
   const testBtn=ev.target.closest('[data-v86-test]');
   if(testBtn){if(state.staffRole!=='owner'||ownerPreviewActive())return;testBtn.disabled=true;try{const {error}=await db.rpc('dlfr_owner_test_item',{p_item_key:testBtn.dataset.v86Test,p_enable:testBtn.dataset.v86Enable==='true'});if(error)throw error;toast(testBtn.dataset.v86Enable==='true'?'Essai activé : ouvre la boutique pour équiper l’objet.':'Accès de test retiré.');await v86AdminLoad();await v81RewardsRender();await v81ProfileRewards();}catch(e){toast('Erreur : '+e.message);testBtn.disabled=false;}return;}

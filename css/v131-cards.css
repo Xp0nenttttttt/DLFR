@@ -483,3 +483,15 @@ html.dark .c131-step.t0,.dlfr117-panel .c131-step.t0,.dlfr117-game .c131-step.t0
 .c191-item{display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 8px;border-radius:10px;background:rgba(255,255,255,.14);border:1px solid rgba(255,215,120,.45);text-align:center;line-height:1.15;margin:4px 0}
 .c191-item>span{font-size:1.6rem}.c191-item b{font-size:.78rem}.c191-item small{font-size:.66rem;opacity:.8}
 .c191-hint{right:auto;left:6px}
+/* V194 — éditeur de cosmétiques (owners) */
+.v194-form{border:1px solid var(--line,rgba(127,127,127,.25));border-radius:14px;padding:14px;margin:10px 0 16px;display:grid;grid-template-columns:1fr 220px;gap:14px}
+.v194-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px 12px}.v194-wide{grid-column:1/-1}
+.v194-key{display:flex;align-items:center;gap:2px}.v194-key b{font-family:ui-monospace,monospace;font-size:.85rem;opacity:.75}.v194-key input{flex:1;min-width:0}
+.v194-colors{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.v194-colors input[type=color]{width:44px;height:34px;padding:0;border-radius:8px;border:1px solid rgba(127,127,127,.4);cursor:pointer}
+.v194-colors input[data-off]{display:none}.v194-check{display:inline-flex;align-items:center;gap:6px;font-size:.92rem}
+.v194-preview{align-self:start;display:flex;flex-direction:column;gap:6px;align-items:stretch;justify-content:flex-start;min-height:120px}.v194-shopcard{margin:0;max-width:240px;width:100%}
+.v194-actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}.v194-list h4{margin:14px 0 6px}.v194-list .is-off{opacity:.6}
+@media(max-width:720px){.v194-form{grid-template-columns:1fr}}
+/* V195 — éditeur de boosters */
+.c195-packs input,.c195-packs select{width:100%;min-width:64px;box-sizing:border-box}.c195-packs td:first-child input{min-width:150px}.c195-packs td:nth-child(2) input{min-width:180px}
+.c195-packs td small{display:block;font-size:.7rem}.c195-packs tr.is-off{opacity:.55}

@@ -1,0 +1,10 @@
+-- V194 à V196 (appliqués) — préparation de la passation.
+-- V194 : demons 1663 « Geochroma Reminisce (2P) » passé en completion_mode = 'two_player'.
+-- V194 : dlfr_reward_catalog.style (jsonb : {"c":[2 à 4 couleurs #rrggbb], "anim":bool}) pour les cosmétiques
+--        créés depuis le site ; dlfr_owner_cosmetics_list() et dlfr_owner_cosmetic_save(...) réservées aux owners
+--        (l'identifiant commence par la catégorie, un nouveau thème est refusé car il demande du CSS).
+-- V195 : dlfr_cards_packs_get() (lecture publique) et dlfr_cards_packs_set(p_cfg) (onglet Gestion) :
+--        dlfr_cards_config « packs » = {"overrides":{id:{name,subtitle,shards,keys,count,level,guarantee,
+--        finishBoost,theme,emblem,exclusive,hidden}}, "custom":[{id:'x-…', …, weights:[6]}]}.
+-- V196 : revoke execute de dlfr_make_room(integer) et dlfr_award_progress(text, boolean) pour public, anon,
+--        authenticated (fonctions internes ; dlfr_make_room décalait les rangs de tous les niveaux).

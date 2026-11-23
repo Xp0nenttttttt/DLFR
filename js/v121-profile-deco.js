@@ -86,7 +86,28 @@ function icons(items){
  const order={banner:0,frame:1,badge:2,name:3,card:4};
  return `<span class="pd-icons">${list.slice().sort((a,b)=>(order[a.category]??3)-(order[b.category]??3)).map(x=>`<span class="pd-icon pd-icon-${esc(x.category)} pd-icon-${esc(x.item_key)}" title="${esc(INFO[x.item_key]?.name||x.label||'')}" aria-label="${esc(INFO[x.item_key]?.name||x.label||'')}">${esc(x.emoji||'✦')}</span>`).join('')}</span>`;
 }
-window.DLFR_DECO={PRESTIGE,INFO,safe,cls,layer,medals,icons,apply,preview,panel};
+// V194 — cosmétiques créés depuis le site (éditeur des owners) : le style vient de la base (2 à 4 couleurs +
+// animation), le CSS est généré ici pour chaque objet. Les objets historiques gardent leur CSS dédié.
+const HEX=/^#[0-9a-fA-F]{6}$/,STYLED=new Map();
+const rgba=(h,a)=>`rgba(${parseInt(h.slice(1,3),16)},${parseInt(h.slice(3,5),16)},${parseInt(h.slice(5,7),16)},${a})`;
+function cssFor(key,cat,st){
+ const c=(Array.isArray(st?.c)?st.c:[]).filter(x=>HEX.test(x)).slice(0,4);if(c.length<2||!/^[a-z0-9_]+$/.test(key))return '';
+ const k='.pd-'+key,lin=c.join(','),anim=!!st.anim;
+ if(cat==='name')return `${k} .dlfr-pname{background-image:linear-gradient(90deg,${lin},${c[0]})${anim?';background-size:300% 100%;animation:pn-slide 5s linear infinite':''}}`;
+ if(cat==='banner')return `${k}{--pd-tint:linear-gradient(180deg,${rgba(c[0],.55)},${rgba(c[c.length-1],.45)})}${k} .pd-hero:not(.pd-mini-hero),.pd-mini${k}>.pd-hero{background:linear-gradient(135deg,${lin})!important;background-size:${anim?'240% 240%':'100% 100%'}!important;color:#fff${anim?';animation:pd-dyn-shift 9s ease-in-out infinite alternate':''}}${k} .pd-hero:not(.pd-mini-hero)>.pd-layer>.pd-p,.pd-mini${k}>.pd-hero>.pd-layer>.pd-p{background:${rgba(c[1],.9)};box-shadow:0 0 6px ${rgba(c[1],.8)}}`;
+ if(cat==='frame')return `${k} .dlfr27-frame:not(.pd-mini-frame),.pd-mini${k} .pd-mini-frame{background:conic-gradient(from var(--pd-angle),${lin},${c[0]});box-shadow:0 0 20px ${rgba(c[0],.55)}${anim?';animation:pd-angle 6s linear infinite':''}}`;
+ if(cat==='card')return `.stats-profile${k},.dlfr251-preview${k},.dlfr128-mini${k}{background:${c[c.length-1]}}${k}>.pcs-bg::before{background:linear-gradient(135deg,${c.map((x,i)=>rgba(x,i===c.length-1?.95:.75)).join(',')});background-size:${anim?'220% 220%':'100% 100%'}${anim?';animation:pd-dyn-shift 10s ease-in-out infinite alternate':''}}${k}>.pcs-bg::after{background:linear-gradient(180deg,rgba(8,10,20,.15),rgba(8,10,20,.55))}`;
+ if(cat==='badge')return `.pd-medal-${key}{background:radial-gradient(circle at 50% 70%,${c[0]},${c[1]} 50%,${c[c.length-1]});box-shadow:0 0 0 2px ${rgba(c[0],.55)},0 0 14px ${rgba(c[1],.8)}${anim?';animation:pd-burn 1.4s ease-in-out infinite alternate':''}}`;
+ return '';
+}
+function setStyles(rows){
+ for(const r of Array.isArray(rows)?rows:[])if(r&&r.style&&/^[a-z0-9_]+$/.test(String(r.item_key||'')))STYLED.set(r.item_key,{cat:r.category||String(r.item_key).split('_')[0],st:r.style});
+ let el=document.getElementById('dlfr-dyn-cosmetics');if(!el){el=document.createElement('style');el.id='dlfr-dyn-cosmetics';document.head.append(el);}
+ el.textContent='@keyframes pd-dyn-shift{0%{background-position:0% 50%}100%{background-position:100% 50%}}@media(prefers-reduced-motion:reduce){[class*="pd-"] .dlfr-pname,.pd-hero,.pcs-bg::before{animation:none!important}}'+[...STYLED].map(([k,v])=>cssFor(k,v.cat,v.st)).join('\n');
+}
+// Aperçu en direct dans l'éditeur (sans enregistrer).
+function previewStyle(key,cat,style){const x=STYLED.get(key);STYLED.set(key,{cat,st:style});setStyles([]);return ()=>{if(x)STYLED.set(key,x);else STYLED.delete(key);setStyles([]);};}
+window.DLFR_DECO={PRESTIGE,INFO,safe,cls,layer,medals,icons,apply,preview,panel,setStyles,previewStyle};
 // Reflet qui suit la souris sur les bannières.
 let raf=0;
 document.addEventListener('pointermove',ev=>{

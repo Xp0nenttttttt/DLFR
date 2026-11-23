@@ -252,7 +252,8 @@ async function send(db,type,f,submitter){
    const {data:published,error:checkError}=await db.from('demons').select('id,name,completion_mode').eq('level_id',level_id).eq('is_public',true).limit(20);
    if(checkError)throw Error('Impossible de vérifier le niveau. Réessaie.');
    if((published||[]).some(d=>String(d.completion_mode||'standard')===variant))throw Error('Cette variante est déjà publiée : sélectionne-la dans la liste.');
-   if((published||[]).length&&(!(variant==='solo'||variant==='two_player')||(published||[]).some(d=>!['solo','two_player'].includes(String(d.completion_mode||'standard')))))throw Error('ID GD déjà utilisé : choisis la variante Solo (1P) ou 2P appropriée.');
+   // V194 : une fiche « Standard » existante (souvent un niveau 2P) n'empêche plus de proposer sa variante Solo (1P) ou 2P.
+   if((published||[]).length&&variant==='standard')throw Error('ID GD déjà utilisé : choisis la variante Solo (1P) ou 2P appropriée.');
   }
   const {data:{user:who},error:whoError}=await db.auth.getUser();
   if(whoError||!who)throw Error('Connecte-toi pour envoyer ta soumission.');

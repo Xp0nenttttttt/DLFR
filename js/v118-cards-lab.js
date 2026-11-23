@@ -295,10 +295,35 @@ function destDuration(d){return Math.round(d.min*60000*(1-.08*rank('ex2')-.02*ra
 // V147 — un booster par collection (réglé dans le Catalogue).
 const ODDS_DEFAULT={packs:Object.fromEntries(PACKS.map(p=>[p.id,p.weights.slice()])),collection:ODDS.col.slice(),finishes:FIN_BASE.slice(1),secret:ODDS.secret,myth_pity:ODDS.mythPity,leg_pity:ODDS.legBase};
 function oddsNow(){return {packs:{...Object.fromEntries(PACKS.map(p=>[p.id,p.weights.slice()])),collection:ODDS.col.slice()},finishes:FIN_BASE.slice(1),secret:ODDS.secret,myth_pity:ODDS.mythPity,leg_pity:ODDS.legBase};}
+// V195 — Boosters modifiables depuis l'onglet Gestion : la base (dlfr_cards_config « packs ») peut modifier les
+// boosters du jeu (nom, prix, cartes, niveau, garantie, finitions, thème, masquer) et en ajouter de nouveaux.
+const PACKS_BASE=PACKS.map(p=>({...p,cost:{...p.cost},weights:p.weights.slice()}));
+const PACK_THEMES=['violet','blue','green','gold','crimson','demon','prism','royal','divine','cosmic'];
+let PACKS_CFG=null,LAST_ODDS=null;
+function packFrom(b,o){
+ o=o&&typeof o==='object'?o:{};const n=(v,lo,hi,d)=>Number.isFinite(+v)&&+v>=lo&&+v<=hi?Math.round(+v):d;
+ const shards=n(o.shards,0,1e8,b.cost?.shards||0),keys=n(o.keys,0,1000,b.cost?.keys||0),cost={};if(shards||!keys)cost.shards=shards;if(keys)cost.keys=keys;
+ const w=Array.isArray(o.weights)&&o.weights.length===6&&o.weights.every(x=>Number.isFinite(+x)&&+x>=0)&&o.weights.some(x=>+x>0)?o.weights.map(Number):b.weights.slice();
+ const str=(v,max,d)=>typeof v==='string'&&v.trim()?v.trim().slice(0,max):d;
+ return {...b,name:str(o.name,40,b.name),subtitle:str(o.subtitle,120,b.subtitle||''),emblem:str(o.emblem,4,b.emblem||'✦'),theme:PACK_THEMES.includes(o.theme)?o.theme:b.theme,
+  count:n(o.count,1,20,b.count),cost,level:n(o.level,1,1000,b.level||1),guarantee:n(o.guarantee,0,4,b.guarantee||0),finishBoost:Number.isFinite(+o.finishBoost)&&+o.finishBoost>=1&&+o.finishBoost<=20?+o.finishBoost:(b.finishBoost||1),
+  exclusive:o.exclusive==null?b.exclusive:n(o.exclusive,0,3,0),weights:w,hidden:!!o.hidden};
+}
+const PACK_NEW={name:'Nouveau booster',count:5,cost:{shards:500},level:1,weights:[40,35,18,6,1,.01],guarantee:2,theme:'blue',emblem:'✦',subtitle:'',finishBoost:1};
+function applyPacks(cfg){
+ PACKS_CFG=cfg&&typeof cfg==='object'?cfg:null;
+ const ov=PACKS_CFG?.overrides&&typeof PACKS_CFG.overrides==='object'?PACKS_CFG.overrides:{},cu=Array.isArray(PACKS_CFG?.custom)?PACKS_CFG.custom:[],out=[];
+ for(const b of PACKS_BASE){const p=packFrom(b,ov[b.id]);if(p.hidden&&b.id!=='start')continue;out.push(p);}
+ for(const c of cu){if(!/^x-[a-z0-9-]{2,30}$/.test(String(c?.id||'')))continue;const p=packFrom({...PACK_NEW,id:c.id},c);if(!p.hidden)out.push(p);}
+ PACKS.length=0;PACKS.push(...out);
+ for(const p of PACKS)ODDS_DEFAULT.packs[p.id]=p.weights.slice();
+ applyOdds(LAST_ODDS);
+}
 function applyOdds(cfg){
+ LAST_ODDS=cfg&&typeof cfg==='object'?cfg:null;
  const ok6=a=>Array.isArray(a)&&a.length===6&&a.every(x=>Number.isFinite(+x)&&+x>=0)&&a.some(x=>+x>0);
  const src=cfg&&typeof cfg==='object'?cfg:null,D=ODDS_DEFAULT;
- for(const p of PACKS){const w=src?.packs?.[p.id];p.weights=(ok6(w)?w:D.packs[p.id]).map(Number);}
+ for(const p of PACKS){const w=src?.packs?.[p.id];p.weights=(ok6(w)?w:(D.packs[p.id]||p.weights)).map(Number);}
  ODDS.col=(ok6(src?.packs?.collection)?src.packs.collection:D.collection).map(Number);
  const f=Array.isArray(src?.finishes)&&src.finishes.length===4&&src.finishes.every(x=>Number.isFinite(+x)&&+x>=0&&+x<=.5)?src.finishes:D.finishes;
  for(let i=0;i<4;i++)FIN_BASE[i+1]=Number(f[i]);
@@ -498,6 +523,28 @@ function upgradeAll(maxStars){const plan=upgradePlan(maxStars);
  log(`Forge automatique : ${n} étoile${n>1?'s':''} ajoutée${n>1?'s':''} sur ${plan.cards} carte${plan.cards>1?'s':''}.`);toast('Forge',`${n} étoile${n>1?'s':''} ajoutée${n>1?'s':''} sur ${plan.cards} carte${plan.cards>1?'s':''}`,'forge');SAVE.urgent=true;}
 // V178 — Prestige de carte : une carte ★10 repart à ★0 et gagne un palier de Prestige (10 paliers puis MAX).
 function cardPrestigeCost(v){return Math.round(8000*((v.prestige||0)+1)*forgeDiscount());}
+// V194 — « Tout au maximum » : étoiles ET Prestiges de carte en boucle (★10 → Prestige → ★0 → … ) tant que les
+// doublons et la poussière le permettent, en prenant toujours l'opération la moins chère.
+function maxPlan(){
+ const sim=[],steps=[];let dust=progress.dust;
+ for(const c of CARDS){const v=owned.get(c.id);if(v&&v.count>0)sim.push({c,count:v.count,stars:v.stars||0,prestige:v.prestige||0});}
+ for(let guard=0;guard<200000;guard++){let best=null,cost=Infinity,type='';
+  for(const x of sim){
+   if(x.stars>=MAX_STARS){if(x.prestige<CARD_MAX_PRESTIGE){const k=cardPrestigeCost(x);if(k<=dust&&k<cost){best=x;cost=k;type='pres';}}continue;}
+   const k=starCost(x.c,{stars:x.stars,prestige:x.prestige});if(k&&x.count-1>=k.copies&&k.dust<=dust&&k.dust<cost){best=x;cost=k.dust;type='star';}}
+  if(!best)break;
+  if(type==='star'){const k=starCost(best.c,{stars:best.stars,prestige:best.prestige});best.count-=k.copies;best.stars++;}else{best.stars=0;best.prestige++;}
+  dust-=cost;steps.push({id:best.c.id,type});}
+ return {steps,stars:steps.filter(x=>x.type==='star').length,pres:steps.filter(x=>x.type==='pres').length,cards:new Set(steps.map(x=>x.id)).size,dust:progress.dust-dust};
+}
+function maxAll(){const plan=maxPlan();
+ if(!plan.steps.length){toast('Forge','Rien à améliorer avec tes doublons et ta poussière.','info');return;}
+ if(!confirm(`Tout au maximum : ${fmt(plan.stars)} étoile${plan.stars>1?'s':''} et ${fmt(plan.pres)} Prestige${plan.pres>1?'s':''} de carte sur ${plan.cards} carte${plan.cards>1?'s':''}, pour ${fmt(plan.dust)} ✧ (il te restera ${fmt(progress.dust-plan.dust)} ✧). Continuer ?`))return;
+ let st=0,pr=0;
+ for(const x of plan.steps){const v=owned.get(Number(x.id));if(!v)continue;
+  if(x.type==='star'){if(upgradeCard(x.id,true))st++;}
+  else{if((v.stars||0)<MAX_STARS||(v.prestige||0)>=CARD_MAX_PRESTIGE)continue;const k=cardPrestigeCost(v);if(progress.dust<k)continue;progress.dust-=k;v.stars=0;v.prestige=(v.prestige||0)+1;S().cardPrestiges=(S().cardPrestiges||0)+1;pr++;}}
+ log(`Forge « Tout au maximum » : ${st} étoile${st>1?'s':''} et ${pr} Prestige${pr>1?'s':''} de carte.`);toast('Forge',`${fmt(st)} étoile${st>1?'s':''} et ${fmt(pr)} Prestige${pr>1?'s':''} de carte`,'forge');SAVE.urgent=true;}
 function prestigeCard(id){const c=get(id),v=owned.get(Number(id));if(!c||!v||(v.stars||0)<MAX_STARS||(v.prestige||0)>=CARD_MAX_PRESTIGE)return;
  const cost=cardPrestigeCost(v);if(progress.dust<cost){toast('Forge',`Il faut ${fmt(cost)} ✧ pour ce Prestige.`,'info');return;}
  const nx=cardPrestigeName((v.prestige||0)+1);
@@ -986,7 +1033,8 @@ function forgeView(data){
  const plan5=upgradePlan(5),planAll=upgradePlan(MAX_STARS);
  const toolbar=`<div class="c184-auto"><div><b>⚡ Amélioration automatique</b><span>Ajoute le plus d’étoiles possible avec tes doublons et ta poussière (${fmt(progress.dust)} ✧), en commençant par les améliorations les moins chères.</span></div>
   <div class="c184-auto-btns"><button class="btn" type="button" data-v112-act="forge-all" data-max="5" ${plan5.steps.length?'':'disabled'}>Jusqu’à ★5 · ${plan5.steps.length} étoile${plan5.steps.length>1?'s':''} · ${fmt(plan5.dust)} ✧</button>
-  <button class="btn subtle" type="button" data-v112-act="forge-all" data-max="${MAX_STARS}" ${planAll.steps.length?'':'disabled'}>Tout, Éveil compris · ${planAll.steps.length} étoile${planAll.steps.length>1?'s':''} · ${fmt(planAll.dust)} ✧</button></div></div>
+  <button class="btn subtle" type="button" data-v112-act="forge-all" data-max="${MAX_STARS}" ${planAll.steps.length?'':'disabled'}>Tout, Éveil compris · ${planAll.steps.length} étoile${planAll.steps.length>1?'s':''} · ${fmt(planAll.dust)} ✧</button>
+  <button class="btn subtle" type="button" data-v112-act="forge-maxall" title="Monte les cartes à ★10, passe leurs Prestiges, recommence, jusqu’à épuisement des doublons ou de la poussière">✺ Tout au maximum, Prestiges compris</button></div></div>
   <div class="c184-tools"><input type="search" data-v184-forge="q" value="${esc(FORGE.q)}" placeholder="Rechercher une carte…" aria-label="Rechercher une carte">
    <select data-v184-forge="f" aria-label="Filtrer">${[['all','Toutes'],['ready','Prêtes à améliorer'],['copies','Doublons OK, poussière manquante'],['pres','Prestige possible (★10)'],['fuse','Fusion possible'],['max','Au maximum']].map(([k,l])=>`<option value="${k}" ${FORGE.f===k?'selected':''}>${l} (${counts[k]})</option>`).join('')}</select>
    <select data-v184-forge="r" aria-label="Rareté"><option value="all">Toutes les raretés</option>${rarities.map((r,i)=>`<option value="${i}" ${FORGE.r===String(i)?'selected':''}>${esc(r)}</option>`).join('')}</select>
@@ -1326,7 +1374,7 @@ function useFallback(){COLLECTIONS=FALLBACK_COLLECTIONS.map(c=>({...c}));CARDS.l
 async function loadCatalog(){
  if(!DB)return;catalog.status='loading';
  try{
-  DB.rpc('dlfr_cards_config_get').then(({data})=>{applyOdds(data);repaint();}).catch(()=>{});
+  Promise.all([DB.rpc('dlfr_cards_packs_get').catch(()=>({data:null})),DB.rpc('dlfr_cards_config_get')]).then(([pk,od])=>{LAST_ODDS=od?.data&&typeof od.data==='object'?od.data:null;applyPacks(pk?.data||null);repaint();}).catch(()=>{}); // V195
   // V192 : catalogue partagé et gardé en copie locale (l'équipe recharge toujours la version à jour).
   const [c,k]=window.DLFR_CARDS_CATALOG?await window.DLFR_CARDS_CATALOG.load(DB,editor).then(r=>[r.collections,r.cards]):await Promise.all([
    DB.from('dlfr_card_collections').select('*').order('sort_order',{ascending:true}).order('id',{ascending:true}),
@@ -1817,6 +1865,44 @@ async function mgOptimize(){
 }
 const MG_RAR=['Commun','Rare','Épique','Légendaire','Mythique','Ultra'];
 function mgDate(t,withTime){if(!t)return '';const d=new Date(t);return withTime?d.toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit'});}
+// V195 — éditeur des boosters (onglet Gestion).
+function packsDraft(){
+ if(MG.packs)return MG.packs;
+ const ov=PACKS_CFG?.overrides||{},cu=Array.isArray(PACKS_CFG?.custom)?PACKS_CFG.custom:[];
+ MG.packs=[...PACKS_BASE.map(b=>({...packFrom(b,ov[b.id]),base:true})),...cu.filter(c=>/^x-[a-z0-9-]{2,30}$/.test(String(c?.id||''))).map(c=>({...packFrom({...PACK_NEW,id:c.id},c),base:false}))];
+ return MG.packs;
+}
+function packsEditorHTML(){
+ const rows=packsDraft(),G=['Aucune','Rare','Épique','Légendaire','Mythique'];
+ return `<div class="dlfr176-block"><h3>📦 Boosters</h3>
+  <p class="muted">Modifie les boosters du jeu ou crée-en de nouveaux. Les probabilités de rareté se règlent dans le tableau « Probabilités » ci-dessus (un nouveau booster y apparaît après l’enregistrement). « Finitions ×N » multiplie les chances de holo, prismatique, obsidienne et shiny. Un booster masqué disparaît pour tout le monde. Appliqué à tous les joueurs au prochain chargement de la page.</p>
+  <div class="dlfr176-scroll"><table class="dlfr176-table c195-packs"><thead><tr><th>Booster</th><th>Sous-titre</th><th>Éclats ◆</th><th>Clés</th><th>Cartes</th><th>Niveau</th><th>Garantie</th><th>Finitions ×</th><th>Thème</th><th>Emblème</th><th>Exclusif</th><th>Masqué</th><th></th></tr></thead><tbody>
+  ${rows.map((p,i)=>`<tr data-pk="${i}" class="${p.hidden?'is-off':''}"><td><input data-pf="name" maxlength="40" value="${esc(p.name)}"><small class="muted">${esc(p.id)}</small></td>
+   <td><input data-pf="subtitle" maxlength="120" value="${esc(p.subtitle||'')}"></td>
+   <td><input data-pf="shards" type="number" min="0" max="100000000" value="${+(p.cost?.shards||0)}"></td><td><input data-pf="keys" type="number" min="0" max="1000" value="${+(p.cost?.keys||0)}"></td>
+   <td><input data-pf="count" type="number" min="1" max="20" value="${p.count}"></td><td><input data-pf="level" type="number" min="1" max="1000" value="${p.level||1}"></td>
+   <td><select data-pf="guarantee">${G.map((g,k)=>`<option value="${k}" ${+p.guarantee===k?'selected':''}>${g}</option>`).join('')}</select></td>
+   <td><input data-pf="finishBoost" type="number" min="1" max="20" step="0.5" value="${p.finishBoost||1}"></td>
+   <td><select data-pf="theme">${PACK_THEMES.map(t=>`<option ${p.theme===t?'selected':''}>${t}</option>`).join('')}</select></td>
+   <td><input data-pf="emblem" maxlength="4" value="${esc(p.emblem||'✦')}"></td>
+   <td><select data-pf="exclusive">${['Non','Exclusif','Exclusif +','Ultra-exclusif'].map((l,k)=>`<option value="${k}" ${+(p.exclusive||0)===k?'selected':''}>${l}</option>`).join('')}</select></td>
+   <td>${p.id==='start'?'—':`<input data-pf="hidden" type="checkbox" ${p.hidden?'checked':''}>`}</td>
+   <td>${p.base?'':`<button class="btn small subtle" type="button" data-v112-act="mg-packs-del" data-i="${i}">Supprimer</button>`}</td></tr>`).join('')}</tbody></table></div>
+  <div class="dlfr176-row"><button class="btn small subtle" type="button" data-v112-act="mg-packs-add">+ Nouveau booster</button><button class="btn small" type="button" data-v112-act="mg-packs-save">Enregistrer les boosters</button><button class="btn small subtle" type="button" data-v112-act="mg-packs-default">Revenir aux boosters d’origine</button></div></div>`;
+}
+function packsReadForm(){
+ const rows=packsDraft();
+ for(const tr of document.querySelectorAll('.c195-packs tr[data-pk]')){const p=rows[+tr.dataset.pk];if(!p)continue;
+  for(const el of tr.querySelectorAll('[data-pf]')){const f=el.dataset.pf,v=el.type==='checkbox'?el.checked:el.value;
+   if(f==='shards'||f==='keys'){p.cost={...p.cost,[f]:Math.max(0,Number(v)||0)};}else if(['count','level','guarantee','exclusive'].includes(f))p[f]=Math.round(Number(v)||0);else if(f==='finishBoost')p[f]=Number(v)||1;else p[f]=v;}}
+ return rows;
+}
+function packsConfig(rows){
+ const fields=p=>({name:p.name,subtitle:p.subtitle,shards:+(p.cost?.shards||0),keys:+(p.cost?.keys||0),count:p.count,level:p.level,guarantee:p.guarantee,finishBoost:p.finishBoost,theme:p.theme,emblem:p.emblem,exclusive:+(p.exclusive||0),hidden:!!p.hidden});
+ const overrides={},custom=[];
+ for(const p of rows){if(p.base)overrides[p.id]=fields(p);else custom.push({id:p.id,...fields(p),weights:p.weights});}
+ return {overrides,custom};
+}
 function mgVal(id){return (document.getElementById(id)?.value||'').trim();}
 async function mgCall(fn,args){const {data,error}=await DB.rpc(fn,args||{});if(error)throw error;return data;}
 async function mgLoad(){if(!DB)return;MG.err='';try{const [st,g]=await Promise.all([mgCall('dlfr_cards_manage_status'),mgCall('dlfr_cards_gifts_admin')]);MG.status=st;MG.gifts=g||[];MG.loaded=true;}catch(e){MG.err=errText(e);}repaint();}
@@ -1849,6 +1935,7 @@ function manageHTML(){
    <label>Garantie Légendaire (cartes)<input type="number" min="5" max="10000" step="1" id="dlfr176Leg" value="${o.leg_pity}"></label>
    <label>Garantie Mythique (cartes)<input type="number" min="10" max="100000" step="1" id="dlfr176Myth" value="${o.myth_pity}"></label></div>
   <div class="dlfr176-row"><button class="btn small" type="button" data-v112-act="mg-odds-save">Enregistrer les probabilités</button><button class="btn small subtle" type="button" data-v112-act="mg-odds-default">Revenir aux valeurs par défaut</button></div></div>
+ ${packsEditorHTML()}
  <div class="dlfr176-block"><h3>🎁 Événements : packs offerts</h3>
   <p class="muted">Chaque joueur connecté peut récupérer les packs une fois pendant la période (bandeau doré dans DLFR Cards). Les cartes sont tirées par le serveur.</p>
   <ul class="dlfr176-list">${(MG.gifts||[]).map(g=>`<li><b>${esc(g.title)}</b> · ${g.packs} packs de ${g.per_pack} · ${g.active?'<span class="dlfr176-on">en cours</span>':'terminé'} jusqu’au ${mgDate(g.expires,true)} · ${fmt(g.claims)} joueur(s)${g.badge_id?` · badge ${esc(g.badge_id)}`:''} ${g.active?`<button class="btn small subtle" type="button" data-v112-act="mg-gift-end" data-id="${g.id}">Terminer</button>`:''}</li>`).join('')||'<li class="muted">Aucun événement.</li>'}</ul>
@@ -1875,6 +1962,13 @@ async function manageAction(act,b){
    if(!confirm(`REMETTRE À ZÉRO la partie Aventure de ${P.name||P.player_key} ? (niveau, éclats, talents et cartes Aventure ; une copie est gardée)`))return;
    await mgCall('dlfr_cards_admin_reset',{p_player_key:P.player_key});toast('Gestion','Partie remise à zéro.','info');
    MG.player=await mgCall('dlfr_cards_admin_player',{p_player_key:P.player_key});MG.player.player_key=P.player_key;return repaint();}
+  if(act==='mg-packs-add'){const rows=packsReadForm();let k=1;while(rows.some(p=>p.id==='x-booster-'+k))k++;rows.push({...packFrom({...PACK_NEW,id:'x-booster-'+k},{}),base:false});return repaint();}
+  if(act==='mg-packs-del'){const rows=packsReadForm(),p=rows[+b.dataset.i];if(!p||p.base)return;if(!confirm(`Supprimer le booster « ${p.name} » ?`))return;rows.splice(+b.dataset.i,1);return repaint();}
+  if(act==='mg-packs-default'){if(!confirm('Revenir aux boosters d’origine pour tout le monde ? (les boosters créés disparaissent)'))return;await mgCall('dlfr_cards_packs_set',{p_cfg:null});MG.packs=null;applyPacks(null);toast('Gestion','Boosters d’origine rétablis.','info');return repaint();}
+  if(act==='mg-packs-save'){const rows=packsReadForm();
+   for(const p of rows){if(String(p.name||'').trim().length<2)return toast('Gestion','Chaque booster doit avoir un nom (2 caractères minimum).','info');if(!(p.count>=1&&p.count<=20))return toast('Gestion',`${p.name} : 1 à 20 cartes.`,'info');}
+   if(!confirm('Enregistrer les boosters pour tous les joueurs ?'))return;
+   const cfg=packsConfig(rows);await mgCall('dlfr_cards_packs_set',{p_cfg:cfg});MG.packs=null;applyPacks(cfg);toast('Gestion','Boosters enregistrés.','info');return repaint();}
   if(act==='mg-odds-save'||act==='mg-odds-default'){
    if(act==='mg-odds-default'){if(!confirm('Revenir aux probabilités par défaut pour tout le monde ?'))return;await mgCall('dlfr_cards_config_set',{p_odds:null});applyOdds(null);toast('Gestion','Probabilités par défaut rétablies.','info');return repaint();}
    const packs={};for(const el of document.querySelectorAll('[data-odds-pack]')){(packs[el.dataset.oddsPack]??=[0,0,0,0,0,0])[+el.dataset.i]=Math.max(0,Number(el.value)||0);}
@@ -1941,6 +2035,7 @@ function handleClick(event){
  else if(act==='forge-open'){forgeSel=Number(b.dataset.id);view='forge';}
  else if(act==='upgrade'){upgradeCard(b.dataset.id);}
  else if(act==='forge-all'){upgradeAll(Number(b.dataset.max)||5);}
+ else if(act==='forge-maxall'){maxAll();}
  else if(act==='recycle'){const n=recycleSpare();if(!n)toast('Forge','Aucun doublon à recycler (seulement les cartes ★10).','info');}
  else if(act==='goals-tab'){goalsTab=b.dataset.tab;}
  else if(act==='ch-team'){const id=Number(b.dataset.id);if(chTeam.includes(id))chTeam=chTeam.filter(x=>x!==id);else if(chTeam.length<3)chTeam.push(id);}

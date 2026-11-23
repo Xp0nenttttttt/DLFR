@@ -14,6 +14,7 @@ const nextId=a=>Math.max(0,...a.map(x=>Number(x.id)||0))+1;
 function stats(data, ranked, demons, pointsFor){
  const records=data.completions||[], roster=data.clan_members||[], cl=data.clans||[];
  const demonById=new Map(demons.map(d=>[Number(d.id),d]));const playerByKey=new Map(ranked.map(p=>[key(p.player_key),p]));
+ const playerByLegacy=new Map();for(const p of data.players||[])if(Number(p.legacy_id)>0)playerByLegacy.set(Number(p.legacy_id),p.player_key);
  const result=cl.map(c=>{
    const mm=roster.filter(m=>Number(m.clan_id)===Number(c.id));const keys=new Set(mm.map(m=>key(m.player_key)));
    const people=mm.map(m=>playerByKey.get(key(m.player_key))).filter(Boolean);
@@ -24,6 +25,10 @@ function stats(data, ranked, demons, pointsFor){
      const obj=unique.get(id);obj.players.add(who);
      if(record.created_at&&(!obj.first||String(record.created_at)<String(obj.first)))obj.first=record.created_at;
    }
+   // V194 : les niveaux vérifiés par un membre comptent aussi pour le clan (une vérification vaut une complétion).
+   for(const d of demons){const v=key((Number(d.verifier_user_id)>0&&playerByLegacy.get(Number(d.verifier_user_id)))||d.verifier);if(!v||!keys.has(v))continue;
+     const id=Number(d.id);if(!unique.has(id))unique.set(id,{demon:d,players:new Set(),first:d.created_at||''});
+     const obj=unique.get(id);obj.players.add(v);(obj.verifiers||(obj.verifiers=new Set())).add(v);}
    const entries=[...unique.values()].sort((a,b)=>Number(a.demon.position||Infinity)-Number(b.demon.position||Infinity));
    const top=entries.filter(x=>Number(x.demon.position)>0&&Number(x.demon.position)<=150);
    const nlw=entries.filter(x=>Number(x.demon.position)>150);
